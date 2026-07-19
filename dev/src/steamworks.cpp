@@ -569,6 +569,254 @@ struct SteamState {
     bool HasFriend(CSteamID steam_id, int friend_flags) {
         return SteamFriends()->HasFriend(steam_id, friend_flags);
     }
+
+    // Workshop (UGC) Functions.
+
+    // Sync state: for each installed item that has been copied into the game's dirs,
+    // the install timestamp at the time of copying (so updates get recopied), plus
+    // items that failed and should not be retried this session.
+    map<PublishedFileId_t, uint32> workshop_copied;
+    set<PublishedFileId_t> workshop_failed;
+
+    // Upload state machine.
+    enum class WorkshopUploadStage {
+        Idle,
+        CheckingOwner,   // Querying details of an existing item to verify ownership.
+        Creating,        // Waiting for CreateItem() of a new item.
+        Submitting,      // Waiting for SubmitItemUpdate().
+        Done,
+        Failed,
+        FailedNotOwner,  // The existing item is owned by a different steam user.
+    };
+    WorkshopUploadStage workshop_upload_stage = WorkshopUploadStage::Idle;
+    PublishedFileId_t workshop_upload_file_id = 0;
+    UGCUpdateHandle_t workshop_upload_handle = k_UGCUpdateHandleInvalid;
+    bool workshop_upload_is_new = false;
+    bool workshop_needs_legal_agreement = false;
+    // Upload params kept alive between the async stages.
+    string workshop_upload_content_folder;
+    string workshop_upload_title;
+    string workshop_upload_description;
+    string workshop_upload_metadata;
+    string workshop_upload_changenote;
+    string workshop_upload_preview;
+
+    STEAM_CALLBACK(SteamState, OnDownloadItemResult, DownloadItemResult_t);
+
+    // Steam APIs (SetItemContent etc.) and filesystem ops want absolute paths, but
+    // Lobster games mostly deal in paths relative to their write dir.
+    static string ResolveToAbsolutePath(string_view path) {
+        auto p = SanitizePath(path);
+        if (!IsAbsolute(p)) p = GetMainWriteDir() + p;
+        error_code ec;
+        auto abs = filesystem::absolute(filesystem::path(p), ec);
+        return ec ? p : abs.string();
+    }
+
+    static bool CopyDirRecursive(const filesystem::path &src, const filesystem::path &dst,
+                                 vector<string> &copied_files) {
+        error_code ec;
+        filesystem::create_directories(dst, ec);
+        if (ec) return false;
+        filesystem::recursive_directory_iterator iter(src, ec);
+        if (ec) return false;
+        for (auto &entry : iter) {
+            auto rel = filesystem::relative(entry.path(), src, ec);
+            if (ec) return false;
+            auto target = dst / rel;
+            if (entry.is_directory()) {
+                filesystem::create_directories(target, ec);
+                if (ec) return false;
+            } else if (entry.is_regular_file()) {
+                filesystem::copy_file(entry.path(), target,
+                                      filesystem::copy_options::overwrite_existing, ec);
+                if (ec) return false;
+                copied_files.push_back(target.generic_string());
+            }
+        }
+        return true;
+    }
+
+    // Makes subscribed workshop content progress towards being downloaded & copied
+    // into the game's dirs, see the workshop_sync builtin below.
+    int WorkshopSync(string_view dest_dir, bool own_subdirs, vector<string> &copied_files) {
+        auto num = SteamUGC()->GetNumSubscribedItems();
+        if (!num) return 0;
+        vector<PublishedFileId_t> ids(num);
+        num = SteamUGC()->GetSubscribedItems(ids.data(), num);
+        ids.resize(num);
+        int busy = 0;
+        bool copy_error = false;
+        for (auto id : ids) {
+            if (workshop_failed.count(id)) continue;
+            auto state = SteamUGC()->GetItemState(id);
+            if (!(state & k_EItemStateInstalled) || (state & k_EItemStateNeedsUpdate)) {
+                // Steam auto-downloads subscribed items in most cases, but items
+                // subscribed to while the game is running (e.g. thru the overlay)
+                // need an explicit kick.
+                if (!(state & (k_EItemStateDownloading | k_EItemStateDownloadPending))) {
+                    if (!SteamUGC()->DownloadItem(id, true)) {
+                        LOG_ERROR("WorkshopSync(): DownloadItem() failed for item ", id);
+                        workshop_failed.insert(id);
+                        continue;
+                    }
+                }
+                busy++;
+                continue;
+            }
+            uint64 size_on_disk = 0;
+            char folder[1024] = "";
+            uint32 timestamp = 0;
+            if (!SteamUGC()->GetItemInstallInfo(id, &size_on_disk, folder, sizeof(folder),
+                                                &timestamp)) {
+                LOG_ERROR("WorkshopSync(): GetItemInstallInfo() failed for item ", id);
+                workshop_failed.insert(id);
+                continue;
+            }
+            auto it = workshop_copied.find(id);
+            if (it != workshop_copied.end() && it->second == timestamp) continue;
+            // The item folder is named after the workshop file id, but the files
+            // inside it keep the names they were uploaded with (see SetItemContent),
+            // so copying preserves original filenames.
+            auto dest = filesystem::path(ResolveToAbsolutePath(dest_dir));
+            if (own_subdirs) dest /= to_string(id);
+            if (!CopyDirRecursive(folder, dest, copied_files)) {
+                LOG_ERROR("WorkshopSync(): failed to copy item ", id, " from ", folder);
+                copy_error = true;
+                continue;
+            }
+            LOG_DEBUG("WorkshopSync(): copied item ", id, " from ", folder);
+            workshop_copied[id] = timestamp;
+            // FIXME: if a game needs the uploader-supplied metadata (see
+            // workshop_upload_start) at download time, add an async
+            // CreateQueryUGCDetailsRequest stage here with SetReturnMetadata(true)
+            // and return it alongside the copied files. Not needed for the basic
+            // use case since filenames are already preserved by the copy.
+        }
+        if (copy_error) return -1;
+        if (busy) return 1;
+        return workshop_failed.empty() ? 0 : 2;
+    }
+
+    bool WorkshopUploadInProgress() {
+        return workshop_upload_stage == WorkshopUploadStage::CheckingOwner ||
+               workshop_upload_stage == WorkshopUploadStage::Creating ||
+               workshop_upload_stage == WorkshopUploadStage::Submitting;
+    }
+
+    bool WorkshopUploadStart(string_view content_folder, string_view title,
+                             string_view description, string_view metadata,
+                             string_view changenote, string_view preview_image,
+                             iint existing_file_id) {
+        if (WorkshopUploadInProgress()) {
+            LOG_ERROR("WorkshopUploadStart(): an upload is already in progress");
+            return false;
+        }
+        workshop_upload_content_folder = ResolveToAbsolutePath(content_folder);
+        workshop_upload_title = title;
+        workshop_upload_description = description;
+        workshop_upload_metadata = metadata;
+        workshop_upload_changenote = changenote;
+        workshop_upload_preview =
+            preview_image.empty() ? string() : ResolveToAbsolutePath(preview_image);
+        workshop_upload_file_id = (PublishedFileId_t)existing_file_id;
+        workshop_upload_handle = k_UGCUpdateHandleInvalid;
+        workshop_upload_is_new = !existing_file_id;
+        workshop_needs_legal_agreement = false;
+        if (workshop_upload_is_new) {
+            auto call = SteamUGC()->CreateItem(SteamUtils()->GetAppID(),
+                                               k_EWorkshopFileTypeCommunity);
+            OnCreateItemCallback.Set(call, this, &SteamState::OnCreateItem);
+            workshop_upload_stage = WorkshopUploadStage::Creating;
+        } else {
+            // Updating existing content: first verify the current user actually owns
+            // it, only then submit the update.
+            auto query = SteamUGC()->CreateQueryUGCDetailsRequest(&workshop_upload_file_id, 1);
+            if (query == k_UGCQueryHandleInvalid) {
+                LOG_ERROR("WorkshopUploadStart(): CreateQueryUGCDetailsRequest() failed");
+                workshop_upload_stage = WorkshopUploadStage::Failed;
+                return false;
+            }
+            auto call = SteamUGC()->SendQueryUGCRequest(query);
+            OnOwnerQueryCallback.Set(call, this, &SteamState::OnOwnerQueryCompleted);
+            workshop_upload_stage = WorkshopUploadStage::CheckingOwner;
+        }
+        return true;
+    }
+    CCallResult<SteamState, CreateItemResult_t> OnCreateItemCallback;
+    void OnCreateItem(CreateItemResult_t *callback, bool io_failure);
+    CCallResult<SteamState, SteamUGCQueryCompleted_t> OnOwnerQueryCallback;
+    void OnOwnerQueryCompleted(SteamUGCQueryCompleted_t *callback, bool io_failure);
+    CCallResult<SteamState, SubmitItemUpdateResult_t> OnSubmitItemUpdateCallback;
+    void OnSubmitItemUpdate(SubmitItemUpdateResult_t *callback, bool io_failure);
+
+    void WorkshopSubmitUpdate() {
+        auto handle = SteamUGC()->StartItemUpdate(SteamUtils()->GetAppID(),
+                                                  workshop_upload_file_id);
+        if (handle == k_UGCUpdateHandleInvalid) {
+            LOG_ERROR("WorkshopSubmitUpdate(): StartItemUpdate() failed");
+            workshop_upload_stage = WorkshopUploadStage::Failed;
+            return;
+        }
+        // Empty strings leave the existing values unchanged on an update.
+        if (!workshop_upload_title.empty())
+            SteamUGC()->SetItemTitle(handle, workshop_upload_title.c_str());
+        if (!workshop_upload_description.empty())
+            SteamUGC()->SetItemDescription(handle, workshop_upload_description.c_str());
+        if (!workshop_upload_metadata.empty())
+            SteamUGC()->SetItemMetadata(handle, workshop_upload_metadata.c_str());
+        // Only force visibility for new items, the owner may have changed it on the
+        // workshop page since.
+        if (workshop_upload_is_new)
+            SteamUGC()->SetItemVisibility(handle, k_ERemoteStoragePublishedFileVisibilityPublic);
+        SteamUGC()->SetItemContent(handle, workshop_upload_content_folder.c_str());
+        if (!workshop_upload_preview.empty())
+            SteamUGC()->SetItemPreview(handle, workshop_upload_preview.c_str());
+        auto call = SteamUGC()->SubmitItemUpdate(
+            handle,
+            workshop_upload_changenote.empty() ? nullptr : workshop_upload_changenote.c_str());
+        OnSubmitItemUpdateCallback.Set(call, this, &SteamState::OnSubmitItemUpdate);
+        workshop_upload_handle = handle;
+        workshop_upload_stage = WorkshopUploadStage::Submitting;
+    }
+
+    int WorkshopUploadStatus(iint &file_id, bool &needs_legal, iint &processed, iint &total) {
+        file_id = (iint)workshop_upload_file_id;
+        needs_legal = workshop_needs_legal_agreement;
+        processed = 0;
+        total = 0;
+        if (workshop_upload_stage == WorkshopUploadStage::Submitting &&
+            workshop_upload_handle != k_UGCUpdateHandleInvalid) {
+            uint64 p = 0, t = 0;
+            SteamUGC()->GetItemUpdateProgress(workshop_upload_handle, &p, &t);
+            processed = (iint)p;
+            total = (iint)t;
+        }
+        switch (workshop_upload_stage) {
+            case WorkshopUploadStage::Idle:          return 0;
+            case WorkshopUploadStage::CheckingOwner:
+            case WorkshopUploadStage::Creating:
+            case WorkshopUploadStage::Submitting:    return 1;
+            case WorkshopUploadStage::Done:          return 2;
+            case WorkshopUploadStage::FailedNotOwner: return -2;
+            default:                                 return -1;
+        }
+    }
+
+    void WorkshopOpenPage() {
+        auto url = cat("steam://url/SteamWorkshopPage/", SteamUtils()->GetAppID());
+        SteamFriends()->ActivateGameOverlayToWebPage(url.c_str());
+    }
+
+    void WorkshopOpenItemPage(iint file_id) {
+        auto url = cat("steam://url/CommunityFilePage/", (uint64)file_id);
+        SteamFriends()->ActivateGameOverlayToWebPage(url.c_str());
+    }
+
+    void WorkshopOpenLegalAgreement() {
+        SteamFriends()->ActivateGameOverlayToWebPage(
+            "https://steamcommunity.com/sharedfiles/workshoplegalagreement");
+    }
 };
 
 mutex SteamState::debug_output_mutex;
@@ -720,6 +968,68 @@ void SteamState::OnLobbyMatchList(LobbyMatchList_t *lobby_match_list, bool /*io_
 void SteamState::OnLobbyDataUpdate(LobbyDataUpdate_t* callback) {
     LOG_DEBUG("OnLobbyDataUpdate(): lobby=", callback->m_ulSteamIDLobby,
               " member=", callback->m_ulSteamIDMember, " success=", callback->m_bSuccess);
+}
+
+// Workshop callbacks
+void SteamState::OnDownloadItemResult(DownloadItemResult_t *callback) {
+    if (callback->m_unAppID != SteamUtils()->GetAppID()) return;
+    LOG_DEBUG("OnDownloadItemResult(): item=", callback->m_nPublishedFileId,
+              " result=", callback->m_eResult);
+    if (callback->m_eResult != k_EResultOK) {
+        LOG_ERROR("OnDownloadItemResult(): download of workshop item ",
+                  callback->m_nPublishedFileId, " failed, result=", callback->m_eResult);
+        workshop_failed.insert(callback->m_nPublishedFileId);
+    }
+}
+
+void SteamState::OnCreateItem(CreateItemResult_t *callback, bool io_failure) {
+    LOG_DEBUG("OnCreateItem(): result=", callback->m_eResult,
+              " item=", callback->m_nPublishedFileId,
+              " needs_legal_agreement=", callback->m_bUserNeedsToAcceptWorkshopLegalAgreement);
+    workshop_needs_legal_agreement |= callback->m_bUserNeedsToAcceptWorkshopLegalAgreement;
+    if (io_failure || callback->m_eResult != k_EResultOK) {
+        LOG_ERROR("OnCreateItem(): creating workshop item failed, result=", callback->m_eResult);
+        workshop_upload_stage = WorkshopUploadStage::Failed;
+        return;
+    }
+    workshop_upload_file_id = callback->m_nPublishedFileId;
+    WorkshopSubmitUpdate();
+}
+
+void SteamState::OnOwnerQueryCompleted(SteamUGCQueryCompleted_t *callback, bool io_failure) {
+    SteamUGCDetails_t details{};
+    bool ok = !io_failure && callback->m_eResult == k_EResultOK &&
+              callback->m_unNumResultsReturned > 0 &&
+              SteamUGC()->GetQueryUGCResult(callback->m_handle, 0, &details) &&
+              details.m_eResult == k_EResultOK;
+    SteamUGC()->ReleaseQueryUGCRequest(callback->m_handle);
+    if (!ok) {
+        LOG_ERROR("OnOwnerQueryCompleted(): could not get details of existing workshop item ",
+                  workshop_upload_file_id);
+        workshop_upload_stage = WorkshopUploadStage::Failed;
+        return;
+    }
+    if (details.m_ulSteamIDOwner != SteamUser()->GetSteamID().ConvertToUint64()) {
+        LOG_ERROR("OnOwnerQueryCompleted(): workshop item ", workshop_upload_file_id,
+                  " is owned by another user, not updating");
+        workshop_upload_stage = WorkshopUploadStage::FailedNotOwner;
+        return;
+    }
+    WorkshopSubmitUpdate();
+}
+
+void SteamState::OnSubmitItemUpdate(SubmitItemUpdateResult_t *callback, bool io_failure) {
+    LOG_DEBUG("OnSubmitItemUpdate(): result=", callback->m_eResult,
+              " item=", callback->m_nPublishedFileId,
+              " needs_legal_agreement=", callback->m_bUserNeedsToAcceptWorkshopLegalAgreement);
+    workshop_needs_legal_agreement |= callback->m_bUserNeedsToAcceptWorkshopLegalAgreement;
+    if (io_failure || callback->m_eResult != k_EResultOK) {
+        LOG_ERROR("OnSubmitItemUpdate(): submitting workshop item failed, result=",
+                  callback->m_eResult);
+        workshop_upload_stage = WorkshopUploadStage::Failed;
+        return;
+    }
+    workshop_upload_stage = WorkshopUploadStage::Done;
 }
 
 extern "C" void __cdecl SteamAPIDebugTextHook(int severity, const char *debugtext) {
@@ -1397,6 +1707,145 @@ nfr("lobby_set_game_server", "lobby_id,server_id", "II", "B",
     [](StackPtr &, VM &, Value lobby_id, Value server_id) {
         return STEAM_BOOL_VALUE(
             steam->SetLobbyGameServer(SteamIDFromValue(lobby_id), SteamIDFromValue(server_id)));
+    });
+
+nfr("workshop_open_page", "", "", "",
+    "opens this game's steam workshop page in the steam overlay web browser, where the user"
+    " can browse and (un)subscribe to content. Use workshop_sync() to get subscribed content"
+    " into the game.",
+    [](StackPtr &, VM &) {
+        #ifdef PLATFORM_STEAMWORKS
+            if (steam) steam->WorkshopOpenPage();
+        #endif
+    });
+
+nfr("workshop_open_item_page", "fileid", "I", "",
+    "opens the steam workshop page of the given workshop item in the steam overlay, e.g. to"
+    " let the user view content they just uploaded.",
+    [](StackPtr &, VM &, Value fileid) {
+        #ifdef PLATFORM_STEAMWORKS
+            if (steam) steam->WorkshopOpenItemPage(fileid.ival());
+        #else
+            (void)fileid;
+        #endif
+        return NilVal();
+    });
+
+nfr("workshop_open_legal_agreement", "", "", "",
+    "opens the steam workshop legal agreement page in the steam overlay. A user must accept"
+    " this agreement (once) before workshop content they upload can become publicly visible,"
+    " see workshop_upload_status().",
+    [](StackPtr &, VM &) {
+        #ifdef PLATFORM_STEAMWORKS
+            if (steam) steam->WorkshopOpenLegalAgreement();
+        #endif
+    });
+
+nfr("workshop_sync", "dest_dir,own_subdirs", "SB", "IS]",
+    "makes subscribed workshop content progress towards being downloaded, and copies each"
+    " item's files into dest_dir (relative to the main write dir, or absolute) once its"
+    " download completes. If own_subdirs is true, each item's files go into a subdirectory of"
+    " dest_dir named after its workshop file id, otherwise all items' files are copied into"
+    " dest_dir together. Files keep the names they were uploaded with either way (so with"
+    " own_subdirs false, identically named files from different items overwrite each other)."
+    " Call this regularly (e.g. once per frame, needs steam.update()) while you want content"
+    " to come in. Returns a status: -1 = error copying files, 0 = all subscribed content is"
+    " installed and copied (nothing left to do), 1 = downloads still in progress, 2 = done"
+    " but some items failed to download. Second return value is the files copied by this"
+    " call (full paths), so the game can pick up new/updated content the moment it arrives.",
+    [](StackPtr &sp, VM &vm) {
+        auto own_subdirs = Pop(sp);
+        auto dest_dir = Pop(sp);
+        auto *copied_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+        int status = -1;
+        #ifdef PLATFORM_STEAMWORKS
+            if (steam) {
+                vector<string> copied_files;
+                status = steam->WorkshopSync(dest_dir.sval()->strv(), own_subdirs.True(),
+                                             copied_files);
+                for (auto &f : copied_files) copied_vec->Push(vm, vm.NewString(f));
+            }
+        #else
+            (void)own_subdirs;
+            (void)dest_dir;
+        #endif
+        Push(sp, Value(status));
+        Push(sp, Value(copied_vec));
+    });
+
+nfr("workshop_upload_start", "content_folder,title,description,metadata,changenote,"
+    "preview_image,existing_fileid", "SSSSSSI", "B",
+    "starts uploading workshop content for the current app; this is async, poll"
+    " workshop_upload_status() (with steam.update() running) for the result."
+    " content_folder (relative to the main write dir, or absolute) must contain exactly the"
+    " file(s) making up this single workshop item, e.g. a staging folder the level editor"
+    " saved the level file into; the original filenames inside it are preserved for"
+    " downloaders (see workshop_sync()). title and description are user visible on the"
+    " workshop. metadata is NOT user visible and may be empty; use it to store things the"
+    " game may want to query later without downloading, e.g. the original filename or"
+    " version info (max 5000 chars). changenote may be empty. preview_image optionally"
+    " (empty = none) points to a jpg/png/gif under 1MB shown on the workshop page."
+    " Pass 0 as existing_fileid to publish a NEW item, or the file id of previously uploaded"
+    " content to update it; an update first verifies the item is owned by the current steam"
+    " user and fails otherwise (status -2). On a successful new upload, the game MUST store"
+    " the file id returned by workshop_upload_status() alongside the content (e.g. in the"
+    " level file or its own sidecar/registry) and pass it back in here when the user uploads"
+    " a new version of the same content, since steam has no other way to know it's the same"
+    " item. Empty title/description/metadata leave the existing values unchanged when"
+    " updating. Returns false if the upload could not be started (e.g. one is already in"
+    " progress).",
+    [](StackPtr &sp, VM &) {
+        auto existing_fileid = Pop(sp);
+        auto preview_image = Pop(sp);
+        auto changenote = Pop(sp);
+        auto metadata = Pop(sp);
+        auto description = Pop(sp);
+        auto title = Pop(sp);
+        auto content_folder = Pop(sp);
+        bool ok = false;
+        #ifdef PLATFORM_STEAMWORKS
+            if (steam) {
+                ok = steam->WorkshopUploadStart(
+                    content_folder.sval()->strv(), title.sval()->strv(),
+                    description.sval()->strv(), metadata.sval()->strv(),
+                    changenote.sval()->strv(), preview_image.sval()->strv(),
+                    existing_fileid.ival());
+            }
+        #else
+            (void)existing_fileid;
+            (void)preview_image;
+            (void)changenote;
+            (void)metadata;
+            (void)description;
+            (void)title;
+            (void)content_folder;
+        #endif
+        Push(sp, Value(ok));
+    });
+
+nfr("workshop_upload_status", "", "", "IIBII",
+    "gets the status of the upload started with workshop_upload_start(): 0 = no upload"
+    " started, 1 = in progress, 2 = done succesfully, -1 = failed, -2 = failed because the"
+    " existing item is owned by a different steam user. Further return values are: the"
+    " workshop file id (once known, 0 before; on success the game must store this with the"
+    " content, see workshop_upload_start()), whether the user still needs to accept the"
+    " steam workshop legal agreement (if true, the item remains hidden until they do; send"
+    " them there with workshop_open_legal_agreement() or workshop_open_item_page()), and"
+    " upload progress as bytes processed and bytes total (both may be 0 in early stages).",
+    [](StackPtr &sp, VM &) {
+        int status = 0;
+        iint file_id = 0;
+        bool needs_legal = false;
+        iint processed = 0;
+        iint total = 0;
+        #ifdef PLATFORM_STEAMWORKS
+            if (steam) status = steam->WorkshopUploadStatus(file_id, needs_legal, processed, total);
+        #endif
+        Push(sp, Value(status));
+        Push(sp, Value(file_id));
+        Push(sp, Value(needs_legal));
+        Push(sp, Value(processed));
+        Push(sp, Value(total));
     });
 
 }  // AddSteam

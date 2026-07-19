@@ -307,6 +307,10 @@ void AddDataDir(string_view path) {
     write_dirs.push_back(fpath);
 }
 
+string GetMainWriteDir() {
+    return write_dirs.empty() ? "" : write_dirs[0];
+}
+
 string SanitizePath(string_view path) {
     string r;
     for (auto c : path) {

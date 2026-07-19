@@ -50,6 +50,9 @@ extern bool RenameFile(string_view oldfilename, string_view newfilename);
 extern bool FileExists(string_view filename, bool allow_absolute);
 extern bool FileDelete(string_view relfilename);
 extern string SanitizePath(string_view path);
+extern bool IsAbsolute(string_view filename);
+// The primary dir relative files get written to (ends in a path separator), or empty.
+extern string GetMainWriteDir();
 
 extern void AddPakFileEntry(string_view pakfilename, string_view relfilename, int64_t off,
                             int64_t len, int64_t uncompressed);
