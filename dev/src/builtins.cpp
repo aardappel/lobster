@@ -17,6 +17,10 @@
 #include "lobster/natreg.h"
 
 #include "lobster/wfc.h"
+#include "lobster/geom.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
 
 namespace lobster {
 
@@ -1243,7 +1247,7 @@ nfr("cardinal_spline", "z,a,b,c,f,tension", "F}F}1F}1F}1FF", "F}",
 nfr("line_intersect", "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "IF}:2",
     "computes if there is an intersection point between 2 line segments, with the point as"
     " second return value",
-    [](StackPtr &sp, VM &) {
+    [](StackPtr &sp, VM &vm) {
         auto l2b = PopVec<double2>(sp);
         auto l2a = PopVec<double2>(sp);
         auto l1b = PopVec<double2>(sp);
@@ -1252,6 +1256,34 @@ nfr("line_intersect", "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "IF}:2"
         auto r = line_intersect(l1a, l1b, l2a, l2b, &ipoint);
         Push(sp,  r);
         PushVec(sp, ipoint);
+    });
+
+nfr("load_image", "name", "S", "I]I}:3",
+    "Load image from provided file name. "
+    "Returns array of image pixels and image shape as heigt,width,colors. "
+    "To load texture use gl.load_texture instead",
+    [](StackPtr &sp, VM &vm) {
+        string fbuf;
+        auto name = Pop(sp).sval()->strv();
+        auto fn = string(name);
+        auto load_res = LoadFile(fn, &fbuf);
+        if (load_res < 0)
+            vm.BuiltinError("Failed to load file: "+name);
+        vector<uint8_t *> bufs;
+        int w, h, cc;
+        auto buf = stbi_load_from_memory((uint8_t *)fbuf.c_str(), (int)fbuf.length(), &w,
+                                         &h, &cc, 0);
+        if (!buf)
+            vm.BuiltinError("Failed to interpret file as image: "+name);
+
+        auto size = h*w*cc;
+        auto ivec = (LVector *)vm.NewVec(0, size, TYPE_ELEM_VECTOR_OF_INT);
+        for (int i = 0; i < size; i++) {
+            ivec->Push(vm, Value(buf[i]));
+        }
+        stbi_image_free(buf);
+        Push(sp,  ivec);
+        PushVec(sp,  iint3(h,w,cc));
     });
 
 nfr("circles_within_range", "dist,positions,radiuses,positions2,radiuses2,gridsize", "FF}:2]F]F}:2]F]I}:2", "I]]",
