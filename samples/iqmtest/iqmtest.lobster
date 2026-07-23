@@ -45,3 +45,6 @@ while gl.frame():
 
     gl.set_shader("color")
     gl.debug_grid(int3 { 20, 20, 0 }, float3_1, 0.005)
+
+    gl.printscreen_screenshot()
+

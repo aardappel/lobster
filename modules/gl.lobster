@@ -75,3 +75,8 @@ def update_bind_buffer_object(name, buf, ssbo, res = nil):
     res = assert update_buffer_object(buf, ssbo, -1, nil, false)
     assert bind_buffer_object(name, res)
     return res
+
+// Add this at the end of your rendering.
+def printscreen_screenshot():
+    if button("printscreen") == 1:
+        screenshot("screenshot-" + date_time_string_format("%Y-%m-%d-%H-%M-%S") + ".png")

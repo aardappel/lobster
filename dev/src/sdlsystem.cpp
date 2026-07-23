@@ -51,7 +51,7 @@ keypad . keypad / keypad * keypad - keypad +
 enter equals up down right left insert home end page up page down
 f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15
 numlock caps lock scroll lock right shift left shift right ctrl left ctrl right alt left alt
-right meta left meta left super right super alt gr compose help print screen sys req break
+right meta left meta left super right super alt gr compose help printscreen sys req break
 
 The above are virtual keys, i.e. "w" will trigger only exactly for a key with "w" on it,
 and thus may have different locations depending on the keyboard layout.
@@ -672,14 +672,6 @@ bool SDLFrame() {
                 };
                 updatebuttonlower(SDL_GetKeyName(event.key.key));
                 updatebuttonlower(scancode_prefix + string(SDL_GetScancodeName(event.key.scancode)));
-                if (event.type == SDL_EVENT_KEY_DOWN) {
-                    // Built-in key-press functionality.
-                    switch (event.key.key) {
-                        case SDLK_PRINTSCREEN:
-                            ScreenShot("screenshot-" + GetDateTime() + ".png");
-                            break;
-                    }
-                }
                 break;
             }
 
