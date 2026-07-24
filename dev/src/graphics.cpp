@@ -1477,11 +1477,14 @@ nfr("debug_grid", "num,dist,thickness", "I}:3F}:3F", "",
         curcolor = oldcolor;
     });
 
-nfr("screenshot", "filename", "S", "B",
-    "saves a screenshot in .png format, returns true if succesful",
-    [](StackPtr &, VM &, Value fn) {
-        bool ok = ScreenShot(fn.sval()->strvnt());
-        return Value(ok);
+nfr("screenshot", "filename,resolution", "SI}:2?", "B",
+    "saves a screenshot in .png format, returns true if succesful. resolution optionally gives a"
+    " target size to resize the screenshot to; (0,0) or the current window size means no resizing",
+    [](StackPtr &sp, VM &) {
+        auto resolution = PopVec<int2>(sp);
+        auto fn = Pop(sp).sval();
+        bool ok = ScreenShot(fn->strvnt(), resolution);
+        Push(sp, Value(ok));
     });
 
 nfr("get_renderer_info_string", "", "", "S",

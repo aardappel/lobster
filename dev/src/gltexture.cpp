@@ -20,12 +20,14 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
 #ifdef _MSC_VER
     #pragma warning(push)
     #pragma warning(disable: 4244)
 #endif
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
+#include "stb/stb_image_resize2.h"
 #ifdef _MSC_VER
     #pragma warning(pop)
 #endif

@@ -28,6 +28,7 @@
   #pragma warning(disable: 4244)
 #endif
 #include "stb/stb_image_write.h"
+#include "stb/stb_image_resize2.h"
 #ifdef _MSC_VER
   #pragma warning(pop)
 #endif
@@ -990,11 +991,30 @@ int64_t SDLLoadFile(string_view_nt absfilename, string *dest, int64_t start, int
     return  len;
 }
 
-bool ScreenShot(string_view_nt filename) {
+bool ScreenShot(string_view_nt filename, int2 targetsize) {
+    // We always read back at the full screen resolution: glReadPixels forces a GPU->CPU sync
+    // regardless of the amount of data, so a GPU-side downscale (temp FBO + glBlitFramebuffer
+    // before a smaller readback) wouldn't avoid that stall, and it comes with real drawbacks:
+    // the default framebuffer can be multisampled, and glBlitFramebuffer with both scaling and
+    // MSAA in a single blit is not permitted, so it would need a separate resolve pass, an FBO
+    // allocation, and matching-format juggling every call. Screenshots are one-off events, so
+    // the extra bytes read back at full res are cheap, and a high quality CPU resample via
+    // stb_image_resize is simpler and more robust.
     auto pixels = ReadPixels(int2(0), screensize);
+    auto size = screensize;
+    if (targetsize != int2(0) && targetsize != screensize) {
+        auto resized = new uint8_t[targetsize.x * targetsize.y * 3];
+        // The framebuffer holds sRGB-encoded bytes, so resample in linear light (the _srgb
+        // variant de-gammas, resizes, then re-gammas) to avoid darkening on downscale.
+        stbir_resize_uint8_srgb(pixels, screensize.x, screensize.y, screensize.x * 3,
+                                resized, targetsize.x, targetsize.y, targetsize.x * 3,
+                                STBIR_RGB);
+        delete[] pixels;
+        pixels = resized;
+        size = targetsize;
+    }
     stbi_flip_vertically_on_write(0);
-    auto ok = stbi_write_png(filename.c_str(), screensize.x, screensize.y, 3, pixels,
-                             screensize.x * 3);
+    auto ok = stbi_write_png(filename.c_str(), size.x, size.y, 3, pixels, size.x * 3);
     delete[] pixels;
     return ok != 0;
 }
