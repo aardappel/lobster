@@ -874,6 +874,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.key_repeat</b>(name<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns if a key was a key repeat (went down, or is down with a key repeat)</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.user_key</b>(name<font color="#666666">: string</font>) -> <font color="#666666">string</font></tt></td><td class="a">if name refers to a scancode key, returns the virtual key name, otherwise just the original name. Useful for showing users with non-US keyboards what keys to press</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.start_text_input</b>(pos<font color="#666666">: int2</font>, size<font color="#666666">: int2</font>)</tt></td><td class="a">starts text input. unlike gl.button which gets you keyboard keys, this is for input of strings, that can deal with unicode IME etc. pos &amp; size are a hint where the string being edited is being displayed, such that an IME can popup a box next to it, if needed.</td>
 
 </tr>
@@ -1174,7 +1177,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.debug_grid</b>(num<font color="#666666">: int3</font>, dist<font color="#666666">: float3</font>, thickness<font color="#666666">: float</font>)</tt></td><td class="a">renders a grid in space for debugging purposes. num is the number of lines in all 3 directions, and dist their spacing. thickness of the lines in the same units</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>gl.screenshot</b>(filename<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">saves a screenshot in .png format, returns true if succesful</td>
+<tr class="a" valign=top><td class="a"><tt><b>gl.screenshot</b>(filename<font color="#666666">: string</font>, resolution<font color="#666666">: int2</font> = nil) -> <font color="#666666">int</font></tt></td><td class="a">saves a screenshot in .png format, returns true if succesful. resolution optionally gives a target size to resize the screenshot to; (0,0) or the current window size means no resizing</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.get_renderer_info_string</b>() -> <font color="#666666">string</font></tt></td><td class="a">Get a string describing the renderer, typically OpenGL vendor - renderer - version</td>
@@ -1821,6 +1824,24 @@
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>steam.lobby_set_game_server</b>(lobby_id<font color="#666666">: int</font>, server_id<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">set the game server associated with this lobby; only works if you are the owner</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.workshop_open_page</b>()</tt></td><td class="a">opens this game's steam workshop page in the steam overlay web browser, where the user can browse and (un)subscribe to content. Use workshop_sync() to get subscribed content into the game.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.workshop_open_item_page</b>(fileid<font color="#666666">: int</font>)</tt></td><td class="a">opens the steam workshop page of the given workshop item in the steam overlay, e.g. to let the user view content they just uploaded.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.workshop_open_legal_agreement</b>()</tt></td><td class="a">opens the steam workshop legal agreement page in the steam overlay. A user must accept this agreement (once) before workshop content they upload can become publicly visible, see workshop_upload_status().</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.workshop_sync</b>(dest_dir<font color="#666666">: string</font>, own_subdirs<font color="#666666">: bool</font>) -> <font color="#666666">int</font>, <font color="#666666">[string]</font></tt></td><td class="a">makes subscribed workshop content progress towards being downloaded, and copies each item's files into dest_dir (relative to the main write dir, or absolute) once its download completes. If own_subdirs is true, each item's files go into a subdirectory of dest_dir named after its workshop file id, otherwise all items' files are copied into dest_dir together. Files keep the names they were uploaded with either way (so with own_subdirs false, identically named files from different items overwrite each other). Call this regularly (e.g. once per frame, needs steam.update()) while you want content to come in. Returns a status: -1 = error copying files, 0 = all subscribed content is installed and copied (nothing left to do), 1 = downloads still in progress, 2 = done but some items failed to download. Second return value is the files copied by this call (full paths), so the game can pick up new/updated content the moment it arrives.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.workshop_upload_start</b>(content_folder<font color="#666666">: string</font>, title<font color="#666666">: string</font>, description<font color="#666666">: string</font>, metadata<font color="#666666">: string</font>, changenote<font color="#666666">: string</font>, preview_image<font color="#666666">: string</font>, existing_fileid<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">starts uploading workshop content for the current app; this is async, poll workshop_upload_status() (with steam.update() running) for the result. content_folder (relative to the main write dir, or absolute) must contain exactly the file(s) making up this single workshop item, e.g. a staging folder the level editor saved the level file into; the original filenames inside it are preserved for downloaders (see workshop_sync()). title and description are user visible on the workshop. metadata is NOT user visible and may be empty; use it to store things the game may want to query later without downloading, e.g. the original filename or version info (max 5000 chars). changenote may be empty. preview_image optionally (empty = none) points to a jpg/png/gif under 1MB shown on the workshop page. Pass 0 as existing_fileid to publish a NEW item, or the file id of previously uploaded content to update it; an update first verifies the item is owned by the current steam user and fails otherwise (status -2). On a successful new upload, the game MUST store the file id returned by workshop_upload_status() alongside the content (e.g. in the level file or its own sidecar/registry) and pass it back in here when the user uploads a new version of the same content, since steam has no other way to know it's the same item. Empty title/description/metadata leave the existing values unchanged when updating. Returns false if the upload could not be started (e.g. one is already in progress).</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>steam.workshop_upload_status</b>() -> <font color="#666666">int</font>, <font color="#666666">int</font>, <font color="#666666">int</font>, <font color="#666666">int</font>, <font color="#666666">int</font></tt></td><td class="a">gets the status of the upload started with workshop_upload_start(): 0 = no upload started, 1 = in progress, 2 = done succesfully, -1 = failed, -2 = failed because the existing item is owned by a different steam user. Further return values are: the workshop file id (once known, 0 before; on success the game must store this with the content, see workshop_upload_start()), whether the user still needs to accept the steam workshop legal agreement (if true, the item remains hidden until they do; send them there with workshop_open_legal_agreement() or workshop_open_item_page()), and upload progress as bytes processed and bytes total (both may be 0 in early stages).</td>
 
 </tr>
 </table></td></tr>
