@@ -751,6 +751,127 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value source, bool stringis
     #endif
 }
 
+#if VM_JIT_MODE
+
+// Context for compile_run_c_code(), accessible from the C code thru the functions below.
+// Thread-local such that multiple VMs on different threads can each use this builtin.
+struct CCodeContext {
+    const void *input = nullptr;
+    size_t input_len = 0;
+    void *output = nullptr;
+    size_t output_len = 0;
+    bool output_set = false;
+};
+
+static thread_local CCodeContext *g_c_code_ctx = nullptr;
+
+static void *CCodeInputBuf() {
+    return (void *)g_c_code_ctx->input;
+}
+
+static size_t CCodeInputLen() {
+    return g_c_code_ctx->input_len;
+}
+
+static void CCodeOutputBuf(void *p, size_t len) {
+    auto ctx = g_c_code_ctx;
+    // If called multiple times, only the last buffer is kept.
+    if (ctx->output_set && ctx->output && ctx->output != ctx->input) free(ctx->output);
+    ctx->output = p;
+    ctx->output_len = len;
+    ctx->output_set = true;
+}
+
+#endif  // VM_JIT_MODE
+
+Value CompileRunCCode(VM &vm, StackPtr &sp, Value code, Value input) {
+    #if VM_JIT_MODE
+        auto err = [&](string msg) {
+            Push(sp, NilVal());
+            return Value(vm.NewString(msg));
+        };
+        CCodeContext ctx;
+        if (input.False()) return err("compile_run_c_code: input must be a string or vector");
+        auto &ti = input.ref()->ti(vm);
+        if (ti.t == RTT_STRING) {
+            ctx.input = input.sval()->data();
+            ctx.input_len = (size_t)input.sval()->len;
+        } else if (ti.t == RTT_VECTOR) {
+            auto vec = input.vval();
+            auto &eti = vm.GetTypeInfo(ti.subt);
+            if (RTIsRefNil(eti.t))
+                return err("compile_run_c_code: input vector elements must be int or float");
+            ctx.input = vec->Elems();
+            ctx.input_len = (size_t)(vec->len * vec->width) * sizeof(Value);
+        } else {
+            return err("compile_run_c_code: input must be a string or vector");
+        }
+        // These are available to the C code without needing to declare them.
+        auto prelude =
+            "void *input_buf(void);\n"
+            "unsigned long long input_len(void);\n"
+            "void output_buf(void *p, unsigned long long len);\n"
+            "void *malloc(unsigned long long size);\n"
+            "void *realloc(void *p, unsigned long long size);\n"
+            "void free(void *p);\n"
+            "void *memcpy(void *dest, const void *src, unsigned long long n);\n"
+            "void *memmove(void *dest, const void *src, unsigned long long n);\n"
+            "void *memset(void *s, int c, unsigned long long n);\n"
+            "unsigned long long strlen(const char *s);\n"
+            "#line 1 \"c_code\"\n";
+        auto source = prelude + string(code.sval()->strv());
+        // memmove is already added by RunC() itself.
+        static const void *imports[] = {
+            "input_buf", (const void *)CCodeInputBuf,
+            "input_len", (const void *)CCodeInputLen,
+            "output_buf", (const void *)CCodeOutputBuf,
+            "malloc", (const void *)malloc,
+            "realloc", (const void *)realloc,
+            "free", (const void *)free,
+            "memcpy", (const void *)memcpy,
+            "memset", (const void *)memset,
+            "strlen", (const void *)strlen,
+            nullptr
+        };
+        const char *export_names[] = { "main", nullptr };
+        string error;
+        auto prev_ctx = g_c_code_ctx;
+        g_c_code_ctx = &ctx;
+        auto ok = RunC(source.c_str(), nullptr, error, imports, export_names,
+            [&](void **exports) -> bool {
+                auto cmain = (int (*)())exports[0];
+                if (!cmain) {
+                    error = "C code must contain a main() function";
+                    return false;
+                }
+                cmain();
+                return true;
+            });
+        g_c_code_ctx = prev_ctx;
+        auto free_output = [&]() {
+            if (ctx.output_set && ctx.output && ctx.output != ctx.input) free(ctx.output);
+        };
+        if (!ok || !error.empty()) {
+            free_output();
+            return err("compile_run_c_code: " + error);
+        }
+        if (ctx.output_set) {
+            auto sv = ctx.output ? string_view((const char *)ctx.output, ctx.output_len)
+                                 : string_view();
+            Push(sp, Value(vm.NewString(sv)));
+            free_output();
+        } else {
+            Push(sp, NilVal());
+        }
+        return NilVal();
+    #else
+        (void)code;
+        (void)input;
+        Push(sp, NilVal());
+        return Value(vm.NewString("cannot JIT code: libtcc not enabled"));
+    #endif
+}
+
 void AddCompiler(NativeRegistry &nfr) {  // it knows how to call itself!
 
 nfr("compile_run_code", "code,args", "SS]", "SS?",
@@ -767,6 +888,21 @@ nfr("compile_run_file", "filename,args", "SS]", "SS?",
     "same as compile_run_code(), only now you pass a filename.",
     [](StackPtr &sp, VM &vm, Value filename, Value args) {
         return CompileRun(vm, sp, filename, false, ValueToVectorOfStrings(args));
+    });
+
+nfr("compile_run_c_code", "code,input", "SA", "S?S?",
+    "compiles and runs C source code using the built-in C compiler (available in JIT mode only)."
+    " the code must contain a main() function, which will be called."
+    " input must be a string or a vector of ints/floats, whose (mutable) contents are available"
+    " to the C code thru input_buf() and input_len() (in bytes, vector elements are 8 bytes each)."
+    " additionally available: output_buf(ptr, len) to return a buffer allocated thru"
+    " malloc/realloc as a string (ownership is transferred, do not free), and further"
+    " malloc/realloc/free/memcpy/memmove/memset/strlen. all these are pre-declared."
+    " returns the output as a string (or nil if output_buf() was never called), plus an error"
+    " string as second return value (nil if none). note the C code can also modify the input"
+    " buffer in-place as a way to return data.",
+    [](StackPtr &sp, VM &vm, Value code, Value input) {
+        return CompileRunCCode(vm, sp, code, input);
     });
 
 }

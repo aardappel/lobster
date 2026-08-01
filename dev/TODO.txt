@@ -80,10 +80,16 @@
 - Lobster's ability to run other code dynamically:
   - It can already load entirely new Lobster programs on the fly.
   - It can run glsl compute shaders.
-  - It should really expose the ability to run libtcc C programs.. could do so tru a single API like
-    realloc.. first buffer would contain the input, last the output, auto dealloc.
+  - It can already run C code (great way to run PLs implemented IN Lobster! May need to
+    extend its builtins to give access to Lobster builtins somehow?)
   - QuickJS would be super easy to add, or Duktape if its too complicated.
   - Lua also but maybe too much code.
+  - Any new language I invent (Goose?) would be better served embedded in Lobster, since
+    that means we don't need to repeat all the work on bindings etc.. though it does mean
+    adopting at least some Lobster memory management. But if it runs from Lobster, there
+    is already a Lobster VM running so this is easy.
+    But there is no reason to embed it at the C++ level.. with the libtcc
+    interface, and entire language can be just Lobster code.
 
 - Nil chaining (typically x?.a) comes with all sorts of problems exacerbated by it being
   very terse syntax, if we could make it verbose with the obvious keyword of guard,
