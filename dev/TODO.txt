@@ -1,3 +1,10 @@
+- We should at least have a simple detection for expressions with no side effect
+  used as a statement.
+  Several recent bugs:
+  - using == instead of =
+  - multiline exps where the connecting operator is forgotten, so we have a line
+    that has no effect.
+
 - "mybool and myint" will result in the int value, which is a bit surprising.
   We should do the "force to bool" it does for other unrelated types also for enums.
 
