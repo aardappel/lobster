@@ -779,7 +779,7 @@ struct Parser {
     void ParseBody(Block *block, int for_nargs) {
         block_stack.push_back({ block, for_nargs, 0 });
         if (IsNext(T_INDENT)) {
-            return ParseStatements(block, T_DEDENT);
+            ParseStatements(block, T_DEDENT);
         } else {
             ParseExpStat(block);
             CleanupStatements(block);
