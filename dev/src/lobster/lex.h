@@ -625,7 +625,7 @@ struct Lex : LoadedFile {
                 sattr = string_view(start, p - start);
                 if (sval.size() > 8) Error("character constant too long");
                 ival = 0;
-                for (auto c : sval) ival = (ival << 8) + c;
+                for (auto c : sval) ival = (ival << 8) + (unsigned char)c;
                 return T_INT;
             case '\"':
                 if (character_constant)
