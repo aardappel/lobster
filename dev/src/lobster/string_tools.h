@@ -235,6 +235,12 @@ template<typename T> string to_string_float(T x, int decimals = -1) {
     #endif
 }
 
+template<typename T> string to_string_hexfloat(T x) {
+    char buf[32];
+    std::snprintf(buf, sizeof buf, "%Af", x);
+    return buf;
+}
+
 inline void to_string_hex(string &sd, uint64_t x) {
     // FIXME: replace with to_chars.
     ostringstream ss;

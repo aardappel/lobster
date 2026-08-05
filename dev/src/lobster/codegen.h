@@ -947,9 +947,9 @@ struct CodeGen  {
             // double and float are identical, meaning typically whole numbers and other precisely representable
             // numbers.
             if (cpp) {
-                append(cb, "    *(", sp(), ") = Value(", (float)f, ");\n");
+                append(cb, "    *(", sp(), ") = Value(", to_string_hexfloat((float)f), ");\n");
             } else {
-                append(cb, "    { StackPtr _sp = ", sp(), "; _sp->fval = ", (float)f, ";", SetType(RTT_FLOAT), " }\n");
+                append(cb, "    { StackPtr _sp = ", sp(), "; _sp->fval = ", to_string_hexfloat((float)f), ";", SetType(RTT_FLOAT), " }\n");
             }
         } else {
             int2float64 i2f(f);
