@@ -3804,8 +3804,9 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
 
                 if (nftype->t == V_TYPEID) {
                     assert(!sa);  // assumes always first.
-                    auto tin = AssertIs<TypeOf>(children[0]);
-                    type = tin->child->exptype;
+                    auto tin = children[0];  // Usually a TypeOf, but could be IdentRef or any exp?
+                    assert(tin->exptype->t == V_TYPEID);  // Must have been checked above.
+                    type = tin->exptype->sub;
                 }
 
                 if (ret.optional) {
