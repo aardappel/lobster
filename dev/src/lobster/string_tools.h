@@ -151,6 +151,7 @@ inline bool starts_with(string_view sv, string_view start) {
 template<typename T> T parse_int(string_view sv, int base = 10, const char **end = nullptr) {
     T val = 0;
     auto res = from_chars(sv.data(), sv.data() + sv.size(), val, base);
+    // We ignore res.ec error code, if this is not an integer or an overflowing one, 0 is the default return value.
     if (end) *end = res.ptr;
     return val;
 }
