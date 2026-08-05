@@ -791,21 +791,8 @@ Value CompileRunCCode(VM &vm, StackPtr &sp, Value code, Value input) {
             return Value(vm.NewString(msg));
         };
         CCodeContext ctx;
-        if (input.False()) return err("compile_run_c_code: input must be a string or vector");
-        auto &ti = input.ref()->ti(vm);
-        if (ti.t == RTT_STRING) {
-            ctx.input = input.sval()->data();
-            ctx.input_len = (size_t)input.sval()->len;
-        } else if (ti.t == RTT_VECTOR) {
-            auto vec = input.vval();
-            auto &eti = vm.GetTypeInfo(ti.subt);
-            if (RTIsRefNil(eti.t))
-                return err("compile_run_c_code: input vector elements must be int or float");
-            ctx.input = vec->Elems();
-            ctx.input_len = (size_t)(vec->len * vec->width) * sizeof(Value);
-        } else {
-            return err("compile_run_c_code: input must be a string or vector");
-        }
+        ctx.input = input.sval()->data();
+        ctx.input_len = (size_t)input.sval()->len;
         // These are available to the C code without needing to declare them.
         auto prelude =
             "void *input_buf(void);\n"
@@ -890,11 +877,11 @@ nfr("compile_run_file", "filename,args", "SS]", "SS?",
         return CompileRun(vm, sp, filename, false, ValueToVectorOfStrings(args));
     });
 
-nfr("compile_run_c_code", "code,input", "SA", "S?S?",
+nfr("compile_run_c_code", "code,input", "SS", "S?S?",
     "compiles and runs C source code using the built-in C compiler (available in JIT mode only)."
     " the code must contain a main() function, which will be called."
-    " input must be a string or a vector of ints/floats, whose (mutable) contents are available"
-    " to the C code thru input_buf() and input_len() (in bytes, vector elements are 8 bytes each)."
+    " input must be a string, whose (mutable) contents are available"
+    " to the C code thru input_buf() and input_len() (in bytes)."
     " additionally available: output_buf(ptr, len) to return a buffer allocated thru"
     " malloc/realloc as a string (ownership is transferred, do not free), and further"
     " malloc/realloc/free/memcpy/memmove/memset/strlen. all these are pre-declared."

@@ -21,39 +21,37 @@ run_test("c_code"):
     assert not rev_err
     assert rev == "dlrow ,olleh"
 
-    // A vector of ints as input buffer: sum the elements, return as decimal string.
+    // A vector of ints as input buffer: sum the elements, return sum in string.
     let sum, sum_err = compile_run_c_code("""
         int main(void) {
-            long long *in = input_buf();
-            unsigned long long n = input_len() / sizeof(long long);
-            long long sum = 0;
+            int *in = input_buf();
+            unsigned long long n = input_len() / sizeof(int);
+            int sum = 0;
             for (unsigned long long i = 0; i < n; i++) sum += in[i];
-            char buf[32];
-            int j = 32;
-            do { buf[--j] = '0' + (char)(sum % 10); sum /= 10; } while (sum);
-            char *out = realloc(0, 32 - j);
-            memcpy(out, buf + j, 32 - j);
-            output_buf(out, 32 - j);
+            char *out = realloc(0, sizeof(int));
+            memcpy(out, &sum, sizeof(int));
+            output_buf(out, sizeof(int));
             return 0;
         }
-        """, [ 1, 2, 3, 4, 100 ])
+        """, vector_to_buffer([ 1, 2, 3, 4, 100 ]))
     assert not sum_err
-    assert sum == "110"
+    assert sum
+    assert sum.read_int32_le(0) == 110
 
     // Transform the input buffer in-place instead of producing output:
-    // returns nil, but the vector has been modified.
-    let squares = [ 1, 2, 3, 4 ]
+    // returns nil, but the buffer has been modified.
+    let squares = vector_to_buffer([ 1, 2, 3, 4 ])
     let ip_res, ip_err = compile_run_c_code("""
         int main(void) {
-            long long *in = input_buf();
-            unsigned long long n = input_len() / sizeof(long long);
+            int *in = input_buf();
+            unsigned long long n = input_len() / sizeof(int);
             for (unsigned long long i = 0; i < n; i++) in[i] *= in[i];
             return 0;
         }
         """, squares)
     assert not ip_err
     assert not ip_res
-    assert equal(squares, [ 1, 4, 9, 16 ])
+    assert squares == vector_to_buffer([ 1, 4, 9, 16 ])
 
     // Same, but on a string (must be created at runtime, since the C code may not
     // modify string constants, which are shared!).
