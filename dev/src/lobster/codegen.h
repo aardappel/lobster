@@ -2521,19 +2521,21 @@ bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
         return false;
     int64_t mini = INT64_MAX / 2, maxi = INT64_MIN / 2;
     int64_t num = 0;
+    // We clamp ranges to this, to cause too big ranges to make load factor sparse.
+    const int64_t max_range_weight = 10;
     for (auto n : cases->children) {
         auto cas = AssertIs<Case>(n);
         for (auto c : cas->pattern->children) {
             auto [istart, iend] = get_range(c);
             if (!istart || !iend || istart->integer > iend->integer)
                 return false;
-            num += iend->integer - istart->integer + 1;
+            num += std::min(max_range_weight, iend->integer - istart->integer + 1);
             mini = std::min(mini, istart->integer);
             maxi = std::max(maxi, iend->integer);
         }
     }
     // Decide if jump table is economic.
-    const int64_t min_vals = 3;  // Minimum to do jump table.
+    const int64_t min_vals = 3;     // Minimum to do jump table.
     // TODO: This should be slightly non-linear? More values means you really want the
     // jump table, typically.
     const int64_t min_load_factor = 5;
