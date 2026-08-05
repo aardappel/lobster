@@ -3596,7 +3596,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
             if (!f) {
                 tc.Error(*this, "no version of function ", Q(name), " takes ", nargs, " arguments");
             }
-            if (!usf || !usf->overload->method_of || usf->overload->method_of->gsuperclass.Null())
+            if (!usf || !usf->overload->method_of || usf->overload->method_of->gsuperclass->t == V_UNDEFINED)
                 sup_err();
             auto fc = new Call(*this, usf && usf->parent == ff ? usf : ff->overloads[0]->sf);
             fc->children = children;
