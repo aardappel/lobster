@@ -1596,6 +1596,7 @@ struct Parser {
                 auto n = ParseFunctionCall(lex, st.FindFunction(idname), nullptr, idname, nullptr, false,
                                            nullptr);
                 auto call = Is<GenericCall>(*n);
+                if (!call) Error("super must precede function call");
                 call->super = true;
                 return n;
             }
