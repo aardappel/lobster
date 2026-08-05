@@ -622,6 +622,7 @@ struct Parser {
                 st.bound_typevars_stack.push_back(gudt->generics);
                 if (ssup) {
                     gudt->gsuperclass = { &ssup->thistype };
+                    st.bound_typevars_stack.pop_back();
                 } else {
                     gudt->gsuperclass = { st.NewSpecUDT(gsup) };
                     if (IsNext(T_LT)) {
