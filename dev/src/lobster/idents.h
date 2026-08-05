@@ -601,7 +601,7 @@ struct Function : Named {
     }
 };
 
-template<typename T> void Unregister(const T *x, unordered_map<string_view, T *> &dict) {
+template<typename T> void UnregisterT(const T *x, unordered_map<string_view, T *> &dict) {
     auto it = dict.find(x->name);
     if (it != dict.end()) dict.erase(it);
 }
@@ -611,7 +611,7 @@ template<typename T> void ErasePrivate(unordered_map<string_view, T *> &dict) {
     while (it != dict.end()) {
         auto n = it->second;
         it++;
-        if (n->isprivate) Unregister(n, dict);
+        if (n->isprivate) UnregisterT(n, dict);
     }
 }
 
@@ -620,7 +620,7 @@ template<> void ErasePrivate(unordered_map<string_view, UDT *> &dict) {
     while (it != dict.end()) {
         auto n = it->second;
         it++;
-        if (n->g.isprivate) Unregister(n, dict);
+        if (n->g.isprivate) UnregisterT(n, dict);
     }
 }
 
@@ -884,7 +884,7 @@ struct SymbolTable {
         defsubfunctionstack.push_back(sf);
     }
 
-    void    ister(const Enum *e, unordered_map<string_view, Enum *> &dict) {
+    void UnregisterEnum(const Enum *e, unordered_map<string_view, Enum *> &dict) {
         auto it = dict.find(e->name);
         if (it != dict.end()) {
             for (auto &ev : e->vals) {
