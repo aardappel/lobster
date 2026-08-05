@@ -143,7 +143,7 @@ ValueType ToInt::ConstVal(TypeChecker *tc, VTValue &val) const {
 ValueType ToBool::ConstVal(TypeChecker *tc, VTValue &val) const {
     auto t = child->ConstVal(tc, val);
     if (t == V_VOID) return t;
-    val = VTValue(val.i);
+    val = VTValue(!!val.i);
     return V_INT;
 }
 
