@@ -176,6 +176,7 @@ struct LobsterBinaryParser : Deserializer {
                 if (!len && base_ti->is_nil) {
                     PushV(NilVal());
                 } else {
+                    if (len > (uint64_t)(end - data)) Truncated();
                     auto str = vm.NewString(string_view((const char *)data, (size_t)len));
                     data += len;
                     PushV(str, true);
