@@ -67,16 +67,17 @@ template<typename T> class Chunk3DGrid : NonCopyable {
 
     void Shrink(const int3 &ndim) {
         assert(all(ndim <= dim));
-        for (auto [i, p] : enumerate(grid)) if ((int)i >= ndim.x) delete[] p;
+        for (auto [i, p] : enumerate(grid)) if ((int)i >= ndim.x) free(p);
         grid.resize(ndim.x);
         for (auto &p : grid) {
-            auto n = new T[ndim.x * ndim.y];
+            auto len = ndim.y * ndim.z;
+            auto n = (T *)malloc(sizeof(T) * len);
             for (int y = 0; y < ndim.y; y++) {
                 for (int z = 0; z < ndim.z; z++) {
                     n[y * ndim.z + z] = p[y * dim.z + z];
                 }
             }
-            delete p;
+            free(p);
             p = n;
         }
         dim = ndim;
