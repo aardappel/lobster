@@ -381,15 +381,22 @@ nfr("delete_particle", "i", "I", "",
     " step().",
     [](StackPtr &, VM &, Value i) {
         CheckPhysics();
-        particlesystem->DestroyParticle(i.intval());
+        // CheckPhysics only creates the world, not the particle system.
+        if (!particlesystem) return NilVal();
+        auto idx = i.intval();
+        if (idx < 0 || idx >= particlesystem->GetParticleCount()) return NilVal();
+        particlesystem->DestroyParticle(idx);
         return NilVal();
     });
 
 nfr("getparticle_position", "i", "I", "F}:2",
-    "gets a particle's position.",
+    "gets a particle's position, or 0 if there is no such particle.",
     [](StackPtr &sp, VM &) {
         CheckPhysics();
-        auto pos = B2ToFloat2(particlesystem->GetPositionBuffer()[Pop(sp).ival()]);
+        auto idx = Pop(sp).ival();
+        auto pos = float2_0;
+        if (particlesystem && idx >= 0 && idx < particlesystem->GetParticleCount())
+            pos = B2ToFloat2(particlesystem->GetPositionBuffer()[idx]);
         PushVec(sp, pos);
     });
 
