@@ -1178,14 +1178,13 @@ nfr("bind_buffer_object", "name,bo", "SR:bufferobject", "I",
         return Value(BindBufferObject(gs->currentshader.get(), &GetBufferObject(buf), name.sval()->strvnt()));
     });
 
-nfr("copy_buffer_object", "source,destination,srcoffset,dstoffset,length", "R:bufferobject?R:bufferobject?III", "",
+nfr("copy_buffer_object", "source,destination,srcoffset,dstoffset,length", "R:bufferobjectR:bufferobjectIII", "",
     "copies the source buffer object into the destination buffer object",
     [](StackPtr &, VM &vm, Value source, Value destination, Value srcoffset,
         Value dstoffset, Value length) {
         TestGL(vm);
         auto srco = &GetBufferObject(source);
         auto dsto = &GetBufferObject(destination);
-        if (!srco || !dsto) vm.BuiltinError("buffer object copy failed");
         return Value(CopyBufferObjects(srco, dsto, srcoffset.intval(), dstoffset.intval(), length.intval()));
     });
 
