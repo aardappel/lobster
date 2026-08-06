@@ -312,12 +312,14 @@ nfr("set", "block,pos,size,paletteindex", "R:voxelsI}:3I}:3I", "",
     });
 
 nfr("get", "block,pos", "R:voxelsI}:3", "I",
-    "sets a range of cubes to palette index. index 0 is considered empty space."
-    "Coordinates automatically clipped to the size of the grid",
+    "returns the palette index of a single cube. index 0 is considered empty space."
+    " coordinates outside of the grid also read as 0, which allows callers to sample"
+    " neighbours without having to bounds check themselves",
     [](StackPtr &sp, VM &) {
         auto pos = PopVec<int3>(sp);
         auto res = Pop(sp);
-        Push(sp, GetVoxels(res).grid.Get(pos));
+        auto &v = GetVoxels(res);
+        Push(sp, all(pos >= 0) && all(pos < v.grid.dim) ? v.grid.Get(pos) : transparant);
     });
 
 nfr("copy", "block,pos,size,dest,flip", "R:voxelsI}:3I}:3I}:3I}:3", "",
