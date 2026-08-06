@@ -603,7 +603,8 @@ nfr("open_circle", "radius,segments,thickness", "FIF", "",
 nfr("unit_cube", "insideout", "I?", "",
     "renders a unit cube (0,0,0) - (1,1,1). optionally pass true to have it rendered inside"
     " out",
-    [](StackPtr &, VM &, Value inside) {
+    [](StackPtr &, VM &vm, Value inside) {
+        TestGL(vm);
         geomcache->RenderUnitCube(gs->currentshader.get(), inside.True());
         return NilVal();
     });
@@ -728,7 +729,8 @@ nfr("point_scale", "factor", "F", "",
 
 nfr("line_mode", "on", "I", "I",
     "set line mode (true == on), returns previous mode",
-    [](StackPtr &sp, VM &) {
+    [](StackPtr &sp, VM &vm) {
+        TestGL(vm);
         auto oldmode = gs->polymode;
         auto on = Pop(sp);
         gs->polymode = on.ival() ? PRIM_LOOP : PRIM_FAN;
@@ -737,7 +739,8 @@ nfr("line_mode", "on", "I", "I",
 
 nfr("cull_front", "on", "B", "B",
     "set culling front (true) or back (false), returns previous value.",
-    [](StackPtr &sp, VM &) {
+    [](StackPtr &sp, VM &vm) {
+        TestGL(vm);
         auto oldmode = gs->cull_front;
         gs->cull_front = Pop(sp).True();
         CullFront(gs->cull_front);
