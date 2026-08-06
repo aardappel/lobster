@@ -209,12 +209,18 @@ ValueType Xor::ConstVal(TypeChecker *tc, VTValue &val) const {
     return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) { return l ^ r; });
 }
 
+// NOTE: these must mask the shift count exactly like the VM does, see MaskedShiftLeft,
+// otherwise a constant folded shift and the same shift computed at runtime would differ.
 ValueType ShiftLeft::ConstVal(TypeChecker *tc, VTValue &val) const {
-    return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) { return l << r; });
+    return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) {
+        return MaskedShiftLeft(l, r);
+    });
 }
 
 ValueType ShiftRight::ConstVal(TypeChecker *tc, VTValue &val) const {
-    return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) { return l >> r; });
+    return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) {
+        return MaskedShiftRight(l, r);
+    });
 }
 
 

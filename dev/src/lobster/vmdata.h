@@ -1392,6 +1392,25 @@ inline int64_t Int64FromInts(int a, int b) {
     return v;
 }
 
+// Lobster shift semantics: the shift count is masked to the bit width of iint (always 64),
+// which gives well defined, platform independent results identical to Java/C#/JS/Wasm
+// (and Rust in release mode).
+// We can't leave this UB like C++ does, because a) the C backend hands the shift to a C
+// compiler that is then entitled to fold it to anything at all, and b) the constant folder
+// in constval.h would execute that same UB inside the compiler, on user input.
+// This costs nothing on x86-64/AArch64, whose shift instructions already mask the count,
+// so the "&" folds away. Elsewhere (ARM32, Wasm) it is a single extra "and", no branch.
+// The cast thru uint64_t additionally avoids UB on signed left shift overflow (e.g. -1 << 1),
+// which is still UB in C++17, and the gcc/clang builds select -std=c++17.
+// NOTE: ShiftLeft/ShiftRight::ConstVal in constval.h must fold shifts using these exact
+// same functions, or constant folded and runtime shifts would disagree.
+VM_INLINE iint MaskedShiftLeft(iint a, iint b) {
+    return (iint)((uint64_t)a << (b & 63));
+}
+VM_INLINE iint MaskedShiftRight(iint a, iint b) {
+    return a >> (b & 63);
+}
+
 inline const TypeInfo &DynAlloc::ti(VM &vm) const { return vm.GetTypeInfo(tti); }
 
 template<typename T> inline T *AllocSubBuf(VM &vm, iint size, type_elem_t tti) {

@@ -369,6 +369,10 @@ static_assert(std::numeric_limits<double>::is_iec559, "IEEE754 floats required")
 #define _IOP(op, extras) \
     TYPE_ASSERT(a.type == RTT_INT && b.type == RTT_INT); \
     TYPEOP(op, extras, a.ival(), b.ival())
+// Shifts don't go thru TYPEOP, since the count needs masking, see MaskedShiftLeft.
+#define _ISHIFTOP(f) \
+    TYPE_ASSERT(a.type == RTT_INT && b.type == RTT_INT); \
+    Value res = f(a.ival(), b.ival())
 #define _FOP(op, extras) \
     TYPE_ASSERT(a.type == RTT_FLOAT && b.type == RTT_FLOAT); \
     TYPEOP(op, extras, a.fval(), b.fval())
@@ -607,11 +611,12 @@ VM_INLINE void U_LOGNOTREF(VM &, StackPtr sp) {
 }
 
 #define BITOP(op) { GETARGS(); Push(sp, a.ival() op b.ival()); }
+#define SHIFTOP(f) { GETARGS(); Push(sp, f(a.ival(), b.ival())); }
 VM_INLINE void U_BINAND(VM &, StackPtr sp) { BITOP(&);  }
 VM_INLINE void U_BINOR(VM &, StackPtr sp)  { BITOP(|);  }
 VM_INLINE void U_XOR(VM &, StackPtr sp)    { BITOP(^);  }
-VM_INLINE void U_ASL(VM &, StackPtr sp)    { BITOP(<<); }
-VM_INLINE void U_ASR(VM &, StackPtr sp)    { BITOP(>>); }
+VM_INLINE void U_ASL(VM &, StackPtr sp)    { SHIFTOP(MaskedShiftLeft);  }
+VM_INLINE void U_ASR(VM &, StackPtr sp)    { SHIFTOP(MaskedShiftRight); }
 VM_INLINE void U_NEG(VM &, StackPtr sp)    { auto a = Pop(sp); Push(sp, ~a.ival()); }
 
 VM_INLINE void U_I2F(VM &vm, StackPtr sp) {
@@ -912,8 +917,8 @@ LVALCASES(IMOD  , _IOP(%, 1); a = res;)
 LVALCASES(BINAND, _IOP(&,  0); a = res;)
 LVALCASES(BINOR , _IOP(|,  0); a = res;)
 LVALCASES(XOR   , _IOP(^,  0); a = res;)
-LVALCASES(ASL   , _IOP(<<, 0); a = res;)
-LVALCASES(ASR   , _IOP(>>, 0); a = res;)
+LVALCASES(ASL   , _ISHIFTOP(MaskedShiftLeft);  a = res;)
+LVALCASES(ASR   , _ISHIFTOP(MaskedShiftRight); a = res;)
 
 LVALCASES(FADD  , _FOP(+, 0); a = res;)
 LVALCASES(FSUB  , _FOP(-, 0); a = res;)
