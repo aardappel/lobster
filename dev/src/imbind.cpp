@@ -2390,6 +2390,9 @@ nfr("show_flexbuffer", "value", "S", "",
     [](StackPtr &, VM &vm, Value v) {
         IsInit(vm);
         auto sv = v.sval()->strv();
+        vector<uint8_t> reuse_buffer;
+        if (!flexbuffers::VerifyBuffer((const uint8_t *)sv.data(), sv.size(), &reuse_buffer))
+            vm.BuiltinError("im.show_flexbuffer: flexbuffer binary does not verify!");
         auto root = flexbuffers::GetRoot((const uint8_t *)sv.data(), sv.size());
         FlexBufferGUI(root, "Stack trace", false);
         return NilVal();
