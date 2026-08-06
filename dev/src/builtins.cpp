@@ -683,6 +683,10 @@ nfr("repeat_string", "s,n", "SI", "S",
     [](StackPtr &, VM &vm, Value s, Value _n) {
         auto n = std::max(iint(0), _n.ival());
         auto len = s.sval()->len;
+        const iint max_len = 1024 * 1024 * 1024;
+        // Divide rather than multiply, so the check itself can't overflow.
+        if (len && n > max_len / len)
+            vm.BuiltinError(cat("repeat_string: resulting string too big: ", len, " * ", n));
         auto ns = vm.NewString(len * n);
         for (iint i = 0; i < n; i++) {
             memcpy((char *)ns->data() + i * len, s.sval()->data(), (size_t)len);
