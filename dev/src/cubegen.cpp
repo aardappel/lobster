@@ -1520,7 +1520,8 @@ nfr("bounding_box", "world,minsolids", "R:voxelsF", "I}:3I}:3",
         auto bmax = v.grid.dim;
         auto bestsolids = 0.0f;
         while ((bmax - bmin).volume()) {
-            bestsolids = 1.0f;
+            // Above any possible ratio, so the best face always wins and smin/smax shrink.
+            bestsolids = FLT_MAX;
             auto smin = bmin;
             auto smax = bmax;
             for (int c = 0; c < 3; c++) {
