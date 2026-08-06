@@ -654,8 +654,10 @@ Value AddShape(ImplicitFunction *f) {
 }
 
 Value eval_and_polygonize(VM &vm, int targetgridsize, int zoffset, bool do_poly) {
-    auto scenesize = root->Size() * 2;
+    auto scenesize = GetGroup()->Size() * 2;
     float biggestdim = max(scenesize.x, max(scenesize.y, scenesize.z));
+    // An empty scene has size 0, which would make gridscale infinite.
+    biggestdim = max(biggestdim, 1.0f);
     auto gridscale = targetgridsize / biggestdim;
     // Add a boundary of 1 cell in all directions, and additionally 10xepsilon to ensure
     // shapes always fit in the grid, even with some float imprecision.
