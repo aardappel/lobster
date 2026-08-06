@@ -191,6 +191,9 @@ nfr("create_polygon", "position,vertices,attachto", "F}:2F}:2]R:fixture?", "R:fi
         auto other_id = Pop(sp);
         auto vertices = Pop(sp).vval();
         auto wp = PopVec<float2>(sp);
+        if (vertices->len < 3 || vertices->len > b2_maxPolygonVertices)
+            vm.BuiltinError(cat("ph.create_polygon: illegal number of vertices: ", vertices->len,
+                                " (must be 3..", b2_maxPolygonVertices, ")"));
         auto &body = GetBody(sp, vm, other_id, wp);
         b2PolygonShape shape;
         auto verts = new b2Vec2[vertices->len];
