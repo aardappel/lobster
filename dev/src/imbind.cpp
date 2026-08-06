@@ -2284,6 +2284,9 @@ nfr("text_table", "id,num_colums,labels", "SIS]", "", "",
     [](StackPtr &, VM &vm, Value id, Value num_colums, Value labels) {
         IsInit(vm);
         auto nc = num_colums.intval();
+        // ImGui requires at least 1 column. Render nothing, rather than error out on
+        // procedurally generated content.
+        if (nc <= 0) return NilVal();
         if (!ImGui::BeginTable(id.sval()->strvnt().c_str(), nc,
                                ImGuiTableFlags_SizingFixedFit |
                                ImGuiTableFlags_NoHostExtendX |
@@ -2303,6 +2306,8 @@ nfr("table_start", "id,num_colums,flags", "SII", "B",
     [](StackPtr &, VM &vm, Value id, Value num_colums, Value flags) {
         IsInit(vm);
         auto nc = num_colums.intval();
+        // ImGui requires at least 1 column.
+        if (nc <= 0) return Value(false);
         auto visible = ImGui::BeginTable(id.sval()->strvnt().c_str(), nc, flags.intval());
         if (visible) NPush(N_TABLE);
         return Value(visible);
