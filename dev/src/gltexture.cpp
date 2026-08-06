@@ -345,6 +345,8 @@ void GenerateTextureMipMap(const Texture &tex) {
 
 uint8_t *ReadTexture(const Texture &tex) {
     #ifndef PLATFORM_ES3
+        // Buffer size below assumes 2D, other texture types not supported atm.
+        if (tex.type != GL_TEXTURE_2D) return nullptr;
         GL_CALL(glBindTexture(tex.type, tex.id));
         auto pixels = new uint8_t[tex.size.x * tex.size.y * 4];
         GL_CALL(glGetTexImage(tex.type, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
@@ -356,6 +358,8 @@ uint8_t *ReadTexture(const Texture &tex) {
 
 bool SaveTexture(const Texture &tex, string_view_nt filename, bool flip) {
     #ifndef PLATFORM_ES3
+        // Buffer size below assumes 2D, other texture types not supported atm.
+        if (tex.type != GL_TEXTURE_2D) return false;
         auto pixels = new uint8_t[tex.size.x * tex.size.y * 4];
         GL_CALL(glBindTexture(tex.type, tex.id));
         GL_CALL(glGetTexImage(tex.type, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
