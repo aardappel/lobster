@@ -444,14 +444,6 @@ nfr("get_palette_color", "palette_idx,entry", "II", "F}:4", "",
         PushVec(sp, color2vec(palettes[palette_idx].colors[entry]));
     });
 
-nfr("remove_all_palettes", "", "", "",
-     "Remove all cached palettes to free up memory. WARNING: existing models"
-     " will no longer render correctly. You generally only want to do this if you"
-     " know that none of the existing models are needed.",
-    [](StackPtr &, VM &) {
-        palettes.clear();
-    });
-
 nfr("sample_down", "scale,world,alpha_threshold", "IR:voxelsF", "R:voxels", "",
     [](StackPtr &, VM &vm, Value scale, Value world, Value alpha_threshold) {
         auto sc = scale.intval();
