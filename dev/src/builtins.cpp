@@ -150,7 +150,8 @@ nfr("get_line", "prefix", "S", "S",
         char buf[MAXSIZE];
         if (!fgets(buf, MAXSIZE, stdin)) buf[0] = 0;
         buf[MAXSIZE - 1] = 0;
-        for (int i = 0; i < MAXSIZE; i++) if (buf[i] == '\n') { buf[i] = 0; break; }
+        // Anything past the terminator is uninitialized.
+        for (int i = 0; i < MAXSIZE; i++) if (buf[i] == '\n' || !buf[i]) { buf[i] = 0; break; }
         return Value(vm.NewString(buf));
     });
 
