@@ -1707,7 +1707,9 @@ nfr("load_image", "name,depth,edge,numtiles", "SIII}:2", "R:voxels]",
         auto name = Pop(sp).sval()->strv();
         auto idim = int2_0;
         auto buf = LoadImageFile(name, idim);
-        auto dim = idim / numtiles;
+        // Anything non-positive means no tiles at all, and no division below.
+        if (!all(numtiles > 0)) numtiles = int2_0;
+        auto dim = all(numtiles > 0) ? idim / numtiles : int2_0;
         auto vec = vm.NewVec(0, numtiles.x * numtiles.y, TYPE_ELEM_VECTOR_OF_RESOURCE);
         if (buf) {
             for (int ty = 0; ty < numtiles.y; ty++) {
