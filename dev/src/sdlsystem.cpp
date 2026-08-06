@@ -601,12 +601,13 @@ void SDLShutdown() {
 vector<float> &SDLGetFrameTimeLog() { return frametimelog; }
 
 float SDLGetRollingAverage(size_t n) {
+    if (frametimelog.empty()) return 0.0f;
     n = std::max((size_t)1, std::min(frametimelog.size(), n));
     float sum = 0.0f;
     for (size_t i = 0; i < n; i++) {
         sum += frametimelog[frametimelog.size() - n + i];
     }
-    return sum / frametimelog.size();
+    return sum / n;
 }
 
 void SetTargetFrameTime(double ft) { target_frametime = ft; }
