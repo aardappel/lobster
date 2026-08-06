@@ -523,7 +523,9 @@ nfr("scale_up", "scale,world", "IR:voxels", "R:voxels", "",
     [](StackPtr &, VM &vm, Value scale, Value world) {
         auto sc = scale.intval();
         auto &v = GetVoxels(world);
-        if (sc < 2 || sc > 256 || squaredlength(v.grid.dim) * sc > 2048)
+        // Output is 1 byte per cell, cap it at 1GB.
+        if (sc < 2 || sc > 256 ||
+            (int64_t)v.grid.dim.volume() * sc * sc * sc > 1024 * 1024 * 1024)
             vm.Error("cg.scale_up: scale out of range");
         auto &d = *NewWorld(v.grid.dim * sc, v.palette_idx);
         for (int x = 0; x < v.grid.dim.x; x++) {
