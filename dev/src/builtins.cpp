@@ -504,7 +504,7 @@ nfr("replace_string", "s,a,b,count", "SSSI?", "S",
         auto c = count.ival() ? count.ival() : numeric_limits<iint>::max();
         if (a.empty()) {
             // We could error here, but more useful to just return the input.
-            s = a;
+            s = sv;
         } else {
             for (size_t i = 0;;) {
                 auto j = std::min(sv.find(a, i), sv.size());
