@@ -167,11 +167,13 @@ Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
                 }
             #endif
 			int mipl = 0;
-			for (auto d = dim; buf && tf & TF_BUFFER_HAS_MIPS ? d.volume() : !mipl; d /= 2) {
+			for (auto d = dim;;) {
 				GL_CALL(glTexImage3D(textype, mipl, internalformat, d.x, d.y, d.z, 0,
 									 bufferformat, buffercomponent, buf));
 				mipl++;
+				if (!buf || !(tf & TF_BUFFER_HAS_MIPS) || !d.volume() || all(d <= 1)) break;
 				buf += d.volume() * elemsize;
+				d = max(int3_1, d / 2);
 			}
 		#else
 			assert(false);

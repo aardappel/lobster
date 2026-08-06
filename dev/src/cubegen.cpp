@@ -660,38 +660,53 @@ nfr("create_3d_texture", "block,textureformat,monochrome", "R:voxelsII?", "R:tex
     [](StackPtr &, VM &vm, Value wid, Value textureflags, Value monochrome) {
         auto &v = GetVoxels(wid);
         auto &palette = palettes[v.palette_idx].colors;
+        if (!all(v.grid.dim > 0))
+            vm.BuiltinError("cg.create_3d_texture: block must be non-empty in all dimensions");
+        // Mip dims halve but bottom out at 1, so longer axes keep halving after the
+        // shortest is done.
+        auto mipdim = [](const int3 &d) { return max(int3_1, d / 2); };
         auto mipsizes = 0;
-        for (auto d = v.grid.dim; d.x; d /= 2) mipsizes += d.volume();
+        for (auto d = v.grid.dim;; d = mipdim(d)) {
+            mipsizes += d.volume();
+            if (all(d <= 1)) break;
+        }
         auto buf = new uint8_t[mipsizes];
         v.grid.ToContinousGrid(buf);
         auto mipb = buf;
-        for (auto db = v.grid.dim; db.x > 1; db /= 2) {
-            auto ds = db / 2;
+        for (auto db = v.grid.dim; !all(db <= 1); ) {
+            auto ds = mipdim(db);
             auto mips = mipb + db.volume();
             for (int z = 0; z < ds.z; z++) {
-                auto zb = z * 2;
                 for (int y = 0; y < ds.y; y++) {
-                    auto yb = y * 2;
                     for (int x = 0; x < ds.x; x++) {
-                        auto xb = x * 2;
                         auto sum = float4_0;
                         int filled = 0;
+                        int total = 0;
+                        // An axis that bottomed out at 1 has only one source voxel to sample.
                         for (int sz = 0; sz < 2; sz++) {
+                            auto zb = z * 2 + sz;
+                            if (zb >= db.z) continue;
                             for (int sy = 0; sy < 2; sy++) {
+                                auto yb = y * 2 + sy;
+                                if (yb >= db.y) continue;
                                 for (int sx = 0; sx < 2; sx++) {
-                                    auto i = mipb[(zb + sz) * db.x * db.y +
-                                                    (yb + sy) * db.x + xb + sx];
+                                    auto xb = x * 2 + sx;
+                                    if (xb >= db.x) continue;
+                                    total++;
+                                    auto i = mipb[zb * db.x * db.y + yb * db.x + xb];
                                     if (i != transparant) { sum += float4(palette[i]); filled++; }
                                 }
                             }
                         }
-                        auto pi = filled >= 4 ? v.Color2Palette(sum / (filled * 255.0f))
-                                              : transparant;
+                        // At least half the available samples must be solid.
+                        auto pi = filled * 2 >= total ? v.Color2Palette(sum / (filled * 255.0f))
+                                                      : transparant;
                         mips[z * ds.x * ds.y + y * ds.x + x] = pi;
                     }
                 }
             }
             mipb = mips;
+            db = ds;
         }
         if (monochrome.True()) {
             for (int i = 0; i < mipsizes; i++) buf[i] = buf[i] ? 255 : 0;
