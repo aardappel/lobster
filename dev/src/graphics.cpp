@@ -192,6 +192,8 @@ OwnedTexture *CreateTextureFromValues(LVector *mat, int tf) {
         ? (tf & TF_FLOAT ? sizeof(float) : sizeof(uint8_t))
         : (tf & TF_FLOAT ? sizeof(float4) : sizeof(byte4));
     auto sides = tf & TF_CUBEMAP ? 6 : 1;
+    if (xs % sides)
+        THROW_OR_ABORT("CreateTextureFromValues: cubemap width must be a multiple of 6");
     auto sidexs = xs / sides;
     auto buf = new uint8_t[xs * ys * sz];
     memset(buf, 0, xs * ys * sz);
