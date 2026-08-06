@@ -272,13 +272,22 @@ using namespace lobster;
 void CubeGenClear() {
 }
 
+static const int64_t max_world_volume = 1024 * 1024 * 1024;
+static void CheckWorldSize(VM &vm, const int3 &size) {
+    if (!all(size >= 0) ||
+        (int64_t)size.x * (int64_t)size.y * (int64_t)size.z > max_world_volume)
+        vm.BuiltinError(cat("cubegen: block size out of range: ", size.to_string()));
+}
+
 void AddCubeGen(NativeRegistry &nfr) {
 
 nfr("init", "size", "I}:3", "R:voxels",
     "initializes a new, empty 3D cube block. 1 byte per cell, careful with big sizes :)"
     " returns the block",
     [](StackPtr &sp, VM &vm) {
-        auto v = NewWorld(PopVec<int3>(sp), default_palette_idx);
+        auto size = PopVec<int3>(sp);
+        CheckWorldSize(vm, size);
+        auto v = NewWorld(size, default_palette_idx);
         Push(sp, NewVoxelResource(vm, *v));
     });
 
@@ -357,6 +366,7 @@ nfr("clone", "block,pos,size", "R:voxelsI}:3I}:3", "R:voxels",
         auto p = PopVec<int3>(sp);
         auto res = Pop(sp);
         auto &v = GetVoxels(res);
+        CheckWorldSize(vm, sz);
         auto nw = NewWorld(sz, v.palette_idx);
         v.Clone(p, sz, nw);
         Push(sp, NewVoxelResource(vm, *nw));
