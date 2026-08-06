@@ -1,6 +1,6 @@
 # Emscripten makefile
 
-CXX= emcc
+CXX= em++
 CC= emcc
 
 # LTO only has an effect for the cppout target, where it gives a huge speedup.
@@ -115,7 +115,7 @@ EFLAGS= -sWASM=1 -sUSE_WEBGL2=1 -sFULL_ES3=1 \
 
 cpp: CXXFLAGS += -DVM_COMPILED_CODE_MODE -DIMGUI_IMPL_OPENGL_ES3
 cpp: $(CPPOBJS) $(COBJS)
-	emcc $(OPTLEVELLINK) $(CFLAGS) $(COBJS) $(CXXFLAGS) $(CPPOBJS) $(EFLAGS)
+	em++ $(OPTLEVELLINK) $(CFLAGS) $(COBJS) $(CXXFLAGS) $(CPPOBJS) $(EFLAGS)
 
 clean:
 	-$(RM) $(CPPOBJS) $(COBJS)
