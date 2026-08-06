@@ -1286,7 +1286,8 @@ nfr("circles_within_range", "dist,positions,radiuses,positions2,radiuses2,gridsi
         };
         vector<Node> nodes(positions2->SLen(), Node());
         double maxrad = 0;
-        double2 minpos = double2(FLT_MAX), maxpos(FLT_MIN);
+        // NOTE: -FLT_MAX, not FLT_MIN, which is the smallest *positive* float.
+        double2 minpos = double2(FLT_MAX), maxpos(-FLT_MAX);
         for (ssize_t i = 0; i < positions2->SLen(); i++) {
             auto &n = nodes[i];
             auto p = ValueToF<2>(positions2->AtSt(i), positions2->width);
