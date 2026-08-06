@@ -580,9 +580,14 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
                 assert(vm.EnumName(ti->enumidx) == "bool");
                 bool b = v->True();
                 if (ImGui::Checkbox(l, &b)) *v = b;
+            } else if (ti->enumidx >= 0 && vm.vma.meta->enums[ti->enumidx].flags) {
+                // A flags enum holds combinations of values, which a combo box can't represent.
+                iint i = v->ival();
+                if (ImGui::InputScalar(l, ImGuiDataType_S64, (void *)&i, nullptr, nullptr, "%" PRId64, 0)) *v = i;
             } else if (ti->enumidx >= 0) {
                 int val = v->intval();
-                int sel = 0;
+                // -1 = nothing selected, so a value that is not an enum member shows as empty.
+                int sel = -1;
                 auto &vals = vm.vma.meta->enums[ti->enumidx].vals;
                 vector<const char *> items(vals.size());
                 int i = 0;
@@ -591,8 +596,9 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
                     if (val == ev.val) sel = i;
                     i++;
                 }
-                ImGui::Combo(l, &sel, items.data(), (int)items.size());
-                *v = vals[sel].val;
+                // Only write back on an actual user selection: display must not modify.
+                if (ImGui::Combo(l, &sel, items.data(), (int)items.size()) && sel >= 0)
+                    *v = vals[sel].val;
             } else {
                 iint i = v->ival();
                 if (ImGui::InputScalar(l, ImGuiDataType_S64, (void *)&i, nullptr, nullptr, "%" PRId64, 0)) *v = i;
