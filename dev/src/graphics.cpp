@@ -889,6 +889,8 @@ nfr("new_mesh", "format,positions,colors,normals,texcoords1,texcoords2,indices",
         iint nverts = positions.vval()->len;
         vector<int> idxs;
         if (indices.True()) {
+            if (indices.vval()->len % 3)
+                vm.BuiltinError("newmesh: number of indices must be a multiple of 3");
             for (int i = 0; i < indices.vval()->len; i++) {
                 auto e = indices.vval()->AtS(i);
                 if (e.ival() < 0 || e.ival() >= nverts)
