@@ -387,8 +387,8 @@ nfr("start_text_input", "pos,size", "I}:2I}:2", "",
     " strings, that can deal with unicode IME etc. pos & size are a hint where the string"
     " being edited is being displayed, such that an IME can popup a box next to it, if needed.",
     [](StackPtr &sp, VM &) {
-        auto pos = PopVec<int2>(sp);
         auto size = PopVec<int2>(sp);
+        auto pos = PopVec<int2>(sp);
         SDLStartTextInput(pos, size);
     });
 

@@ -8,13 +8,15 @@ import gl
 gl.window("text input", 1200, 600)
 check(gl.set_font_name("data/fonts/Inconsolata/Inconsolata-Regular.ttf"), "font!")
 
-gl.start_text_input(int2_0, int2_1 * gl.get_font_size())
+let font_size = 30
+
+gl.start_text_input(int2_0, int2_1 * font_size)
 
 let log = []
 
 while gl.frame():
     gl.clear(color_black)
-    gl.set_font_size(30)
+    gl.set_font_size(font_size)
     // This returns other values to render IME correctly, which we'll skip here.
     let text = gl.text_input_state()
     gl.text(text + "_")
@@ -23,7 +25,7 @@ while gl.frame():
         log.insert(0, text)
         gl.end_text_input()
         // For now, go right back to inputting a new string:
-        gl.start_text_input(int2_0, int2_1 * gl.get_font_size())
+        gl.start_text_input(int2_0, int2_1 * font_size)
     elif gl.key_repeat("backspace") == 1:
         // Inefficient but simple way to drop last character.
         let uv = string_to_unicode(text)
