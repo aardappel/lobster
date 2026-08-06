@@ -761,7 +761,8 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
             map<int32_t, int3> node_offset;
             typedef matrix<int, 3, 3> int3x3;
             map<int32_t, int3x3> node_rots;
-            uint8_t palette_index_remap[256];
+            // Any index a (malformed) IMAP doesn't mention remaps to transparent.
+            uint8_t palette_index_remap[256] = {};
             const uint8_t *index_remap_start = nullptr;
             while (bufs.size() >= 8) {
                 auto id = (const char *)bufs.data();
@@ -804,7 +805,7 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
                     }
                     if (!palette.empty()) return errf(".vox file contains >1 palette");
                     palette.push_back(byte4_0);
-                    if (p.size() < 256) return erreof();
+                    if (p.size() < 255 * sizeof(byte4)) return erreof();
                     palette.insert(palette.end(), (byte4 *)p.data(), ((byte4 *)p.data()) + 255);
                     palette_init_materials();
                 } else if (!strncmp(id, "XYZI", 4)) {
@@ -994,6 +995,7 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
                     // If you don't, it's better to just leave it as-is since
                     // it's faster to load without remapping.
                     // See https://github.com/ephtracy/voxel-model/issues/19 for more discussion.
+                    if (p.size() < 255) return erreof();
                     index_remap_start = p.data();
                     // We don't process the chunk here, because any  MATL chunk that comes
                     // after this still refers to the old indices. See below.
@@ -1001,9 +1003,14 @@ nfr("load_vox", "name,material_palette,file_contents,remap_palettes", "SB?S?B?",
                     chunks_skipped = true;
                 }
             }
+            // Model ids come from the file, so may refer to a model that isn't there.
+            for (auto it = node_to_model.begin(); it != node_to_model.end(); ) {
+                if (it->second < 0 || it->second >= voxvec->SLen()) it = node_to_model.erase(it);
+                else ++it;
+            }
             // See IMAP chunk comment above.
             // Remap now that MATL chunks have been processed.
-            if (remap_palettes.True() && index_remap_start) {
+            if (remap_palettes.True() && index_remap_start && !palette.empty()) {
                 vector<byte4> remapped_palette = palette;
                 for (int i = 0; i < 255; i++) {
                     palette_index_remap[index_remap_start[i]] = (uint8_t)(i + 1);
