@@ -1,0 +1,171 @@
+
+
+// Built-in operators on scalars: arithmetic, bitwise, comparison, logical,
+// precedence, increment/decrement, assignment forms.
+
+def operators_tests():
+    suite("operators")
+
+    // Integer arithmetic.
+    test_eq(2 + 3, 5)
+    test_eq(2 - 3, -1)
+    test_eq(2 * 3, 6)
+    test_eq(7 / 2, 3)
+    test_eq(7 % 2, 1)
+    // Division / modulo truncate towards zero (C semantics).
+    test_eq(-7 / 2, -3)
+    test_eq(7 / -2, -3)
+    test_eq(-7 % 3, -1)
+    test_eq(7 % -3, 1)
+    test_eq(-(-5), 5)
+
+    // Float arithmetic, and int->float coercion in mixed expressions
+    // (via variables: literals in float context give a warning instead).
+    let i1, i7 = 1, 7
+    test_eq(2.5 + 0.5, 3.0)
+    test_eq(7.0 / 2.0, 3.5)
+    test_eq(i1 + 0.5, 1.5)
+    test_eq(i7 / 2.0, 3.5)
+    test_true(1.5 is float)
+    test_true((i1 + 1.5) is float)
+    test_approx(4.0 % 1.5, 1.0)
+    test_approx(-4.0 % 1.5, -1.0)  // fmod semantics: sign of the dividend.
+
+    // Precedence: * / % over + -, over << >>, over & | ^, over comparisons,
+    // over == !=, over and/or.
+    test_eq(2 + 3 * 4, 14)
+    test_eq(10 - 4 - 3, 3)          // Left associative.
+    test_eq(24 / 4 / 2, 3)
+    test_eq(1 + 2 << 1, 6)          // Shifts bind looser than +.
+    test_eq(1 << 2 & 3, 0)          // Shifts bind tighter than &.
+    test_eq(1 | 2 == 3, true)       // Bitwise binds tighter than ==.
+    test_eq(2 < 3 == 1 > 0, true)   // Comparisons bind tighter than ==.
+    test_true(1 == 1 and 2 == 2)    // and/or loosest.
+    test_eq(-2 * 3, -6)
+    test_eq(2 * -3, -6)
+
+    // Bitwise.
+    test_eq(1 & 3, 1)
+    test_eq(1 | 4, 5)
+    test_eq(5 ^ 3, 6)
+    test_eq(~0, -1)
+    test_eq(~1, -2)
+    test_eq(1 << 4, 16)
+    test_eq(256 >> 4, 16)
+    test_eq(-8 >> 1, -4)   // Right shift is arithmetic.
+    test_eq(-1 << 1, -2)
+    // Shift counts are masked to 6 bits (like Java/C#/JS/Wasm); the var
+    // forces the runtime path so it and the constant-folded path must agree.
+    var sh = 64
+    test_eq(1 << 64, 1)
+    test_eq(1 << sh, 1)
+    sh = -1
+    test_eq(1 << -1, 1 << 63)
+    test_eq(1 << sh, 1 << 63)
+    sh = 100
+    test_eq(256 >> 100, 256 >> 36)
+    test_eq(256 >> sh, 256 >> 36)
+
+    // Comparisons on ints, floats and mixed.
+    test_true(1 < 2 and 2 > 1 and 1 <= 1 and 1 >= 1 and 1 == 1 and 1 != 2)
+    test_true(1.5 < 2.5 and 2.5 >= 2.5 and 1.5 != 2.5)
+    test_true(i1 < 1.5 and i1 * 2 > 1.5 and i1 == 1.0)
+
+    // Logical operators return one of their operands.
+    test_eq(2 and 3, 3)
+    test_eq(0 and 3, 0)
+    test_eq(2 or 3, 2)
+    test_eq(0 or 3, 3)
+    test_eq("" or "a", "")    // "" is a true value, unlike e.g. Python!
+    test_eq(nil or "a", "a")
+    test_eq(0.0 or 2.5, 2.5)
+    // not turns false values into 1, everything else into 0.
+    test_eq(not 0, 1)
+    test_eq(not 42, 0)
+    test_eq(not nil, 1)
+    test_eq(not 0.0, 1)
+    test_eq(not "", 0)
+    test_eq(not not 42, 1)
+    // not binds looser than ==, so this is not(1 == 2).
+    test_eq(not 1 == 2, 1)
+    // Short circuiting: the rhs must not be evaluated.
+    var sideeffect = 0
+    def bump():
+        sideeffect++
+        return true
+    test_true(0 and bump() or 1 or bump())
+    test_eq(sideeffect, 0)
+
+    // Increment / decrement, pre (new value) and post (old value).
+    var incr = 0
+    test_eq(incr++, 0)
+    test_eq(incr, 1)
+    test_eq(++incr, 2)
+    test_eq(incr--, 2)
+    test_eq(--incr, 0)
+    test_eq(incr++ + ++incr + incr-- + --incr, 4)
+    var fincr = 1.0
+    test_eq(++fincr, 2.0)
+    // Also on vector elements and fields.
+    let iv = [ 10 ]
+    test_eq(iv[0]++, 10)
+    test_eq(++iv[0], 12)
+
+    // Assignment operators, equivalent to their expanded forms.
+    var acc = 10
+    acc += 5
+    test_eq(acc, 15)
+    acc -= 3
+    test_eq(acc, 12)
+    acc *= 2
+    test_eq(acc, 24)
+    acc /= 5
+    test_eq(acc, 4)
+    acc %= 3
+    test_eq(acc, 1)
+    // Bitwise assignment forms; assignments are expressions yielding the lvalue.
+    var bits = 1
+    test_eq(bits |= 2, 3)
+    test_eq(bits &= ~2, 1)
+    test_eq(bits ^= 3, 2)
+    test_eq(bits <<= 2, 8)
+    test_eq(bits >>= 1, 4)
+    var fdiv = 7.0
+    fdiv /= 2.0
+    test_eq(fdiv, 3.5)
+
+    // Multiple assignment / definition, and swap via multiple assignment.
+    var ma, mb = 1, 2
+    test_eq(ma, 1)
+    test_eq(mb, 2)
+    ma, mb = mb, ma
+    test_eq(ma, 2)
+    test_eq(mb, 1)
+    let mc, md = 3, 4
+    test_eq(mc + md, 7)
+
+    // String concatenation with +, converting either side.
+    test_eq("ab" + "cd", "abcd")
+    test_eq("a" + 1, "a1")
+    test_eq(1 + "a", "1a")
+    test_eq("a" + 1.5, "a1.5")
+    test_eq("a" + [ 1, 2 ], "a[1, 2]")
+    var scat = "x"
+    scat += "y"
+    test_eq(scat, "xy")
+
+    // Equality on references: same object only. equal() for structure.
+    let ra = [ 1 ]
+    let rb = [ 1 ]
+    test_true(ra == ra)
+    test_true(ra != rb)
+    test_true(equal(ra, rb))
+    // Strings compare by value.
+    test_true("abc" == "abc")
+    test_true("abc" != "abd")
+    test_true("abc" < "abd")
+    test_true("ab" < "abc")
+    test_true("" < "a")
+    test_true("b" > "a" and "b" >= "b" and "a" <= "a")
+
+operators_tests()
