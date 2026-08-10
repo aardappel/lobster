@@ -174,13 +174,5 @@ def control_tests():
         test_true(false, "chained if let failed")
     if let c1 = maybe(1) and let c2 = maybe(0):
         test_true(false, "chained if let with nil succeeded: {c1} {c2}")
-    // FIXME: the language reference grammar has `while condexp : body` with
-    // condexp = exp | vardef (and tests/misctest.lobster claims let/var inside
-    // conditions works with while too), but the parser rejects it with
-    // "illegal start of expression: `let`".
-    //var wcount = 0
-    //while let w = maybe(wcount < 3):
-    //    wcount += w.length
-    //test_eq(wcount, 3)
 
 control_tests()

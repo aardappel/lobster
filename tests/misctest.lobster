@@ -478,7 +478,7 @@ run_test("misc"):
 
     do():
         // let/var inside conditions.
-        // Works with assert/if/guard/while.
+        // Works with assert/if/guard.
         def maybe() -> string?:
             return "foo"
         assert let a = maybe()

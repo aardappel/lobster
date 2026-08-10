@@ -108,8 +108,7 @@ specializers ]</p>
 [ block [ <code>fn</code> block … ] ]</p>
 <p>expstat = exp | <code>return</code> ( [ list( opexp ) ] ) [
 <code>from</code> ( <code>program</code> | ident ) ] | <code>for</code>
-exp <code>:</code> body | <code>while</code> condexp <code>:</code>
-body</p>
+exp <code>:</code> body | <code>while</code> exp <code>:</code> body</p>
 <p>condexp = exp | vardef</p>
 <p>exp = opexp [ ( <code>=</code> | <code>+=</code> | <code>-=</code> |
 <code>*=</code> | <code>/=</code> | <code>%=</code> ) exp ]</p>

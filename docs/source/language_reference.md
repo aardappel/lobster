@@ -95,7 +95,7 @@ type = `int` \| `float` \| `string` \| `[` type `]` \| `resource` `<` ident `>` 
 call = [ specializers ] `(` [ list( exp ) ] `)` [ block [ `fn` block … ] ]
 
 expstat = exp \| `return` ( [ list( opexp ) ] ) [ `from` ( `program` \| ident ) ] \|
-`for` exp `:` body \| `while` condexp `:` body
+`for` exp `:` body \| `while` exp `:` body
 
 condexp = exp \| vardef
 
