@@ -109,7 +109,7 @@ def strings_tests():
     test_eq(sok, false)
     sn, sok = string_to_int("")
     test_eq(sn, 0)
-    test_eq(sok, true)  // Vacuously all parsed.
+    test_eq(sok, false)
     sn, sok = string_to_int("FF", 16)
     test_eq(sn, 255)
     test_eq(sok, true)

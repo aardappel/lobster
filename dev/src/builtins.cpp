@@ -527,17 +527,17 @@ nfr("replace_string", "s,a,b,count", "SSSI?", "S",
 
 nfr("string_to_int", "s,base", "SI?", "IB",
     "converts a string to an int given the base (2..36, e.g. 16 for hex, default is 10)."
-    "returns 0 if no numeric data could be parsed; second return value is true if all"
-    "characters of the string were parsed.",
+    "returns 0 if no numeric data could be parsed (or overflow); second return value is true if all"
+    "characters of the string were parsed (and no overflow).",
     [](StackPtr &sp, VM &vm, Value s, Value b) {
         int base = b.True() ? b.intval() : 10;
         if (base < 2 || base > 36)
             vm.BuiltinError("string_to_int: values out of range");
-        const char *end;
+        std::errc ec;
         auto svnt = s.sval()->strv();
-        auto i = parse_int<iint>(svnt, base, &end);
+        auto i = parse_int<iint>(svnt, base, &ec);
         Push(sp,  i);
-        return Value(end == svnt.data() + svnt.size());
+        return Value(ec == std::errc());
     });
 
 nfr("string_to_float", "s", "S", "FB",

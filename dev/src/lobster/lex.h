@@ -518,11 +518,14 @@ struct Lex : LoadedFile {
                 }
                 bool isfloat = c == '.' && *p != '.';
                 if (IsDigit(c) || (isfloat && IsDigit(*p))) {
+                    std::errc ec;
                     if (c == '0' && *p == 'x') {
                         p++;
                         while (IsXDigit(*p)) p++;
                         sattr = string_view(tokenstart, p - tokenstart);
-                        ival = parse_int<int64_t>(sattr.substr(2), 16);
+                        // Note: unsigned, we allow hex constants to poke into the sign bit.
+                        ival = parse_int<uint64_t>(sattr.substr(2), 16, &ec);
+                        if (ec != std::errc()) Error("hex constant overflow");
                         return T_INT;
                     } else {
                         while (IsDigit(*p)) p++;
@@ -540,7 +543,8 @@ struct Lex : LoadedFile {
                         if (isfloat) {
                             return Float();
                         } else {
-                            ival = parse_int<int64_t>(sattr);
+                            ival = parse_int<int64_t>(sattr, 10, &ec);
+                            if (ec != std::errc()) Error("int constant overflow");
                             return T_INT;
                         }
                     }

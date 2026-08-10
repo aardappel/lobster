@@ -11,11 +11,7 @@ def lexical_tests():
     test_eq(0x10, 16)
     test_eq(0xABADCAFE, 2880293630)
     test_eq(0x7FFFFFFFFFFFFFFF, 9223372036854775807)
-    // FIXME: hex literals that don't fit a signed 64-bit int silently lex to 0,
-    // because parse_int ignores the overflow error from from_chars. All-bits-set
-    // masks like this one should produce -1 (or at least a compile error).
-    //test_eq(0xFFFFFFFFFFFFFFFF, -1)
-    // Character constants are ints.
+    test_eq(0xFFFFFFFFFFFFFFFF, -1)
     test_eq('A', 65)
     test_eq('0', 48)
     test_eq(' ', 32)
