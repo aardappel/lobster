@@ -438,8 +438,8 @@ static_assert(std::numeric_limits<double>::is_iec559, "IEEE754 floats required")
 #define _SCAT() Value res = vm.NewString(a.sval()->strv(), b.sval()->strv())
 
 #define SNCOMPEN(op) { GETARGS(); \
-   if (a.any() op b.any()) Push(sp, true); \
-   else if (!a.any() or !b.any()) Push(sp, false); \
+   if (!a.any()) { Push(sp, b.any() op nullptr); } \
+   else if (!b.any()) { Push(sp, a.any() op nullptr); } \
    else { Value res = *a.sval() op *b.sval(); Push(sp, res); } }
 
 #define ACOMPEN(op)     { GETARGS(); Value res = a.any() op b.any(); Push(sp, res); }

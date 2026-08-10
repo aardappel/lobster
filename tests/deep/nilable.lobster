@@ -87,13 +87,9 @@ def nil_tests():
     // Builtins with nilable int args accept plain ints (in_range bias).
     test_true(in_range(0, 1, 0))
 
-    // FIXME: == on a string? value compares by *reference* when the value is
-    // not statically known to be non-nil, but by *value* where flow analysis
-    // has promoted it. So this function returns false for a fresh
-    // (non-interned) string with equal contents, while the exact same
-    // comparison inline on a promoted value returns true:
+    // Strings compare by value but still accept nil.
     def nilstr_is_w(a:string?): return a == "w"
-    //test_true(nilstr_is_w(substring("xw", 1, 1)))
+    test_true(nilstr_is_w(substring("xw", 1, 1)))
     let fresh = substring("xw", 1, 1)
     test_true(fresh == "w")  // Same comparison, by value, when non-nil.
 
