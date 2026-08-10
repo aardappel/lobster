@@ -1620,10 +1620,12 @@ struct CodeGen  {
         } else if (rtype->t == V_STRING && ltype->t == V_STRING) {
             // Nillable version handled below.
             EmitOp0(GENOP(IL_SADD + op));
-        } else if ((rtype->t == V_FUNCTION && ltype->t == V_FUNCTION) ||
-                   (rtype->t == V_TYPEID && ltype->t == V_TYPEID)) {
+        } else if ((rtype->t == V_FUNCTION && ltype->t == V_FUNCTION)) {
             assert(op == MOP_EQ || op == MOP_NE);
             EmitOp0(GENOP(IL_LEQ + (op - MOP_EQ)));
+        } else if ((rtype->t == V_TYPEID && ltype->t == V_TYPEID)) {
+            assert(op == MOP_EQ || op == MOP_NE);
+            EmitOp0(GENOP(IL_IEQ + (op - MOP_EQ)));
         } else {
             if (op >= MOP_EQ) {  // EQ/NEQ
                 if (IsStruct(ltype->t)) {

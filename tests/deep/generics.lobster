@@ -63,17 +63,11 @@ def generics_tests():
     def vec_t<T>(): return []::T
     test_seq(vec_t<string>(), []::string)
     def typeof_t<T>(): return typeof T
-    // typeids can be compared against their int value...
+    // typeids can be compared against their int value.
     test_eq(typeof_t<int>(), 0)  // int is always entry 0 of the type table.
-    // FIXME: ...but passing two typeids into a generic function and comparing
-    // them with == asserts in a debug build:
-    //   Assertion failed: type >= RTT_FUNCTION, vmdata.h line 534 (Value::ip())
-    // Minimal repro:
-    //   def eq2(a, b): return a == b
-    //   print eq2(typeof string, typeof string)
-    // Interpolating typeids ("{typeof_t<int>()} {typeof int}") can hit the
-    // same assert.
-    //test_eq(typeof_t<string>(), typeof string)
+    def eq2(a, b): return a == b
+    test_true(eq2(typeof string, typeof string))
+    test_eq(typeof_t<string>(), typeof string)
 
     // Generic functions over generic classes, without naming a specialization.
     def rewrap<V>(g:DGen<V>) -> DGen<V>:
