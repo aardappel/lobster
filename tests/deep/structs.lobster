@@ -115,10 +115,7 @@ def structs_tests():
     test_eq(ceiling(float2 { 1.1, -1.9 }), int2 { 2, -1 })
     test_eq(round(float2 { 1.5, -1.5 }), int2 { 2, -2 })
     test_eq(fraction(float2 { 1.25, 3.5 }), float2 { 0.25, 0.5 })
-    // FIXME: fraction on float structs computes f - int(f) per component, but
-    // scalar fraction computes f - floor(f), so they disagree for negative
-    // inputs: fraction(-1.25) == 0.75 but fraction(float2 { -1.25, .. }).x == -0.25.
-    //test_eq(fraction(float2 { -1.25, 0.0 }).x, fraction(-1.25))
+    test_eq(fraction(float2 { -1.25, 0.0 }).x, fraction(-1.25))
     test_approx(pow(float2 { 2.0, 3.0 }, 2.0), float2 { 4.0, 9.0 })
 
     // min/max: pairwise on two structs, or reducing one struct.

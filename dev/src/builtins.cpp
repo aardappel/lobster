@@ -769,7 +769,7 @@ nfr("fraction", "f", "F", "F",
     [](StackPtr &, VM &, Value a) { return Value(a.fval() - floor(a.fval())); });
 nfr("fraction", "v", "F}", "F}",
     "returns the fractional part of a vector of floats",
-    [](StackPtr &sp, VM &) { VECTOROP(f.fval() - int(f.fval())); });
+    [](StackPtr &sp, VM &) { VECTOROP(f.fval() - floor(f.fval())); });
 
 nfr("float", "i", "I", "F",
     "converts an int to float",
