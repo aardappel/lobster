@@ -129,15 +129,10 @@ def vectors_tests():
     test_eq(max([ 3, 1, 2 ]), 3)
     test_eq(min([ 3.5, 1.5 ]), 1.5)
     test_eq(max([ 3.5, 1.5 ]), 3.5)
-    // FIXME: the min/max builtins on int/float vectors use 32-bit INT_MAX/INT_MIN
-    // and float32 FLT_MAX/FLT_MIN as their start values, so values beyond those
-    // ranges give wrong results, e.g. min([ 3000000000000000000 ]) == 2147483647,
-    // and max([ -5.0, -6.0 ]) == FLT_MIN (a tiny positive number) because FLT_MIN
-    // is the smallest positive float, not the most negative one.
-    //test_eq(min([ 3000000000000000000 ]), 3000000000000000000)
-    //test_eq(max([ -3000000000000000000 ]), -3000000000000000000)
-    //test_eq(max([ -5.0, -6.0 ]), -5.0)
-    //test_eq(min([ 1.0e100, 2.0e100 ]), 1.0e100)
+    test_eq(min([ 3000000000000000000 ]), 3000000000000000000)
+    test_eq(max([ -3000000000000000000 ]), -3000000000000000000)
+    test_eq(max([ -5.0, -6.0 ]), -5.0)
+    test_eq(min([ 1.0e100, 2.0e100 ]), 1.0e100)
 
     // binary_search: returns (number of matches, start index / insertion point).
     let bsv = [ 1, 3, 3, 5 ]

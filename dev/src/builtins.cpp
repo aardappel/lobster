@@ -1114,22 +1114,22 @@ nfr("min", "x,y", "F}F}1", "F}",
 nfr("min", "v", "I}", "I",
     "smallest component of a int vector.",
     [](StackPtr &sp, VM &) {
-        STSCALAROP(iint, INT_MAX, v = std::min(v, f.ival()))
+        STSCALAROP(iint, INT64_MAX, v = std::min(v, f.ival()))
     });
 nfr("min", "v", "F}", "F",
     "smallest component of a float vector.",
     [](StackPtr &sp, VM &) {
-        STSCALAROP(double, FLT_MAX, v = std::min(v, f.fval()))
+        STSCALAROP(double, DBL_MAX, v = std::min(v, f.fval()))
     });
 nfr("min", "v", "I]", "I",
-    "smallest component of a int vector, or INT_MAX if length 0.",
+    "smallest component of a int vector, or INT64_MAX if length 0.",
     [](StackPtr &, VM &, Value x) {
-        VECSCALAROP(iint, INT_MAX, v = std::min(v, f.ival()), vval, len, AtS(i))
+        VECSCALAROP(iint, INT64_MAX, v = std::min(v, f.ival()), vval, len, AtS(i))
     });
 nfr("min", "v", "F]", "F",
-    "smallest component of a float vector, or FLT_MAX if length 0.",
+    "smallest component of a float vector, or DBL_MAX if length 0.",
     [](StackPtr &, VM &, Value x) {
-        VECSCALAROP(double, FLT_MAX, v = std::min(v, f.fval()), vval, len, AtS(i))
+        VECSCALAROP(double, DBL_MAX, v = std::min(v, f.fval()), vval, len, AtS(i))
     });
 
 nfr("max", "x,y", "II", "I",
@@ -1159,22 +1159,22 @@ nfr("max", "x,y", "F}F}1", "F}",
 nfr("max", "v", "I}", "I",
     "largest component of a int vector.",
     [](StackPtr &sp, VM &) {
-        STSCALAROP(iint, INT_MIN, v = std::max(v, f.ival()))
+        STSCALAROP(iint, INT64_MIN, v = std::max(v, f.ival()))
     });
 nfr("max", "v", "F}", "F",
     "largest component of a float vector.",
     [](StackPtr &sp, VM &) {
-        STSCALAROP(double, FLT_MIN, v = std::max(v, f.fval()))
+        STSCALAROP(double, -DBL_MAX, v = std::max(v, f.fval()))
     });
 nfr("max", "v", "I]", "I",
-    "largest component of a int vector, or INT_MIN if length 0.",
+    "largest component of a int vector, or INT64_MIN if length 0.",
     [](StackPtr &, VM &, Value x) {
-        VECSCALAROP(iint, INT_MIN, v = std::max(v, f.ival()), vval, len, AtS(i))
+        VECSCALAROP(iint, INT64_MIN, v = std::max(v, f.ival()), vval, len, AtS(i))
     });
 nfr("max", "v", "F]", "F",
-    "largest component of a float vector, or FLT_MIN if length 0.",
+    "largest component of a float vector, or -DBL_MAX if length 0.",
     [](StackPtr &, VM &, Value x) {
-        VECSCALAROP(double, FLT_MIN, v = std::max(v, f.fval()), vval, len, AtS(i))
+        VECSCALAROP(double, -DBL_MAX, v = std::max(v, f.fval()), vval, len, AtS(i))
     });
 
 nfr("popcount", "x", "I", "I",
@@ -1291,8 +1291,7 @@ nfr("circles_within_range", "dist,positions,radiuses,positions2,radiuses2,gridsi
         };
         vector<Node> nodes(positions2->SLen(), Node());
         double maxrad = 0;
-        // NOTE: -FLT_MAX, not FLT_MIN, which is the smallest *positive* float.
-        double2 minpos = double2(FLT_MAX), maxpos(-FLT_MAX);
+        double2 minpos = double2(DBL_MAX), maxpos(-DBL_MAX);
         for (ssize_t i = 0; i < positions2->SLen(); i++) {
             auto &n = nodes[i];
             auto p = ValueToF<2>(positions2->AtSt(i), positions2->width);
