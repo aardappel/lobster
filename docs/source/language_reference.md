@@ -1209,8 +1209,7 @@ than once yet does not use / cannot use the block `{}` syntax. This exception is
 carried over in Lobster. This is not great for readability so isn't generally
 used elsewhere.
 
-`while` returns void. A similar function int module `std` called `collectwhile`
-returns a vector of all body return values.
+`while` returns void.
 
 ### break
 

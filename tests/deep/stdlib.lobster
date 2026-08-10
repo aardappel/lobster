@@ -121,10 +121,6 @@ def std_tests():
     test_eq(consumable.length, 2)
     test_true(eaten >= 1 and eaten <= 3)
 
-    // FIXME: (docs) the language reference mentions "a similar function in
-    // module std called collectwhile", but no such function exists in std (or
-    // anywhere else).
-
     // collect / do / return_after.
     let collected = collect() emit:
         for(3) i: emit(i)
