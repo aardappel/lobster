@@ -350,7 +350,12 @@ struct CodeGen  {
                 udt->ComputeSizes();
                 auto typeoff = GetTypeTableOffset(&udt->thistype);
                 if (udt->serializable_id >= 0) {
-                    assert(ser_ids[udt->serializable_id] < 0);
+                    if (ser_ids[udt->serializable_id] >= 0) {
+                        // TODO: this is niche, so probably ok here, but even better moved to Parser.
+                        parser.Error(cat(udt->name,
+                            " has \"attribute serializable\" with index that is already in use: ",
+                            udt->serializable_id));
+                    }
                     ser_ids[udt->serializable_id] = typeoff;
                 }
             }
