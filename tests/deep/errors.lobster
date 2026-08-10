@@ -45,8 +45,6 @@ def errors_tests():
     expect_error("let x = 1\nreturn 1 % (x - x)", "division by zero")
     expect_error("let v = [ 1 ]\nreturn v[2]", "out of range")
     expect_error("let v = [ 1 ]\nreturn v[0 - 1]", "out of range")
-    // FIXME: (cosmetic) the string index error reports "index 5 out of range 2"
-    // for a 1-char string, i.e. the range includes the 0-terminator.
     expect_error("let s = \"a\"\nreturn s[5]", "out of range")
     expect_error("let v = []::int\nreturn v.pop()", "empty vector")
     expect_error("let v = []::int\nreturn v.top()", "empty vector")

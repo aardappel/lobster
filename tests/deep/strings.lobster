@@ -10,6 +10,7 @@ def strings_tests():
     test_eq("".length, 0)
     test_eq("abc"[0], 'a')
     test_eq("abc"[2], 'c')
+    test_eq("abc"[3], 0)     // Accessing string end allowed.
     test_eq("⺆".length, 3)  // UTF-8 encoded.
     var bytesum = 0
     for("abc") c, i:

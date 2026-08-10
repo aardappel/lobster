@@ -842,7 +842,7 @@ nfr("perspective", "fovy,znear,zfar,frame_buffer_size,frame_buffer_offset,nodept
         auto zfar = Pop(sp).fltval();
         auto znear = Pop(sp).fltval();
         auto fovy = Pop(sp).fltval();
-        Set3DMode(fovy * RAD_D, fbo, fbs, znear, zfar, nodepth);
+        Set3DMode(fovy * RAD_F, fbo, fbs, znear, zfar, nodepth);
     });
 
 nfr("ortho", "rh,depth", "I?I?", "",
