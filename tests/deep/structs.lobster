@@ -130,11 +130,8 @@ def structs_tests():
     test_eq(max(int3 { 3, 1, 2 }), 3)
     test_eq(min(float2 { 1.5, 0.5 }), 0.5)
     test_eq(max(float2 { 1.5, 0.5 }), 1.5)
-    // FIXME: same 32-bit sentinel problem as the vector versions: max() of an
-    // all-negative float struct returns FLT_MIN, and components beyond 32-bit
-    // int / float32 range are clamped to the sentinel.
-    //test_eq(max(float2 { -5.0, -6.0 }), -5.0)
-    //test_eq(min(int2 { 3000000000000000000, 4000000000000000000 }), 3000000000000000000)
+    test_eq(max(float2 { -5.0, -6.0 }), -5.0)
+    test_eq(min(int2 { 3000000000000000000, 4000000000000000000 }), 3000000000000000000)
 
     // clamp / in_range on structs.
     test_eq(clamp(int2 { -5, 9 }, int2_0, int2 { 3, 3 }), int2 { 0, 3 })
