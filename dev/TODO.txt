@@ -1,3 +1,9 @@
+- the current import system currently doesn't allow a nested dir with its own local imports.
+  * if such a dir is imported into the main project, the local imports are not found.
+  * if the imports are addressed with "dir." syntax, they work from main, but don't run locally.
+  What is needed is a relative path specifier, probably "import .foo" should make it
+  work for both.
+
 - We should at least have a simple detection for expressions with no side effect
   used as a statement.
   Several recent bugs:
