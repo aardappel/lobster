@@ -1246,22 +1246,28 @@ struct Parser {
         lex.Next();
     }
 
+    template<typename T> Node *ParseAssign(unique_ptr<Node> &lhs) {
+        CheckOpEq(lhs.get());
+        auto rhs = ParseExp();
+        return new T(lex, lhs.release(), rhs);
+    }
+
     Node *ParseExp(bool parent_noparens = false) {
         DS<bool> ds(call_noparens, parent_noparens);
-        auto e = ParseOpExp();
+        unique_ptr<Node> e(ParseOpExp());
         switch (lex.token) {
-            case T_ASSIGN:  CheckOpEq(e); return new Assign(lex, e, ParseExp());
-            case T_PLUSEQ:  CheckOpEq(e); return new PlusEq(lex, e, ParseExp());
-            case T_MINUSEQ: CheckOpEq(e); return new MinusEq(lex, e, ParseExp());
-            case T_MULTEQ:  CheckOpEq(e); return new MultiplyEq(lex, e, ParseExp());
-            case T_DIVEQ:   CheckOpEq(e); return new DivideEq(lex, e, ParseExp());
-            case T_MODEQ:   CheckOpEq(e); return new ModEq(lex, e, ParseExp());
-            case T_ANDEQ:   CheckOpEq(e); return new AndEq(lex, e, ParseExp());
-            case T_OREQ:    CheckOpEq(e); return new OrEq(lex, e, ParseExp());
-            case T_XOREQ:   CheckOpEq(e); return new XorEq(lex, e, ParseExp());
-            case T_ASLEQ:   CheckOpEq(e); return new ShiftLeftEq(lex, e, ParseExp());
-            case T_ASREQ:   CheckOpEq(e); return new ShiftRightEq(lex, e, ParseExp());
-            default:        return e;
+            case T_ASSIGN:  return ParseAssign<Assign>(e);
+            case T_PLUSEQ:  return ParseAssign<PlusEq>(e);
+            case T_MINUSEQ: return ParseAssign<MinusEq>(e);
+            case T_MULTEQ:  return ParseAssign<MultiplyEq>(e);
+            case T_DIVEQ:   return ParseAssign<DivideEq>(e);
+            case T_MODEQ:   return ParseAssign<ModEq>(e);
+            case T_ANDEQ:   return ParseAssign<AndEq>(e);
+            case T_OREQ:    return ParseAssign<OrEq>(e);
+            case T_XOREQ:   return ParseAssign<XorEq>(e);
+            case T_ASLEQ:   return ParseAssign<ShiftLeftEq>(e);
+            case T_ASREQ:   return ParseAssign<ShiftRightEq>(e);
+            default:        return e.release();
         }
     }
 
@@ -1275,35 +1281,36 @@ struct Parser {
             { T_EQ, T_NEQ, T_NONE, T_NONE },
             { T_AND, T_OR, T_NONE, T_NONE },
         };
-        Node *exp = level ? ParseOpExp(level - 1) : ParseUnary();
+        unique_ptr<Node> exp(level ? ParseOpExp(level - 1) : ParseUnary());
         TType *o = &ops[level][0];
         while (Either(o[0], o[1]) || Either(o[2], o[3])) {
             TType op = lex.token;
             lex.Next();
             auto rhs = level ? ParseOpExp(level - 1) : ParseUnary();
+            auto lhs = exp.release();
             switch (op) {
-                case T_MULT:   exp = new Multiply(lex, exp, rhs); break;
-                case T_DIV:    exp = new Divide(lex, exp, rhs); break;
-                case T_MOD:    exp = new Mod(lex, exp, rhs); break;
-                case T_PLUS:   exp = new Plus(lex, exp, rhs); break;
-                case T_MINUS:  exp = new Minus(lex, exp, rhs); break;
-                case T_ASL:    exp = new ShiftLeft(lex, exp, rhs); break;
-                case T_ASR:    exp = new ShiftRight(lex, exp, rhs); break;
-                case T_BITAND: exp = new BitAnd(lex, exp, rhs); break;
-                case T_BITOR:  exp = new BitOr(lex, exp, rhs); break;
-                case T_XOR:    exp = new Xor(lex, exp, rhs); break;
-                case T_LT:     exp = new LessThan(lex, exp, rhs); break;
-                case T_GT:     exp = new GreaterThan(lex, exp, rhs); break;
-                case T_LTEQ:   exp = new LessThanEq(lex, exp, rhs); break;
-                case T_GTEQ:   exp = new GreaterThanEq(lex, exp, rhs); break;
-                case T_EQ:     exp = new Equal(lex, exp, rhs); break;
-                case T_NEQ:    exp = new NotEqual(lex, exp, rhs); break;
-                case T_AND:    exp = new And(lex, exp, rhs); break;
-                case T_OR:     exp = new Or(lex, exp, rhs); break;
+                case T_MULT:   exp.reset(new Multiply(lex, lhs, rhs)); break;
+                case T_DIV:    exp.reset(new Divide(lex, lhs, rhs)); break;
+                case T_MOD:    exp.reset(new Mod(lex, lhs, rhs)); break;
+                case T_PLUS:   exp.reset(new Plus(lex, lhs, rhs)); break;
+                case T_MINUS:  exp.reset(new Minus(lex, lhs, rhs)); break;
+                case T_ASL:    exp.reset(new ShiftLeft(lex, lhs, rhs)); break;
+                case T_ASR:    exp.reset(new ShiftRight(lex, lhs, rhs)); break;
+                case T_BITAND: exp.reset(new BitAnd(lex, lhs, rhs)); break;
+                case T_BITOR:  exp.reset(new BitOr(lex, lhs, rhs)); break;
+                case T_XOR:    exp.reset(new Xor(lex, lhs, rhs)); break;
+                case T_LT:     exp.reset(new LessThan(lex, lhs, rhs)); break;
+                case T_GT:     exp.reset(new GreaterThan(lex, lhs, rhs)); break;
+                case T_LTEQ:   exp.reset(new LessThanEq(lex, lhs, rhs)); break;
+                case T_GTEQ:   exp.reset(new GreaterThanEq(lex, lhs, rhs)); break;
+                case T_EQ:     exp.reset(new Equal(lex, lhs, rhs)); break;
+                case T_NEQ:    exp.reset(new NotEqual(lex, lhs, rhs)); break;
+                case T_AND:    exp.reset(new And(lex, lhs, rhs)); break;
+                case T_OR:     exp.reset(new Or(lex, lhs, rhs)); break;
                 default: assert(false);
             }
         }
-        return exp;
+        return exp.release();
     }
 
     Node *UnaryArg() {

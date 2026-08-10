@@ -3458,9 +3458,11 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
     };
     auto likely_field_access = fld && fromdot && noparens;
     if (likely_field_access && udt && udt->g.Has(fld) >= 0) {
-        auto dot = new Dot(fld, *this);
+        unique_ptr<Dot> dot(new Dot(fld, *this));
+        children.clear();
         sup_err();
         r = dot->TypeCheck(tc, reqret, {});
+        dot.release();
     } else if (likely_field_access && niludt && niludt->g.Has(fld) >= 0) {
         // Specialized error for nil deref, since if we don't, it will try and interpret this as a function call with a nil arg.
         tc.Error(*this, "dereferencing nillable type: ", Q(TypeName(type)));
@@ -3501,10 +3503,12 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
             }
         }
         if (nf && !prefer_ff) {
-            auto nc = new NativeCall(nf, line);
+            unique_ptr<NativeCall> nc(new NativeCall(nf, line));
             nc->children = children;
+            children.clear();
             sup_err();
             r = nc->TypeCheck(tc, reqret, {});
+            nc.release();
         } else if (f) {
             // Now that we're sure it's going to be a call, pick the right function
             // First filter to only those that have more args.
@@ -3598,9 +3602,11 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
             }
             if (!usf || !usf->overload->method_of || usf->overload->method_of->gsuperclass->t == V_UNDEFINED)
                 sup_err();
-            auto fc = new Call(*this, usf && usf->parent == ff ? usf : ff->overloads[0]->sf);
+            unique_ptr<Call> fc(new Call(*this, usf && usf->parent == ff ? usf : ff->overloads[0]->sf));
             fc->children = children;
+            children.clear();
             r = fc->TypeCheck(tc, reqret, {});
+            fc.release();
         } else {
             if (fld && fromdot && noparens) {
                 tc.Error(*this, "type ", Q(TypeName(type)), " does not have field ", Q(fld->name));
