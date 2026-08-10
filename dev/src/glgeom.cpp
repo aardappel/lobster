@@ -381,7 +381,7 @@ void GeometryCache::RenderRoundedRectangle(Shader *sh, Primitive prim, int segme
     if (!geom) {
         vector<float3> vbuf;
         vbuf.reserve(segments);
-        float step = PI * 2 / segments;
+        float step = PI_F * 2 / segments;
         auto aratio = size.x > size.y ? float2(corner_ratio * size.y / size.x, corner_ratio)
                                       : float2(corner_ratio, corner_ratio * size.x / size.y);
         for (int i = 0; i < segments; i++) {
@@ -410,7 +410,7 @@ void GeometryCache::RenderRoundedRectangleBorder(Shader *sh, int segments, float
         vbuf.reserve(nverts);
         vector<int> ibuf;
         ibuf.reserve(nindices);
-        float step = PI * 2 / segments;
+        float step = PI_F * 2 / segments;
         float border_thickness = border_thickness_pix / min(size.x, size.y);
         float corner_ratio_inner = corner_ratio - border_thickness;
         auto aratio = size.x > size.y
@@ -455,7 +455,7 @@ void GeometryCache::RenderCircle(Shader *sh, Primitive prim, int segments, float
     if (!geom) {
         vector<float3> vbuf;
         vbuf.reserve(segments);
-        float step = PI * 2 / segments;
+        float step = PI_F * 2 / segments;
         for (int i = 0; i < segments; i++) {
             // + 1 to reduce "aliasing" from exact 0 / 90 degrees points
             vbuf.push_back(float3(sinf(i * step + 1),
@@ -479,7 +479,7 @@ void GeometryCache::RenderOpenCircle(Shader *sh, int segments, float radius, flo
         vbuf.reserve(nverts);
         vector<int> ibuf;
         ibuf.reserve(nindices);
-        float step = PI * 2 / segments;
+        float step = PI_F * 2 / segments;
         float inner = 1 - thickness;
         for (int i = 0; i < segments; i++) {
             // + 1 to reduce "aliasing" from exact 0 / 90 degrees points

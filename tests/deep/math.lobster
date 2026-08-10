@@ -63,12 +63,8 @@ def math_tests():
     test_approx(asin(1.0), 90.0)
     test_approx(atan(1.0), 45.0)
     test_approx(radians(180.0), 3.14159265358979)
-    // FIXME: all degree<->radian conversions go thru RAD which is defined as
-    // (PI / 180.0f), i.e. float32, so results only have ~7 digits of precision
-    // even though lobster floats are doubles, e.g. acos(-1.0) == 180.0000014.
-    // These should hold with the default 1e-6 epsilon of test_approx:
-    //test_approx(acos(-1.0), 180.0)
-    //test_approx(degrees(3.14159265358979), 180.0)
+    test_approx(acos(-1.0), 180.0)
+    test_approx(degrees(3.14159265358979), 180.0)
     test_true(abs(acos(-1.0) - 180.0) < 0.0001)
     test_true(abs(degrees(3.14159265358979) - 180.0) < 0.0001)
     let sc = sincos(90.0)

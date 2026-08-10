@@ -17,8 +17,10 @@
 
 namespace geom {
 
-#define PI 3.14159265f
-#define RAD (PI / 180.0f)
+#define PI_F 3.14159265f
+#define PI_D 3.141592653589793
+#define RAD_F (PI_F / 180.0f)
+#define RAD_D (PI_D / 180.0)
 
 // vec: supports 1..4 components of any numerical type.
 

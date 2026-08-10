@@ -780,60 +780,60 @@ nfr("float", "v", "I}", "F}",
 
 nfr("sin", "angle", "F", "F",
     "the y coordinate of the normalized vector indicated by angle (in degrees)",
-    [](StackPtr &, VM &, Value a) { return Value(sin(a.fval() * RAD)); });
+    [](StackPtr &, VM &, Value a) { return Value(sin(a.fval() * RAD_D)); });
 nfr("sin", "angle", "F}", "F}",
     "the y coordinates of the normalized vector indicated by the angles (in degrees)",
-    [](StackPtr &sp, VM &) { VECTOROP(sin(f.fval() * RAD)); });
+    [](StackPtr &sp, VM &) { VECTOROP(sin(f.fval() * RAD_D)); });
 nfr("cos", "angle", "F", "F",
     "the x coordinate of the normalized vector indicated by angle (in degrees)",
-    [](StackPtr &, VM &, Value a) { return Value(cos(a.fval() * RAD)); });
+    [](StackPtr &, VM &, Value a) { return Value(cos(a.fval() * RAD_D)); });
 nfr("cos", "angle", "F}", "F}",
     "the x coordinates of the normalized vector indicated by the angles (in degrees)",
-    [](StackPtr &sp, VM &) { VECTOROP(cos(f.fval() * RAD)); });
+    [](StackPtr &sp, VM &) { VECTOROP(cos(f.fval() * RAD_D)); });
 nfr("tan", "angle", "F", "F",
     "the tangent of an angle (in degrees)",
-    [](StackPtr &, VM &, Value a) { return Value(tan(a.fval() * RAD)); });
+    [](StackPtr &, VM &, Value a) { return Value(tan(a.fval() * RAD_D)); });
 nfr("tan", "angle", "F}", "F}",
     "the tangents of the angles (in degrees)",
-    [](StackPtr &sp, VM &) { VECTOROP(tan(f.fval() * RAD)); });
+    [](StackPtr &sp, VM &) { VECTOROP(tan(f.fval() * RAD_D)); });
 
 nfr("sincos", "angle", "F", "F}:2",
     "the normalized vector indicated by angle (in degrees), same as float2 { cos(angle), sin(angle) }",
     [](StackPtr &sp, VM &) {
         auto a = Pop(sp).fval();
-        PushVec(sp, double2(cos(a * RAD), sin(a * RAD)));
+        PushVec(sp, double2(cos(a * RAD_D), sin(a * RAD_D)));
     });
 
 nfr("asin", "y", "F", "F",
     "the angle (in degrees) indicated by the y coordinate projected to the unit circle",
-    [](StackPtr &, VM &, Value y) { return Value(asin(y.fval()) / RAD); });
+    [](StackPtr &, VM &, Value y) { return Value(asin(y.fval()) / RAD_D); });
 nfr("acos", "x", "F", "F",
     "the angle (in degrees) indicated by the x coordinate projected to the unit circle",
-    [](StackPtr &, VM &, Value x) { return Value(acos(x.fval()) / RAD); });
+    [](StackPtr &, VM &, Value x) { return Value(acos(x.fval()) / RAD_D); });
 nfr("atan", "x", "F", "F",
     "the angle (in degrees) indicated by the y coordinate of the tangent projected to the unit circle",
-    [](StackPtr &, VM &, Value x) { return Value(atan(x.fval()) / RAD); });
+    [](StackPtr &, VM &, Value x) { return Value(atan(x.fval()) / RAD_D); });
 
 nfr("radians", "angle", "F", "F",
     "converts an angle in degrees to radians",
-    [](StackPtr &, VM &, Value a) { return Value(a.fval() * RAD); });
+    [](StackPtr &, VM &, Value a) { return Value(a.fval() * RAD_D); });
 nfr("degrees", "angle", "F", "F",
     "converts an angle in radians to degrees",
-    [](StackPtr &, VM &, Value a) { return Value(a.fval() / RAD); });
+    [](StackPtr &, VM &, Value a) { return Value(a.fval() / RAD_D); });
 
 nfr("atan2", "vec", "F}:2" , "F",
     "the angle (in degrees) corresponding to a normalized 2D vector",
     [](StackPtr &sp, VM &) {
         auto v = PopVec<double2>(sp);
-        Push(sp, atan2(v.y, v.x) / RAD);
+        Push(sp, atan2(v.y, v.x) / RAD_D);
     });
 
 nfr("radians", "angle", "F", "F",
     "converts an angle in degrees to radians",
-    [](StackPtr &, VM &, Value a) { return Value(a.fval() * RAD); });
+    [](StackPtr &, VM &, Value a) { return Value(a.fval() * RAD_D); });
 nfr("degrees", "angle", "F", "F",
     "converts an angle in radians to degrees",
-    [](StackPtr &, VM &, Value a) { return Value(a.fval() / RAD); });
+    [](StackPtr &, VM &, Value a) { return Value(a.fval() / RAD_D); });
 
 nfr("normalize", "vec",  "F}" , "F}",
     "returns a vector of unit length",

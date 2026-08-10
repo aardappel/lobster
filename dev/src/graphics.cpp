@@ -842,7 +842,7 @@ nfr("perspective", "fovy,znear,zfar,frame_buffer_size,frame_buffer_offset,nodept
         auto zfar = Pop(sp).fltval();
         auto znear = Pop(sp).fltval();
         auto fovy = Pop(sp).fltval();
-        Set3DMode(fovy * RAD, fbo, fbs, znear, zfar, nodepth);
+        Set3DMode(fovy * RAD_D, fbo, fbs, znear, zfar, nodepth);
     });
 
 nfr("ortho", "rh,depth", "I?I?", "",
@@ -1425,7 +1425,7 @@ nfr("render_tiles", "positions,tilecoords,mapsize,sizes,rotations", "F}:2]I}:2]I
             auto c4 = float2(size, -size);
             if (i < rotations->len) {
                 auto rot = rotations->AtS(i).fltval();
-                c1 = rotate2(c1, rot * RAD);
+                c1 = rotate2(c1, rot * RAD_F);
                 c2 = float2(c1.y, -c1.x);
                 c3 = float2(c2.y, -c2.x);
                 c4 = float2(c3.y, -c3.x);

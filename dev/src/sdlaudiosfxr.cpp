@@ -381,7 +381,7 @@ static MIX_Audio *RenderSFXR(string_view buf) {
                         sample = 1.0f - fp * 2;
                         break;
                     case 2:  // sine
-                        sample = (float)sin(fp * 2 * PI);
+                        sample = (float)sin(fp * 2 * PI_F);
                         break;
                     case 3:  // noise
                         sample = noise_buffer[phase * 32 / period];

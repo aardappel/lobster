@@ -163,7 +163,7 @@ nfr("create_box", "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?R:fi
         auto wp = PopVec<float2>(sp);
         auto &body = GetBody(sp, vm, other_id, wp);
         b2PolygonShape shape;
-        shape.SetAsBox(sz.x, sz.y, offset, rot * RAD);
+        shape.SetAsBox(sz.x, sz.y, offset, rot * RAD_F);
         Push(sp, CreateFixture(vm, body, shape));
     });
 

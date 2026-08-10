@@ -840,7 +840,7 @@ nfr("rotate", "axis,angle", "F}:3F", "",
     [](StackPtr &sp, VM &) {
         auto angle = Pop(sp).fltval();
         auto axis = PopVec<float3>(sp);
-        cur.rot *= float3x3(angle * RAD, axis);
+        cur.rot *= float3x3(angle * RAD_F, axis);
     });
 
 nfr("color", "color", "F}:4", "",
