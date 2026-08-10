@@ -366,8 +366,8 @@ template<typename T> T ipow(T base, T exp) {
     }
 }
 
-template<typename T> int ffloor(T f) { int i = (int)f; return i - (f < i); }
-template<typename T> int fceil(T f) { int i = (int)f; return i + (f > i); }
+template<typename I, typename T> I ffloor(T f) { I i = (I)f; return i - (f < i); }
+template<typename I, typename T> I fceil(T f) { I i = (I)f; return i + (f > i); }
 
 template<typename T> bool in_range(T x, T range, T bias = 0) {
     return x >= bias && x < bias + range;
@@ -440,11 +440,11 @@ template<typename T, int N> inline T manhattan(const vec<T, N> &a) {
     DOVECF(0, _ + std::abs(a.c[i]));
 }
 
-template<typename T, int N> inline vec<int, N> fceil(const vec<T, N> &v) {
-    DOVECRI(fceil(v.c[i]));
+template<typename I, typename T, int N> inline vec<int, N> fceil(const vec<T, N> &v) {
+    DOVECRI((fceil<I, T>(v.c[i])));
 }
-template<typename T, int N> inline vec<int, N> ffloor(const vec<T, N> &v) {
-    DOVECRI(ffloor(v.c[i]));
+template<typename I, typename T, int N> inline vec<int, N> ffloor(const vec<T, N> &v) {
+    DOVECRI((ffloor<I, T>(v.c[i])));
 }
 template<typename T, int N> inline vec<T, N> round(const vec<T, N> &v) {
     DOVECR(roundf(v.c[i]));

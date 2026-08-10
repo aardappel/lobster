@@ -147,7 +147,7 @@ void Mesh::Render(Shader *sh) {
     sh->Set();
     if (sh->bones_i >= 0 && numbones && numframes) {
         auto blend_frame = [this](float fr, float3x4 *out) {
-            int frame1 = ffloor(fr);
+            int frame1 = ffloor<int>(fr);
             int frame2 = frame1 + 1;
             float frameoffset = fr - frame1;
             float3x4 *mat1 = &mats[(frame1 % numframes) * numbones],

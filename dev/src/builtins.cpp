@@ -738,17 +738,17 @@ nfr("sqrt", "f", "F", "F",
 
 nfr("ceiling", "f", "F", "I",
     "the nearest int >= f",
-    [](StackPtr &, VM &, Value a) { return Value(fceil(a.fval())); });
+    [](StackPtr &, VM &, Value a) { return Value(fceil<iint>(a.fval())); });
 nfr("ceiling", "v", "F}", "I}",
     "the nearest ints >= each component of v",
-    [](StackPtr &sp, VM &) { VECTOROP(iint(fceil(f.fval()))); });
+    [](StackPtr &sp, VM &) { VECTOROP(iint(fceil<iint>(f.fval()))); });
 
 nfr("floor", "f", "F", "I",
     "the nearest int <= f",
-    [](StackPtr &, VM &, Value a) { return Value(ffloor(a.fval())); });
+    [](StackPtr &, VM &, Value a) { return Value(ffloor<iint>(a.fval())); });
 nfr("floor", "v", "F}", "I}",
     "the nearest ints <= each component of v",
-    [](StackPtr &sp, VM &) { VECTOROP(ffloor(f.fval())); });
+    [](StackPtr &sp, VM &) { VECTOROP((ffloor<iint>(f.fval()))); });
 
 nfr("int", "f", "F", "I",
     "converts a float to an int by dropping the fraction",

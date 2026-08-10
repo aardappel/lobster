@@ -163,7 +163,7 @@ nfr("text_size", "text", "S", "I}:2",
         if (!f) vm.BuiltinError("gl.text_size: no font / font size set");
         auto size = f->TextSize(Pop(sp).sval()->strv());
         if (curfontsize > maxfontsize) {
-            size = fceil(float2(size) * float(curfontsize) / float(maxfontsize));
+            size = fceil<int>(float2(size) * float(curfontsize) / float(maxfontsize));
         }
         PushVec(sp, size);
     });
