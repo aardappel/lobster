@@ -718,7 +718,7 @@ nfr("pow", "a,b", "FF", "F",
     [](StackPtr &, VM &, Value a, Value b) { return Value(pow(a.fval(), b.fval())); });
 
 nfr("pow", "a,b", "F}F", "F}",
-    "vector elements raised to the power of b",
+    "struct elements raised to the power of b",
     [](StackPtr &sp, VM &) {
         auto exp = Pop(sp).fval();
         VECTOROP(pow(f.fval(), exp));
@@ -754,28 +754,28 @@ nfr("int", "f", "F", "I",
     "converts a float to an int by dropping the fraction",
     [](StackPtr &, VM &, Value a) { return Value(iint(a.fval())); });
 nfr("int", "v", "F}", "I}",
-    "converts a vector of floats to ints by dropping the fraction",
+    "converts a struct of floats to ints by dropping the fraction",
     [](StackPtr &sp, VM &) { VECTOROP(iint(f.fval())); });
 
 nfr("round", "f", "F", "I",
     "converts a float to the closest int",
     [](StackPtr &, VM &, Value a) { return Value(iint(a.fval() + (double(a.fval() >= 0) - 0.5))); });
 nfr("round", "v", "F}", "I}",
-    "converts a vector of floats to the closest ints",
+    "converts a struct of floats to the closest ints",
     [](StackPtr &sp, VM &) { VECTOROP(iint(f.fval() + (double(f.fval() >= 0) - 0.5))); });
 
 nfr("fraction", "f", "F", "F",
     "returns the fractional part of a float: short for f - floor(f)",
     [](StackPtr &, VM &, Value a) { return Value(a.fval() - floor(a.fval())); });
 nfr("fraction", "v", "F}", "F}",
-    "returns the fractional part of a vector of floats",
+    "returns the fractional part of a struct of floats",
     [](StackPtr &sp, VM &) { VECTOROP(f.fval() - floor(f.fval())); });
 
 nfr("float", "i", "I", "F",
     "converts an int to float",
     [](StackPtr &, VM &, Value a) { return Value(double(a.ival())); });
 nfr("float", "v", "I}", "F}",
-    "converts a vector of ints to floats",
+    "converts a struct of ints to floats",
     [](StackPtr &sp, VM &) { VECTOROP(double(f.ival())); });
 
 nfr("sin", "angle", "F", "F",
@@ -912,7 +912,7 @@ nfr("rnd", "max", "I", "I",
     });
 
 nfr("rnd", "max", "I}", "I}",
-    "a random vector within the range of an input vector.",
+    "a random struct within the range of an input struct.",
     [](StackPtr &sp, VM &vm) {
         VECTOROP(vm.rndx[vm.active_rng].rnd_int64(std::max((iint)1, f.ival())));
     });
@@ -979,7 +979,7 @@ nfr("clamp", "x,min,max", "FFF", "F",
     });
 
 nfr("clamp", "x,min,max", "I}I}1I}1", "I}",
-    "forces an integer vector to be in the range between min and max (inclusive)",
+    "forces an integer struct to be in the range between min and max (inclusive)",
     [](StackPtr &sp, VM &) {
         auto c = DangleVec<iint>(sp);
         auto b = DangleVec<iint>(sp);
@@ -988,7 +988,7 @@ nfr("clamp", "x,min,max", "I}I}1I}1", "I}",
     });
 
 nfr("clamp", "x,min,max", "F}F}1F}1", "F}",
-    "forces a float vector to be in the range between min and max (inclusive)",
+    "forces a float struct to be in the range between min and max (inclusive)",
     [](StackPtr &sp, VM &) {
         auto c = DangleVec<double>(sp);
         auto b = DangleVec<double>(sp);
@@ -1406,13 +1406,13 @@ nfr("hash", "x", "F", "I",
         return Value(h);
     });
 nfr("hash", "v", "I}", "I",
-    "hashes a int vector into a positive int",
+    "hashes a int struct into a positive int",
     [](StackPtr &sp, VM &vm) {
         auto a = DangleVec<iint>(sp);
         Push(sp, positive_bits(a.Hash(vm, RTT_INT)));
     });
 nfr("hash", "v", "F}", "I",
-    "hashes a float vector into a positive int",
+    "hashes a float struct into a positive int",
     [](StackPtr &sp, VM &vm) {
         auto a = DangleVec<double>(sp);
         Push(sp, positive_bits(a.Hash(vm, RTT_FLOAT)));
