@@ -35,12 +35,9 @@ def errors_tests():
     let lret, lerr = compile_run_code(pcode.replace_string("%", "0"), [])
     test_eq(lerr, nil)
     test_eq(lret, "late")
-
-    // FIXME: compile_run_code declares its first return value as a non-nilable
-    // string, but on error it actually returns nil in that slot (it even
-    // prints as "nil"), so the static type is a lie and == nil on it is false.
-    //let dret, derr = compile_run_code("crash()", [])
-    //test_true(dret == nil)
+    // Errors return the string "nil" (not the same as the value nil).
+    let dret, derr = compile_run_code("crash()", [])
+    test_true(dret == "nil")
 
     // Runtime errors. (A sandboxed program must end in a value-producing
     // statement, hence the returns.)
