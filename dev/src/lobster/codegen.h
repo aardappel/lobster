@@ -2757,12 +2757,9 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void TypeOf::Generate(CodeGen &cg, size_t /*retval*/) const {
-    if (auto idr = Is<IdentRef>(child)) {
-        cg.EmitPUSHINT(cg.GetTypeTableOffset(idr->exptype));
-    } else {
-        auto ta = AssertIs<TypeAnnotation>(child);
-        cg.EmitPUSHINT(cg.GetTypeTableOffset(ta->exptype));
-    }
+    // This is typically a TypeAnnotation or IdentRef, but
+    // the IdentRef can also have been folded into various constants.
+    cg.EmitPUSHINT(cg.GetTypeTableOffset(child->exptype));
 }
 
 }  // namespace lobster
