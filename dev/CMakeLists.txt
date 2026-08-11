@@ -59,6 +59,7 @@ else()
     src/lobster/optimizer.h
     src/lobster/parser.h
     src/lobster/platform.h
+    src/lobster/simplex.h
     src/lobster/slaballoc.h
     src/lobster/stdafx.h
     src/lobster/tonative.h
@@ -85,6 +86,7 @@ else()
     src/lobsterreader.cpp
     src/main.cpp
     src/platform.cpp
+    src/simplex.cpp
     src/stdafx.cpp
     src/vm.cpp
     src/vmdata.cpp

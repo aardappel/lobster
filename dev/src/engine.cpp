@@ -49,7 +49,6 @@ extern void AddGraphics(NativeRegistry &nfr);
 extern void AddFont(NativeRegistry &nfr);
 extern void AddSound(NativeRegistry &nfr);
 extern void AddPhysics(NativeRegistry &nfr);
-extern void AddNoise(NativeRegistry &nfr);
 extern void AddMeshGen(NativeRegistry &nfr);
 extern void AddCubeGen(NativeRegistry &nfr);
 extern void AddVR(NativeRegistry &nfr);
@@ -64,7 +63,6 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
     RegisterBuiltin(nfr, "gl", "font", AddFont);
     RegisterBuiltin(nfr, "", "sound", AddSound);
     RegisterBuiltin(nfr, "ph", "physics", AddPhysics);
-    RegisterBuiltin(nfr, "", "noise", AddNoise);
     RegisterBuiltin(nfr, "mg", "meshgen", AddMeshGen);
     RegisterBuiltin(nfr, "cg", "cubegen", AddCubeGen);
     RegisterBuiltin(nfr, "vr", "vr", AddVR);

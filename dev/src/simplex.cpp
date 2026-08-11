@@ -17,6 +17,8 @@ float SimplexNoise(const int octaves, const float persistence, const float scale
     return fnlGetNoise3D(&state, v.x, v.y, v.z);
 }
 
+namespace lobster {
+
 void AddNoise(NativeRegistry &nfr) {
 
 nfr("simplex", "pos,octaves,scale,persistence", "F}IFF", "F",
@@ -87,3 +89,5 @@ nfr("fast_noise", "pos,octaves,scale,persistence,noise_type,fractal_type", "F}IF
     });
 
 }  // AddNoise
+
+}  // namespace lobster

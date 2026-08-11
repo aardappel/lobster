@@ -901,6 +901,7 @@ void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
     extern void AddFlatBuffers(NativeRegistry &nfr);
     extern void AddReader(NativeRegistry &nfr);
     extern void AddMatrix(NativeRegistry &nfr);
+    extern void AddNoise(NativeRegistry &nfr);
 
     RegisterBuiltin(nfr, "", "builtin", AddBuiltins);
     RegisterBuiltin(nfr, "", "compiler", AddCompiler);
@@ -908,6 +909,7 @@ void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
     RegisterBuiltin(nfr, "flatbuffers", "flatbuffers", AddFlatBuffers);
     RegisterBuiltin(nfr, "", "parsedata", AddReader);
     RegisterBuiltin(nfr, "matrix", "matrix", AddMatrix);
+    RegisterBuiltin(nfr, "", "noise", AddNoise);
 }
 
 #if !LOBSTER_ENGINE
