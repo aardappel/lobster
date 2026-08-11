@@ -166,6 +166,7 @@ template<typename T> struct RandomNumberGenerator {
 
     void seed(typename T::rnd_type s) {
         rnd.ReSeed(s);
+        n2_cached = false;
     }
 
     int rnd_int(int max) {
