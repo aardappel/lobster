@@ -64,8 +64,9 @@ VM_INLINE void PushDerefIdxVectorSub2V(VM &vm, StackPtr &sp, iint i, int width, 
     v->AtVWSub(sp, i, width, offset);
 }
 
-VM_INLINE void PushDerefIdxStruct(StackPtr &sp, iint i, int l) {
+VM_INLINE void PushDerefIdxStruct(VM &vm, StackPtr &sp, iint i, int l) {
     PopN(sp, l);
+    RANGECHECKS(vm, i, l);
     auto val = *(TopPtr(sp) + i);
     Push(sp, val);
 }
@@ -729,9 +730,9 @@ VM_INLINE void U_VPUSHIDXVS(VM &vm, StackPtr sp, int l, int w, int o) {
     PushDerefIdxVectorSub2V(vm, sp, x, w, o);
 }
 
-VM_INLINE void U_NPUSHIDXI(VM &, StackPtr sp, int l) {
+VM_INLINE void U_NPUSHIDXI(VM &vm, StackPtr sp, int l) {
     auto x = Pop(sp).ival();
-    PushDerefIdxStruct(sp, x, l);
+    PushDerefIdxStruct(vm, sp, x, l);
 }
 
 VM_INLINE void U_SPUSHIDXI(VM &vm, StackPtr sp) {

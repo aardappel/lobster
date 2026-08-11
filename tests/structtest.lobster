@@ -96,7 +96,7 @@ run_test("struct"):
         a[1] = 2
         assert a[1] == 2
         s.f[1] = 2
-        assert s.f[2] == 2
+        assert s.f[1] == 2
         c.f[1] = 2
         assert c.f[1] == 2
         v[0][1] = 2
