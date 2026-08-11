@@ -2905,11 +2905,25 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
                 tc.DecBorrowers(c->lt, *cas);
                 if (ptype->IsEnum()) {
                     assert(c->exptype->IsEnum());
-                    VTValue v;
-                    if (c->ConstVal(&tc, v) != V_VOID) {
-                        for (auto [i, ev] : enumerate(ptype->e->vals)) if (ev->val == v.i) {
-                            enum_cases[i] = true;
-                            break;
+                    auto RegEnum = [&](iint vi) {
+                        for (auto [i, ev] : enumerate(ptype->e->vals)) {
+                            if (ev->val == vi) {
+                                enum_cases[i] = true;
+                                break;
+                            }
+                        }
+                    };
+                    if (auto r = Is<Range>(c)) {
+                        VTValue vs, ve;
+                        if (r->start->ConstVal(&tc, vs) == V_INT && r->end->ConstVal(&tc, ve) == V_INT) {
+                            for (auto ei = vs.i; ei <= ve.i; ei++) {
+                                RegEnum(ei);
+                            }
+                        }
+                    } else {
+                        VTValue v;
+                        if (c->ConstVal(&tc, v) == V_INT) {
+                            RegEnum(v.i);
                         }
                     }
                 }
