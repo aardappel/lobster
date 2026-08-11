@@ -415,8 +415,13 @@ bool WriteFile(string_view filename, bool binary, string_view contents, bool all
 }
 
 bool RenameFile(string_view oldfilename, string_view newfilename) {
-    int result = rename(SanitizePath(oldfilename).c_str(), SanitizePath(newfilename).c_str());
-    return result == 0;
+    // FIXME: less unsafe than FileDelete but still.. need a better way to deal with dirs.
+    for (auto &wd : write_dirs) {
+        int result = rename((wd + SanitizePath(oldfilename)).c_str(),
+                            (wd + SanitizePath(newfilename)).c_str());
+        if (result == 0) return true;
+    }
+    return false;
 }
 
 bool FileExists(string_view filename, bool allow_absolute) {
