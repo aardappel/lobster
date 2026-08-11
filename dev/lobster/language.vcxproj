@@ -257,6 +257,7 @@
     </ClCompile>
     <ClCompile Include="..\src\lobsterreader.cpp" />
     <ClCompile Include="..\src\platform.cpp" />
+    <ClCompile Include="..\src\simplex.cpp" />
     <ClCompile Include="..\src\stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -313,6 +314,7 @@
     <ClInclude Include="..\src\lobster\platform.h" />
     <ClInclude Include="..\src\lobster\resource_manager.h" />
     <ClInclude Include="..\src\lobster\rng_hash.h" />
+    <ClInclude Include="..\src\lobster\simplex.h" />
     <ClInclude Include="..\src\lobster\slaballoc.h" />
     <ClInclude Include="..\src\lobster\small_vector.h" />
     <ClInclude Include="..\src\lobster\stack_vector.h" />

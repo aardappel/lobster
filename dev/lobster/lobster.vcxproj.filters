@@ -73,9 +73,6 @@
     <ClInclude Include="..\src\lobster\sdlincludes.h">
       <Filter>engine\sdl</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\lobster\simplex.h">
-      <Filter>engine\lobster_bindings</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\lobster\polyreduce.h">
       <Filter>engine\meshgen</Filter>
     </ClInclude>
@@ -1132,9 +1129,6 @@
       <Filter>engine\lobster_bindings</Filter>
     </ClCompile>
     <ClCompile Include="..\src\font.cpp">
-      <Filter>engine\lobster_bindings</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\simplex.cpp">
       <Filter>engine\lobster_bindings</Filter>
     </ClCompile>
     <ClCompile Include="..\include\Box2D\Collision\b2BroadPhase.cpp">

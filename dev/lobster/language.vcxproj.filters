@@ -68,6 +68,9 @@
     <ClCompile Include="..\src\tccbind.cpp">
       <Filter>tonative\libtcc</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\simplex.cpp">
+      <Filter>compiler\builtins</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TODO.txt" />
@@ -229,6 +232,9 @@
     </ClInclude>
     <ClInclude Include="..\src\lobster\type.h">
       <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\simplex.h">
+      <Filter>compiler\builtins</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
