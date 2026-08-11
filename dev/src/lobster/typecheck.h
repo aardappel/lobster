@@ -2889,7 +2889,9 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
     exptype = nullptr;
     ssize_t default_loc = -1;
     vector<bool> enum_cases;
+    vector<iint> ints_seen;
     if (ptype->IsEnum()) enum_cases.resize(ptype->e->vals.size());
+    if (ptype->t == V_INT) ints_seen.reserve(64);
     cases->exptype = type_void;
     cases->lt = LT_ANY;
     for (auto [i, n] : enumerate(cases->children)) {
@@ -2905,28 +2907,32 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
             } else {
                 tc.SubTypeT(c->exptype, ptype, *c, "", "case");
                 tc.DecBorrowers(c->lt, *cas);
-                if (ptype->IsEnum()) {
-                    assert(c->exptype->IsEnum());
-                    auto RegEnum = [&](iint vi) {
+                auto RegNum = [&](iint vi) {
+                    if (ptype->IsEnum()) {
+                        assert(c->exptype->IsEnum());
                         for (auto [i, ev] : enumerate(ptype->e->vals)) {
                             if (ev->val == vi) {
                                 enum_cases[i] = true;
                                 break;
                             }
                         }
-                    };
-                    if (auto r = Is<Range>(c)) {
-                        VTValue vs, ve;
-                        if (r->start->ConstVal(&tc, vs) == V_INT && r->end->ConstVal(&tc, ve) == V_INT) {
-                            for (auto ei = vs.i; ei <= ve.i; ei++) {
-                                RegEnum(ei);
-                            }
+                    }
+                    for (auto i : ints_seen) {
+                        if (i == vi) tc.Error(*c, "integer value used twice in switch: ", vi);
+                    }
+                    ints_seen.push_back(vi);
+                };
+                if (auto r = Is<Range>(c)) {
+                    VTValue vs, ve;
+                    if (r->start->ConstVal(&tc, vs) == V_INT && r->end->ConstVal(&tc, ve) == V_INT) {
+                        for (auto ei = vs.i; ei <= ve.i; ei++) {
+                            RegNum(ei);
                         }
-                    } else {
-                        VTValue v;
-                        if (c->ConstVal(&tc, v) == V_INT) {
-                            RegEnum(v.i);
-                        }
+                    }
+                } else {
+                    VTValue v;
+                    if (c->ConstVal(&tc, v) == V_INT) {
+                        RegNum(v.i);
                     }
                 }
             }
