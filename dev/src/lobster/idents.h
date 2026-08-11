@@ -1369,6 +1369,30 @@ struct SymbolTable {
         }
     }
 
+    size_t CheckUDTSameTypeRec(UDT &cudt, TypeRef &sametype, size_t slot, size_t rec) {
+        for (size_t i = 0; i < cudt.sfields.size(); i++) {
+            // Can't use Union here since it will bind variables, use simplified
+            // alternative:
+            auto ftype = cudt.sfields[i].type;
+            if (IsStruct(ftype->t)) {
+                if (rec == 16) {  // We only for self-referential in the TypeChecker :(
+                    sametype = type_undefined;
+                    break;
+                }
+                slot = CheckUDTSameTypeRec(*ftype->udt, sametype, slot, rec + 1);
+                if (sametype->t == V_UNDEFINED) break;
+            } else if (slot == 0) {
+                sametype = ftype;
+                slot++;
+            } else if (!ftype->Equal(*sametype)) {
+                sametype = type_undefined;
+                slot++;
+                break;
+            }
+        }
+        return slot;
+    }
+
     void ResolveFields(UDT &udt, const Line &errl) {
         bound_typevars_stack.push_back(udt.GetBoundGenerics());
         auto supertype = ResolveTypeVars(udt.g.gsuperclass, errl);
@@ -1386,15 +1410,7 @@ struct SymbolTable {
         // NOTE: all users of sametype will only act on it if it is numeric, since
         // otherwise it would a scalar field to become any without boxing.
         if (udt.sfields.size() >= 1) {
-            udt.sametype = udt.sfields[0].type;
-            for (size_t i = 1; i < udt.sfields.size(); i++) {
-                // Can't use Union here since it will bind variables, use simplified
-                // alternative:
-                if (!udt.sfields[i].type->Equal(*udt.sametype)) {
-                    udt.sametype = type_undefined;
-                    break;
-                }
-            }
+            CheckUDTSameTypeRec(udt, udt.sametype, 0, 0);
         }
         // Update the type to the correct struct type.
         if (udt.g.is_struct) {
