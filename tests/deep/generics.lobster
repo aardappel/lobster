@@ -14,8 +14,24 @@ class DGen<T>:
     def push_u<U>(u:U):       // Method with its own generic.
         ts.push(u)
     def first(): return ts[0]
+    def as_t(v):              // T as an internal type (per specialization).
+        let x:T = v
+        return x
 
 class DGenInt = DGen<int>     // Named specialization.
+
+class DGenFlt = DGen<float>
+
+class DGenSub : DGenFlt       // Subclass of a named specialization.
+    def push_u<U>(u:U):       // Overrides a method with its own generic.
+        ts.push(u + 1.0)
+
+// Subclassing generics: pass a type var on, or fix it.
+class DPair<T, U> : DGen<T>
+    u:U
+
+class DGenFixed : DGen<float>
+    tag = 1
 
 // Non-inline "method" on the generic.
 def dgen_add<T>(g::DGen<T>, t:T):
@@ -24,13 +40,19 @@ def dgen_add<T>(g::DGen<T>, t:T):
 def generics_tests():
     suite("generics")
 
-    // Named / unnamed specializations behave the same.
+    // Named / unnamed specializations behave the same. (The DPair<int, string>
+    // specialization is created first: it subclasses DGen<int>, so it must
+    // exist before any dynamically dispatched call on DGenInt.)
+    let dp = DPair<int, string> { [ 5 ], "u" }
     let gi = DGenInt { [ 1 ] }
     gi.push_t(2)
     gi.push_u(3)
     gi.dgen_add(4)
     test_seq(gi.ts, [ 1, 2, 3, 4 ])
     test_eq(gi.first(), 1)
+    // T used as the type of an internal variable: bool coerces to int here.
+    test_eq(gi.as_t(true), 1)
+    test_true(gi.as_t(true) is int)
     let gs = DGen<string> { [ "a" ] }
     gs.push_t("b")
     gs.dgen_add("c")
@@ -96,15 +118,31 @@ def generics_tests():
     test_eq(build<int>([ 1 ]), 2)
     test_eq(build<int>(3), 1)
 
-    // Subclassing generics: pass a type var on, or fix it.
-    class DPair<T, U> : DGen<T>
-        u:U
-    let dp = DPair<int, string> { [ 5 ], "u" }
+    // Static overloads across generic classes, scalars, and a generic
+    // catch-all, all resolved statically.
+    class DWrap<T>:
+        x:T
+    def pick_ov<T>(d:DWrap<T>): return d.x
+    def pick_ov(i:int): return i
+    def pick_ov(s:string): return s
+    def pick_ov<T>(t:T): return t + t
+    test_eq(pick_ov(DWrap<int> { 1 }) + pick_ov(2), 3)
+    test_eq(pick_ov(DWrap<string> { "ha" }) + pick_ov("llo"), "hallo")
+    test_eq(pick_ov(1.5), 3.0)  // Falls through to the generic doubling.
+
+    // Nested generic type arguments, incl. >> parsing.
+    let nested_dict = dictionary<string, dictionary<string, int>>(7)
+    test_true(nested_dict.get("foo") == nil)
+    let inner_dict = dictionary<string, int>(7)
+    inner_dict.set("k", 1)
+    nested_dict.set("foo", inner_dict)
+    test_eq((assert nested_dict.get("foo")).get("k", 0), 1)
+
+    // Subclassing generics (types declared at top level): pass a type var on,
+    // or fix it.
     dp.push_t(6)
     test_seq(dp.ts, [ 5, 6 ])
     test_eq(dp.u, "u")
-    class DGenFixed : DGen<float>
-        tag = 1
     let df = DGenFixed { [ 1.5 ] }
     df.push_t(2.5)
     test_seq(df.ts, [ 1.5, 2.5 ])
@@ -119,5 +157,20 @@ def generics_tests():
     // "cannot implicitly bind type variable `T`", while a plain DGen<int>
     // binds fine:
     //test_eq(sum_or_concat(dp), 11)
+
+    // A subclass of a named specialization can override a method that has its
+    // own generic (push_u<U>) and still dispatch dynamically. (This runs last:
+    // the dispatch requires all DGen<float> subclasses to be declared above.)
+    let dsub:DGenFlt = DGenSub { [ 1.5 ] }
+    dsub.push_u(3.0)
+    test_eq(dsub.ts.top(), 4.0)
+    // FIXME: overriding a method that uses the *superclass* type variable
+    // (push_t(t:T)) in such a subclass does not work: T is not in scope in
+    // the subclass, so
+    //     class DGenSub : DGenInt
+    //         def push_t(t:T):
+    //             ts.push(t + 1)
+    // fails to compile with "unknown type: T".
+    // (Also commented out in tests/typetest.lobster.)
 
 generics_tests()

@@ -36,6 +36,9 @@ def control_tests():
     for(5) i:
         acc += i
     test_eq(acc, 10)
+    // Over an int, element and index are the same.
+    for(3) x, i:
+        test_eq(x, i)
     acc = 0
     for(3):
         acc += 10
@@ -51,6 +54,12 @@ def control_tests():
     acc = 0
     for("ab") c:
         acc += c
+    test_eq(acc, 'a' + 'b')
+    for([]::int):
+        acc += 100  // Empty vector: not reached.
+    test_eq(acc, 'a' + 'b')
+    while false:
+        acc += 100  // Never runs, not even once.
     test_eq(acc, 'a' + 'b')
 
     // while, incl. side effects in condition.
@@ -93,6 +102,15 @@ def control_tests():
             if j == 2: break
             nested++
     test_eq(nested, 6)
+    // break inside a switch breaks the enclosing loop, not the switch.
+    var swb = 0
+    for(5) i:
+        switch i:
+            case 2:
+                break
+            default:
+                swb++
+    test_eq(swb, 2)
 
     // guard: with and without an else-body, and producing values from blocks.
     let gs = map(4) i:
@@ -145,6 +163,24 @@ def control_tests():
         case 1: 10
         default: 0
     test_eq(swd, 0)
+    // Character constants and negative values in cases and ranges.
+    def swc(c:int): return switch c:
+        case 'a'..'z': "lower"
+        case 'A'..'Z': "upper"
+        case -1: "negative"
+        default: "other"
+    test_eq(swc('q'), "lower")
+    test_eq(swc('Q'), "upper")
+    test_eq(swc('a'), "lower")
+    test_eq(swc('z'), "lower")
+    test_eq(swc(-1), "negative")
+    test_eq(swc('0'), "other")
+    // switch may be a statement (result unused), only running side effects.
+    var sweff = 0
+    switch 2 * 2:
+        case 4: sweff = 1
+        default: sweff = 2
+    test_eq(sweff, 1)
 
     // assert passes through its (truthy) value and promotes nilables.
     var forty = 40

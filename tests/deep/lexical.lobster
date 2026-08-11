@@ -21,6 +21,9 @@ def lexical_tests():
     test_eq('\\', 92)
     test_eq('\'', 39)
     test_eq('\x41', 65)
+    // Multi-character constants: big endian packing, up to 8 chars.
+    test_eq('AB', ('A' << 8) + 'B')
+    test_eq('ABCDEFGH', 0x4142434445464748)
     // Booleans are just predefined enum values 1 and 0.
     test_eq(true, 1)
     test_eq(false, 0)
@@ -28,13 +31,24 @@ def lexical_tests():
     // Float literals: leading/trailing digit forms and exponents
     // (exponents require a "." in the literal).
     test_eq(.5, 0.5)
+    test_eq(1., 1.0)
     test_eq(1.5, 3.0 / 2.0)
     test_eq(1.5e3, 1500.0)
     test_eq(2.5e-2, 0.025)
     test_eq(1.5E2, 150.0)
+    test_eq(2.5e+2, 250.0)
+    // "1.e2" is NOT a float literal: a "." followed by an alpha character is
+    // parsed as a field/method dereference on the int 1 instead.
 
     // String literal escapes.
     test_eq("\x41\x42", "AB")
+    // \u takes exactly 4 hex digits and encodes as UTF-8.
+    test_eq("\u2E86", "⺆")
+    test_eq("\u0041\u0042", "AB")
+    test_eq("\u00E9".length, 2)  // é encodes as 2 UTF-8 bytes.
+    // Strings may hold any bytes, including zeros.
+    test_eq("a\x00b".length, 3)
+    test_eq("a\x00b"[1], 0)
     test_eq("\n".length, 1)
     test_eq("\n"[0], 10)
     test_eq("\"", "\x22")
@@ -50,6 +64,11 @@ def lexical_tests():
     test_eq("""a{ib}b""", "a\{ib\}b")
     test_eq("""line1
 line2""", "line1\nline2")
+    // When starting with a linefeed, the indentation of the first line is
+    // stripped from every line.
+    test_eq("""
+        indented
+        lines""", "indented\nlines")
 
     // Nested comments. /* outer /* inner */ still a comment */
     test_eq(1, /* mid-expression comment */ 1)  // line comment after.

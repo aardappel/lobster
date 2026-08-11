@@ -20,6 +20,26 @@ struct DS5:
     d:float
     e:float
 
+struct DS1:
+    x:int
+
+// Structs with reference-counted members, incl. nested.
+struct DSR:
+    s:string
+    v:[int]
+
+struct DSRN:
+    s:string
+    r:DSR
+
+// Struct with mixed scalar/reference fields.
+struct DSMix:
+    s:string
+    n:int
+
+// Method defined with :: on a struct type.
+def area(s::DSA): return x * y
+
 def structs_tests():
     suite("structs")
 
@@ -80,6 +100,13 @@ def structs_tests():
     // Generic vec2<T> works for non-numeric types too.
     let strvec = vec2<string> { "a", "b" }
     test_eq(strvec.x + strvec.y, "ab")
+    let boolvec = vec2<bool> { true, false }
+    test_eq(boolvec.x, true)
+    test_eq(boolvec.y, false)
+
+    // Struct constructors also accept field name tags, in any order.
+    test_eq(int2 { y: 2, x: 1 }, int2 { 1, 2 })
+    test_eq(DSA { y: 5, x: 4 }.area(), 20)
 
     // Nested structs, in classes and vectors.
     let dsb = DSB { DSA { 5, 6 }, 7 }
@@ -87,9 +114,45 @@ def structs_tests():
     let dsbv = [ DSB { DSA { 1, 2 }, 3 } ]
     test_eq(dsbv[0].a.y, 2)
 
+    // Writing to struct fields nested in classes, structs and vectors.
+    class SHolder:
+        f = int2_0
+    let sh = SHolder {}
+    sh.f.y = 1               // Write a scalar inside a class-held struct.
+    test_eq(sh.f, int2_y)
+    sh.f = int2_x            // Overwrite the whole struct.
+    test_eq(sh.f, int2_x)
+    sh.f[1] = 2              // Index a struct field of a class.
+    test_eq(sh.f, int2 { 1, 2 })
+    sh.f += int2_1
+    test_eq(sh.f, int2 { 2, 3 })
+    var dsbm = DSB { DSA { 1, 2 }, 3 }
+    dsbm.a.y = 9             // Struct nested in a struct var.
+    test_eq(dsbm.a, DSA { 1, 9 })
+    dsbm.a = DSA { 4, 5 }
+    test_eq(dsbm.a.x, 4)
+    // Structs inside (nested) vectors, incl. writes via int vector indexing.
+    let triv = [ [ [ int2 { 10, 11 } ] ] ]
+    test_eq(triv[int3 { 0, 0, 0 }], int2 { 10, 11 })
+    triv[int3 { 0, 0, 0 }] += 4
+    test_eq(triv[int3 { 0, 0, 0 }], int2 { 14, 15 })
+    let trivv = [ [ DSB { DSA { 5, 6 }, 7 } ] ]
+    test_eq(trivv[int2 { 0, 0 }].a.y, 6)
+    test_eq(trivv[0][0].a, DSA { 5, 6 })
+
+    // Method with :: arg on a struct type, and dot calls on struct values.
+    test_eq(DSA { 3, 4 }.area(), 12)
+    test_eq(area(DSA { 2, 5 }), 10)
+
     // Structs of size 1 and > 4 support math too.
     test_eq(DS5 { 1.0, 2.0, 3.0, 4.0, 5.0 } * 2.0, DS5 { 2.0, 4.0, 6.0, 8.0, 10.0 })
     test_eq(dot(DS5 { 1.0, 2.0, 3.0, 4.0, 5.0 }, DS5 { 1.0, 1.0, 1.0, 1.0, 1.0 }), 15.0)
+    test_eq(DS1 { 1 } + DS1 { 2 }, DS1 { 3 })
+    test_eq(min(DS1 { 2 }, max(DS1 { 1 }, DS1 { -1 })), DS1 { 1 })
+    test_eq(manhattan(DS1 { -2 }), 2)
+    let ds5 = DS5 { 1.0, 2.0, 3.0, 4.0, 5.0 }
+    test_approx(magnitude(normalize(ds5)), 1.0)
+    test_eq(min(ds5, ds5 * 2.0), ds5)
 
     // Vector math builtins.
     test_eq(dot(float2 { 1.0, 2.0 }, float2 { 3.0, 4.0 }), 11.0)
@@ -163,5 +226,60 @@ def structs_tests():
     let rsv = [ rs, vec2<string> { "c", "d" } ]
     test_eq(rsv[1].y, "d")
     test_true(rsv[0] == rs)  // == on structs is value equality, also for string fields.
+    // Building new ref-holding structs out of old ones, incl. nested,
+    // from vars and from vector elements.
+    let dsr = DSR { "hello", [ 123 ] }
+    def dsr_double(x): return DSR { x.s + x.s, append(x.v, x.v) }
+    var dsrd = dsr_double(dsr)
+    test_eq(dsrd.s, "hellohello")
+    test_seq(dsrd.v, [ 123, 123 ])
+    let dsrs = [ DSR { "one", [ 1 ] }, DSR { "two", [ 2 ] } ]
+    dsrd = dsr_double(dsrs[1])
+    test_eq(dsrd.s, "twotwo")
+    let dsrn = DSRN { "A", DSR { "B", [ 64 ] } }
+    def dsrn_double(x): return DSRN { x.s + x.s, DSR { x.r.s + x.r.s, append(x.r.v, x.r.v) } }
+    let dsrnd = dsrn_double(dsrn)
+    test_eq(dsrnd.s, "AA")
+    test_eq(dsrnd.r.s, "BB")
+    test_eq(dsrnd.r.v[1], 64)
+    // Mixed scalar/ref fields, and their string conversion.
+    var mix = DSMix { "hi", 1 }
+    mix = DSMix { mix.s + mix.s, mix.n + mix.n }
+    test_eq(mix.s, "hihi")
+    test_eq(mix.n, 2)
+    test_eq("{mix}", "DSMix\{\"hihi\", 2\}")
+    // A ref-holding struct inside a class, updated wholesale and per field.
+    class DSRHolder:
+        r:DSR
+    let hold = DSRHolder { DSR { "a", [ 1 ] } }
+    hold.r = DSR { hold.r.s + "b", append(hold.r.v, [ 2 ]) }
+    hold.r.s += "c"
+    test_eq(hold.r.s, "abc")
+    test_seq(hold.r.v, [ 1, 2 ])
+
+    // Structs as part of multiple return values.
+    def one_pair_one<T>(a:T): return 1, vec2<T> { a, a }, 1
+    let ma, mb, mc = one_pair_one(7)
+    test_eq(ma, 1)
+    test_eq(mb, int2 { 7, 7 })
+    test_eq(mc, 1)
+
+    // Struct args are orthogonal to dynamic dispatch on the first arg.
+    class DDBase:
+        m:int
+    class DDSub : DDBase
+    def dd(a:DDBase, b:int2): return a.m + b.x + b.y
+    def dd(a:DDSub, b:int2): return a.m + b.x * b.y
+    test_eq(dd(DDBase { 1 }, int2 { 4, 5 }), 10)
+    test_eq(dd(DDSub { 1 }, int2 { 4, 5 }), 21)
+    def as_ddbase(x:DDBase): return x
+    test_eq(dd(as_ddbase(DDSub { 2 }), int2 { 4, 5 }), 22)
+
+    // A subtype struct with more fields may be passed where the supertype is
+    // wanted: the extra fields are chopped off (int3 subtypes int2).
+    def take_int2(v:int2): return v.x + v.y
+    test_eq(take_int2(int3 { 1, 2, 4 }), 3)
+    let i3var = int3 { 5, 6, 7 }
+    test_eq(take_int2(i3var), 11)
 
 structs_tests()

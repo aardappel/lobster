@@ -51,6 +51,12 @@ def functions_tests():
     test_eq(ovl(1.5), "float")
     test_eq(ovl(""), "string")
     test_eq(ovl(1, 2), "two")
+    // Overloading on the element type of a vector.
+    def ovv(v:[int]): return "ints"
+    def ovv(v:[string]): return "strings"
+    test_eq(ovv([ 1 ]), "ints")
+    let ovsv = [ "s" ]
+    test_eq(ovv(ovsv), "strings")
 
     // Default arguments, which may reference variables in scope.
     let defbase = 10
@@ -120,6 +126,47 @@ def functions_tests():
             if i: return from do
             reached++
     test_eq(reached, 1)
+    // A function mixing a plain return with a trailing non-local return must
+    // compile and take the plain path here (the from-return is unreached).
+    def mid_g():
+        return mid_h() + 1
+    def mid_h():
+        if reached == 1:
+            return 4
+        return 3 from mid_g
+    test_eq(mid_g(), 5)
+    // And the non-local path when the condition flips.
+    def mid_g2():
+        return mid_h2() + 1
+    def mid_h2():
+        if reached == 99:
+            return 4
+        return 3 from mid_g2
+    test_eq(mid_g2(), 3)
+    // Multiple different paths through the same unwind point, with different
+    // return types and value counts.
+    def unwind2(mode):
+        def unwind1():
+            def return_past() -> float:
+                switch mode:
+                    case 0: return "a" from unwind1
+                    case 1: return int2 { 4, 5 } from unwind2
+                    default: return 3.1  // Local return.
+            return string(return_past())
+        return int2 { length(unwind1()), 0 }
+    test_eq(unwind2(0), int2 { 1, 0 })
+    test_eq(unwind2(1), int2 { 4, 5 })
+    test_eq(unwind2(2), int2 { 3, 0 })
+    // Non-local returns work as branches of if/switch value expressions.
+    def outer_vals():
+        def bail():
+            return "bailed" from outer_vals
+        let a = if reached == 1: 1 else: bail()
+        let b = switch a:
+            case 1: 2
+            default: bail()
+        return "ok{a + b}"
+    test_eq(outer_vals(), "ok3")
 
     // Function values: full fn syntax, terse syntax, anonymous args.
     let f1 = fn(a:int, b:int): a + b
@@ -156,6 +203,17 @@ def functions_tests():
     // inlined but still works the same.
     def calls_ft(f:int_to_int_fun): return 1 + f(2)
     test_eq(calls_ft(fn i: i * 10), 21)
+    // call_function_value invokes a function value from native code.
+    var cfv_state = 1
+    let cfv = fn() -> void:
+        cfv_state = 2
+    call_function_value(cfv)
+    test_eq(cfv_state, 2)
+    // Function values with 0 args, and passing them on to other functions.
+    let zerof = fn: 42
+    test_eq(zerof(), 42)
+    def call_it(f): return f()
+    test_eq(call_it(zerof), 42)
 
     // Free variables from enclosing scope.
     var counter = 0
@@ -164,6 +222,13 @@ def functions_tests():
     bump_counter()
     bump_counter()
     test_eq(counter, 2)
+    // A HOF-passed function value that differs only in its free variable
+    // still gets specialized per context.
+    def call_thru(i): return i()
+    def with_free(f):
+        return call_thru(): f()
+    test_eq(1, with_free(): 1)
+    test_eq("a", with_free(): "a")
     // Explicit free variables declared with [names].
     var dfv_a = 0
     var dfv_b = 10

@@ -43,6 +43,22 @@ def operators_tests():
     test_true(1 == 1 and 2 == 2)    // and/or loosest.
     test_eq(-2 * 3, -6)
     test_eq(2 * -3, -6)
+    // & | ^ are a single precedence level, left associative.
+    let i2 = 2
+    test_eq(i2 | 1 & 1, 1)          // (2|1)&1, not 2|(1&1).
+    test_eq(i2 ^ 2 | 2, 2)          // (2^2)|2.
+    // and/or are also one shared level, left associative.
+    let i0 = 0
+    test_eq(i2 or i0 and i0, 0)     // (2 or 0) and 0, not 2 or (0 and 0).
+    test_eq(i0 and i0 or i2, 2)     // (0 and 0) or 2.
+
+    // Integer arithmetic wraps around (two's complement).
+    var big = 0x7FFFFFFFFFFFFFFF
+    test_eq(big + 1, 0x8000000000000000)
+    test_true(big + 1 < 0)
+    big = 0x8000000000000000
+    test_eq(big - 1, 0x7FFFFFFFFFFFFFFF)
+    test_eq(big * 2, 0)
 
     // Bitwise.
     test_eq(1 & 3, 1)
@@ -79,6 +95,14 @@ def operators_tests():
     test_eq("" or "a", "")    // "" is a true value, unlike e.g. Python!
     test_eq(nil or "a", "a")
     test_eq(0.0 or 2.5, 2.5)
+    // With operands of unrelated types the result is a bool instead.
+    let stra = "a"
+    test_eq(i2 and stra, true)
+    test_eq(i0 and stra, false)
+    test_eq(stra or i2, true)
+    // Comparisons produce bool.
+    test_eq(1 < 2, true)
+    test_eq(1 > 2, false)
     // not turns false values into 1, everything else into 0.
     test_eq(not 0, 1)
     test_eq(not 42, 0)
@@ -133,6 +157,21 @@ def operators_tests():
     var fdiv = 7.0
     fdiv /= 2.0
     test_eq(fdiv, 3.5)
+    // Plain assignment is also an expression yielding the lvalue,
+    // on variables as well as vector elements.
+    var pa = 1
+    test_eq(pa = 5, 5)
+    let pav = [ 1 ]
+    test_eq(pav[0] = 3, 3)
+    test_eq(pav[0] += 3, 6)
+    // Assignment operators on an indexed lvalue evaluate the index once.
+    var idxcount = 0
+    def idx0():
+        idxcount++
+        return 0
+    pav[idx0()] += 10
+    test_eq(idxcount, 1)
+    test_eq(pav[0], 16)
 
     // Multiple assignment / definition, and swap via multiple assignment.
     var ma, mb = 1, 2

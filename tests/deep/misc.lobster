@@ -36,6 +36,36 @@ def misc_tests():
     d1.set("a", 3)  // Overwrite.
     test_eq(d1.get("a", -1), 3)
     test_eq(d1.get("b", -1), 2)
+    // add uses += on the existing value (or inserts).
+    d1.add("a", 10)
+    d1.add("c", 1)
+    test_eq(d1.get("a", -1), 13)
+    test_eq(d1.get("c", -1), 1)
+    // get_or_set keeps an existing value.
+    test_eq(d1.get_or_set("b", 99), 2)
+    test_eq(d1.get_or_set("d", 99), 99)
+    test_eq(d1.get("d", -1), 99)
+    // get_keys/get_values are consistent with each other.
+    let keys = d1.get_keys()
+    let values = d1.get_values()
+    test_eq(keys.length, 4)
+    test_eq(values.length, 4)
+    for(keys) k, i:
+        test_eq(d1.get(k, -1), values[i])
+    // forkv visits every pair.
+    var kvsum = 0
+    var kvkeylen = 0
+    d1.forkv() k, val:
+        kvsum += val
+        kvkeylen += k.length
+    test_eq(kvsum, 13 + 2 + 1 + 99)
+    test_eq(kvkeylen, 4)
+    // del removes just the given key, clear removes everything.
+    d1.del("a")
+    test_eq(d1.get("a", -1), -1)
+    test_eq(d1.get_keys().length, 3)
+    d1.clear()
+    test_eq(d1.get_keys().length, 0)
     let d2 = dictionary<int2, string>(7)
     d2.set(int2 { 1, 2 }, "v")
     test_eq(d2.get(int2 { 1, 2 }, ""), "v")
@@ -44,9 +74,28 @@ def misc_tests():
     d3.set("k", "w")
     test_eq(assert d3.get("k", nil), "w")  // assert: compare as non-nil string.
     test_true(d3.get("nope", nil) == nil)
+    // With a reference value type, get without default returns nil.
+    let d3r = dictionary<int, string>(7)
+    d3r.set(1, "x")
+    test_eq(assert d3r.get(1), "x")
+    test_true(d3r.get(2) == nil)
     let d4 = dictionary<float, float>(7)
     d4.set(1.5, 2.5)
     test_eq(d4.get(1.5, 0.0), 2.5)
+    // get_or_create constructs a default value on a miss.
+    let d5 = dictionary<string, MiscNS.nsclass>(7)
+    test_eq(d5.get_or_create("k").x, 3)
+    d5.get_or_create("k").x = 4
+    test_eq(d5.get_or_create("k").x, 4)
+    // Serialization to flexbuffers and back.
+    let d1s = dictionary<string, int>(7)
+    d1s.set("a", 1)
+    d1s.set("b", 2)
+    let dflex = d1s.serialize_to_flexbuffer()
+    let d1r = dictionary<string, int>(7)
+    test_eq(d1r.deserialize_from_flexbuffer(dflex), nil)
+    test_eq(d1r.get("a", -1), 1)
+    test_eq(d1r.get("b", -1), 2)
 
     // date_time: vector of 9 ints, sane ranges (year is since 1900).
     let dt = date_time()
@@ -62,7 +111,9 @@ def misc_tests():
     // Fixed-width string forms.
     test_eq(date_time_string().length, 24)
     test_eq(date_time_string(true).length, 24)
-    // strftime-style formatting of an absolute time, in UTC.
+    // strftime-style formatting of the current time / an absolute time.
+    test_eq(date_time_string_format("%Y", true).length, 4)
+    test_eq(date_time_string_format("%Y", true), format_time("%Y", dt[0], false))
     test_eq(format_time("%Y-%m-%d %H:%M:%S", 0, false), "1970-01-01 00:00:00")
     test_eq(format_time("%Y", 86400 * 365, false), "1971")
     test_true(date_time_build_info().length > 0)
@@ -104,10 +155,32 @@ def misc_tests():
     let src = read_file("deep/misc.lobster")
     test_true(src and src.find_string("misc_tests") >= 0)
     test_true(read_file("no_such_file_hopefully_12345.xyz") == nil)
+    // scan_folder returns parallel name/size vectors (rel=true searches
+    // relative to the import dirs, like other file functions).
+    let fnames, fsizes = scan_folder("deep", true)
+    test_true(fnames and fsizes, "scan_folder deep failed")
+    if fnames and fsizes:
+        test_eq(fnames.length, fsizes.length)
+        let self_idx = fnames.find(): _ == "misc.lobster"
+        test_true(self_idx >= 0, "scan_folder did not find misc.lobster")
+        test_true(fsizes[self_idx] > 0)
+    test_true(scan_folder("no_such_dir_hopefully_12345", true) == nil)
+    // Writing, reading back and deleting a file (in the main file's dir).
+    let tmpname = "deep_tmp_test_file.tmp"
+    test_true(write_file(tmpname, "contents\n123"), "write_file failed")
+    test_eq(read_file(tmpname), "contents\n123")
+    test_true(exists_file(tmpname))
+    test_true(delete_file(tmpname))
+    test_eq(exists_file(tmpname), false)
 
     // string() is the identity on strings but converts everything else.
     test_eq(string(nil::string), "nil")
     test_eq(string(true), "true")
     test_eq(string(int3 { 1, 2, 3 }), "int3\{1, 2, 3\}")
+
+    // parse_data works with namespaced type names.
+    let nsv, nserr = parse_data(typeof MiscNS.nsclass, "MiscNS.nsclass \{\}")
+    test_eq(nserr, nil)
+    test_eq((assert nsv).x, 3)
 
 misc_tests()

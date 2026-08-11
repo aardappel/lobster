@@ -62,12 +62,32 @@ def serialization_tests():
     let pbad, baderr = parse_data(typeof [int], "[ 1, oops ]")
     test_true(pbad == nil)
     test_true(baderr and baderr.length)
+    // Trailing garbage is also an error.
+    let ptrail, trailerr = parse_data(typeof [int], "[ 1 ] extra")
+    test_true(ptrail == nil)
+    test_true(trailerr and trailerr.length)
+    // Vectors of structs and nested vectors.
+    let pnv, pnverr = parse_data(typeof [[int]], "[ [ 1 ], [], [ 2, 3 ] ]")
+    test_eq(pnverr, nil)
+    test_seq(assert pnv, [ [ 1 ], []::int, [ 2, 3 ] ])
+    let psv2, psv2err = parse_data(typeof [int2], "[ int2 \{ 1, 2 \}, int2 \{ 3, 4 \} ]")
+    test_eq(psv2err, nil)
+    test_seq(assert psv2, [ int2 { 1, 2 }, int2 { 3, 4 } ])
 
     // flexbuffers: value -> binary -> value round trip.
     let flex = flexbuffers_value_to_binary(all)
     let fval, fverr = flexbuffers_binary_to_value(typeof DSerAll, flex)
     test_eq(fverr, nil)
     test_true(equal(fval, all), "flexbuffers round trip mismatch")
+    // Also for a plain vector as the root value.
+    let vflex = flexbuffers_value_to_binary([ 1, 2 ])
+    let vval, vverr = flexbuffers_binary_to_value(typeof [int], vflex)
+    test_eq(vverr, nil)
+    test_seq(assert vval, [ 1, 2 ])
+    // Decoding as a mismatching type reports an error.
+    let wval, wverr = flexbuffers_binary_to_value(typeof [string], vflex)
+    test_true(wval == nil)
+    test_true(wverr and wverr.find_string("type") >= 0)
     // binary -> json and back.
     let json = assert flexbuffers_binary_to_json(flex, false, "")
     test_true(json.length)
@@ -83,6 +103,10 @@ def serialization_tests():
     // json with quoted field names.
     let qjson = assert flexbuffers_binary_to_json(dflex, true, "")
     test_eq(qjson, "\{ \"dc\": \{ \"x\": 3, \"y\": 4 \}, \"dd\": \"x\" \}")
+    // A non-empty indent string produces multi-line output.
+    let ijson = assert flexbuffers_binary_to_json(dflex, false, "  ")
+    test_true(ijson.find_string("\n") >= 0)
+    test_true(ijson.find_string("  dd:") >= 0)
     // Parsing malformed json gives an error second value.
     let badflex, badjerr = flexbuffers_json_to_binary("\{ not valid")
     test_true(badjerr and badjerr.length)
@@ -103,10 +127,18 @@ def serialization_tests():
     let lval, lerr = lobster_binary_to_value(typeof DSerAll, lb)
     test_eq(lerr, nil)
     test_true(equal(lval, all), "lobster binary round trip mismatch")
-    // Also for plain vectors.
+    // Also for plain vectors, of scalars and of strings.
     let lbv = lobster_value_to_binary([ 1, 2, 3 ])
     let lvv, lverr = lobster_binary_to_value(typeof [int], lbv)
     test_eq(lverr, nil)
     test_seq(assert lvv, [ 1, 2, 3 ])
+    let lbs = lobster_value_to_binary([ "x", "yz" ])
+    let lvs, lserr = lobster_binary_to_value(typeof [string], lbs)
+    test_eq(lserr, nil)
+    test_seq(assert lvs, [ "x", "yz" ])
+    // Garbage input reports an error rather than a value.
+    let lbad, lbaderr = lobster_binary_to_value(typeof [int], "not lobster binary")
+    test_true(lbad == nil)
+    test_true(lbaderr and lbaderr.length)
 
 serialization_tests()

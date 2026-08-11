@@ -46,6 +46,22 @@ def lifetime_tests():
     test_eq(pt, "pq")
     test_eq(passthru(passthru(pt)), "pq")
 
+    // Ownership specialization: the same function borrows a var in one call
+    // and consumes an owned temporary in another.
+    def measure(x): return x.length
+    let borrowed = [ 1, 2 ]
+    test_eq(measure([ 1, 2, 3 ]), 3)
+    test_eq(measure(borrowed), 2)
+
+    // Arguments that are assigned to become owned by the function: the
+    // caller's value is unaffected.
+    def reassign_arg(y):
+        y = y + "!"
+        return y
+    let unchanged = "o"
+    test_eq(reassign_arg(unchanged), "o!")
+    test_eq(unchanged, "o")
+
     // Fields holding references, overwritten repeatedly.
     let box = DLBox { "init" }
     for(3) i:

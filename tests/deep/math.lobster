@@ -18,16 +18,21 @@ def math_tests():
     test_eq(sign(123.4), 1)
     test_true(sign(1.5) is int)
 
-    // min / max on two scalars.
+    // min / max on two scalars; mixed int/float coerces to float.
     test_eq(min(1, 2), 1)
     test_eq(max(1, 2), 2)
     test_eq(min(-1.5, 1.5), -1.5)
     test_eq(max(-1.5, 1.5), 1.5)
+    let mm1 = 1
+    test_eq(min(mm1, 2.5), 1.0)
+    test_true(min(mm1, 2.5) is float)
+    test_eq(max(mm1, 0.5), 1.0)
 
     // pow: ints (exponentiation by squaring, negative exponent yields 0),
     // and floats.
     test_eq(pow(2, 10), 1024)
     test_eq(pow(3, 0), 1)
+    test_eq(pow(0, 0), 1)
     test_eq(pow(-2, 3), -8)
     test_eq(pow(2, -1), 0)
     test_approx(pow(2.0, 0.5), sqrt(2.0))
@@ -35,8 +40,11 @@ def math_tests():
 
     // Roots and logarithms.
     test_eq(sqrt(9.0), 3.0)
+    test_eq(sqrt(0.0), 0.0)
     test_approx(log(exp_e()), 1.0)
+    test_eq(log(1.0), 0.0)
     test_eq(log2(8.0), 3.0)
+    test_eq(log2(1.0), 0.0)
 
     // Rounding family. int() truncates, floor/ceiling to nearest int
     // down/up, round is half-away-from-zero.
@@ -69,7 +77,15 @@ def math_tests():
     test_true(abs(degrees(3.14159265358979) - 180.0) < 0.0001)
     let sc = sincos(90.0)
     test_approx(sc, float2 { 0.0, 1.0 })
+    // atan2 covers all four quadrants.
     test_approx(atan2(float2 { 1.0, 1.0 }), 45.0)
+    test_approx(atan2(float2 { -1.0, 1.0 }), 135.0)
+    test_approx(atan2(float2 { 1.0, -1.0 }), -45.0)
+    test_approx(atan2(float2 { -1.0, -1.0 }), -135.0)
+    // Trig also applies component-wise to float structs.
+    test_approx(sin(float2 { 90.0, 0.0 }), float2 { 1.0, 0.0 })
+    test_approx(cos(float2 { 0.0, 180.0 }), float2 { 1.0, -1.0 })
+    test_approx(tan(float2 { 45.0, 0.0 }), float2 { 1.0, 0.0 })
 
     // div forces float division on ints.
     test_eq(div(7, 2), 3.5)
@@ -93,10 +109,12 @@ def math_tests():
     test_eq(popcount(255), 8)
     test_eq(popcount(-1), 64)
 
-    // Interpolation helpers.
+    // Interpolation helpers. lerp extrapolates outside 0..1.
     test_eq(lerp(0.0, 10.0, 0.5), 5.0)
     test_eq(lerp(0.0, 10.0, 0.0), 0.0)
     test_eq(lerp(0.0, 10.0, 1.0), 10.0)
+    test_eq(lerp(0.0, 10.0, 1.5), 15.0)
+    test_eq(lerp(10.0, 0.0, 0.25), 7.5)
     test_eq(smoothstep(0.0), 0.0)
     test_eq(smoothstep(1.0), 1.0)
     test_eq(smoothstep(0.5), 0.5)
@@ -110,6 +128,20 @@ def math_tests():
     test_eq("{-1.0 / 0.0}", "-inf")
     test_true("{0.0 / 0.0}".find_string("nan") >= 0)
     test_true("{1.0 % 0.0}".find_string("nan") >= 0)
+    test_true("{log(-1.0)}".find_string("nan") >= 0)
+    test_eq("{log(0.0)}", "-inf")
+    test_true("{sqrt(-1.0)}".find_string("nan") >= 0)
+
+    // Noise functions: deterministic, roughly in [-1, 1].
+    let sxv = simplex_raw(float2 { 0.3, 0.7 })
+    test_eq(sxv, simplex_raw(float2 { 0.3, 0.7 }))
+    test_true(sxv >= -1.0 and sxv <= 1.0)
+    let sxv3 = simplex_raw(float3 { 0.3, 0.7, 0.1 })
+    test_true(sxv3 >= -1.0 and sxv3 <= 1.0)
+    let sxo = simplex(float2 { 0.3, 0.7 }, 2, 1.0, 0.5)
+    test_true(sxo >= -1.0 and sxo <= 1.0)
+    let fnv = fast_noise(float2 { 0.3, 0.7 }, 2, 1.0, 0.5, 0, 0)
+    test_eq(fnv, fast_noise(float2 { 0.3, 0.7 }, 2, 1.0, 0.5, 0, 0))
 
     // Randomness: seeded, so deterministic.
     rnd_seed(1234)

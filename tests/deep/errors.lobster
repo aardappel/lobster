@@ -23,6 +23,11 @@ def errors_tests():
     let ok, okerr = compile_run_code("return 1 + 2", [])
     test_eq(okerr, nil)
     test_eq(ok, "3")
+    // The second argument becomes the program's command_line_arguments.
+    let argret, argerr = compile_run_code(
+        "return concat_string(command_line_arguments(), \"-\")", [ "a", "b" ])
+    test_eq(argerr, nil)
+    test_eq(argret, "a-b")
     // Sandboxed programs can return values of any type as their string form.
     let vret, verr = compile_run_code("return [ 1, 2 ]", [])
     test_eq(verr, nil)
@@ -38,6 +43,7 @@ def errors_tests():
     // Errors return the string "nil" (not the same as the value nil).
     let dret, derr = compile_run_code("crash()", [])
     test_true(dret == "nil")
+    test_true(derr and derr.length)
 
     // Runtime errors. (A sandboxed program must end in a value-producing
     // statement, hence the returns.)
@@ -55,6 +61,11 @@ def errors_tests():
     expect_error("let a = 0\nreturn assert a == 1", "assert")
     expect_error("return string_to_int(\"1\", 99)", "out of range")
     expect_error("return number_to_string(1, 99, 1)", "out of range")
+    // Division by zero inside struct operations.
+    expect_error("let z = 0\nreturn string(int2 \{ 1, 1 \} / int2 \{ z, 1 \})", "division by zero")
+    // A switch without default on an enum value outside the enum's cases.
+    expect_error("enum e:\n    e_a\nlet v = e(9)\nlet r = switch v:\n    case e_a: 1\nreturn r",
+                 "out of range of possible values in switch")
 
     // Compile-time errors also come back as the error return value.
     expect_error("let x:string = 1\nreturn x", "error")
@@ -68,5 +79,42 @@ def errors_tests():
     expect_error("enum e:\n    e_a\n    e_b\nlet v = e_a\nlet r = switch v:\n    case e_a: 1\nreturn r", "not tested in switch")
     // A program whose last statement produces no value is also an error.
     expect_error("print(1)", "returns 0 values")
+
+    // Literals that don't fit in 64 bits are lexer errors.
+    expect_error("return 9223372036854775808", "int constant overflow")
+    expect_error("return 0x10000000000000000", "hex constant overflow")
+    // Exponents require a "." in the literal; 1e5 lexes as 1 then e5.
+    expect_error("return 1e5", "found `e5`")
+    // Strings are immutable: indexed writes don't compile.
+    expect_error("let s = \"abc\"\ns[0] = 65\nreturn s", "lvalue")
+    // Named functions are not function values.
+    expect_error("def f(x): return x\nlet g = f\nreturn g(1)", "as value")
+    // break must be enclosed in a loop.
+    expect_error("break\nreturn 1", "must occur inside")
+    // A struct cannot contain itself.
+    expect_error("struct s:\n    n:s\nreturn 1", "self-referential")
+    // Unknown fields, and wrong argument counts.
+    expect_error("class c:\n    x = 1\nreturn (c \{\}).y", "does not have field")
+    expect_error("def f(a, b): return a\nreturn f(1)", "takes 1 arguments")
+    // Class switches must cover all concrete subclasses.
+    expect_error("abstract class a:\n    x = 0\nclass b : a\nclass c : a\n" +
+                 "def f(v:a): return switch v:\n    case b: 1\nreturn f(b \{\})",
+                 "no case applies")
+    // Multi-assignment requires enough values.
+    expect_error("def f(): return 1\nlet a, b = f()\nreturn a + b", "returns 1 values")
+    // Redefinition in the same scope.
+    expect_error("let a = 1\nlet a = 2\nreturn a", "redefinition")
+    // Abstract classes cannot be instantiated.
+    expect_error("abstract class a:\n    x = 0\nreturn (a \{\}).x", "cannot instantiate")
+    // Recursive functions must declare their return type.
+    expect_error("def f(n): return if n: f(n - 1) else: 0\nreturn f(3)",
+                 "explicit return type")
+    // Ints don't implicitly convert to enums.
+    expect_error("def f(b:bool): return b\nreturn f(2)", "error")
+    // A void function call cannot be used as a value.
+    expect_error("def f() -> void: return\nreturn \"\{f()\}\"", "requires 1")
+    // Lifetime analysis: assigning to a variable while an argument borrows it.
+    expect_error("var x = \"hello\"\ndef f(y):\n    x = \"world\"\n    return y\nreturn f(x)",
+                 "while borrowed")
 
 errors_tests()

@@ -63,6 +63,20 @@ def exceptions_tests():
         order += "c{v}"
     test_eq(order, "abcx")
 
+    // The catch block may take a second arg: the stack trace, which is only
+    // non-empty for throw_trace.
+    var traced = ""
+    try():
+        throw_trace("boom")
+    fn v, trace:
+        traced = v + "|{trace.length}"
+    test_eq(traced.find_string("boom|"), 0)
+    try():
+        throw "plain"
+    fn v, trace:
+        traced = v + trace
+    test_eq(traced, "plain")  // Plain throw: empty trace.
+
     // throw_if only throws for true (non-nil) values.
     var t1 = 0
     try():
@@ -100,5 +114,15 @@ def exceptions_tests():
     fn v:
         got = v
     test_eq(got, "deep")
+
+    // A throw from inside a HOF block unwinds through the HOF.
+    got = ""
+    try():
+        [ 1, 2, 3 ].map() x:
+            if x == 2: throw "inmap"
+            x
+    fn v:
+        got = v
+    test_eq(got, "inmap")
 
 exceptions_tests()

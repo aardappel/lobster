@@ -9,14 +9,19 @@ def std_tests():
 
     let v = [ 3, 1, 4, 1, 5 ]
 
-    // map / map2 / zip.
+    // map / map2 / zip. The block optionally takes the index too, and
+    // iterating a string maps over its bytes.
     test_seq(v.map(): _ * 2, [ 6, 2, 8, 2, 10 ])
     test_seq(map(3) i: i * i, [ 0, 1, 4 ])
+    test_seq(v.map() x, i: x + i, [ 3, 2, 6, 4, 9 ])
+    test_seq(map([]::int): _ * 2, []::int)
+    test_seq(map("ab") c: c + 1, [ 'b', 'c' ])
     test_seq(map2([ 1, 2 ], [ 10, 20 ]): _a + _b, [ 11, 22 ])
     test_seq(zip([ 1, 2 ], [ 3, 4 ]), [ [ 1, 3 ], [ 2, 4 ] ])
 
-    // filter and friends.
+    // filter and friends, also with index blocks.
     test_seq(v.filter(): _ > 2, [ 3, 4, 5 ])
+    test_seq(v.filter() x, i: i % 2 == 0, [ 3, 4, 5 ])
     test_seq(v.filter_indices(): _ > 2, [ 0, 2, 4 ])
     test_seq(v.filter_map(): if _ > 2: _ * 10 else: 0, [ 30, 40, 50 ])
     let pt, pf = v.partition(): _ > 2
@@ -56,10 +61,12 @@ def std_tests():
     test_eq(f1, 6)
     test_eq(f2, 6)
     test_eq(reduce([ 1, 2, 3 ]): _a - _b, -4)
+    test_eq(reduce([ "a", "b", "c" ]): _a + _b, "abc")
     test_eq(reduce_reverse([ 1, 2, 3 ]): _a - _b, 2)  // 1 - (2 - 3)
     test_eq(sum(v), 14)
     test_eq(sum([ 0.5, 1.5 ]), 2.0)
     test_eq(product([ 2, 3, 4 ]), 24)
+    test_eq(product([ 0.5, 4.0 ]), 2.0)
     test_eq(sum([]::int), 0)
     test_eq(product([]::int), 1)
 
@@ -90,6 +97,10 @@ def std_tests():
     let s3 = copy(unsorted)
     s3.insertion_sort(): _a < _b
     test_seq(s3, s1)
+    // insertion_sort is stable: equal keys keep their original order.
+    let stab = [ int2 { 1, 0 }, int2 { 0, 1 }, int2 { 1, 2 }, int2 { 0, 3 }, int2 { 1, 4 } ]
+    stab.insertion_sort(): _a.x < _b.x
+    test_seq(stab, [ int2 { 0, 1 }, int2 { 0, 3 }, int2 { 1, 0 }, int2 { 1, 2 }, int2 { 1, 4 } ])
     let so = [ 1, 3, 5 ]
     so.insert_ordered(4): _a < _b
     test_seq(so, [ 1, 3, 4, 5 ])
@@ -106,16 +117,30 @@ def std_tests():
     test_eq(sh.length, unsorted.length)
     test_seq(sh.qsort(): _a < _b, s1)
 
-    // weighted_pick: with a single nonzero weight it must pick that element.
+    // weighted_pick: with a single nonzero weight it must pick that element,
+    // with int as well as float weights.
     rnd_seed(1)
     let wpe, wpi = weighted_pick<int, int>([ 10, 20, 30 ]) x: if x == 20: 1 else: 0
     test_eq(wpe, 20)
     test_eq(wpi, 1)
+    let wfe, wfi = weighted_pick<float, string>([ "a", "b" ]) x: if x == "b": 1.0 else: 0.0
+    test_eq(wfe, "b")
+    test_eq(wfi, 1)
+
+    // find_best with a float metric, and on an empty vector.
+    test_eq([ 3.0, 9.0, 5.0 ].find_best<float>() x, i: x, 1)
+    test_eq([]::int.find_best<int>() x, i: x, -1)
+
+    // check passes through truthy values.
+    test_eq(check(5, "unused"), 5)
+    test_eq(check("s", "unused"), "s")
 
     // rnd helpers.
     rnd_seed(3)
     let picked = rnd_pick([ 5, 6, 7 ])
     test_true(picked >= 5 and picked <= 7)
+    let picked2 = rnd_pick2([ [ 5, 6, 7 ] ])
+    test_true(picked2 >= 5 and picked2 <= 7)
     let consumable = [ 1, 2, 3 ]
     let eaten = consumable.rnd_consume()
     test_eq(consumable.length, 2)

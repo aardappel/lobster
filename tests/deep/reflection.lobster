@@ -57,11 +57,16 @@ def reflection_tests():
     // type_field_*: structs count as multiple inline fields.
     test_eq(type_field_count(r), 4)  // c expands to x, y.
     test_eq(type_field_count("str"), 0)
+    test_eq(type_field_count([ 1 ]), 0)
     test_eq(type_field_string(r, 0), "float")
     test_eq(type_field_string(r, 3), "[int]")
     test_eq(type_field_name(r, 2), "s")
     test_eq(type_field_value(r, 2), "hello")
     test_eq(type_field_value(r, 0), "1.0")
+    // A subclass value reports its own (longer) field list.
+    let rsub = DReflSub {}
+    test_eq(type_field_count(rsub), 5)
+    test_eq(type_field_name(rsub, 4), "extra")
 
     // Printing preferences: setters return the old value, effects apply to
     // string conversion of reference values. All restored afterwards.

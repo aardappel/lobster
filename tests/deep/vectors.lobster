@@ -52,6 +52,18 @@ def vectors_tests():
     test_seq(pv, [ 1, 2, 100 ])
     pv.remove_range(1, 2)
     test_seq(pv, [ 1 ])
+    pv.remove_range(0, 1)  // Removing everything is fine.
+    test_seq(pv, []::int)
+    // insert/remove on reference elements hand back the element.
+    let rems = [ "a", "b" ]
+    rems.insert(1, "mid")
+    test_seq(rems, [ "a", "mid", "b" ])
+    test_eq(rems.remove(1), "mid")
+    // And on struct elements.
+    let remst = [ int2 { 1, 2 } ]
+    remst.insert(0, int2 { 3, 4 })
+    test_eq(remst.remove(0), int2 { 3, 4 })
+    test_eq(remst.length, 1)
     // pop/top also work on vectors of structs.
     let sv = [ int2 { 1, 2 }, int2 { 3, 4 } ]
     test_eq(sv.top(), int2 { 3, 4 })
@@ -78,14 +90,20 @@ def vectors_tests():
     test_seq(tv, [ 1, 2 ])
     tv.truncate(5)  // No-op beyond length.
     test_seq(tv, [ 1, 2 ])
+    tv.truncate(-1)  // Negative is also a no-op.
+    test_seq(tv, [ 1, 2 ])
+    tv.truncate(0)
+    test_seq(tv, []::int)
 
     // append / append_into / vector_capacity.
     test_seq(append([ 1, 2 ], [ 3 ]), [ 1, 2, 3 ])
     test_seq(append([]::int, []::int), []::int)
+    test_seq(append([ "a" ], [ "b" ]), [ "a", "b" ])
     let ai = [ 1 ]
     test_seq(append_into(ai, [ 2, 3 ]), [ 1, 2, 3 ])
     test_seq(ai, [ 1, 2, 3 ])
     test_seq(vector_capacity([ 1 ], 100), [ 1 ])  // Capacity only, not length.
+    test_seq(vector_capacity([ 1, 2 ], 1), [ 1, 2 ])  // Never shrinks length.
 
     // slice.
     test_seq([ 1, 2, 3, 4 ].slice(1, 2), [ 2, 3 ])
@@ -133,6 +151,11 @@ def vectors_tests():
     test_eq(max([ -3000000000000000000 ]), -3000000000000000000)
     test_eq(max([ -5.0, -6.0 ]), -5.0)
     test_eq(min([ 1.0e100, 2.0e100 ]), 1.0e100)
+    // Over an empty vector they yield the extreme identity values.
+    test_eq(min([]::int), 0x7FFFFFFFFFFFFFFF)
+    test_eq(max([]::int), 0x8000000000000000)
+    test_true(min([]::float) > 1.0e308)
+    test_true(max([]::float) < -1.0e308)
 
     // binary_search: returns (number of matches, start index / insertion point).
     let bsv = [ 1, 3, 3, 5 ]
@@ -159,5 +182,46 @@ def vectors_tests():
     bn, bi = binary_search_object([ bobj ], bobj)
     test_eq(bn, 1)
     test_eq(bi, 0)
+    // The first_field versions search vectors of objects sorted on their
+    // first field.
+    class BSK:
+        key:string
+        val:int
+    let bsks = [ BSK { "a", 1 }, BSK { "b", 2 }, BSK { "b", 3 }, BSK { "c", 4 } ]
+    bn, bi = bsks.binary_search_first_field_string("b")
+    test_eq(bn, 2)
+    test_eq(bi, 1)
+    bn, bi = bsks.binary_search_first_field_string("x")
+    test_eq(bn, 0)
+    // The object version's first field must be a class, compared by identity.
+    class BSKey:
+        id:int
+    class BSO:
+        key:BSKey
+        val:int
+    let keyobj = BSKey { 1 }
+    bn, bi = binary_search_first_field_object([ BSO { keyobj, 1 } ], keyobj)
+    test_eq(bn, 1)
+    test_eq(bi, 0)
+
+    // deepcopy turns DAGs into trees: shared references become copies.
+    let shared = [ 9 ]
+    let dag = [ shared, shared ]
+    let tree = deepcopy(dag, 10)
+    test_true(equal(tree, dag))
+    tree[0].push(8)
+    test_seq(tree[1], [ 9 ])       // Copies are independent now.
+    test_seq(shared, [ 9 ])        // Original untouched.
+    // Cycles clone until the given depth; depth 1 behaves like copy, so the
+    // copy's reference points back at the original object.
+    class DCyc:
+        next:DCyc?
+    let cyc = DCyc { nil }
+    cyc.next = cyc
+    let cyc2 = deepcopy(cyc, 1)
+    test_true(cyc2 != cyc)
+    test_true(cyc2.next == cyc)
+    cyc.next = nil
+    cyc2.next = nil  // Break the references again to avoid leak reports.
 
 vectors_tests()

@@ -13,6 +13,10 @@ enum de_zero:
     de_a          // Starts at 0 without explicit value.
     de_b
 
+enum de_neg:
+    de_n = -3
+    de_m          // Auto-increment continues from negative values: -2.
+
 enum_flags de_bits:
     de_f1         // 1
     de_f2         // 2
@@ -35,6 +39,8 @@ def enums_tests():
     test_eq(de_f4, 4)
     test_eq(de_f16, 16)
     test_eq(de_f32, 32)
+    test_eq(de_n, -3)
+    test_eq(de_m, -2)
 
     // Enums are ints in any int context; arithmetic yields int.
     test_eq(de_red + 1, 4)
@@ -60,6 +66,7 @@ def enums_tests():
     test_eq("{true}", "true")
     test_eq("{false}", "false")
     test_true(bool(2) != false)
+    test_eq(true + true, 2)  // Arithmetic on bools yields plain ints.
 
     // switch over an enum must be exhaustive (this compiles == test passes),
     // and a default may replace any number of cases.
@@ -79,14 +86,27 @@ def enums_tests():
         case false: "f"
     test_eq(boolname(true), "t")
     test_eq(boolname(2 == 2), "t")
+    def colrange(c:de_color): return switch c:
+        case de_red..de_green: "low"
+        case de_blue..de_cyan: "high"
+    test_eq(colrange(de_red), "low")
+    test_eq(colrange(de_green), "low")
+    test_eq(colrange(de_blue), "high")
 
-    // Reflection on enum value names.
+    // Reflection on enum value names; forged values have no name.
     test_eq(type_enum_value_name(typeof bool, 1), "true")
     test_eq(type_enum_value_name(typeof de_color, 10), "de_blue")
+    test_eq(type_enum_value_name(typeof de_color, 999), "")
 
-    // Enums in data: parse_data round trips names.
+    // Enums in data: parse_data round trips names, unknown names error.
     let pv, perr = parse_data(typeof [bool], "[true, false]")
     test_eq(perr, nil)
     test_seq(assert pv, [ true, false ])
+    let bv, berr = parse_data(typeof [de_color], "[de_red, de_cyan]")
+    test_eq(berr, nil)
+    test_seq(assert bv, [ de_red, de_cyan ])
+    let uv, uerr = parse_data(typeof [de_color], "[de_no_such_value]")
+    test_true(uv == nil)
+    test_true(uerr and uerr.length)
 
 enums_tests()

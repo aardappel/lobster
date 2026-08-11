@@ -50,7 +50,7 @@ def binary_tests():
     test_eq(wi, 2)
     test_eq(ws.read_int16_le_back(0), 2050)
 
-    // Floats, 32 and 64 bit.
+    // Floats, 32 and 64 bit, also the _back variants.
     ws, wi = "".write_float32_le(0, 1.5)
     test_eq(wi, 4)
     test_eq(ws.read_float32_le(0), 1.5)
@@ -60,6 +60,11 @@ def binary_tests():
     // float32 rounds to nearest representable value.
     ws, wi = "".write_float32_le(0, 0.1)
     test_true(abs(ws.read_float32_le(0) - 0.1) < 1.0e-7)
+    ws, wi = "".write_float32_le_back(0, 2.5)
+    test_eq(wi, 4)
+    test_eq(ws.read_float32_le_back(0), 2.5)
+    ws, wi = "".write_float64_le_back(0, -0.5)
+    test_eq(ws.read_float64_le_back(0), -0.5)
 
     // write_substring, with and without 0-terminator.
     ws, wi = "".write_substring(0, "hi", false)
@@ -68,6 +73,11 @@ def binary_tests():
     test_eq(wi, 4)  // One more for the terminator.
     test_eq(ws.substring(0, 3), "hi!")
     test_eq(ws.read_int8_le(3), 0)
+    // write_substring_back writes ending at the given index from the end.
+    ws, wi = "".write_substring_back(0, "ab", false)
+    test_eq(wi, 2)
+    test_eq(ws.length, 4)  // Doubled in size while growing.
+    test_eq(ws.substring(2, 2), "ab")
 
     // compare_substring: 0 equal, -1/1 for less/greater.
     test_eq(compare_substring("xabcx", 1, "abc", 0, 3), 0)
@@ -87,6 +97,9 @@ def binary_tests():
     let vbf = vector_to_buffer([ 1.5, 2.5 ], 4)
     test_eq(vbf.length, 8)
     test_eq(vbf.read_float32_le(4), 2.5)
+    let vbf8 = vector_to_buffer([ 1.5, -2.5 ], 8)
+    test_eq(vbf8.length, 16)
+    test_eq(vbf8.read_float64_le(8), -2.5)
     let vbs = vector_to_buffer([ int2 { 1, 2 }, int2 { 3, 4 } ], 4)
     test_eq(vbs.length, 16)
     test_eq(vbs.read_int32_le(12), 4)

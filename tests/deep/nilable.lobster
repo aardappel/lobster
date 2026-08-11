@@ -40,9 +40,11 @@ def nil_tests():
     else:
         test_true(false, "m0 == nil was false")
 
-    // or with nil as default.
+    // or with nil as default, and chains of nilables.
     test_eq(maybe(0) or "dflt", "dflt")
     test_eq(maybe(1) or "dflt", "v")
+    test_eq(maybe(0) or maybe(0) or "dflt", "dflt")
+    test_eq(maybe(0) or maybe(1) or "dflt", "v")
     // a or nil / nil and a: give nil the type of a.
     let orn = m1 or nil
     test_true(orn == m1)
@@ -71,10 +73,23 @@ def nil_tests():
     test_true(nf.next == nf)
     nf.next = nil  // Break the cycle again (avoids a leak report).
 
-    // Nilables in vectors.
+    // Nilables in vectors, of strings and of classes.
     let nv = [ nil, "b" ]
     test_true(nv[0] == nil)
     test_eq(assert nv[1], "b")
+    let nov = [ nil, DNBox {} ]
+    test_true(nov[0] == nil)
+    test_eq((assert nov[1]).val, 7)
+    var nilcount = 0
+    for(nov) e:
+        if not e: nilcount++
+    test_eq(nilcount, 1)
+
+    // nil as a default argument value for a nilable parameter.
+    def with_nil_default(a, b:string? = nil):
+        return if b: a + b else: a
+    test_eq(with_nil_default("x"), "x")
+    test_eq(with_nil_default("x", "y"), "xy")
 
     // Functions returning union of nil and value infer a nilable type.
     def union_ret(n):

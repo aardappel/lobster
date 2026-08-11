@@ -18,6 +18,7 @@ import deep.strings
 import deep.math
 import deep.vectors
 import deep.structs
+import deep.vecutils
 import deep.control
 import deep.functions
 import deep.classes
@@ -27,6 +28,7 @@ import deep.nilable
 import deep.stdlib
 import deep.lifetime
 import deep.binary
+import deep.flatbuffers
 import deep.serialization
 import deep.reflection
 import deep.exceptions

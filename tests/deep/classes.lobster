@@ -49,8 +49,13 @@ class DCNum:
     def operator-(): return DCNum { -n }
     def operator*(o:int): return DCNum { n * o }
     def operator==(o:DCNum): return n == o.n
+    def operator!=(o:DCNum): return n != o.n
     def operator<(o:DCNum): return n < o.n
+    def operator<<(i:int): return DCNum { n << i }
+    def operator&(o:DCNum): return DCNum { n & o.n }
+    def operator|(o:DCNum): return DCNum { n | o.n }
     def operator[](i:int): return n + i
+    def operator[](s:string): return "{n}{s}"
     def operator+=(o:DCNum): n += o.n
 
 struct DCVal:
@@ -65,6 +70,88 @@ class DCCounter:
         member steps = 0
         steps++
         return base + steps
+
+// Forward declaration: usable in types before the full definition exists.
+class DCFwd
+class DCFwdUser:
+    link:DCFwd?
+class DCFwd:
+    v = 7
+
+// Variable pre-declaration: declared, defined further down, usable in between
+// only from code that runs after the definition.
+class DCWorld
+let dc_world:DCWorld
+def dc_world_n(): return dc_world.n
+class DCWorld:
+    n = 3
+let dc_world:DCWorld = DCWorld {}
+
+// Private declarations are usable within this file.
+private class DCPriv:
+    private x = 1
+    private def get(): return x
+    def double(): return get() * 2
+
+// A hierarchy with an abstract class in the middle, for exhaustive switches:
+//
+//   (TSA)
+//    |  \
+//   TSB (TSC)
+//        |  \
+//       TSD TSE
+//            |
+//           TSF
+abstract class TSA:
+    a = 0
+class TSB : TSA
+    b = 1
+abstract class TSC : TSA
+    c = 2
+class TSD : TSC
+    d = 3
+class TSE : TSC
+    e = 4
+class TSF : TSE
+    f = 5
+
+// Generic constructor function.
+class DCGBox<T>:
+    val:T
+
+constructor DCGBox<T>(x:T, y:T):
+    return DCGBox<T> { x + y }
+
+// Constructor functions on a class hierarchy.
+class DCCtorBase:
+    tag:int
+class DCCtorSub : DCCtorBase
+    extra = 0
+
+constructor DCCtorBase(n:int):
+    return DCCtorBase { n }
+
+constructor DCCtorSub(n:int):
+    return DCCtorSub { n * 2 }
+
+// Dispatch corner cases: recursion, super, multi-return, generic subclasses.
+abstract class DD0:
+    def dd_ad(): return 10
+class DD1 : DD0
+    a:int = 0
+    def dd_r(c:int) -> int: return c
+    def dd_mr(): return 1, "a"
+    def dd_sup(): return 1
+    def dd_sni(): return 12
+class DD2 : DD1
+    b:int = 0
+    def dd_r(c:int) -> int: return if c: dd_r(c - 1) else: (DD1 {}).dd_r(c)
+    def dd_mr(): return 2, "b"
+    def dd_sup(): return 1 + super dd_sup()
+    def dd_ad(): return 11
+class DD3<T> : DD1
+    c:T
+    def dd_f(x:int): return x + length(c)
 
 def classes_tests():
     suite("classes")
@@ -141,6 +228,60 @@ def classes_tests():
     test_eq(spec.add(3), 7)
     test_eq(spec.add("x"), "xx1")
 
+    // More dispatch corner cases (classes at top level, methods would
+    // otherwise shadow same-named methods of other classes in this scope).
+    // The generic subclass must be instantiated before methods dispatch over
+    // its superclass, so its specialization takes part in the vtables.
+    let dd3 = DD3<string> { c: "hello" }
+    test_eq(dd3.dd_f(10), 15)   // Method on a generic subclass, generic "this".
+    let dd:DD1 = DD2 {}
+    test_eq(dd.dd_r(10), 0)     // Recursive dynamic dispatch.
+    test_eq(dd.dd_sup(), 2)     // super call one level up.
+    test_eq(dd.dd_ad(), 11)     // Override of a method from above the dispatch root.
+    let ddm1, ddm2 = dd.dd_mr() // Dispatch with multiple return values.
+    test_eq(ddm1, 2)
+    test_eq(ddm2, "b")
+    let dd0:DD0 = DD1 {}
+    test_eq(dd0.dd_sni(), 12)   // Dispatch root whose sibling has no override.
+    let dd3i:DD1 = dd3
+    test_true(dd3i is DD3<string>)
+
+    // Exhaustive switches over the TS hierarchy (abstract in the middle).
+    let ts:[TSA] = [ TSB {}, TSD {}, TSE {}, TSF {} ]
+    // One case per concrete class, no default needed.
+    let ts1 = map(ts) t:
+        switch t:
+            case TSB: t.b
+            case TSD: t.d
+            case TSE: t.e
+            case TSF: t.f
+    test_seq(ts1, [ 1, 3, 4, 5 ])
+    // A superclass case covers its subclasses.
+    let ts2 = map(ts) t:
+        switch t:
+            case TSB: t.b
+            case TSD: t.d
+            case TSE: t.e  // Also covers TSF.
+    test_seq(ts2, [ 1, 3, 4, 4 ])
+    // An abstract base case may cover everything below it.
+    let ts3 = map(ts) t:
+        switch t:
+            case TSB: t.b
+            case TSC: t.c
+    test_seq(ts3, [ 1, 2, 2, 2 ])
+    // default may replace any number of cases; the most specific case wins.
+    let ts4 = map(ts) t:
+        switch t:
+            default: t.a
+            case TSF: t.f
+    test_seq(ts4, [ 0, 0, 0, 5 ])
+    // The same exhaustiveness applies to dynamic dispatch: TSF omitted, so it
+    // falls back to the TSE implementation.
+    def ts_name(t::TSB): return "b"
+    def ts_name(t::TSD): return "d"
+    def ts_name(t::TSE): return "e"
+    test_seq(map(ts): ts_name(_), [ "b", "d", "e", "e" ])
+
     // Generic classes.
     let bi = DCIntBox { 42 }
     test_eq(bi.get(), 42)
@@ -159,6 +300,10 @@ def classes_tests():
     test_eq(r1.hi, 5)
     let r2 = DCRange(1, 9)
     test_eq(r2.hi - r2.lo, 8)
+    // Generic constructor function, specializing per type.
+    test_eq(DCGBox(1, 2).val, 3)
+    test_eq(DCGBox("a", "b").val, "ab")
+    test_eq(DCGBox<float>(1.0, 2.0).val, 3.0)
 
     // Operator overloading on classes.
     let n3 = DCNum { 3 }
@@ -171,6 +316,12 @@ def classes_tests():
     var nacc = DCNum { 1 }
     nacc += n4  // Mutates in place via the overload.
     test_true(nacc == DCNum { 5 })
+    // Bitwise, shift, inequality and non-int index overloads.
+    test_true(n3 != n4)
+    test_eq((n3 << 2).n, 12)
+    test_eq((n3 & n4).n, 0)
+    test_eq((n3 | n4).n, 7)
+    test_eq(n3["s"], "3s")
     // And on structs.
     test_eq((DCVal { 1 } + DCVal { 2 }).v, 3)
     test_eq((~DCVal { 0 }).v, -1)
@@ -181,6 +332,26 @@ def classes_tests():
     test_eq(cnt1.bump(), 11)
     test_eq(cnt1.bump(), 12)
     test_eq(cnt2.bump(), 11)  // Separate state per instance.
+
+    // Vector type parameters are invariant by default, but covariance is
+    // allowed where no aliasing can occur: fresh constructors and unions.
+    class CoA:
+        a = 1
+    class CoB : CoA
+        b = 2
+    let coas = [ CoA {} ]
+    let cobs = [ CoB {} ]
+    test_eq(append(coas, cobs).length, 2)
+    let comixed:[CoA] = [ CoB {} ]
+    test_eq(comixed.length, 1)
+    def co_take(ys:[CoA]): return ys.length
+    test_eq(co_take([ CoB {} ]), 1)
+    test_eq(co_take(if coas[0].a == 1: [ CoA {} ] else: [ CoB {} ]), 1)
+
+    // Constructor functions may have per-subclass overloads.
+    test_eq(DCCtorBase(1).tag, 1)
+    test_eq(DCCtorSub(2).tag, 4)
+    test_true(DCCtorSub(2) is DCCtorSub)
 
     // Auto constructors: {} without type in typed contexts.
     class Linked:
@@ -197,5 +368,13 @@ def classes_tests():
 
     // String conversion of objects.
     test_eq("{DCVal { 6 }}", "DCVal\{6\}")
+
+    // Forward-declared class and pre-declared variable in action.
+    let fwd = DCFwdUser { DCFwd {} }
+    test_eq((assert fwd.link).v, 7)
+    test_eq(dc_world_n(), 3)
+
+    // Private class with private members, used within this file.
+    test_eq((DCPriv {}).double(), 2)
 
 classes_tests()

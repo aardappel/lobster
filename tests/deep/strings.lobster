@@ -16,6 +16,13 @@ def strings_tests():
     for("abc") c, i:
         bytesum += c + i
     test_eq(bytesum, 'a' + 'b' + 1 + 'c' + 2)
+    // Strings with embedded zero bytes still act on full length.
+    test_eq(find_string("a\x00b", "\x00"), 1)
+    test_eq(find_string("a\x00b", "b"), 2)
+    test_true("a\x00b" == "a\x00b")
+    test_true("a\x00b" != "a\x00c")
+    // copy gives a string with the same value (strings compare by value).
+    test_eq(copy("xyz"), "xyz")
 
     // Interpolation, and its equivalence to concatenation.
     let ia = 42
@@ -39,6 +46,7 @@ def strings_tests():
     test_eq(substring("abcdef", 4, -1), "ef")     // Negative size: rest.
     test_eq(substring("abcdef", 6, -1), "")
     test_eq(substring("abcdef", 2, 0), "")
+    test_eq(substring(substring("abcdef", 1, 4), 1, 2), "cd")
 
     // find_string / find_string_reverse.
     test_eq(find_string("abcdabcd", "bc"), 1)
@@ -81,6 +89,8 @@ def strings_tests():
     // case conversion, ASCII only, unicode untouched.
     test_eq(lowercase("Hello Wörld 123"), "hello wörld 123")
     test_eq(uppercase("Hello wörld 123"), "HELLO WöRLD 123")
+    test_eq(lowercase(""), "")
+    test_eq(uppercase(uppercase("up")), "UP")
 
     // escape_string / concat_string / repeat_string.
     test_eq(escape_string("a*b&c", "*&", "<", ">"), "a<*>b<&>c")
@@ -119,6 +129,12 @@ def strings_tests():
     sn, sok = string_to_int("zz", 36)
     test_eq(sn, 35 * 36 + 35)
     test_eq(sok, true)
+    sn, sok = string_to_int("-101", 2)  // Sign works with any base.
+    test_eq(sn, -5)
+    test_eq(sok, true)
+    sn, sok = string_to_int("0x1A")     // No 0x prefix support in base 10.
+    test_eq(sn, 0)
+    test_eq(sok, false)
 
     // string_to_float.
     var fnum, fok = string_to_float("2.5")
