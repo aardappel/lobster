@@ -37,14 +37,16 @@ def vectors_tests():
         isum += x * (i + 1)
     test_eq(isum, 10 + 44 + 90)
 
-    // push (returns the vector), pop, top, insert, remove.
+    // push (returns the vector), pop, top, insert (returns the vector too),
+    // remove.
     let pv = [ 1 ]
     pv.push(2).push(3)
     test_seq(pv, [ 1, 2, 3 ])
     test_eq(pv.top(), 3)
     test_eq(pv.pop(), 3)
     test_eq(pv.length, 2)
-    pv.insert(0, 99)
+    pv.insert(0, 99).insert(0, 98)
+    test_eq(pv.remove(0), 98)
     test_seq(pv, [ 99, 1, 2 ])
     pv.insert(3, 100)  // Insert at length appends.
     test_seq(pv, [ 99, 1, 2, 100 ])
@@ -126,6 +128,12 @@ def vectors_tests():
     test_true(equal([ int2 { 1, 2 } ], [ int2 { 1, 2 } ]))
     test_true([ 1 ] != [ 1 ])
 
+    // copy of an empty vector is a new empty vector.
+    let emptyc = copy([]::int)
+    test_eq(emptyc.length, 0)
+    emptyc.push(1)
+    test_seq(emptyc, [ 1 ])
+
     // copy is shallow (nested references shared), deepcopy is not.
     let orig = [ [ 1 ], [ 2 ] ]
     let shallow = copy(orig)
@@ -162,6 +170,13 @@ def vectors_tests():
     var bn, bi = bsv.binary_search(3)
     test_eq(bn, 2)
     test_eq(bi, 1)
+    // Empty and single-element vectors.
+    bn, bi = []::int.binary_search(1)
+    test_eq(bn, 0)
+    test_eq(bi, 0)
+    bn, bi = [ 7 ].binary_search(7)
+    test_eq(bn, 1)
+    test_eq(bi, 0)
     bn, bi = bsv.binary_search(4)  // Not found: insertion point.
     test_eq(bn, 0)
     test_eq(bi, 3)

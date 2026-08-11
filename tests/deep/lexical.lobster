@@ -8,7 +8,9 @@ def lexical_tests():
 
     // Integer literals.
     test_eq(123, 100 + 23)
+    test_eq(0, 0x0)
     test_eq(0x10, 16)
+    test_eq(0xabadcafe, 2880293630)  // Hex digits may be lower case.
     test_eq(0xABADCAFE, 2880293630)
     test_eq(0x7FFFFFFFFFFFFFFF, 9223372036854775807)
     test_eq(0xFFFFFFFFFFFFFFFF, -1)
@@ -21,12 +23,22 @@ def lexical_tests():
     test_eq('\\', 92)
     test_eq('\'', 39)
     test_eq('\x41', 65)
+    test_eq('\x4a', 74)  // Lower case hex in escapes too.
     // Multi-character constants: big endian packing, up to 8 chars.
     test_eq('AB', ('A' << 8) + 'B')
+    test_eq('ABC', ('A' << 16) + ('B' << 8) + 'C')
     test_eq('ABCDEFGH', 0x4142434445464748)
+    // A verbatim multi-byte unicode char is its UTF-8 bytes, packed big endian.
+    test_eq('⺆', 0xE2BA86)
     // Booleans are just predefined enum values 1 and 0.
     test_eq(true, 1)
     test_eq(false, 0)
+    // Identifiers may start with keyword prefixes, contain digits and _.
+    let iffy_2 = 1
+    let format = 2
+    let classy = 3
+    let _lead = 4
+    test_eq(iffy_2 + format + classy + _lead, 10)
 
     // Float literals: leading/trailing digit forms and exponents
     // (exponents require a "." in the literal).
@@ -36,9 +48,15 @@ def lexical_tests():
     test_eq(1.5e3, 1500.0)
     test_eq(2.5e-2, 0.025)
     test_eq(1.5E2, 150.0)
+    test_eq(2.5E-1, 0.25)
     test_eq(2.5e+2, 250.0)
     // "1.e2" is NOT a float literal: a "." followed by an alpha character is
     // parsed as a field/method dereference on the int 1 instead.
+    // "1..2" is also not a float: the ".." token makes it a range (in switch).
+    let one_in_range = switch 1:
+        case 1..2: "in"
+        default: "out"
+    test_eq(one_in_range, "in")
 
     // String literal escapes.
     test_eq("\x41\x42", "AB")
@@ -79,11 +97,17 @@ line2""", "line1\nline2")
         2 +
         3
     test_eq(cont, 6)
+    let contl = 1 == 1 and
+        2 == 2
+    test_eq(contl, true)
     let contv = [
         1,
         2,
     ]
     test_eq(contv.length, 2)
+    // Also inside call argument lists.
+    test_eq(max(1,
+                2), 2)
     // A leading . on the next line continues the expression (builder style).
     let built = [ 1, 2 ]
         .map(): _ + 1

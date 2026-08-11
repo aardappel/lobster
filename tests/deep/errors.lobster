@@ -117,4 +117,23 @@ def errors_tests():
     expect_error("var x = \"hello\"\ndef f(y):\n    x = \"world\"\n    return y\nreturn f(x)",
                  "while borrowed")
 
+    // A `member` variable is scoped to its method, not visible on the object.
+    expect_error("class C:\n    def m():\n        member x = 1\nlet c = C \{\}\nreturn c.x",
+                 "not in scope")
+    // Once a class has a constructor function, plain {} construction elsewhere
+    // is disallowed.
+    expect_error("class C:\n    a:int\nconstructor C(n:int):\n    return C \{ n \}\n" +
+                 "let c = C \{ 5 \}\nreturn c.a", "only be constructed thru its constructor")
+    // Calling a non-function value.
+    expect_error("let a = 1\nreturn a()", "doesn\'t have a function type")
+    // struct types cannot be made nilable.
+    expect_error("struct S:\n    s:string\nlet z = nil::S\nreturn 1", "nillable")
+    // continue outside a loop.
+    expect_error("continue\nreturn 1", "must occur inside")
+    // Assigning the wrong type to a typed field.
+    expect_error("class C:\n    x:int\nlet c = C \{ 1 \}\nc.x = \"s\"\nreturn c.x", "error")
+    // typeid comparison is type checked: comparing typeids of different static
+    // types is a type error.
+    expect_error("return typeof int == typeof float", "requires type")
+
 errors_tests()

@@ -91,6 +91,15 @@ def generics_tests():
     test_true(eq2(typeof string, typeof string))
     test_eq(typeof_t<string>(), typeof string)
 
+    // Type arguments may be struct types, or generic classes themselves.
+    let gvec = DGen<int2> { [ int2 { 1, 2 } ] }
+    gvec.push_t(int2 { 3, 4 })
+    test_eq(gvec.first() + int2_1, int2 { 2, 3 })
+    test_eq(gvec.ts[1].y, 4)
+    let gnest = DGen<DGen<int>> { [ gi ] }
+    test_eq(gnest.first().first(), 1)
+    test_seq(gnest.ts[0].ts, gi.ts)
+
     // Generic functions over generic classes, without naming a specialization.
     def rewrap<V>(g:DGen<V>) -> DGen<V>:
         return DGen<V> { [ g.ts[0] ] }

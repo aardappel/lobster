@@ -7,6 +7,14 @@ import exception
 class DExcErr:
     code:int
 
+// Dispatch hierarchy for the throw-through-dispatch test.
+abstract class DExcBase:
+    def maybe_throw() -> void: return
+class DExcQuiet : DExcBase
+class DExcLoud : DExcBase
+    def maybe_throw() -> void: throw "sub threw"
+let throwers = [ DExcQuiet {}, DExcLoud {} ]::DExcBase
+
 def exceptions_tests():
     suite("exceptions")
 
@@ -124,5 +132,36 @@ def exceptions_tests():
     fn v:
         got = v
     test_eq(got, "inmap")
+
+    // A throw from inside a dynamically dispatched method unwinds through the
+    // dispatch.
+    got = ""
+    try():
+        for(throwers) t:
+            t.maybe_throw()
+    fn v:
+        got = v
+    test_eq(got, "sub threw")
+
+    // An inner try that swallows leaves the outer catch untouched. (The
+    // unreached throw gives the outer catch argument its type.)
+    var outer_ran = 0
+    try():
+        try():
+            throw "swallowed"
+        outer_ran = 1
+        if outer_ran == 99: throw "never"
+    fn v:
+        outer_ran = v.length
+    test_eq(outer_ran, 1)
+
+    // A throw from inside an if value expression unwinds correctly.
+    got = ""
+    try():
+        let x = if date_time_build_info().length != 0: throw "inif" else: 2
+        got += "unreached{x}"
+    fn v:
+        got = v
+    test_eq(got, "inif")
 
 exceptions_tests()

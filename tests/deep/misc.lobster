@@ -82,6 +82,13 @@ def misc_tests():
     let d4 = dictionary<float, float>(7)
     d4.set(1.5, 2.5)
     test_eq(d4.get(1.5, 0.0), 2.5)
+    // A dictionary with a single bucket forces all keys into one chain.
+    let d1b = dictionary<int, int>(1)
+    for(5) i: d1b.set(i, i * 10)
+    for(5) i: test_eq(d1b.get(i, -1), i * 10)
+    d1b.del(2)
+    test_eq(d1b.get(2, -1), -1)
+    test_eq(d1b.get_keys().length, 4)
     // get_or_create constructs a default value on a miss.
     let d5 = dictionary<string, MiscNS.nsclass>(7)
     test_eq(d5.get_or_create("k").x, 3)
@@ -116,6 +123,8 @@ def misc_tests():
     test_eq(date_time_string_format("%Y", true), format_time("%Y", dt[0], false))
     test_eq(format_time("%Y-%m-%d %H:%M:%S", 0, false), "1970-01-01 00:00:00")
     test_eq(format_time("%Y", 86400 * 365, false), "1971")
+    test_eq(format_time("%H:%M:%S", 3661, false), "01:01:01")
+    test_eq(format_time("%j", 86400 * 31, false), "032")  // Day of year.
     test_true(date_time_build_info().length > 0)
 
     // Program info.
@@ -170,7 +179,10 @@ def misc_tests():
     test_true(write_file(tmpname, "contents\n123"), "write_file failed")
     test_eq(read_file(tmpname), "contents\n123")
     test_true(exists_file(tmpname))
-    test_true(delete_file(tmpname))
+    let tmpname2 = "deep_tmp_test_file2.tmp"
+    test_true(rename_file(tmpname, tmpname2), "rename_file failed")
+    test_eq(read_file(tmpname2), "contents\n123")
+    test_true(delete_file(tmpname2))
     test_eq(exists_file(tmpname), false)
 
     // string() is the identity on strings but converts everything else.

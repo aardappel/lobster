@@ -22,6 +22,12 @@ def geometry_tests():
     test_eq(trans[14], 3.0)
     test_eq(trans[15], 1.0)
     test_seq(matrix.multiply(identity, trans), trans)
+    // Multiplying two translations adds them up.
+    let trans2 = matrix.multiply(trans, trans)
+    test_approx(trans2[12], 2.0)
+    test_approx(trans2[13], 4.0)
+    test_approx(trans2[14], 6.0)
+    test_approx(trans2[0], 1.0)
     // Rotating by 0 degrees is the identity.
     let rot0 = matrix.rotate_x(sincos(0.0))
     test_seq(rot0, identity)
@@ -31,20 +37,32 @@ def geometry_tests():
     let rot90 = matrix.rotate_x(sincos(90.0))
     test_approx(rot90[5], 0.0)   // cos in the y/z block.
     test_approx(rot90[6], 1.0)
+    // Rotation about z by 90 degrees maps x to y.
+    let rotz90 = matrix.rotate_z(sincos(90.0))
+    test_approx(rotz90[0], 0.0)
+    test_approx(rotz90[1], 1.0)
+    test_approx(rotz90[10], 1.0)  // z row untouched.
 
-    // cardinal_spline: at f == 0 and 1 it passes through the control points.
+    // cardinal_spline: at f == 0 and 1 it passes through the control points,
+    // and the middle of a straight uniform segment is the segment middle.
     let sp0 = cardinal_spline(float3_0, float3_1, float3 { 2.0, 2.0, 2.0 },
                               float3 { 3.0, 3.0, 3.0 }, 0.0, 0.5)
     test_approx(sp0, float3_1)
     let sp1 = cardinal_spline(float3_0, float3_1, float3 { 2.0, 2.0, 2.0 },
                               float3 { 3.0, 3.0, 3.0 }, 1.0, 0.5)
     test_approx(sp1, float3 { 2.0, 2.0, 2.0 })
+    let sph = cardinal_spline(float3_0, float3_1, float3 { 2.0, 2.0, 2.0 },
+                              float3 { 3.0, 3.0, 3.0 }, 0.5, 0.5)
+    test_approx(sph, float3 { 1.5, 1.5, 1.5 })
 
-    // spherical_lerp between quaternions: endpoints are exact.
+    // spherical_lerp between quaternions: endpoints are exact, and halfway
+    // between identity and 180 degrees around z is 90 degrees around z.
     let qa = float4 { 0.0, 0.0, 0.0, 1.0 }  // Identity quaternion.
     let qb = float4 { 0.0, 0.0, 1.0, 0.0 }  // 180 degrees around z.
     test_approx(spherical_lerp(qa, qb, 0.0), qa)
     test_approx(spherical_lerp(qa, qb, 1.0), qb)
+    let qh = spherical_lerp(qa, qb, 0.5)
+    test_approx(qh, float4 { 0.0, 0.0, sin(45.0), cos(45.0) })
 
     // circles_within_range: 3 circles on a line, radius 1, within distance 1
     // of each other's radius only for adjacent ones.

@@ -3,6 +3,10 @@ import vec
 
 // Scalar math builtins, and random number generation.
 
+// A trivial class for hashing a reference value.
+class DHashObj:
+    x = 1
+
 def math_tests():
     suite("math")
 
@@ -35,8 +39,11 @@ def math_tests():
     test_eq(pow(0, 0), 1)
     test_eq(pow(-2, 3), -8)
     test_eq(pow(2, -1), 0)
+    test_eq(pow(2, 63), 0x8000000000000000)  // Wraps like * does.
+    test_eq(pow(2, 64), 0)
     test_approx(pow(2.0, 0.5), sqrt(2.0))
     test_approx(pow(10.0, -2.0), 0.01)
+    test_eq(pow(2.0, 10.0), 1024.0)
 
     // Roots and logarithms.
     test_eq(sqrt(9.0), 3.0)
@@ -45,6 +52,7 @@ def math_tests():
     test_eq(log(1.0), 0.0)
     test_eq(log2(8.0), 3.0)
     test_eq(log2(1.0), 0.0)
+    test_approx(log2(10.0), 3.321928094887362)
 
     // Rounding family. int() truncates, floor/ceiling to nearest int
     // down/up, round is half-away-from-zero.
@@ -52,14 +60,19 @@ def math_tests():
     test_eq(int(-1.9), -1)
     test_eq(floor(1.9), 1)
     test_eq(floor(-1.1), -2)
+    test_eq(floor(2.0), 2)
     test_eq(ceiling(1.1), 2)
     test_eq(ceiling(-1.9), -1)
+    test_eq(ceiling(2.0), 2)
     test_eq(round(1.4), 1)
     test_eq(round(1.5), 2)
     test_eq(round(-1.5), -2)
     test_eq(round(2.5), 3)
+    test_eq(round(0.5), 1)
+    test_eq(round(-0.5), -1)
     test_eq(fraction(1.25), 0.25)
     test_eq(fraction(-1.25), 0.75)  // f - floor(f), so always >= 0.
+    test_eq(fraction(2.0), 0.0)
     test_eq(float(3), 3.0)
     test_true(float(3) is float)
 
@@ -76,7 +89,8 @@ def math_tests():
     test_true(abs(acos(-1.0) - 180.0) < 0.0001)
     test_true(abs(degrees(3.14159265358979) - 180.0) < 0.0001)
     let sc = sincos(90.0)
-    test_approx(sc, float2 { 0.0, 1.0 })
+    test_approx(sc, float2 { 0.0, 1.0 })  // sincos yields (cos, sin).
+    test_approx(sincos(0.0), float2 { 1.0, 0.0 })
     // atan2 covers all four quadrants.
     test_approx(atan2(float2 { 1.0, 1.0 }), 45.0)
     test_approx(atan2(float2 { -1.0, 1.0 }), 135.0)
@@ -108,20 +122,33 @@ def math_tests():
     test_eq(popcount(0), 0)
     test_eq(popcount(255), 8)
     test_eq(popcount(-1), 64)
+    test_eq(popcount(0x8000000000000000), 1)
 
     // Interpolation helpers. lerp extrapolates outside 0..1.
     test_eq(lerp(0.0, 10.0, 0.5), 5.0)
     test_eq(lerp(0.0, 10.0, 0.0), 0.0)
     test_eq(lerp(0.0, 10.0, 1.0), 10.0)
     test_eq(lerp(0.0, 10.0, 1.5), 15.0)
+    test_eq(lerp(0.0, 10.0, -0.5), -5.0)
     test_eq(lerp(10.0, 0.0, 0.25), 7.5)
+    // The 1-arg smoothstep does not clamp (input must be 0..1, outside just
+    // evaluates the polynomial), but the 3-arg version clamps per the GL spec.
     test_eq(smoothstep(0.0), 0.0)
     test_eq(smoothstep(1.0), 1.0)
     test_eq(smoothstep(0.5), 0.5)
+    test_eq(smoothstep(-1.0), 5.0)
+    test_eq(smoothstep(2.0), -4.0)
     test_eq(smoothstep(0.0, 2.0, 1.0), 0.5)
+    test_eq(smoothstep(0.0, 2.0, -1.0), 0.0)
+    test_eq(smoothstep(0.0, 2.0, 3.0), 1.0)
     test_eq(smootherstep(0.5), 0.5)
     test_eq(smootherstep(1.0), 1.0)
+    test_eq(smootherstep(0.0), 0.0)
     test_true(smoothmin(1.0, 5.0, 0.5) <= 1.0)
+
+    // Float precision: classic 0.1 + 0.2 is only approximately 0.3.
+    test_approx(0.1 + 0.2, 0.3)
+    test_true(0.1 + 0.2 != 0.3)
 
     // IEEE754 specials from float division/modulo by zero.
     test_eq("{1.0 / 0.0}", "inf")
@@ -149,6 +176,10 @@ def math_tests():
     rnd_seed(1234)
     let r2 = rnd(1000000)
     test_eq(r1, r2)
+    rnd_seed(55)
+    let rg1 = rnd_gaussian()
+    rnd_seed(55)
+    test_eq(rnd_gaussian(), rg1)
     test_true(r1 >= 0 and r1 < 1000000)
     test_eq(rnd(1), 0)
     test_eq(rnd(-5), 0)  // Max is clamped to at least 1.
@@ -181,7 +212,20 @@ def math_tests():
     test_true(hash([ 1, 2 ]) >= 0)
     test_true(hash(int2 { 1, 2 }) >= 0)
     test_true(hash(float2 { 1.5, 2.5 }) >= 0)
+    test_true(hash(true) >= 0)          // Enum (ref-free) value.
+    test_true(hash(DHashObj {}) >= 0)   // Class instance.
+    // Value-typed things (strings, scalars, numeric structs) hash by value:
+    // equal values hash equally.
     test_eq(hash("abc"), hash("abc"))
+    test_eq(hash(int2 { 1, 2 }), hash(int2 { 1, 2 }))
+    test_eq(hash(1.5), hash(1.5))
+    // Vectors and classes hash by identity (address), so two equal-but-distinct
+    // objects generally hash differently, while an object hashes equal to
+    // itself.
+    let hv = [ 1, 2 ]
+    test_eq(hash(hv), hash(hv))
+    test_neq(hash([ 1, 2 ]), hash([ 1, 2 ]))
+    test_true(hash(nil::string) >= 0)
 
     // line_intersect: crossing and parallel segments.
     let isect, ipoint = line_intersect(float2 { -1.0, 0.0 }, float2 { 1.0, 0.0 },

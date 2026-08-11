@@ -51,6 +51,15 @@ def vecutils_tests():
     test_eq(dirsum, int2_0)
     for(diagonal_directions) d:
         test_eq(manhattan(d), 2)
+    // Octants are the 8 corners of a cube: every component is +/-1.
+    for(octant_directions) d:
+        test_eq(manhattan(d), 3)
+        test_eq(abs(d), int3_1)
+    // The 3D axis tables are the unit vectors.
+    test_eq(axes_directions_int.length, 3)
+    test_eq(axes_directions_int[0], int3_x)
+    test_eq(axes_directions_int[2], int3_z)
+    test_eq(axes_directions_float[1], float3_y)
 
     // Loop helpers: forxy iterates x fastest, foryx y fastest.
     var trace = ""

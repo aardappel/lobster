@@ -51,10 +51,12 @@ def strings_tests():
     // find_string / find_string_reverse.
     test_eq(find_string("abcdabcd", "bc"), 1)
     test_eq(find_string("abcdabcd", "bc", 4), 5)
+    test_eq(find_string("abcdabcd", "bc", 2), 5)  // Offset inside first match.
     test_eq(find_string("abcdabcd", "BC"), -1)
     test_eq(find_string("abc", "abcd"), -1)
     test_eq(find_string("abc", ""), 0)
     test_eq(find_string("abc", "a", 5), -1)  // Offset past the end.
+    test_eq(find_string("abc", "abc"), 0)    // Whole-string match.
     test_eq(find_string_reverse("abcdabcd", "bc"), 5)
     test_eq(find_string_reverse("abcdabcd", "bc", 4), 1)
     test_eq(find_string_reverse("abc", "x"), -1)
@@ -86,15 +88,19 @@ def strings_tests():
     test_seq(tokenize(", A , B C,, ", ",", " ", true), [ "", "A", "B C", "", "" ])
     test_seq(tokenize("", ",", " "), []::string)
 
-    // case conversion, ASCII only, unicode untouched.
+    // case conversion, ASCII only, unicode untouched. The characters around
+    // A-Z / a-z in ASCII must remain untouched.
     test_eq(lowercase("Hello Wörld 123"), "hello wörld 123")
     test_eq(uppercase("Hello wörld 123"), "HELLO WöRLD 123")
     test_eq(lowercase(""), "")
     test_eq(uppercase(uppercase("up")), "UP")
+    test_eq(lowercase("@AZ[`az\{"), "@az[`az\{")
+    test_eq(uppercase("@AZ[`az\{"), "@AZ[`AZ\{")
 
     // escape_string / concat_string / repeat_string.
     test_eq(escape_string("a*b&c", "*&", "<", ">"), "a<*>b<&>c")
     test_eq(escape_string("abc", "x", "<", ">"), "abc")
+    test_eq(escape_string("**", "*", "\\", ""), "\\*\\*")
     test_eq(concat_string([], ","), "")
     test_eq(concat_string([ "a" ], ","), "a")
     test_eq(concat_string([ "a", "b", "c" ], ", "), "a, b, c")
@@ -103,6 +109,7 @@ def strings_tests():
     test_eq(repeat_string("ab", 0), "")
     test_eq(repeat_string("ab", -1), "")
     test_eq(repeat_string("", 1000), "")
+    test_eq(repeat_string("⺆", 2), "⺆⺆")  // Repeats bytes, so utf-8 safe.
 
     // string_to_int: optional base, second value is "all chars parsed".
     var sn, sok = string_to_int("123")
@@ -135,6 +142,18 @@ def strings_tests():
     sn, sok = string_to_int("0x1A")     // No 0x prefix support in base 10.
     test_eq(sn, 0)
     test_eq(sok, false)
+    sn, sok = string_to_int("0x1A", 16)  // Not even in base 16: 'x' is invalid.
+    test_eq(sn, 0)
+    test_eq(sok, false)
+    sn, sok = string_to_int("  12")     // Leading whitespace is not skipped.
+    test_eq(sn, 0)
+    test_eq(sok, false)
+    sn, sok = string_to_int("+5")       // Leading '+' is not accepted.
+    test_eq(sn, 0)
+    test_eq(sok, false)
+    sn, sok = string_to_int("7FFFFFFFFFFFFFFF", 16)  // Largest positive int.
+    test_eq(sn, 0x7FFFFFFFFFFFFFFF)
+    test_eq(sok, true)
 
     // string_to_float.
     var fnum, fok = string_to_float("2.5")
@@ -156,13 +175,29 @@ def strings_tests():
     test_eq(number_to_string(5, 2, 1), "101")
     test_eq(number_to_string(0, 10, 3), "000")
     test_eq(number_to_string(-1, 16, 1), "FFFFFFFFFFFFFFFF")
+    test_eq(number_to_string(35, 36, 1), "Z")
+    test_eq(number_to_string(123, 10, 1), "123")
+    // Round trip with string_to_int in the same base.
+    let n2s = number_to_string(12345, 7, 1)
+    let n2sv, n2sok = string_to_int(n2s, 7)
+    test_eq(n2sv, 12345)
+    test_eq(n2sok, true)
 
     // unicode conversions, round trip and error case.
     let unicodes = [ 0x30E6, 0x2E86, 'A', 0x10348 ]
     test_seq(string_to_unicode(unicode_to_string(unicodes)), unicodes)
     test_eq(unicode_to_string([ 'A', 'B' ]), "AB")
+    test_eq(unicode_to_string([]), "")
+    let uve, uoke = string_to_unicode("")
+    test_eq(uoke, true)
+    test_seq(uve, []::int)
     let uv, uok = string_to_unicode("A\xFF")  // Invalid UTF-8 after 'A'.
     test_eq(uok, false)
     test_seq(uv, [ 'A' ])
+
+    // Strings interpolating/concatenating structs and enums.
+    test_eq("{int2 { 1, 2 }}", "int2\{1, 2\}")
+    test_eq("" + int2 { 1, 2 }, "int2\{1, 2\}")
+    test_eq("{true} {false}", "true false")
 
 strings_tests()

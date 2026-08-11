@@ -41,6 +41,17 @@ def reflection_tests():
 
     // typeof: int is always the first entry in the type table.
     test_eq(typeof int, 0)
+    // typeof also works on a variable, yielding the typeid of its type. It
+    // must be a variable whose value is not a compile-time constant though:
+    var tv = 1
+    tv = length([ tv ])  // Defeat constant propagation.
+    test_eq(typeof tv, typeof int)
+    var tvs = "s"
+    tvs = tvs + string(tv)
+    test_eq(typeof tvs, typeof string)
+    // typeof on an ident that will get constant-folded.
+    let tconst = 1
+    test_eq(typeof tconst, typeof int)
 
     // type_string / type_element_string / type_id.
     let r = DRefl {}

@@ -70,6 +70,16 @@ class DCCounter:
         member steps = 0
         steps++
         return base + steps
+    def bumpf():
+        // member_frame resets when a frame passes without this method being
+        // called; with no frames advancing here it persists like member.
+        member_frame fsteps = 100
+        fsteps++
+        return fsteps
+    def bumpt():
+        member typed:float = 0.5  // With an explicit type.
+        typed += 1.0
+        return typed
 
 // Forward declaration: usable in types before the full definition exists.
 class DCFwd
@@ -209,7 +219,7 @@ def classes_tests():
     test_eq((DCSquare {}).sup(), "sqabstract")
     // Fields from the abstract base.
     test_eq(shapes[0].name, "shape")
-    // is: true only for the exact dynamic type.
+    // is: true only for the exact dynamic type, not for a sibling type.
     test_true(shapes[0] is DCCircle)
     test_true(not (shapes[0] is DCSquare))
     // switch cases may use a superclass to cover several subclasses.
@@ -332,6 +342,31 @@ def classes_tests():
     test_eq(cnt1.bump(), 11)
     test_eq(cnt1.bump(), 12)
     test_eq(cnt2.bump(), 11)  // Separate state per instance.
+    test_eq(cnt1.bumpf(), 101)
+    test_eq(cnt1.bumpf(), 102)  // member_frame persists within one frame.
+    test_eq(cnt1.bumpt(), 1.5)
+    test_eq(cnt1.bumpt(), 2.5)
+
+    // Reference-typed field defaults are evaluated per instance, not shared.
+    class VHolder:
+        v = [ 1 ]
+    let vh1 = VHolder {}
+    let vh2 = VHolder {}
+    test_true(vh1.v != vh2.v)
+    vh1.v.push(2)
+    test_seq(vh2.v, [ 1 ])
+
+    // A class need not have any fields.
+    class NoFields:
+        def just_a_method(): return 99
+    test_eq((NoFields {}).just_a_method(), 99)
+
+    // super with call arguments.
+    class SupArg:
+        def scale2(x:int): return x * 2
+    class SupArgSub : SupArg
+        def scale2(x:int): return super scale2(x + 1)
+    test_eq((SupArgSub {}).scale2(3), 8)
 
     // Vector type parameters are invariant by default, but covariance is
     // allowed where no aliasing can occur: fresh constructors and unions.

@@ -32,6 +32,9 @@ def binary_tests():
     ws, wi = "".write_int8_le(0, -1)
     test_eq(ws.read_int8_le(0), -1)
     test_eq(ws.read_uint8_le(0), 255)
+    ws, wi = "".write_int16_le(0, -3)
+    test_eq(ws.read_int16_le(0), -3)
+    test_eq(ws.read_uint16_le(0), 0xFFFD)
     ws, wi = "".write_int32_le(0, -2)
     test_eq(ws.read_int32_le(0), -2)
     test_eq(ws.read_uint32_le(0), 0xFFFFFFFE)
@@ -40,15 +43,35 @@ def binary_tests():
     test_eq(ws.read_int64_le(0), 0x1122334455667788)
     test_eq(ws.read_int8_le(0), 0x88 - 256)  // Low byte first: little endian.
     test_eq(ws.read_uint8_le(7), 0x11)
+    test_eq(ws.read_uint16_le(6), 0x1122)
+    test_eq(ws.read_uint32_le(4), 0x11223344)
     // read_uint64_le of a negative value stays the same bit pattern.
     ws, wi = "".write_int64_le(0, -1)
     test_eq(ws.read_uint64_le(0), -1)
+    // Overwriting in the middle of existing data leaves the rest untouched.
+    ws, wi = "".write_int32_le(0, 0x04030201)
+    ws, wi = ws.write_int8_le(1, 0x77)
+    test_eq(wi, 2)
+    test_eq(ws.read_uint32_le(0), 0x04037701)
 
     // _back variants: relative to the end, writing before the index.
     ws, wi = "".write_int16_le_back(0, 2050)
     test_eq(ws, "\x00\x00\x02\x08")
     test_eq(wi, 2)
     test_eq(ws.read_int16_le_back(0), 2050)
+    ws, wi = "".write_int8_le_back(0, -1)
+    test_eq(ws.read_int8_le_back(0), -1)
+    test_eq(ws.read_uint8_le_back(0), 255)
+    ws, wi = "".write_int32_le_back(0, -2)
+    test_eq(ws.read_int32_le_back(0), -2)
+    test_eq(ws.read_uint32_le_back(0), 0xFFFFFFFE)
+    ws, wi = "".write_int64_le_back(0, -3)
+    test_eq(ws.read_int64_le_back(0), -3)
+    test_eq(ws.read_uint64_le_back(0), -3)
+    // A _back read at offset i reads the size bytes ending i from the end, so
+    // the 0xFD low byte of the -3 sits at back-offset 6 for a 16 bit read.
+    test_eq(ws.read_uint16_le_back(0), 0xFFFF)
+    test_eq(ws.read_uint16_le_back(6), 0xFFFD)
 
     // Floats, 32 and 64 bit, also the _back variants.
     ws, wi = "".write_float32_le(0, 1.5)

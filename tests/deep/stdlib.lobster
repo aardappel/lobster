@@ -62,6 +62,7 @@ def std_tests():
     test_eq(f2, 6)
     test_eq(reduce([ 1, 2, 3 ]): _a - _b, -4)
     test_eq(reduce([ "a", "b", "c" ]): _a + _b, "abc")
+    test_eq(reduce([ 5 ]): _a + _b, 5)  // Single element: block never runs.
     test_eq(reduce_reverse([ 1, 2, 3 ]): _a - _b, 2)  // 1 - (2 - 3)
     test_eq(sum(v), 14)
     test_eq(sum([ 0.5, 1.5 ]), 2.0)
@@ -106,6 +107,16 @@ def std_tests():
     test_seq(so, [ 1, 3, 4, 5 ])
     so.insert_ordered(9): _a < _b
     test_seq(so, [ 1, 3, 4, 5, 9 ])
+    so.insert_ordered(3): _a < _b  // Duplicates insert after their equals.
+    test_seq(so, [ 1, 3, 3, 4, 5, 9 ])
+    // Sorting edge cases: empty and single element vectors.
+    test_seq([]::int.qsort(): _a < _b, []::int)
+    let sone = [ 1 ]
+    sone.qsort_in_place(): _a < _b
+    test_seq(sone, [ 1 ])
+    let sempty = []::int
+    sempty.insertion_sort(): _a < _b
+    test_seq(sempty, []::int)
     // Sorting strings and by descending order.
     test_seq([ "b", "a", "c" ].qsort(): _a < _b, [ "a", "b", "c" ])
     test_seq([ 1, 3, 2 ].qsort(): _a > _b, [ 3, 2, 1 ])
@@ -146,16 +157,26 @@ def std_tests():
     test_eq(consumable.length, 2)
     test_true(eaten >= 1 and eaten <= 3)
 
-    // collect / do / return_after.
+    // collect / do / return_after / forever.
     let collected = collect() emit:
         for(3) i: emit(i)
     test_seq(collected, [ 0, 1, 2 ])
+    let collected0 = collect() emit:
+        if v.length < 0: emit(0)
+    test_seq(collected0, []::int)
     var doside = 0
     do():
         doside = 1
     test_eq(doside, 1)
+    test_eq(do(): 42, 42)  // do passes through the block's value.
     test_eq(return_after(42): doside = 2, 42)
     test_eq(doside, 2)
+    // forever loops until exited non-locally.
+    def spin3():
+        var spins = 0
+        forever():
+            if ++spins == 3: return spins
+    test_eq(spin3(), 3)
 
     // for_range and friends.
     var racc = 0

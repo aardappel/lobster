@@ -66,6 +66,25 @@ def flatbuffers_tests():
     test_eq(fbin2.flatbuffers.string(noff), "aa")
     test_eq(fbin2.flatbuffers.string(noff + 4), "bb")
 
+    // All scalar field widths, signed and unsigned, and both float widths.
+    let schema3 = "table W \{ i8:byte; u8:ubyte; i16:short; u16:ushort; " +
+                  "i32:int; u32:uint; i64:long; u64:ulong; f32:float; f64:double; \} root_type W;"
+    let wjson = "\{ i8: -1, u8: 255, i16: -2, u16: 65535, i32: -3, u32: 4000000000, " +
+                "i64: -4, u64: 5000000000, f32: 1.5, f64: -2.5 \}"
+    let wbin, wberr = flatbuffers.json_to_binary(schema3, wjson, [])
+    test_eq(wberr, nil)
+    let wti = wbin.flatbuffers.indirect(0)
+    test_eq(wbin.flatbuffers.field_int8(wti, 4, 0), -1)
+    test_eq(wbin.flatbuffers.field_uint8(wti, 6, 0), 255)
+    test_eq(wbin.flatbuffers.field_int16(wti, 8, 0), -2)
+    test_eq(wbin.flatbuffers.field_uint16(wti, 10, 0), 65535)
+    test_eq(wbin.flatbuffers.field_int32(wti, 12, 0), -3)
+    test_eq(wbin.flatbuffers.field_uint32(wti, 14, 0), 4000000000)
+    test_eq(wbin.flatbuffers.field_int64(wti, 16, 0), -4)
+    test_eq(wbin.flatbuffers.field_uint64(wti, 18, 0), 5000000000)
+    test_eq(wbin.flatbuffers.field_float32(wti, 20, 0.0), 1.5)
+    test_eq(wbin.flatbuffers.field_float64(wti, 22, 0.0), -2.5)
+
     // A malformed schema reports an error.
     let ebin, eerr = flatbuffers.json_to_binary("this is not a schema", "\{\}", [])
     test_true(eerr and eerr.length)

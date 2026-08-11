@@ -59,6 +59,8 @@ def operators_tests():
     big = 0x8000000000000000
     test_eq(big - 1, 0x7FFFFFFFFFFFFFFF)
     test_eq(big * 2, 0)
+    test_eq(-big, big)       // Negating int min wraps back to itself.
+    test_eq(abs(big), big)
 
     // Bitwise.
     test_eq(1 & 3, 1)
@@ -95,6 +97,11 @@ def operators_tests():
     test_eq("" or "a", "")    // "" is a true value, unlike e.g. Python!
     test_eq(nil or "a", "a")
     test_eq(0.0 or 2.5, 2.5)
+    // int and float do NOT unify in and/or (no coercion): as with any
+    // operands of unrelated types, the result is a bool.
+    test_eq(i0 or 2.5, true)
+    test_eq(i2 and 2.5, true)
+    test_eq(0.0 and i2, false)
     // With operands of unrelated types the result is a bool instead.
     let stra = "a"
     test_eq(i2 and stra, true)
@@ -112,6 +119,10 @@ def operators_tests():
     test_eq(not not 42, 1)
     // not binds looser than ==, so this is not(1 == 2).
     test_eq(not 1 == 2, 1)
+    // is binds tighter than and/or; this is (1 is int) and (1.5 is float).
+    test_true(1 is int and 1.5 is float)
+    // not applied to an is-test.
+    test_eq(not 1 is float, 1)
     // Short circuiting: the rhs must not be evaluated.
     var sideeffect = 0
     def bump():
@@ -182,6 +193,23 @@ def operators_tests():
     test_eq(mb, 1)
     let mc, md = 3, 4
     test_eq(mc + md, 7)
+    // Multiple assignment with class fields as targets (e.g. from builtins
+    // with multiple return values, like the write_ family).
+    class WPos:
+        buf = ""
+        pos = 0
+        def write_next():
+            buf, pos = buf.write_int8_le(pos, 7)
+    let wpos = WPos {}
+    wpos.write_next()
+    test_eq(wpos.pos, 1)
+    test_eq(wpos.buf.read_int8_le(0), 7)
+    // Chained plain assignment: = is right associative via the grammar.
+    var ch1 = 1
+    var ch2 = 2
+    ch1 = ch2 = 5
+    test_eq(ch1, 5)
+    test_eq(ch2, 5)
 
     // String concatenation with +, converting either side.
     test_eq("ab" + "cd", "abcd")
@@ -189,6 +217,8 @@ def operators_tests():
     test_eq(1 + "a", "1a")
     test_eq("a" + 1.5, "a1.5")
     test_eq("a" + [ 1, 2 ], "a[1, 2]")
+    test_eq("a" + true, "atrue")  // Enums convert by name.
+    test_eq("" + 0, "0")
     var scat = "x"
     scat += "y"
     test_eq(scat, "xy")

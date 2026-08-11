@@ -73,6 +73,11 @@ def serialization_tests():
     let psv2, psv2err = parse_data(typeof [int2], "[ int2 \{ 1, 2 \}, int2 \{ 3, 4 \} ]")
     test_eq(psv2err, nil)
     test_seq(assert psv2, [ int2 { 1, 2 }, int2 { 3, 4 } ])
+    // Unlike source code, parse_data does NOT coerce an int literal where a
+    // float is wanted: it errors.
+    let pflex, pflexerr = parse_data(typeof [float], "[ 1, 2.5 ]")
+    test_true(pflex == nil)
+    test_true(pflexerr and pflexerr.find_string("float required") >= 0)
 
     // flexbuffers: value -> binary -> value round trip.
     let flex = flexbuffers_value_to_binary(all)
@@ -127,7 +132,7 @@ def serialization_tests():
     let lval, lerr = lobster_binary_to_value(typeof DSerAll, lb)
     test_eq(lerr, nil)
     test_true(equal(lval, all), "lobster binary round trip mismatch")
-    // Also for plain vectors, of scalars and of strings.
+    // Also for plain vectors, of scalars, strings and structs.
     let lbv = lobster_value_to_binary([ 1, 2, 3 ])
     let lvv, lverr = lobster_binary_to_value(typeof [int], lbv)
     test_eq(lverr, nil)
@@ -136,6 +141,10 @@ def serialization_tests():
     let lvs, lserr = lobster_binary_to_value(typeof [string], lbs)
     test_eq(lserr, nil)
     test_seq(assert lvs, [ "x", "yz" ])
+    let lbst = lobster_value_to_binary([ int2 { 1, 2 } ])
+    let lvst, lsterr = lobster_binary_to_value(typeof [int2], lbst)
+    test_eq(lsterr, nil)
+    test_seq(assert lvst, [ int2 { 1, 2 } ])
     // Garbage input reports an error rather than a value.
     let lbad, lbaderr = lobster_binary_to_value(typeof [int], "not lobster binary")
     test_true(lbad == nil)

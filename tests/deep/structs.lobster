@@ -56,6 +56,7 @@ def structs_tests():
     sa[1] = 4
     test_eq(sa.y, 4)
     test_eq(int3 { 5, 6, 7 }[2], 7)
+    test_eq(int2 { 1, 2 }[1], 2)
 
     // Operators with structs and scalars, both ways.
     test_eq(int2 { 1, 2 } + int2 { 4, 5 }, int2 { 5, 7 })
@@ -93,6 +94,13 @@ def structs_tests():
     test_eq(any(int2 { 2, 5 } < 5), true)
     test_eq(all(int2 { 2, 5 } < 5), false)
     test_eq(all(float2 { 0.5, 0.6 } < 1.0), true)
+    // The scalar may also be on the left.
+    test_eq(5 < int2 { 2, 6 }, int2 { 0, 1 })
+    test_eq(5 <= int2 { 2, 5 }, int2 { 0, 1 })
+    test_eq(5 > int2 { 2, 5 }, int2 { 1, 0 })
+    test_eq(5 >= int2 { 2, 6 }, int2 { 1, 0 })
+    test_eq(int3 { 2, 5, 6 } >= 5, int3 { 0, 1, 1 })
+    test_eq(0.55 < float2 { 0.5, 0.6 }, int2 { 0, 1 })
     // == on structs is full value equality (a single bool).
     test_true(int3 { 1, 2, 3 } == int3 { 1, 2, 3 })
     test_true(int3 { 1, 2, 3 } != int3 { 1, 2, 4 })
@@ -126,6 +134,11 @@ def structs_tests():
     test_eq(sh.f, int2 { 1, 2 })
     sh.f += int2_1
     test_eq(sh.f, int2 { 2, 3 })
+    // Increment/decrement scalars inside class-held structs.
+    sh.f.y++
+    test_eq(sh.f.y, 4)
+    test_eq(sh.f.y--, 4)
+    test_eq(++sh.f.x, 3)
     var dsbm = DSB { DSA { 1, 2 }, 3 }
     dsbm.a.y = 9             // Struct nested in a struct var.
     test_eq(dsbm.a, DSA { 1, 9 })
@@ -153,6 +166,19 @@ def structs_tests():
     let ds5 = DS5 { 1.0, 2.0, 3.0, 4.0, 5.0 }
     test_approx(magnitude(normalize(ds5)), 1.0)
     test_eq(min(ds5, ds5 * 2.0), ds5)
+    // 4-element types.
+    test_eq(int4 { 1, 2, 3, 4 } + int4 { 4, 3, 2, 1 }, int4 { 5, 5, 5, 5 })
+    test_eq(int4_1 * 3, int4 { 3, 3, 3, 3 })
+    test_eq(magnitude_squared(int4 { 1, 2, 3, 4 }), 30)
+    test_eq(magnitude(float4 { 2.0, 0.0, 0.0, 0.0 }), 2.0)
+    test_eq(manhattan(int4 { 1, -1, 2, -2 }), 6)
+    // A struct that mixes a nested struct field with a scalar field is also a
+    // numeric struct:
+    struct SNest:
+        a:int2
+        b:int
+    let sn = SNest { int2 { 1, 2 }, 3 }
+    test_eq((sn + sn).b, 6)
 
     // Vector math builtins.
     test_eq(dot(float2 { 1.0, 2.0 }, float2 { 3.0, 4.0 }), 11.0)

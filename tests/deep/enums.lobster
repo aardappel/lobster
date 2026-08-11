@@ -1,5 +1,6 @@
 import std
 
+import dictionary
 
 // Enums: values, auto-increment, enum_flags, conversion, names, switches.
 
@@ -46,6 +47,13 @@ def enums_tests():
     test_eq(de_red + 1, 4)
     test_true(de_green > de_red)
     test_eq(de_f1 | de_f4, 5)
+    test_eq(min(de_red, de_green), 3)
+    // enum_flags values combine and test like bit sets.
+    let flags = de_f1 | de_f16
+    test_true(flags & de_f16)
+    test_true(not (flags & de_f4))
+    test_eq(flags & ~de_f1, 16)
+    test_eq(de_f2 ^ de_f2, 0)
 
     // Explicit int -> enum conversion; equality with the enum value.
     test_true(de_color(3) == de_red)
@@ -58,6 +66,23 @@ def enums_tests():
     test_eq(string(de_red), "de_red")
     test_eq("{de_cyan}", "de_cyan")
     test_eq("{de_zero(0)}", "de_a")
+
+    // Enums in other type positions: vector elements, dictionary keys,
+    // default arguments, class fields.
+    let colv = [ de_red ]
+    colv.push(de_blue)
+    test_eq(colv[1], de_blue)
+    test_true(colv[1] is de_color)
+    let cold = dictionary<de_color, int>(7)
+    cold.set(de_green, 5)
+    test_eq(cold.get(de_green, -1), 5)
+    test_eq(cold.get(de_cyan, -1), -1)
+    def colarg(c = de_blue): return c
+    test_eq(colarg(), de_blue)
+    test_eq(colarg(de_red), de_red)
+    class ColHolder:
+        c = de_green
+    test_eq((ColHolder {}).c, de_green)
 
     // bool is a regular enum.
     var flag = true

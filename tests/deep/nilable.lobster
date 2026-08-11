@@ -71,7 +71,17 @@ def nil_tests():
     nf.next = nf
     test_eq(nf.s + "", "x")  // Field assignment promoted the field type too.
     test_true(nf.next == nf)
+    // and-chains promote nilable fields for the rhs.
+    test_true(nf.next and nf.next.s == "x")
     nf.next = nil  // Break the cycle again (avoids a leak report).
+    // A nilable ref field inside a (value) struct.
+    struct NilInStruct:
+        tag:int
+        s:string?
+    var nis = NilInStruct { 1, nil }
+    test_true(nis.s == nil)
+    nis = NilInStruct { 2, "y" }
+    test_eq(assert nis.s, "y")
 
     // Nilables in vectors, of strings and of classes.
     let nv = [ nil, "b" ]

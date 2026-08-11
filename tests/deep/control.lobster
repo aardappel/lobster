@@ -111,6 +111,16 @@ def control_tests():
             default:
                 swb++
     test_eq(swb, 2)
+    // Same for continue.
+    swb = 0
+    for(5) i:
+        switch i:
+            case 1, 3:
+                continue
+            default:
+                pass()
+        swb++
+    test_eq(swb, 3)
 
     // guard: with and without an else-body, and producing values from blocks.
     let gs = map(4) i:
@@ -130,6 +140,12 @@ def control_tests():
     test_eq(acc, 0)
     guarded(5)
     test_eq(acc, 5)
+    // guard in a loop body skips the rest of that iteration (like continue).
+    acc = 0
+    for(5) i:
+        guard i % 2 == 0
+        acc += i
+    test_eq(acc, 6)
 
     // switch on ints: multi-values, inclusive ranges, default, as expression.
     let st = map(10) i: switch i:
@@ -140,7 +156,7 @@ def control_tests():
         case 4..6, 8: "maybe"
         default: "what?"
     test_seq(st, [ "what?", "no", "yes2", "yes3", "maybe", "maybe", "maybe", "what?", "maybe", "what?" ])
-    // switch on floats, with inclusive float ranges.
+    // switch on floats, with exact cases and inclusive float ranges.
     def swf(f:float): return switch f:
         case 10.0..20.0: true
         default: false
@@ -149,6 +165,36 @@ def control_tests():
     test_true(swf(10.0))
     test_true(swf(20.0))  // Inclusive at both ends.
     test_true(not swf(20.01))
+    def swfe(f:float): return switch f:
+        case 1.5: "a"
+        case 2.5, 3.5: "b"
+        default: "c"
+    test_eq(swfe(1.5), "a")
+    test_eq(swfe(3.5), "b")
+    test_eq(swfe(1.6), "c")
+    def swover(x:int): return switch x:
+        case 1: "exact"
+        case 2..9: "range"
+        default: "none"
+    test_eq(swover(1), "exact")
+    test_eq(swover(5), "range")
+    // The sequential (string) version does take the first matching case.
+    def swseq(s:string): return switch s:
+        case "a": "first"
+        case "a", "b": "second"
+        default: "none"
+    test_eq(swseq("a"), "first")
+    test_eq(swseq("b"), "second")
+    // Non-constant case expressions on ints. Cases parse at unary precedence,
+    // so operator expressions need parentheses.
+    let swvar = 7
+    def swv(x:int): return switch x:
+        case swvar: "var"
+        case (swvar + 1): "var+1"
+        default: "none"
+    test_eq(swv(7), "var")
+    test_eq(swv(8), "var+1")
+    test_eq(swv(9), "none")
     // switch on strings, cases may be arbitrary expressions.
     let animals = [ "cat", "dog" ]
     def swstr(s:string): return switch s:
@@ -202,6 +248,14 @@ def control_tests():
     guard let gv = maybe(1):
         test_true(false, "guard let failed")
     test_eq(gv, "v")
+    // In the else block of a guard let, the variable holds the false-y value.
+    def guard_else(x):
+        guard let ge = maybe(x):
+            test_true(ge == nil, "guard let else: var not nil")
+            return "none"
+        return ge
+    test_eq(guard_else(1), "v")
+    test_eq(guard_else(0), "none")
     assert let av2 = maybe(1)
     test_eq(av2, "v")
     if let c1 = maybe(1) and let c2 = maybe(1):

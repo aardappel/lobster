@@ -22,6 +22,7 @@ import deep.vecutils
 import deep.control
 import deep.functions
 import deep.classes
+import deep.overloads
 import deep.generics
 import deep.enums
 import deep.nilable
@@ -34,6 +35,7 @@ import deep.reflection
 import deep.exceptions
 import deep.geometry
 import deep.misc
+import deep.modules
 import deep.errors
 
 print "deep tests: {num_checks} checks, {num_failures} failures"
