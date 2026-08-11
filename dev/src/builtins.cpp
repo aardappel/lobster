@@ -1390,7 +1390,7 @@ nfr("hash", "x", "I", "I",
 nfr("hash", "x", "A", "I",
     "hashes any ref value into a positive int",
     [](StackPtr &, VM &vm, Value a) {
-        auto h = positive_bits(a.ref()->Hash(vm));
+        auto h = a.refnil() ? positive_bits(a.ref()->Hash(vm)) : (iint)0;
         return Value(h);
     });
 nfr("hash", "x", "L", "I",
