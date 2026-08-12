@@ -133,7 +133,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>replace_string</b>(s<font color="#666666">: string</font>, a<font color="#666666">: string</font>, b<font color="#666666">: string</font>, count<font color="#666666">: int</font> = 0) -> <font color="#666666">string</font></tt></td><td class="a">returns a copy of s where all occurrences of a have been replaced with b. if a is empty, no replacements are made. if count is specified, makes at most that many replacements</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>string_to_int</b>(s<font color="#666666">: string</font>, base<font color="#666666">: int</font> = 0) -> <font color="#666666">int</font>, <font color="#666666">int</font></tt></td><td class="a">converts a string to an int given the base (2..36, e.g. 16 for hex, default is 10).returns 0 if no numeric data could be parsed; second return value is true if allcharacters of the string were parsed.</td>
+<tr class="a" valign=top><td class="a"><tt><b>string_to_int</b>(s<font color="#666666">: string</font>, base<font color="#666666">: int</font> = 0) -> <font color="#666666">int</font>, <font color="#666666">int</font></tt></td><td class="a">converts a string to an int given the base (2..36, e.g. 16 for hex, default is 10).returns 0 if no numeric data could be parsed (or overflow); second return value is true if allcharacters of the string were parsed (and no overflow).</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>string_to_float</b>(s<font color="#666666">: string</font>) -> <font color="#666666">float</font>, <font color="#666666">int</font></tt></td><td class="a">converts a string to a float. returns 0.0 if no numeric data could be parsed;second return value is true if all characters of the string were parsed.</td>
@@ -828,6 +828,17 @@
 
 </tr>
 </table></td></tr>
+<tr class="a" valign=top><td><h3>noise</h3></td></tr>
+<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>simplex</b>(pos<font color="#666666">: floatN</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). This function is the same as calling fast_noise with simplex/fbm flags.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>simplex_raw</b>(pos<font color="#666666">: floatN</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>fast_noise</b>(pos<font color="#666666">: floatN</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>, noise_type<font color="#666666">: int</font>, fractal_type<font color="#666666">: int</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a noise value [-1..1] given a 2D/3Dlocation, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). see noise.lobster for constants for the type params.</td>
+
+</tr>
+</table></td></tr>
 <tr class="a" valign=top><td><h3>graphics</h3></td></tr>
 <tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>gl.window</b>(title<font color="#666666">: string</font>, xs<font color="#666666">: int</font>, ys<font color="#666666">: int</font>, flags<font color="#666666">: int</font> = 0, samples<font color="#666666">: int</font> = 1) -> <font color="#666666">string?</font></tt></td><td class="a">opens a window for OpenGL rendering. returns error string if any problems, nil otherwise. For flags, see modules/gl.lobster</td>
 
@@ -1415,17 +1426,6 @@
 
 </tr>
 </table></td></tr>
-<tr class="a" valign=top><td><h3>noise</h3></td></tr>
-<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>simplex</b>(pos<font color="#666666">: floatN</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). This function is the same as calling fast_noise with simplex/fbm flags.</td>
-
-</tr>
-<tr class="a" valign=top><td class="a"><tt><b>simplex_raw</b>(pos<font color="#666666">: floatN</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location</td>
-
-</tr>
-<tr class="a" valign=top><td class="a"><tt><b>fast_noise</b>(pos<font color="#666666">: floatN</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>, noise_type<font color="#666666">: int</font>, fractal_type<font color="#666666">: int</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a noise value [-1..1] given a 2D/3Dlocation, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). see noise.lobster for constants for the type params.</td>
-
-</tr>
-</table></td></tr>
 <tr class="a" valign=top><td><h3>meshgen</h3></td></tr>
 <tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>mg.sphere</b>(radius<font color="#666666">: float</font>)</tt></td><td class="a">a sphere</td>
 
@@ -1564,7 +1564,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>cg.load_vox_names</b>(name<font color="#666666">: string</font>) -> <font color="#666666">[string]</font>, <font color="#666666">string?</font></tt></td><td class="a">loads a MagicaVoxel .vox file, and returns its contained sub model names.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>cg.save_vox</b>(block<font color="#666666">: resource&lt;voxels&gt;</font>, name<font color="#666666">: string</font>) -> <font color="#666666">int</font></tt></td><td class="a">saves a file in the .vox format (MagicaVoxel). returns false if file failed to save. this format can only save blocks &lt;= 256^3, will fail if bigger</td>
+<tr class="a" valign=top><td class="a"><tt><b>cg.save_vox</b>(blocks<font color="#666666">: [resource&lt;voxels&gt;]</font>, names<font color="#666666">: [string]</font>) -> <font color="#666666">string?</font></tt></td><td class="a">creates a file in the .vox format (MagicaVoxel) and returns its contents as a string, or nil if any of the blocks is bigger than 256^3. names must contain a sub model name for each block, or be empty (only allowed for a single block) to write a file without name information. named models are laid out in rows on the X/Y plane in the scene. all blocks must use the same palette</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>cg.chunks_skipped</b>(block<font color="#666666">: resource&lt;voxels&gt;</font>) -> <font color="#666666">int</font></tt></td><td class="a"></td>

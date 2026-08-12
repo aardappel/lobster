@@ -1265,54 +1265,138 @@ nfr("load_vox_names", "name", "S", "S]S?",
         return NilVal();
     });
 
-nfr("save_vox", "block,name", "R:voxelsS", "B",
-    "saves a file in the .vox format (MagicaVoxel). returns false if file failed to save."
-    " this format can only save blocks <= 256^3, will fail if bigger",
-    [](StackPtr &, VM &, Value wid, Value name) {
-        auto &v = GetVoxels(wid);
-        if (!all(v.grid.dim <= 256)) { return Value(false); }
-        vector<byte4> voxels;
-        for (int x = 0; x < v.grid.dim.x; x++) {
-            for (int y = 0; y < v.grid.dim.y; y++) {
-                for (int z = 0; z < v.grid.dim.z; z++) {
-                    auto pos = int3(x, y, z);
-                    auto i = v.grid.Get(pos);
-                    if (i) voxels.push_back(byte4(int4(pos, i)));
+nfr("save_vox", "blocks,names", "R:voxels]S]", "S?",
+    "creates a file in the .vox format (MagicaVoxel) and returns its contents as a string,"
+    " or nil if any of the blocks is bigger than 256^3."
+    " names must contain a sub model name for each block, or be empty (only allowed for a"
+    " single block) to write a file without name information."
+    " named models are laid out in rows on the X/Y plane in the scene."
+    " all blocks must use the same palette",
+    [](StackPtr &, VM &vm, Value blocks, Value names) {
+        auto bvec = blocks.vval();
+        auto nvec = names.vval();
+        auto nblocks = bvec->len;
+        if (!nblocks)
+            vm.BuiltinError("save_vox: no blocks given");
+        if (nvec->len != nblocks && (nblocks != 1 || nvec->len))
+            vm.BuiltinError("save_vox: number of names must match number of blocks");
+        auto palette_idx = GetVoxels(bvec->AtS(0)).palette_idx;
+        for (iint i = 0; i < nblocks; i++) {
+            auto &v = GetVoxels(bvec->AtS(i));
+            if (!all(v.grid.dim <= 256)) return NilVal();
+            if (v.palette_idx != palette_idx)
+                vm.BuiltinError("save_vox: all blocks must use the same palette");
+        }
+        string buf;
+        auto wint = [&](int i) { buf.append((const char *)&i, 4); };
+        auto wid = [&](const char *s) { buf.append(s, 4); };
+        auto wstr = [&](string_view s) {
+            wint((int)s.size());
+            buf.append(s);
+        };
+        wid("VOX ");
+        wint(150);
+        wid("MAIN");
+        wint(0);
+        wint(0);  // Size of children chunks, patched at the end.
+        for (iint i = 0; i < nblocks; i++) {
+            auto &v = GetVoxels(bvec->AtS(i));
+            vector<byte4> voxels;
+            for (int x = 0; x < v.grid.dim.x; x++) {
+                for (int y = 0; y < v.grid.dim.y; y++) {
+                    for (int z = 0; z < v.grid.dim.z; z++) {
+                        auto pos = int3(x, y, z);
+                        auto c = v.grid.Get(pos);
+                        if (c) voxels.push_back(byte4(int4(pos, c)));
+                    }
                 }
             }
+            wid("SIZE");
+            wint(12);
+            wint(0);
+            wint(v.grid.dim.x);
+            wint(v.grid.dim.y);
+            wint(v.grid.dim.z);
+            wid("XYZI");
+            wint((int)voxels.size() * 4 + 4);
+            wint(0);
+            wint((int)voxels.size());
+            buf.append((const char *)voxels.data(), voxels.size() * 4);
         }
-        FILE *f = OpenForWriting(name.sval()->strv(), true, false);
-        if (!f) return Value(false);
-        auto wint = [&](int i) { fwrite(&i, 4, 1, f); };
-        auto wstr = [&](const char *s) { fwrite(s, 4, 1, f); };
-        wstr("VOX ");
-        wint(150);
-        wstr("MAIN");
-        wint(0);
-        int bsize = 24;                                 // SIZE chunk.
-        bsize += 16 + (int)voxels.size() * 4;           // XYZI chunk.
-        if (v.palette_idx != default_palette_idx) bsize += 12 + 1024;  // RGBA chunk.
-        wint(bsize);
-        wstr("SIZE");
-        wint(12);
-        wint(0);
-        wint(v.grid.dim.x);
-        wint(v.grid.dim.y);
-        wint(v.grid.dim.z);
-        wstr("XYZI");
-        wint((int)voxels.size() * 4 + 4);
-        wint(0);
-        wint((int)voxels.size());
-        fwrite(voxels.data(), 4, voxels.size(), f);
-        if (v.palette_idx != default_palette_idx) {
-            wstr("RGBA");
+        if (nvec->len) {
+            // A minimal scene graph to hold the model names: a root nTRN pointing at an
+            // nGRP, which points at an nTRN (holding the name and position) + nSHP pair
+            // per model.
+            // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox-extension.txt
+            wid("nTRN");
+            wint(28);
+            wint(0);
+            wint(0);   // Node id.
+            wint(0);   // No attributes.
+            wint(1);   // Child id: the nGRP.
+            wint(-1);  // Reserved.
+            wint(-1);  // Layer.
+            wint(1);   // Number of frames:
+            wint(0);   // No frame attributes.
+            wid("nGRP");
+            wint((int)(12 + nblocks * 4));
+            wint(0);
+            wint(1);   // Node id.
+            wint(0);   // No attributes.
+            wint((int)nblocks);
+            for (iint i = 0; i < nblocks; i++) wint((int)(2 + i * 2));  // Child nTRN ids.
+            // Lay the models out in rows along X (with a small gap in between), wrapping
+            // to a new row in Y once a row is >= 256 wide, so they view nicely in
+            // MagicaVoxel. Each model sits on the Z = 0 plane.
+            const int layout_gap = 4;
+            int2 cursor = int2_0;  // Min corner of the current model in X/Y.
+            int row_max_y = 0;
+            for (iint i = 0; i < nblocks; i++) {
+                auto dim = GetVoxels(bvec->AtS(i)).grid.dim;
+                // MagicaVoxel positions a model by its pivot, which is at floor(dim / 2).
+                auto t = int3(cursor, 0) + dim / 2;
+                auto tstr = cat(t.x, " ", t.y, " ", t.z);
+                cursor.x += dim.x + layout_gap;
+                row_max_y = std::max(row_max_y, dim.y);
+                if (cursor.x >= 256) {
+                    cursor = int2(0, cursor.y + row_max_y + layout_gap);
+                    row_max_y = 0;
+                }
+                auto name = nvec->AtS(i).sval()->strv();
+                wid("nTRN");
+                wint((int)(51 + name.size() + tstr.size()));
+                wint(0);
+                wint((int)(2 + i * 2));  // Node id.
+                wint(1);                 // 1 attribute:
+                wstr("_name");
+                wstr(name);
+                wint((int)(3 + i * 2));  // Child id: the nSHP.
+                wint(-1);                // Reserved.
+                wint(0);                 // Layer.
+                wint(1);                 // Number of frames:
+                wint(1);                 // 1 frame attribute:
+                wstr("_t");
+                wstr(tstr);
+                wid("nSHP");
+                wint(20);
+                wint(0);
+                wint((int)(3 + i * 2));  // Node id.
+                wint(0);                 // No attributes.
+                wint(1);                 // Number of models:
+                wint((int)i);            // Model id.
+                wint(0);                 // No model attributes.
+            }
+        }
+        if (palette_idx != default_palette_idx) {
+            wid("RGBA");
             wint(256 * 4);
             wint(0);
-            fwrite(palettes[v.palette_idx].colors.data() + 1, 4, 255, f);
+            buf.append((const char *)(palettes[palette_idx].colors.data() + 1), 255 * 4);
             wint(0);
         }
-        fclose(f);
-        return Value(true);
+        int childlen = (int)buf.size() - 20;  // All chunks that follow the MAIN chunk.
+        memcpy(buf.data() + 16, &childlen, 4);
+        return Value(vm.NewString(buf));
     });
 
 nfr("chunks_skipped", "block", "R:voxels", "B", "",
