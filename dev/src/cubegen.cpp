@@ -206,7 +206,28 @@ size_t NewPaletteInit(const byte4 *p) {
     return palettes.size() - 1;
 }
 
+void MaterialPalette(vector<byte4> &pal) {
+    for (auto &c : pal) {
+        if (c.w) c.w = 0x80;  // High bit is alpha, low bits are material properties.
+    }
+}
+
+void EnsureDefaultPalettes() {
+    if (!palettes.empty()) return;
+    // Guarantees init of default_palette_idx (0) and normal_palette_idx (1).
+    NewPaletteInit((byte4 *)default_palette);
+    vector<byte4> normal_palette;
+    normal_palette.resize(256, quantizec(float3(0.5), 0));
+    for (uint8_t i = 0; i < normal_table_size; i++) {
+        normal_palette[i] = quantizec((default_normals[i] + 1) / 2, 0);
+    }
+    NewPaletteInit(normal_palette.data());
+    NewPaletteInit((byte4 *)default_palette);  // FIXME: where is this default_material_palette_idx used?
+    MaterialPalette(palettes[default_material_palette_idx].colors);
+ }
+
 size_t NewPalette(const byte4 *p) {
+    EnsureDefaultPalettes();
     auto hash = FNV1A64(string_view((const char *)p, palette_size));
     // See if there's an existing matching palette.
     for (auto [pali, pal] : enumerate(palettes)) {
@@ -219,26 +240,9 @@ size_t NewPalette(const byte4 *p) {
     return NewPaletteInit(p);
 }
 
-void MaterialPalette(vector<byte4> &pal) {
-    for (auto &c : pal) {
-        if (c.w) c.w = 0x80;  // High bit is alpha, low bits are material properties.
-    }
-}
-
 Voxels *NewWorld(const int3 &size, size_t palette_idx) {
+    EnsureDefaultPalettes();
     auto v = new Voxels(size, palette_idx);
-    if (palettes.empty()) {
-        // Guarantees init of default_palette_idx (0) and normal_palette_idx (1).
-        NewPaletteInit((byte4 *)default_palette);
-        vector<byte4> normal_palette;
-        normal_palette.resize(256, quantizec(float3(0.5), 0));
-        for (uint8_t i = 0; i < normal_table_size; i++) {
-            normal_palette[i] = quantizec((default_normals[i] + 1) / 2, 0);
-        }
-        NewPaletteInit(normal_palette.data());
-        NewPaletteInit((byte4 *)default_palette);
-        MaterialPalette(palettes[2].colors);
-    }
     return v;
 }
 
