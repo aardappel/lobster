@@ -22,7 +22,7 @@ jobs:
     - name: Zip
       run: powershell Compress-Archive -Path bin, data, docs, modules, samples, tests, README.md -DestinationPath lobster_windows_release.zip
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       if: startsWith(github.ref, 'refs/tags/')
       with:
         name: Release ${{ github.ref_name }}
@@ -57,7 +57,7 @@ jobs:
           rm -f bin/*.exe bin/*.dll
           zip -r lobster_linux_release.zip bin data docs modules samples tests README.md
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v3
       if: startsWith(github.ref, 'refs/tags/')
       with:
         name: Release ${{ github.ref_name }}
@@ -93,7 +93,7 @@ jobs:
             zip -r ${{ matrix.artifact_name }} bin data docs modules samples tests README.md
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           name: Release ${{ github.ref_name }}
           files: ${{ matrix.artifact_name }}
