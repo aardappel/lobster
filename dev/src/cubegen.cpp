@@ -1269,14 +1269,16 @@ nfr("load_vox_names", "name", "S", "S]S?",
         return NilVal();
     });
 
-nfr("save_vox", "blocks,names", "R:voxels]S]", "S?",
+nfr("save_vox", "blocks,names,flags", "R:voxels]S]I?", "S?",
     "creates a file in the .vox format (MagicaVoxel) and returns its contents as a string,"
     " or nil if any of the blocks is bigger than 256^3."
     " names must contain a sub model name for each block, or be empty (only allowed for a"
     " single block) to write a file without name information."
     " named models are laid out in rows on the X/Y plane in the scene."
-    " all blocks must use the same palette",
-    [](StackPtr &, VM &vm, Value blocks, Value names) {
+    " all blocks must use the same palette."
+    " flags: bit 1: if on, only save palette, no blocks",
+    [](StackPtr &, VM &vm, Value blocks, Value names, Value flags) {
+        auto save_blocks = (flags.ival() & 1) == 0;
         auto bvec = blocks.vval();
         auto nvec = names.vval();
         auto nblocks = bvec->len;
@@ -1303,31 +1305,33 @@ nfr("save_vox", "blocks,names", "R:voxels]S]", "S?",
         wid("MAIN");
         wint(0);
         wint(0);  // Size of children chunks, patched at the end.
-        for (iint i = 0; i < nblocks; i++) {
-            auto &v = GetVoxels(bvec->AtS(i));
-            vector<byte4> voxels;
-            for (int x = 0; x < v.grid.dim.x; x++) {
-                for (int y = 0; y < v.grid.dim.y; y++) {
-                    for (int z = 0; z < v.grid.dim.z; z++) {
-                        auto pos = int3(x, y, z);
-                        auto c = v.grid.Get(pos);
-                        if (c) voxels.push_back(byte4(int4(pos, c)));
+        if (save_blocks) {
+            for (iint i = 0; i < nblocks; i++) {
+                auto &v = GetVoxels(bvec->AtS(i));
+                vector<byte4> voxels;
+                for (int x = 0; x < v.grid.dim.x; x++) {
+                    for (int y = 0; y < v.grid.dim.y; y++) {
+                        for (int z = 0; z < v.grid.dim.z; z++) {
+                            auto pos = int3(x, y, z);
+                            auto c = v.grid.Get(pos);
+                            if (c) voxels.push_back(byte4(int4(pos, c)));
+                        }
                     }
                 }
+                wid("SIZE");
+                wint(12);
+                wint(0);
+                wint(v.grid.dim.x);
+                wint(v.grid.dim.y);
+                wint(v.grid.dim.z);
+                wid("XYZI");
+                wint((int)voxels.size() * 4 + 4);
+                wint(0);
+                wint((int)voxels.size());
+                buf.append((const char *)voxels.data(), voxels.size() * 4);
             }
-            wid("SIZE");
-            wint(12);
-            wint(0);
-            wint(v.grid.dim.x);
-            wint(v.grid.dim.y);
-            wint(v.grid.dim.z);
-            wid("XYZI");
-            wint((int)voxels.size() * 4 + 4);
-            wint(0);
-            wint((int)voxels.size());
-            buf.append((const char *)voxels.data(), voxels.size() * 4);
         }
-        if (nvec->len) {
+        if (nvec->len && save_blocks) {
             // A minimal scene graph to hold the model names: a root nTRN pointing at an
             // nGRP, which points at an nTRN (holding the name and position) + nSHP pair
             // per model.
