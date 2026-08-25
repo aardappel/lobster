@@ -583,8 +583,8 @@ nfr("unicode_to_string", "us", "I]", "S",
         string s;
         for (iint i = 0; i < v.vval()->len; i++) {
             auto c = v.vval()->AtS(i);
-            ToUTF8((int)c.ival(), buf);
-            s += buf;
+            auto len = ToUTF8((int)c.ival(), buf);
+            s += string_view(buf, len);
         }
         return Value(vm.NewString(s));
     });

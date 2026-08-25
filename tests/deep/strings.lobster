@@ -188,6 +188,7 @@ def strings_tests():
     test_seq(string_to_unicode(unicode_to_string(unicodes)), unicodes)
     test_eq(unicode_to_string([ 'A', 'B' ]), "AB")
     test_eq(unicode_to_string([]), "")
+    test_eq(unicode_to_string([ 'A', 0, 'B' ]), "A\x00B")
     let uve, uoke = string_to_unicode("")
     test_eq(uoke, true)
     test_seq(uve, []::int)
