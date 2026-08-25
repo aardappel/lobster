@@ -261,6 +261,8 @@ extern lobster::LResourceRefCPointer<Shader> LookupShader(string_view name);
 extern void ResetProgram();
 
 extern void DispatchCompute(const int3 &groups);
+extern void SetAutoComputeBarrier(bool on);
+extern void ComputeBarrier();
 extern void SetImageTexture(int textureunit, const Texture &tex, int level, int tf);
 extern void BindAsSSBO(Shader *sh, string_view_nt name, int id);
 

@@ -1210,6 +1210,23 @@ nfr("dispatch_compute", "groups", "I}:3", "",
         DispatchCompute(groups);
     });
 
+nfr("auto_compute_barrier", "on", "B", "",
+    "whether a full memory barrier is issued after every dispatch_compute (default true)."
+    " Apps that know their dependencies can turn this off and call gl.compute_barrier"
+    " explicitly before each consumer instead, letting independent dispatches overlap.",
+    [](StackPtr &, VM &, Value on) {
+        SetAutoComputeBarrier(on.True());
+        return NilVal();
+    });
+
+nfr("compute_barrier", "", "", "",
+    "makes imageStore/SSBO writes of preceding dispatches visible to subsequent commands."
+    " Only needed with gl.auto_compute_barrier(false).",
+    [](StackPtr &, VM &vm) {
+        TestGL(vm);
+        ComputeBarrier();
+    });
+
 nfr("dump_shader", "filename,stripnonascii", "SB", "B",
     "Dumps the compiled (binary) version of the current shader to a file. Contents are driver"
     " dependent. On Nvidia hardware it contains the assembly version of the shader as text,"

@@ -540,16 +540,30 @@ bool Shader::SetUniformMatrix(string_view_nt name, const float *val, int compone
     }
 }
 
-void DispatchCompute(const int3 &groups) {
-    LOBSTER_FRAME_PROFILE_GPU;  
+// Barriers after every dispatch are safe but serialize all compute work; an app that
+// knows its dependencies can turn this off and call ComputeBarrier explicitly before
+// each consumer instead, letting independent dispatches overlap.
+static bool auto_compute_barrier = true;
+
+void SetAutoComputeBarrier(bool on) {
+    auto_compute_barrier = on;
+}
+
+void ComputeBarrier() {
     #ifdef PLATFORM_WINNIX
-        if (glDispatchCompute) GL_CALL(glDispatchCompute(groups.x, groups.y, groups.z));
         // Make sure any imageStore/VBOasSSBO operations have completed.
-        // Would be better to decouple this from DispatchCompute.
         if (glMemoryBarrier)
             GL_CALL(glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT |
                                     GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT |
                                     GL_SHADER_IMAGE_ACCESS_BARRIER_BIT));
+    #endif
+}
+
+void DispatchCompute(const int3 &groups) {
+    LOBSTER_FRAME_PROFILE_GPU;
+    #ifdef PLATFORM_WINNIX
+        if (glDispatchCompute) GL_CALL(glDispatchCompute(groups.x, groups.y, groups.z));
+        if (auto_compute_barrier) ComputeBarrier();
     #else
         assert(false);
     #endif
