@@ -2430,14 +2430,12 @@ nfr("show_debug_metrics_window", "", "", "",
         return NilVal();
     });
 
-nfr("show_profiling_stats", "num,reset,histogram,paused", "IBBB", "",
+nfr("show_profiling_stats", "num,histogram", "IB", "",
     "",
-    [](StackPtr &, VM &vm, Value num, Value reset, Value histogram, Value paused) {
+    [](StackPtr &, VM &vm, Value num, Value histogram) {
         IsInit(vm);
         #if LOBSTER_FRAME_PROFILER == 1
         auto &prof_db = prof_db_thread_local;
-        prof_db.paused = paused.True();
-        if (reset.True()) prof_db.stats.clear();
         vector<pair<const struct ___tracy_source_location_data *, ProfStat *>> display;
         for (auto &it : prof_db.stats) {
             display.push_back({ it.first, &it.second });
@@ -2486,9 +2484,7 @@ nfr("show_profiling_stats", "num,reset,histogram,paused", "IBBB", "",
         ImGui::EndTable();
         #else
         (void)num;
-        (void)reset;
         (void)histogram;
-        (void)paused;
         #endif
         return NilVal();
     });

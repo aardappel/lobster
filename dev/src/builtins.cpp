@@ -1723,6 +1723,65 @@ nfr("crash_test_cpp_nullptr_exception", "", "", "",
         *crash = 0;
     });
 
+// See also the similar im.show_profiling_stats.
+nfr("profiler_dump_stats", "num,histogram", "IB", "S",
+    "returns a string with CSV data for the num top items",
+    [](StackPtr &, VM &vm, Value num, Value histogram) {
+        string s;
+        #if LOBSTER_FRAME_PROFILER == 1
+            auto &prof_db = prof_db_thread_local;
+            vector<pair<const struct ___tracy_source_location_data *, ProfStat *>> display;
+            for (auto &it : prof_db.stats) {
+                display.push_back({ it.first, &it.second });
+            }
+            sort(display.begin(), display.end(),
+                 [](pair<const struct ___tracy_source_location_data *, ProfStat *> &a,
+                    pair<const struct ___tracy_source_location_data *, ProfStat *> &b) -> bool {
+                     return a.second->time >= b.second->time;
+                });
+            s += "Function,AVG ms,HI ms,TOTAL sec,COUNT\n";  // ,Histogram
+            auto i = num.ival();
+            for (auto &it : display) {
+                s += cat("\"", it.first->function, "\",",
+                    it.second->time * 1000.0 / it.second->n, ",",
+                    it.second->highest * 1000.0, ",",
+                    it.second->time, ",",
+                    it.second->n, "\n");
+                if (histogram.True()) {
+                    // FIXME: output it.second->window somehow.
+                }
+                if (!--i) break;
+            }
+        #else
+            (void)num;
+            (void)histogram;
+        #endif
+        return Value(vm.NewString(s));
+    });
+
+nfr("profiler_paused", "paused", "B", "",
+    "",
+    [](StackPtr &, VM &, Value paused) {
+        #if LOBSTER_FRAME_PROFILER == 1
+            auto &prof_db = prof_db_thread_local;
+            prof_db.paused = paused.True();
+        #else
+            (void)paused;
+        #endif
+        return NilVal();
+    });
+
+nfr("profiler_reset", "", "", "",
+    "",
+    [](StackPtr &, VM &) {
+        #if LOBSTER_FRAME_PROFILER == 1
+            auto &prof_db = prof_db_thread_local;
+            prof_db.stats.clear();
+        #endif
+        return NilVal();
+    });
+
+
 }  // AddBuiltins
 
 

@@ -577,6 +577,15 @@
 <tr class="a" valign=top><td class="a"><tt><b>crash_test_cpp_nullptr_exception</b>()</tt></td><td class="a">only for testing crash dump functionality, don't use! :)</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>profiler_dump_stats</b>(num<font color="#666666">: int</font>, histogram<font color="#666666">: bool</font>) -> <font color="#666666">string</font></tt></td><td class="a">returns a string with CSV data for the num top items</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>profiler_paused</b>(paused<font color="#666666">: bool</font>)</tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>profiler_reset</b>()</tt></td><td class="a"></td>
+
+</tr>
 </table></td></tr>
 <tr class="a" valign=top><td><h3>compiler</h3></td></tr>
 <tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>compile_run_code</b>(code<font color="#666666">: string</font>, args<font color="#666666">: [string]</font>) -> <font color="#666666">string</font>, <font color="#666666">string?</font></tt></td><td class="a">compiles and runs lobster source, sandboxed from the current program (in its own VM). the argument is a string of code. returns the return value of the program as a string, with an error string as second return value, or nil if none. using parse_data(), two program can communicate more complex data structures even if they don't have the same version of struct definitions.</td>
@@ -1131,6 +1140,12 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.dispatch_compute</b>(groups<font color="#666666">: int3</font>)</tt></td><td class="a">dispatches the currently set compute shader in groups of sizes of the specified x/y/z values.</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.auto_compute_barrier</b>(on<font color="#666666">: bool</font>)</tt></td><td class="a">whether a full memory barrier is issued after every dispatch_compute (default true). Apps that know their dependencies can turn this off and call gl.compute_barrier explicitly before each consumer instead, letting independent dispatches overlap.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.compute_barrier</b>()</tt></td><td class="a">makes imageStore/SSBO writes of preceding dispatches visible to subsequent commands. Only needed with gl.auto_compute_barrier(false).</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.dump_shader</b>(filename<font color="#666666">: string</font>, stripnonascii<font color="#666666">: bool</font>) -> <font color="#666666">int</font></tt></td><td class="a">Dumps the compiled (binary) version of the current shader to a file. Contents are driver dependent. On Nvidia hardware it contains the assembly version of the shader as text, pass true for stripnonascii if you're only interested in that part.</td>
 
 </tr>
@@ -1564,7 +1579,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>cg.load_vox_names</b>(name<font color="#666666">: string</font>) -> <font color="#666666">[string]</font>, <font color="#666666">string?</font></tt></td><td class="a">loads a MagicaVoxel .vox file, and returns its contained sub model names.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>cg.save_vox</b>(blocks<font color="#666666">: [resource&lt;voxels&gt;]</font>, names<font color="#666666">: [string]</font>) -> <font color="#666666">string?</font></tt></td><td class="a">creates a file in the .vox format (MagicaVoxel) and returns its contents as a string, or nil if any of the blocks is bigger than 256^3. names must contain a sub model name for each block, or be empty (only allowed for a single block) to write a file without name information. named models are laid out in rows on the X/Y plane in the scene. all blocks must use the same palette</td>
+<tr class="a" valign=top><td class="a"><tt><b>cg.save_vox</b>(blocks<font color="#666666">: [resource&lt;voxels&gt;]</font>, names<font color="#666666">: [string]</font>, flags<font color="#666666">: int</font> = 0) -> <font color="#666666">string?</font></tt></td><td class="a">creates a file in the .vox format (MagicaVoxel) and returns its contents as a string, or nil if any of the blocks is bigger than 256^3. names must contain a sub model name for each block, or be empty (only allowed for a single block) to write a file without name information. named models are laid out in rows on the X/Y plane in the scene. all blocks must use the same palette. flags: bit 1: if on, only save palette, no blocks</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>cg.chunks_skipped</b>(block<font color="#666666">: resource&lt;voxels&gt;</font>) -> <font color="#666666">int</font></tt></td><td class="a"></td>
@@ -2263,7 +2278,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.show_debug_metrics_window</b>()</tt></td><td class="a"></td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>im.show_profiling_stats</b>(num<font color="#666666">: int</font>, reset<font color="#666666">: bool</font>, histogram<font color="#666666">: bool</font>, paused<font color="#666666">: bool</font>)</tt></td><td class="a"></td>
+<tr class="a" valign=top><td class="a"><tt><b>im.show_profiling_stats</b>(num<font color="#666666">: int</font>, histogram<font color="#666666">: bool</font>)</tt></td><td class="a"></td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.set_style_param_slow</b>(name<font color="#666666">: string</font>, vals<font color="#666666">: [float]</font>)</tt></td><td class="a"></td>
