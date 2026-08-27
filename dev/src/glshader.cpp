@@ -415,6 +415,7 @@ string Shader::Link(string_view name) {
     }
     assert(name.size());
     shader_name = name;
+    ulocmap.clear();
     mvp_i              = glGetUniformLocation(program, "mvp");
     mv_i               = glGetUniformLocation(program, "mv");
     projection_i       = glGetUniformLocation(program, "projection");
@@ -496,35 +497,56 @@ void Shader::SetTextures(const vector<Texture> &textures) {
     }
 }
 
-bool Shader::SetUniform(string_view_nt name, const float *val, int components, int elements) {
+int Shader::GetUniformLocation(string_view_nt name) {
+    auto it = ulocmap.find(name.sv);
+    if (it != ulocmap.end()) return it->second;
     auto loc = glGetUniformLocation(program, name.c_str());
+    ulocmap[string(name.sv)] = loc;
+    return loc;
+}
+
+bool Shader::SetUniform(string_view_nt name, const float *val, int components, int elements) {
+    auto loc = GetUniformLocation(name);
     if (loc < 0) return false;
     switch (components) {
-        // glUniform fails on mismatched type, so this not an assert.
-        case 1: glUniform1fv(loc, elements, val); return glGetError() == 0;
-        case 2: glUniform2fv(loc, elements, val); return glGetError() == 0;
-        case 3: glUniform3fv(loc, elements, val); return glGetError() == 0;
-        case 4: glUniform4fv(loc, elements, val); return glGetError() == 0;
+        case 1: glUniform1fv(loc, elements, val); break;
+        case 2: glUniform2fv(loc, elements, val); break;
+        case 3: glUniform3fv(loc, elements, val); break;
+        case 4: glUniform4fv(loc, elements, val); break;
         default: return false;
     }
+    // glUniform fails (non-fatally) on mismatched type, which only a glGetError can
+    // detect, but that stalls the client thread until the driver has consumed all
+    // queued commands (NVIDIA's threaded driver), destroying all CPU/GPU overlap.
+    // So only debug builds pay for the check.
+    #ifdef LOG_GL_ERRORS
+        return glGetError() == 0;
+    #else
+        return true;
+    #endif
 }
 
 bool Shader::SetUniform(string_view_nt name, const int *val, int components, int elements) {
-    auto loc = glGetUniformLocation(program, name.c_str());
+    auto loc = GetUniformLocation(name);
     if (loc < 0) return false;
     switch (components) {
-        // glUniform fails on mismatched type, so this not an assert.
-        case 1: glUniform1iv(loc, elements, val); return glGetError() == 0;
-        case 2: glUniform2iv(loc, elements, val); return glGetError() == 0;
-        case 3: glUniform3iv(loc, elements, val); return glGetError() == 0;
-        case 4: glUniform4iv(loc, elements, val); return glGetError() == 0;
+        case 1: glUniform1iv(loc, elements, val); break;
+        case 2: glUniform2iv(loc, elements, val); break;
+        case 3: glUniform3iv(loc, elements, val); break;
+        case 4: glUniform4iv(loc, elements, val); break;
         default: return false;
     }
+    // See the float SetUniform above for why the error check is debug-only.
+    #ifdef LOG_GL_ERRORS
+        return glGetError() == 0;
+    #else
+        return true;
+    #endif
 }
 
 bool Shader::SetUniformMatrix(string_view_nt name, const float *val, int components, int elements,
                               bool mr) {
-    auto loc = glGetUniformLocation(program, name.c_str());
+    auto loc = GetUniformLocation(name);
     if (loc < 0) return false;
     switch (components) {
         case 4:  GL_CALL(glUniformMatrix2fv(loc, elements, false, val)); return true;

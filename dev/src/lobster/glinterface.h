@@ -78,6 +78,11 @@ struct Shader : lobster::Resource {
     map<string, BOEntry, less<>> ubomap;
     int binding_point_index_alloc = 0;
 
+    // glGetUniformLocation stalls the client thread until the driver's queued command
+    // stream has drained (NVIDIA's threaded driver), destroying CPU/GPU overlap, so
+    // look each name up only once per program.
+    map<string, int, less<>> ulocmap;
+
     string shader_name;
 
     ~Shader();
@@ -96,6 +101,7 @@ struct Shader : lobster::Resource {
                     const int *val,
                     int components, int elements = 1);
     bool SetUniformMatrix(string_view_nt name, const float *val, int components, int elements, bool morerows);
+    int GetUniformLocation(string_view_nt name);
     bool DumpBinary(string_view filename, bool stripnonascii);
 
     size_t2 MemoryUsage() const {
