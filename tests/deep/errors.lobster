@@ -157,5 +157,16 @@ def errors_tests():
     expect_error("enum e:\n    e_a\n    e_b\nlet v = e_a\n" +
                  "let r = switch v:\n    case e_a: 1\n    case e_a: 2\n    case e_b: 3\nreturn r",
                  "value used twice")
+    // A class whose field default constructs its own type would recurse forever.
+    expect_error("class C:\n    s = \"s\"\n    c = C \{\}\nreturn (C \{\}).s",
+                 "recursively constructs")
+    // But nilable self-references and defaults constructing other classes are fine.
+    let rret, rerr = compile_run_code(
+        "class N:\n    value = 0\n    next:N? = nil\n" +
+        "class W:\n    inner = N \{\}\n" +
+        "let n = N \{ value: 1, next: N \{ value: 2 \} \}\n" +
+        "return n.value + (assert n.next).value + (W \{\}).inner.value", [])
+    test_eq(rerr, nil)
+    test_eq(rret, "3")
 
 errors_tests()

@@ -44,6 +44,8 @@ struct TypeChecker {
     vector<Borrow> borrowstack;
     vector<SpecIdent *> preferfreestack;
     vector<Define *> definestack;
+    // UDTs whose field default values are being type checked, to detect recursion.
+    vector<UDT *> udts_in_progress;
     set<pair<Line, int64_t>> integer_literal_warnings;
     Query *query;
     bool full_error;
@@ -741,6 +743,7 @@ struct TypeChecker {
     }
 
     void TypeCheckUDT(UDT &udt, const Node &errn) {
+        udts_in_progress.push_back(&udt);
         // Give a type for fields that don't have one specified.
         for (auto [i, sfield] : enumerate(udt.sfields)) {
             auto &f = udt.g.fields[i];
@@ -798,6 +801,7 @@ struct TypeChecker {
                             Q(TypeName(sudt->sfields[i].type)));
             }
         }
+        udts_in_progress.pop_back();
         for (auto u = &udt; u; u = u->ssuperclass) {
             if (!u->subudts_dispatched_where.empty()) {
                 // DISPATCH_BEFORE_CLASS_DEF 1
@@ -4236,10 +4240,17 @@ Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /
         // Fill in default args.. already done in the parser normally, but can happen if
         // this is a T {} constructor.
         for (size_t i = children.size(); i < udt->sfields.size(); i++) {
-            if (udt->sfields[i].defaultval)
+            if (udt->sfields[i].defaultval) {
+                // If this type's own defaults are being type checked right now, then this
+                // default recursively constructs it, which would never terminate.
+                if (std::find(tc.udts_in_progress.begin(), tc.udts_in_progress.end(), udt) !=
+                    tc.udts_in_progress.end())
+                    tc.Error(*this, "default value of field ", Q(udt->g.fields[i].id->name),
+                                    " recursively constructs ", Q(udt->name));
                 Add(udt->sfields[i].defaultval->Clone(true));
-            else
+            } else {
                 tc.Error(*this, "field ", Q(udt->g.fields[i].id->name), " not initialized");
+            }
         }
         // These may include field initializers copied from the definition, which may include
         // type variables that are now bound.

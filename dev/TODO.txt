@@ -638,12 +638,6 @@
 - a tool to save the .pak file inside the compiler exe for 1 file distibution could be
   a fun feature: https://github.com/aardappel/lobster/discussions/311
 
-- recursive class causes typechecker assert even before it runs out of stack:
-    class C:
-        s = "s"
-        c = C {}
-    print C {}
-
 - this fails to specialize for the nil case:
 
     let a:[int]? = nil
