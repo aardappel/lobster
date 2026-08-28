@@ -160,13 +160,16 @@ def misc_tests():
     // File queries that don't touch the filesystem state.
     test_eq(exists_file("no_such_file_hopefully_12345.xyz"), false)
     // This suite's own source must be findable, when run from unittest.lobster.
-    test_true(exists_file("deep/misc.lobster"))
-    let src = read_file("deep/misc.lobster")
+    test_true(exists_file("deep/misc.lobster") or exists_file("misc.lobster"))
+    // The dir this file is in relative to the main dir differs between an
+    // unittest.lobster run and running deep/test.lobster directly.
+    let deep_prefix = if read_file("deep/misc.lobster"): "deep/" else: ""
+    let src = read_file(deep_prefix + "misc.lobster")
     test_true(src and src.find_string("misc_tests") >= 0)
     test_true(read_file("no_such_file_hopefully_12345.xyz") == nil)
     // scan_folder returns parallel name/size vectors (rel=true searches
     // relative to the import dirs, like other file functions).
-    let fnames, fsizes = scan_folder("deep", true)
+    let fnames, fsizes = scan_folder(if deep_prefix.length: "deep" else: ".", true)
     test_true(fnames and fsizes, "scan_folder deep failed")
     if fnames and fsizes:
         test_eq(fnames.length, fsizes.length)

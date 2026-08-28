@@ -4,11 +4,19 @@ import color
 import match
 import date_time
 
+// A relative import of a nested directory that has its own local (relative)
+// import, which resolves regardless of where the importing project lives.
+import .relimport.inner
+
 // Pure-Lobster stdlib modules not covered elsewhere: color, match and the
 // date_time enum. (quaternion and mat2x2 are covered in overloads.lobster.)
 
 def modules_tests():
     suite("modules")
+
+    // Relative imports, see import above.
+    test_eq(relimport_inner(), 42)
+    test_eq(relimport_inner2(), 41)
 
     // color: a 4-float struct, so all float struct math applies.
     test_eq(color_red + color_blue, color { 1.0, 0.0, 1.0, 2.0 })

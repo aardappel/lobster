@@ -10,33 +10,33 @@
 // Test cases that expose currently-known compiler/VM bugs are commented out
 // with a FIXME comment above them describing the problem.
 
-import deep.test_helpers
+import .test_helpers
 
-import deep.lexical
-import deep.operators
-import deep.strings
-import deep.math
-import deep.vectors
-import deep.structs
-import deep.vecutils
-import deep.control
-import deep.functions
-import deep.classes
-import deep.overloads
-import deep.generics
-import deep.enums
-import deep.nilable
-import deep.stdlib
-import deep.lifetime
-import deep.binary
-import deep.flatbuffers
-import deep.serialization
-import deep.reflection
-import deep.exceptions
-import deep.geometry
-import deep.misc
-import deep.modules
-import deep.errors
+import .lexical
+import .operators
+import .strings
+import .math
+import .vectors
+import .structs
+import .vecutils
+import .control
+import .functions
+import .classes
+import .overloads
+import .generics
+import .enums
+import .nilable
+import .stdlib
+import .lifetime
+import .binary
+import .flatbuffers
+import .serialization
+import .reflection
+import .exceptions
+import .geometry
+import .misc
+import .modules
+import .errors
 
 print "deep tests: {num_checks} checks, {num_failures} failures"
 if num_failures:

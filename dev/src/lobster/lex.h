@@ -50,12 +50,15 @@ struct LoadedFile : Line {
 
     string filename;
 
-    LoadedFile(string_view fn, vector<pair<string, string>> &fns, string_view stringsource)
+    LoadedFile(string_view fn, vector<pair<string, string>> &fns, string_view stringsource,
+               bool relative = false)
         : Line(1, (int)fns.size()) {
         if (!stringsource.empty()) {
             *source.get() = stringsource;
         } else {
-            if (LoadFile("modules/" + fn, source.get()) < 0 &&
+            // A relative import names a file relative to the importing file only,
+            // so should never pick up on a file in modules/.
+            if ((relative || LoadFile("modules/" + fn, source.get()) < 0) &&
                 LoadFile(fn, source.get()) < 0) {
                 // Do specialized message for this file, since it always confuses people
                 // that like to move the exe away from the standard location for some reason.
@@ -113,7 +116,7 @@ struct Lex : LoadedFile {
         if (token == T_LINEFEED) Next();
     }
 
-    void Include(string_view _fn, bool do_cycle_check = true) {
+    void Include(string_view _fn, bool do_cycle_check = true, bool relative = false) {
         auto cycle_check = [&](const LoadedFile &pf) {
             if (pf.filename == _fn) {
                 string err = "cyclic import: ";
@@ -132,7 +135,7 @@ struct Lex : LoadedFile {
         }
         allfiles.insert(string(_fn));
         parentfiles.push_back(*this);
-        *((LoadedFile *)this) = LoadedFile(_fn, filenames, {});
+        *((LoadedFile *)this) = LoadedFile(_fn, filenames, {}, relative);
         allsources.push_back(source);
         FirstToken();
     }

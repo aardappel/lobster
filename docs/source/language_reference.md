@@ -61,7 +61,7 @@ program = stats end\_of\_file
 stats = topexp … linefeed
 
 topexp = `namespace` ident
-      \|`import` [ `from` ] ( string\_constant \| ( ident ... `.` ) )
+      \|`import` [ `from` ] ( string\_constant \| ( [ `.` ] ident ... `.` ) )
       \| [ `private` ] ( functiondef \| class \| vardef \| enumdef )
       \| `guard` condexp [ `:` body ]
       \| expstat \| attrdef
@@ -1084,6 +1084,11 @@ sub-directory.
 You can use `import from "path/to/"` to provide additional such starting directories
 (relative to the current main `.lobster` file being compiled) that any following import
 statements (recursively) can use.
+
+A leading dot, as in `import .a` or `import .sub.a`, makes the import relative to the
+directory of the file containing the import statement instead (and never the `modules`
+directories). This allows a directory of files that import eachother to work
+unchanged regardless of what main file it is compiled from.
 
 You may use the keyword `private` at the top level in a file to prefix structs,
 variables, functions, enums, fields and methods that you don't want to be

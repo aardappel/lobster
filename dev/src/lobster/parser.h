@@ -196,10 +196,14 @@ struct Parser {
                     AddDataDir(fn);
                 } else {
                     string fn;
+                    bool relative = false;
                     if (lex.token == T_STR) {
                         fn = std::move(lex.sval);
                         lex.Next();
                     } else {
+                        // A leading dot makes the import relative to the directory of
+                        // the importing file, e.g. "import .foo" or "import .sub.foo".
+                        relative = IsNext(T_DOT);
                         fn = lex.sattr;
                         Expect(T_IDENT);
                         while (IsNext(T_DOT)) {
@@ -208,10 +212,20 @@ struct Parser {
                             Expect(T_IDENT);
                         }
                         fn += ".lobster";
+                        if (relative) {
+                            // Prefix the directory of the current file. Normalize any \ to /
+                            // (e.g. from a command-line main file) such that files imported
+                            // both relatively and thru a path from the main dir get the
+                            // same name for import deduplication.
+                            auto dir = lex.filename.substr(
+                                0, lex.filename.find_last_of("/\\") + 1);
+                            for (auto &c : dir) if (c == '\\') c = '/';
+                            fn = dir + fn;
+                        }
                     }
                     Expect(T_LINEFEED);
                     st.StartOfInclude();
-                    lex.Include(fn);
+                    lex.Include(fn, true, relative);
                     ParseTopExp(list);
                 }
                 break;

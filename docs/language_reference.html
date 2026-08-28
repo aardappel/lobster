@@ -78,10 +78,10 @@ level difference. <code>[rule]</code> Means optional.</p>
 <p>program = stats end_of_file</p>
 <p>stats = topexp … linefeed</p>
 <p>topexp = <code>namespace</code> ident |<code>import</code> [
-<code>from</code> ] ( string_constant | ( ident ... <code>.</code> ) ) |
-[ <code>private</code> ] ( functiondef | class | vardef | enumdef ) |
-<code>guard</code> condexp [ <code>:</code> body ] | expstat |
-attrdef</p>
+<code>from</code> ] ( string_constant | ( [ <code>.</code> ] ident ...
+<code>.</code> ) ) | [ <code>private</code> ] ( functiondef | class |
+vardef | enumdef ) | <code>guard</code> condexp [ <code>:</code> body ]
+| expstat | attrdef</p>
 <p>class = ( <code>class</code> | <code>struct</code> ) ident (
 <code>=</code> ident specializers | [ generics ] <code>:</code> [ ident
 [ specializers ] ] indlist( ident [ <code>:</code> type ] [
@@ -914,6 +914,12 @@ be found under an <code>modules</code> sub-directory. You can use
 directories (relative to the current main <code>.lobster</code> file
 being compiled) that any following import statements (recursively) can
 use.</p>
+<p>A leading dot, as in <code>import .a</code> or
+<code>import .sub.a</code>, makes the import relative to the directory
+of the file containing the import statement instead (and never the
+<code>modules</code> directories). This allows a directory of files that
+import eachother to work unchanged regardless of what main file it is
+compiled from.</p>
 <p>You may use the keyword <code>private</code> at the top level in a
 file to prefix structs, variables, functions, enums, fields and methods
 that you don't want to be visible outside that file.</p>
