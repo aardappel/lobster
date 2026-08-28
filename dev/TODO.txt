@@ -521,12 +521,6 @@
         U_LV_DUP: 22      
         U_DDCALL: 22      
 
-- if the user has written T {} and T resolves to a non-UDT, allow to replace with default values of other
-  types such as 0, 0.0, "", [] etc.
-  This allows generic container code such as dictionary.get_or_create to function on other types.
-  useful particularly for e.g. vectors.
-  Also useful for strings so the dummy string doesn't get recreated all the time.
-
 - Free Variables
   - This is one of the very inefficient parts of the type checker.
   - Inlining is supposed to remove the free variable status, but I don't think it does..

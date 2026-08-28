@@ -182,4 +182,32 @@ def generics_tests():
     // fails to compile with "unknown type: T".
     // (Also commented out in tests/typetest.lobster.)
 
+    // T {} where T resolves to a non-struct/class type stands for the default
+    // value of that type, so generic code can construct a value of any type.
+    def default_of<T>() -> T:
+        return T {}
+    test_eq(default_of<int>(), 0)
+    test_eq(default_of<float>(), 0.0)
+    test_eq(default_of<string>(), "")
+    test_eq(default_of<bool>(), false)
+    test_true(default_of<string?>() == nil)
+    let dvec = default_of<[float]>()
+    test_eq(dvec.length, 0)
+    dvec.push(1.5)
+    test_eq(dvec[0], 1.5)
+    // For a class it is the normal constructor with all fields defaulted.
+    class DefCon:
+        x = 7
+    test_eq(default_of<DefCon>().x, 7)
+    // dictionary.get_or_create relies on this for non-class value types.
+    let dgc = dictionary<string, int>(7)
+    test_eq(dgc.get_or_create("k"), 0)
+    dgc.add("k", 5)
+    test_eq(dgc.get_or_create("k"), 5)
+    let dgs = dictionary<int, string>(7)
+    test_eq(dgs.get_or_create(1), "")
+    let dgv = dictionary<int, [int]>(7)
+    dgv.get_or_create(1).push(9)
+    test_eq(dgv.get_or_create(1).length, 1)
+
 generics_tests()

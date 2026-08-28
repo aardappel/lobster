@@ -4188,8 +4188,44 @@ Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /
         exptype = &udt->thistype;
     } else {
         exptype = tc.st.ResolveTypeVars(giventype, this->line);
-        if (!IsUDT(exptype->t))
+        if (!IsUDT(exptype->t)) {
+            // A T {} where T resolves to a non-struct/class type stands for the
+            // default value of that type, so generic code (like
+            // dictionary.get_or_create) can construct a value of any type.
+            if (!Arity()) {
+                Node *r = nullptr;
+                switch (exptype->t) {
+                    case V_INT:
+                        r = new IntConstant(line, 0);
+                        break;
+                    case V_FLOAT:
+                        r = new FloatConstant(line, 0.0);
+                        break;
+                    case V_STRING:
+                        r = new StringConstant(line, string());
+                        break;
+                    case V_VECTOR: {
+                        auto vc = new VectorConstructor(line);
+                        vc->giventype = { exptype };
+                        r = vc;
+                        break;
+                    }
+                    case V_NIL:
+                        r = new Nil(line, exptype);
+                        break;
+                    default:
+                        break;
+                }
+                if (r) {
+                    r = r->TypeCheck(tc, 1, {});
+                    // For an enum (e.g. bool), keep the enum type on the 0 value.
+                    if (exptype->t == V_INT) r->exptype = exptype;
+                    delete this;
+                    return r;
+                }
+            }
             tc.Error(*this, "type does not resolve to an object constructor: ", Q(TypeName(exptype)));
+        }
         udt = exptype->udt;
         // Sadly, this causes more problems than it solves, since these UDTs may depend
         // on global vars not typechecked, etc.

@@ -254,6 +254,10 @@ to take a <code>float2</code> argument, you may write
 <code>foo(float2 { 1.0, 2.0 })</code>.</p>
 <p>For more complex ways of constructing types, see constructor
 functions below.</p>
+<p>In generic code, <code>T {}</code> where <code>T</code> resolves to a
+non-struct/class type stands for the default value of that type:
+<code>0</code>, <code>0.0</code>, <code>""</code>, <code>[]</code>, or
+<code>nil</code> for nilable types.</p>
 <p>To declare a type whose only purpose is to serve as a superclass for
 other types and is not to be instantiated, declare it with
 <code>abstract</code>:</p>

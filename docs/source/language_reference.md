@@ -265,6 +265,9 @@ For example, if `foo` is known to take a `float2` argument, you may write
 
 For more complex ways of constructing types, see constructor functions below.
 
+In generic code, `T {}` where `T` resolves to a non-struct/class type stands for
+the default value of that type: `0`, `0.0`, `""`, `[]`, or `nil` for nilable types.
+
 To declare a type whose only purpose is to serve as a superclass for other
 types and is not to be instantiated, declare it with `abstract`:
 
