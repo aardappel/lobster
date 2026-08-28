@@ -156,6 +156,13 @@ struct Parser {
             } else if (auto r = Is<Return>(def)) {
                 if (r != list->children.back())
                     Error("return must be last in block");
+            } else if (def != list->children.back() && !def->ValidStatement() &&
+                       !def->SideEffectRec()) {
+                // Catches errors like == where = was intended, or a multi-line expression
+                // where the operator connecting the lines was forgotten.
+                // Calls conservatively count as having side effects, so are never warned about.
+                // The last statement in a block is exempt since its value may be used.
+                WarnAt(def, "expression statement has no effect");
             }
         };
     }

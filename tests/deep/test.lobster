@@ -36,6 +36,7 @@ import .exceptions
 import .geometry
 import .misc
 import .modules
+import .noeffect
 import .errors
 
 print "deep tests: {num_checks} checks, {num_failures} failures"

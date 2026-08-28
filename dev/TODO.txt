@@ -1,10 +1,3 @@
-- We should at least have a simple detection for expressions with no side effect
-  used as a statement.
-  Several recent bugs:
-  - using == instead of =
-  - multiline exps where the connecting operator is forgotten, so we have a line
-    that has no effect.
-
 - Must call this.foo() if foo is a superclass method, otherwise automatic this
   insertion does not work.
 
@@ -2152,8 +2145,6 @@
   - outline rendering needs to do a better job that pixels stay in the bounding box.
 
 - Can't call o.f() where f is anonymous function value, need to first assign to temp var.
-
-- A "warning: expression has no effect" would be nice, for when you mistype `a += 1` as `a + 1`
 
 - if we make assert a language feature rather than a builtin, we can make it understand
   equality operators directly, and create specialized asserts that have better errors, i.e.

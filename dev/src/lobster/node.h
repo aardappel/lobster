@@ -51,6 +51,9 @@ struct Node {
     }
     // Used in the optimizer to see if this node can be discarded without consequences.
     virtual bool SideEffect() const = 0;  // Just this node.
+    // Whether this node is valid as a statement by itself regardless of side effects,
+    // i.e. definitions, control flow etc, used by the "no effect" warning.
+    virtual bool ValidStatement() const { return false; }
     bool SideEffectRec() {
         if (SideEffect()) return true;
         auto ch = Children();
@@ -240,6 +243,7 @@ struct TypeAnnotation : Node {
 #define OPTMETHOD Node *Optimize(Optimizer &opt);
 #define INITMETHOD bool IsConstInit() const;
 #define SIMPLEMETHOD TypeRef SimpleType(SymbolTable &);
+#define STATEMENTMETHOD bool ValidStatement() const { return true; }
 
 // generic node types
 NARY_NODE(List, "list", false, )
@@ -279,7 +283,7 @@ BINOP_NODE(OrEq, TName(T_OREQ), true, )
 BINOP_NODE(XorEq, TName(T_XOREQ), true, )
 BINOP_NODE(ShiftLeftEq, TName(T_ASLEQ), true, )
 BINOP_NODE(ShiftRightEq, TName(T_ASREQ), true, )
-ZERO_NODE(DefaultVal, "default value", false, )
+ZERO_NODE(DefaultVal, "default value", false, STATEMENTMETHOD)
 UNARY_NODE(TypeOf, TName(T_TYPEOF), false, )
 
 BINARY_NODE(Seq, "statements", false, head, tail, )
@@ -293,13 +297,14 @@ COER_NODE(ToBool, "tobool", )
 COER_NODE(ToInt, "toint", )
 COER_NODE(ToStructSuper, "tostructsuper", )
 NARY_NODE(Block, "block", false, RETURNSMETHOD)
-BINARY_NODE_T(IfThen, "if", false, Node, condition, Block, truepart, )
-TERNARY_NODE_T(IfElse, "if", false, Node, condition, Block, truepart, Block, falsepart, RETURNSMETHOD)
-BINARY_NODE_T(While, "while", false, Node, condition, Block, wbody, RETURNSMETHOD)
-BINARY_NODE_T(For, "for", false, Node, iter, Block, fbody, )
+BINARY_NODE_T(IfThen, "if", false, Node, condition, Block, truepart, STATEMENTMETHOD)
+TERNARY_NODE_T(IfElse, "if", false, Node, condition, Block, truepart, Block, falsepart, RETURNSMETHOD STATEMENTMETHOD)
+BINARY_NODE_T(While, "while", false, Node, condition, Block, wbody, RETURNSMETHOD STATEMENTMETHOD)
+BINARY_NODE_T(For, "for", false, Node, iter, Block, fbody, STATEMENTMETHOD)
 ZERO_NODE(ForLoopElem, "for loop element", false, )
 ZERO_NODE(ForLoopCounter, "for loop counter", false, )
 BINARY_NODE_T(Switch, "switch", false, Node, value, List, cases, \
+    STATEMENTMETHOD \
     int vtable_idx = -1; \
     RETURNSMETHOD \
     bool GenerateJumpTable(CodeGen &cg, size_t retval) const; \
@@ -307,9 +312,9 @@ BINARY_NODE_T(Switch, "switch", false, Node, value, List, cases, \
     void GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mini, int maxi) const;)
 BINARY_NODE_T(Case, "case", false, List, pattern, Node, cbody, )
 BINARY_NODE(Range, "range", false, start, end, )
-ZERO_NODE(Break, "break", false, RETURNSMETHOD)
-ZERO_NODE(Continue, "continue", false, RETURNSMETHOD)
-UNARY_NODE(Assert, TName(T_ASSERT), false, RETURNSMETHOD)
+ZERO_NODE(Break, "break", false, RETURNSMETHOD STATEMENTMETHOD)
+ZERO_NODE(Continue, "continue", false, RETURNSMETHOD STATEMENTMETHOD)
+UNARY_NODE(Assert, TName(T_ASSERT), false, RETURNSMETHOD STATEMENTMETHOD)
 
 struct Nil : Node {
     UnTypeRef giventype;
@@ -395,6 +400,7 @@ struct EnumRef : Node {
         return e == ((EnumRef *)o)->e;
     }
     SHARED_SIGNATURE(EnumRef, TName(T_ENUM), false)
+    STATEMENTMETHOD
 };
 
 struct GUDTRef : Node {
@@ -407,6 +413,7 @@ struct GUDTRef : Node {
         return gudt == ((GUDTRef *)o)->gudt;
     }
     SHARED_SIGNATURE(GUDTRef, TName(T_CLASS), false)
+    STATEMENTMETHOD
 };
 
 struct UDTRef : Node {
@@ -418,6 +425,7 @@ struct UDTRef : Node {
         return udt == ((UDTRef *)o)->udt;
     }
     SHARED_SIGNATURE(UDTRef, TName(T_CLASS), false)
+    STATEMENTMETHOD
 };
 
 struct FunRef : Node {
@@ -431,6 +439,7 @@ struct FunRef : Node {
         return sf == ((FunRef *)o)->sf;
     }
     SHARED_SIGNATURE(FunRef, TName(T_FUN), false)
+    STATEMENTMETHOD
 };
 
 // This is either a Dot, Call, or NativeCall, to be specialized by the typechecker
@@ -567,6 +576,7 @@ struct Return : Unary {
     }
     SHARED_SIGNATURE(Return, TName(T_RETURN), true)
     RETURNSMETHOD
+    STATEMENTMETHOD
 };
 
 struct MultipleReturn : List {
@@ -597,6 +607,7 @@ struct Define : Unary {
         return false;  // FIXME
     }
     SHARED_SIGNATURE(Define, "var", true)
+    STATEMENTMETHOD
 };
 
 struct Member : Unary {
@@ -614,6 +625,7 @@ struct Member : Unary {
         return field() == ((Member *)o)->field() && frame == ((Member *)o)->frame;
     }
     SHARED_SIGNATURE(Member, TName(T_MEMBER), false)
+    STATEMENTMETHOD
 };
 
 struct Static : Unary {
@@ -629,6 +641,7 @@ struct Static : Unary {
         return false;  // FIXME
     }
     SHARED_SIGNATURE(Static, TName(T_STATIC), false)
+    STATEMENTMETHOD
 };
 
 struct Dot : Unary {
