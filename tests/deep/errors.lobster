@@ -153,4 +153,9 @@ def errors_tests():
                  "return apply(maker())",
                  "free variable `x` not in scope: it is defined in `maker`")
 
+    // Using the same value twice in a switch is an error, also for enums.
+    expect_error("enum e:\n    e_a\n    e_b\nlet v = e_a\n" +
+                 "let r = switch v:\n    case e_a: 1\n    case e_a: 2\n    case e_b: 3\nreturn r",
+                 "value used twice")
+
 errors_tests()

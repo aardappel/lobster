@@ -8,8 +8,6 @@
 - Must call this.foo() if foo is a superclass method, otherwise automatic this
   insertion does not work.
 
-- using an enum constant twice in a switch does not error!
-
 - Improve native compilation pipeline / emscripten support.
   https://github.com/aardappel/lobster/issues/375
 
@@ -569,8 +567,6 @@
   You can always use "return from", but break is neater.
 
 - auto binding generated C++ headers from a Lobster decl
-
-- allow let inside if/guard as syntactic sugar
 
 - --errors is fundamentally flawed, do it differently? https://github.com/aardappel/lobster/issues/276
 
@@ -1239,8 +1235,6 @@
   Also, int3/float3 can be very useful as keys and would want to support.
   dictionary.lobster is already nicely generic if constant speed is not too important.
 
-- stefandd: multiple assign doesn't work on fields.
-
 - Fix `is`, see https://github.com/aardappel/lobster/issues/99
 
 - See if audio works again under emscripten:
@@ -1771,9 +1765,6 @@
   - File Selector:
     https://github.com/dfranx/ImFileDialog
 
-- We support implicit this.member in multi-assign, but not explicit.
-  See mretfields test.
-
 - we should support e.g.
     import vec
     struct mat2x2<T> : xyzw<T>
@@ -2161,9 +2152,6 @@
   - outline rendering needs to do a better job that pixels stay in the bounding box.
 
 - Can't call o.f() where f is anonymous function value, need to first assign to temp var.
-
-- also allow explicit a.x, a.y = f() multi assign, this should be easy now that AssignList
-  takes lvalues because of with defs.
 
 - A "warning: expression has no effect" would be nice, for when you mistype `a += 1` as `a + 1`
 

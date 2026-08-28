@@ -412,4 +412,24 @@ def classes_tests():
     // Private class with private members, used within this file.
     test_eq((DCPriv {}).double(), 2)
 
+    // Multi-assign to explicit fields (and mixed with variables).
+    class DCXY:
+        x = 0
+        y = 0
+        def swap():
+            // Implicit this.member in multi-assign.
+            x, y = y, x
+    def dc_two(): return 3, 4
+    let dcm = DCXY {}
+    dcm.x, dcm.y = dc_two()
+    test_eq(dcm.x, 3)
+    test_eq(dcm.y, 4)
+    dcm.swap()
+    test_eq(dcm.x, 4)
+    test_eq(dcm.y, 3)
+    var dcv = 0
+    dcm.x, dcv = dc_two()
+    test_eq(dcm.x, 3)
+    test_eq(dcv, 4)
+
 classes_tests()
