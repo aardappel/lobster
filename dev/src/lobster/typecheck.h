@@ -3375,7 +3375,9 @@ TypeRef IdentRef::SimpleType(SymbolTable &) {
 Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.UpdateCurrentSid(sid);
     for (auto &sc : reverse(tc.scopes)) if (sc.sf == sid->sf_def) goto in_scope;
-    tc.Error(*this, "free variable ", Q(sid->id->name), " not in scope");
+    tc.Error(*this, "free variable ", Q(sid->id->name), " not in scope: it is defined in ",
+             Q(sid->sf_def->parent->name), " (", tc.parser.lex.Location(sid->id->line),
+             "), so a function value that uses it can only be called while that is in scope");
     in_scope:
     if (sid->id->predeclaration)
         tc.Error(*this, "access of ", Q(sid->id->name), " before being initialized");
