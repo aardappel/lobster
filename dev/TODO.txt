@@ -11,9 +11,6 @@
   - multiline exps where the connecting operator is forgotten, so we have a line
     that has no effect.
 
-- "mybool and myint" will result in the int value, which is a bit surprising.
-  We should do the "force to bool" it does for other unrelated types also for enums.
-
 - Must call this.foo() if foo is a superclass method, otherwise automatic this
   insertion does not work.
 

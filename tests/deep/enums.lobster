@@ -134,4 +134,26 @@ def enums_tests():
     test_true(uv == nil)
     test_true(uerr and uerr.length)
 
+    // and/or on an enum (e.g. bool) mixed with a plain int (or another enum)
+    // forces the result type to bool, rather than letting the enum decay to int.
+    // Overload selection on the static type of the result observes this.
+    def andor_type(x:bool): return "bool"
+    def andor_type(x:int): return "int"
+    def andor_type(x:de_color): return "de_color"
+    test_eq(andor_type(1 > 0 and 1), "bool")
+    test_eq(andor_type(1 and 1 > 0), "bool")
+    test_eq(andor_type(1 > 0 or 1), "bool")
+    test_eq(andor_type(de_red and 1), "bool")      // Enum and int.
+    test_eq(andor_type(de_red and 1 > 0), "bool")  // Two different enums.
+    test_eq(andor_type(de_red and de_blue), "de_color")  // Same enum is preserved.
+    test_eq(andor_type(1 and 2), "int")            // Plain ints are preserved.
+    // The and-or selection idiom still yields the value types.
+    test_eq(andor_type(1 > 2 and 5 or 6), "int")
+    test_eq(1 > 2 and 5 or 6, 6)
+    test_eq(1 < 2 and 5 or 6, 5)
+    // Truthiness semantics are unchanged.
+    test_true(1 > 0 and 42)
+    test_true(not (1 > 2 and 42))
+    test_eq(de_red and de_blue, de_blue)
+
 enums_tests()

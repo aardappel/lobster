@@ -2091,6 +2091,11 @@ struct TypeChecker {
             DecBorrowers(ao.left->lt, ao);
         } else {
             ao.exptype = Union(tleft, tright, "lhs", "rhs", CF_NONE, nullptr);
+            // An enum (e.g. bool) mixed with a plain int would result in the int value,
+            // which is surprising, so treat it like unrelated types below and force to
+            // bool, rather than letting the enum decay to int.
+            if (tleft->t == V_INT && tright->t == V_INT && tleft->e != tright->e)
+                ao.exptype = type_undefined;
             if (ao.exptype->t == V_UNDEFINED) {
                 // Special case: unlike elsewhere, we allow merging scalar and reference types,
                 // since they are just tested and thrown away. To make this work, we force all
