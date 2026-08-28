@@ -535,6 +535,8 @@
 
 - namespace improvements:
   - Declaring a variable (or function) that has the same name as a namespace should be an error? (poll so far: yes)
+    Sadly this is not so simple, we have a lot of 2 letter namespaces such as ph, im, fg.. and
+    it becomes very surprising when these lead to errors in existing code. Leaving as-is for now.
   - obj.foo where foo is a method in a namespace should work if obj already has that namespaced type?
     That requires moving at least some of the namespacing into the type checker.
     See: https://github.com/aardappel/lobster/issues/284
