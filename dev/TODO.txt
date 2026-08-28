@@ -569,6 +569,11 @@
   - Also move some more of my (Wouter) projects into the main repo as samples.
 
 - Unknown functions in untypechecked code do not error at all anymore?
+  The parser can't decide this at the call since functions/methods/fields may legitimately
+  be declared after it, and an end-of-parse check over all declarations was tried, but that
+  amounts to second guessing what the type checker resolves more exactly (scoping, methods
+  vs fields, natives per build), so is error prone. A real fix would be to resolve names in
+  a later pass, or to (partially) type check dead code.
 
 - Check if these are fixed by now:
     https://github.com/wolfpld/tracy/issues/419
