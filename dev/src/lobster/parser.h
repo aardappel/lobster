@@ -419,7 +419,7 @@ struct Parser {
             // These two also exist at factor level (where a declaration inside them is not allowed)
             case T_IF: {
                 lex.Next();
-                list->Add(ParseIf(lex, list));
+                list->Add(ParseIf(lex, list, true));
                 break;
             }
             case T_ASSERT: {
@@ -432,28 +432,7 @@ struct Parser {
             default: {
                 if (isprivate)
                     Error("private only applies to declarations");
-                ParseExpStat(list);
-                auto e = list->children.back();
-                // TODO: add Indexed to this.
-                if (Is<IdentRef>(e) || Is<Dot>(e) || Is<GenericCall>(e)) {
-                    // Regular assign is handled in normal expression parsing below.
-                    if (lex.token == T_COMMA) {
-                        list->children.pop_back();
-                        auto al = new AssignList(lex, Modify(e));
-                        while (IsNext(T_COMMA)) {
-                            e = ParseDeref();
-                            if (Is<IdentRef>(e) || Is<Dot>(e) || Is<GenericCall>(e)) {
-                                al->children.push_back(Modify(e));
-                            } else {
-                                Error("assignment list elements must be variables or class members");
-                            }
-                        }
-                        Expect(T_ASSIGN);
-                        al->children.push_back(ParseMultiRet(ParseOpExp()));
-                        list->Add(al);
-                        break;
-                    }
-                }
+                ParseExpStat(list, true);
                 break;
             }
         }
@@ -791,12 +770,12 @@ struct Parser {
         ov->givenargs.push_back({ &ng->thistype });
     }
 
-    void ParseBody(Block *block, int for_nargs) {
+    void ParseBody(Block *block, int for_nargs, bool allow_multi_assign) {
         block_stack.push_back({ block, for_nargs, 0 });
         if (IsNext(T_INDENT)) {
             ParseStatements(block, T_DEDENT);
         } else {
-            ParseExpStat(block);
+            ParseExpStat(block, allow_multi_assign);
             CleanupStatements(block);
         }
         block_stack.pop_back();
@@ -981,7 +960,7 @@ struct Parser {
         if (!f.istype) {
             auto block = new Block(lex);
             ov->gbody = block;
-            ParseBody(block, -1);
+            ParseBody(block, -1, false);
             ImplicitReturn(*ov);
         }
         if (self_withtype) gudtstack.pop_back();
@@ -1145,7 +1124,7 @@ struct Parser {
         return list;
     }
 
-    void ParseExpStat(Block *list) {
+    void ParseExpStat(Block *list, bool allow_multi_assign = false) {
         switch (lex.token) {
             case T_FOR: {
                 lex.Next();
@@ -1154,10 +1133,10 @@ struct Parser {
                 if (IsNext(T_LEFTPAREN)) {
                     iter = ParseExp(false);
                     Expect(T_RIGHTPAREN);
-                    list->Add(new For(line, iter, ParseBlock(0, true)));
+                    list->Add(new For(line, iter, ParseBlock(0, true, allow_multi_assign)));
                 } else {
                     iter = ParseExp(true);
-                    list->Add(new For(line, iter, ParseBlock(0)));
+                    list->Add(new For(line, iter, ParseBlock(0, false, allow_multi_assign)));
                 }
                 break;
             }
@@ -1169,7 +1148,7 @@ struct Parser {
                 // evaluated in a loop, and it will only be done once. So for now, disable. To support, we'd need to move while to be
                 // Made out of two blocks, an outer which can hold all these defines, and a body.
                 auto cond = ParseExp(true);
-                auto w = new While(line, cond, ParseBlock());
+                auto w = new While(line, cond, ParseBlock(-1, false, allow_multi_assign));
                 //st.BlockScopeCleanup();
                 list->Add(w);
                 break;
@@ -1216,7 +1195,30 @@ struct Parser {
                 break;
             }
             default: {
-                list->Add(ParseExp());
+                auto e = ParseExp();
+                // Multi-assign only in statement contexts, since e.g. in a one-liner
+                // lambda body inside a call, a following comma separates arguments.
+                // TODO: add Indexed to this.
+                if (allow_multi_assign &&
+                    (Is<IdentRef>(e) || Is<Dot>(e) || Is<GenericCall>(e)) &&
+                    lex.token == T_COMMA) {
+                    // A multi-assign statement, e.g. a, b = f()
+                    // (regular assign is handled in normal expression parsing).
+                    auto al = new AssignList(lex, Modify(e));
+                    while (IsNext(T_COMMA)) {
+                        e = ParseDeref();
+                        if (Is<IdentRef>(e) || Is<Dot>(e) || Is<GenericCall>(e)) {
+                            al->children.push_back(Modify(e));
+                        } else {
+                            Error("assignment list elements must be variables or class members");
+                        }
+                    }
+                    Expect(T_ASSIGN);
+                    al->children.push_back(ParseMultiRet(ParseOpExp()));
+                    list->Add(al);
+                    break;
+                }
+                list->Add(e);
                 break;
             }
         }
@@ -1638,7 +1640,7 @@ struct Parser {
             }
             case T_IF: {
                 lex.Next();
-                return ParseIf(lex, nullptr);
+                return ParseIf(lex, nullptr, false);
             }
             case T_SWITCH: {
                 lex.Next();
@@ -1699,18 +1701,19 @@ struct Parser {
         }
     }
 
-    Node *ParseIf(Line line, Block *list) {
+    Node *ParseIf(Line line, Block *list, bool allow_multi_assign) {
         st.BlockScopeStart();  // Just in case condition has a define.
         auto cond = ParseExpCond(list);
-        auto thenp = ParseBlock();
+        auto thenp = ParseBlock(-1, false, allow_multi_assign);
         st.BlockScopeCleanup();
         auto islf = IsNext(T_LINEFEED);
         if (IsNext(T_ELIF)) {
             // FIXME: we can't support a definition inside condition here because it would put it
             // before the entire nested if!
-            return new IfElse(line, cond, thenp, (new Block(lex))->Add(ParseIf(lex, nullptr)));
+            return new IfElse(line, cond, thenp,
+                              (new Block(lex))->Add(ParseIf(lex, nullptr, allow_multi_assign)));
         } else if (IsNext(T_ELSE)) {
-            return new IfElse(line, cond, thenp, ParseBlock());
+            return new IfElse(line, cond, thenp, ParseBlock(-1, false, allow_multi_assign));
         } else {
             lex.PushCur();
             if (islf) lex.Push(T_LINEFEED);
@@ -1727,7 +1730,7 @@ struct Parser {
             ParseStatements(block, T_NONE);
             return new IfThen(line, cond, block);
         } else {
-            auto exitblock = ParseBlock();
+            auto exitblock = ParseBlock(-1, false, true);
             Expect(T_LINEFEED);
             ParseStatements(block, T_NONE);
             return new IfElse(line, cond, block, exitblock);
@@ -1747,7 +1750,8 @@ struct Parser {
         list.insert(existing, def);
     }
 
-    Block *ParseBlock(int for_args = -1, bool parse_args = false) {
+    Block *ParseBlock(int for_args = -1, bool parse_args = false,
+                      bool allow_multi_assign = false) {
         st.BlockScopeStart();
         auto block = new Block(lex);
         if (parse_args && lex.token != T_COLON) {
@@ -1773,7 +1777,7 @@ struct Parser {
             if (parens) Expect(T_RIGHTPAREN);
         }
         Expect(T_COLON);
-        ParseBody(block, for_args);
+        ParseBody(block, for_args, allow_multi_assign);
         st.BlockScopeCleanup();
         return block;
     }

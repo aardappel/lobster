@@ -2416,8 +2416,6 @@
 
 - for any error related to a builtin function, can also print argument names and helptext.
 
-- syntax: "if c: a, b = exp" doesn't compile if the multi-assign is on the same line.
-
 - typechecker
   - would be nice to have a way to indicate a generic argument that must be a vector, possibly
     as just []. See for example match.lobster that works on generic vectors.

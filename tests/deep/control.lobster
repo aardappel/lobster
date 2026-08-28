@@ -265,4 +265,25 @@ def control_tests():
     if let c1 = maybe(1) and let c2 = maybe(0):
         test_true(false, "chained if let with nil succeeded: {c1} {c2}")
 
+    // Multi-assign in one-liner statement bodies of if/for/while (and their
+    // indented bodies, as always).
+    def two(): return 10, 20
+    var ma = 0
+    var mb = 0
+    if ma == 0: ma, mb = two()
+    test_eq(ma + mb, 30)
+    class MPair:
+        x = 0
+        y = 0
+    let mp = MPair {}
+    for(1): mp.x, mp.y = two()
+    test_eq(mp.x + mp.y, 30)
+    var mc = 0
+    while mc == 0: mc, mb = two()
+    test_eq(mc + mb, 30)
+    // A one-liner lambda body followed by a comma still parses as an argument
+    // separator, not as a multi-assign.
+    def two_args(f, v): return f(1) + v
+    test_eq(two_args(fn i: i + ma, 2), 13)
+
 control_tests()
