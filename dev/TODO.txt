@@ -19,6 +19,12 @@
   If that is too iffy, then at least a better error somehow?
   Tried this out, see branch "block_inside_parens".
   Biggest issue is how to generate a DEDENT token inside a like, i.e. before the last )
+  Even just a better error is not trivial: the parser never sees the line structure inside
+  brackets, so the eventual parse error is at an arbitrary token far from the `:` that
+  started the block. Detecting the situation would need the lexer to track a `:` at the end
+  of a line inside brackets (tried), but a colon there can be legal (a decl split across
+  lines), so it can only hint at existing errors, and clearing that state correctly across
+  nested brackets makes it fragile for what it adds.
 
 - The removal of functions that have been inlined and whose usage count drops to zero does not
   work for calls inside the initializer of a member, presumably because that code is copied
