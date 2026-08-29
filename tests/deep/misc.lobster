@@ -128,9 +128,13 @@ def misc_tests():
     test_true(date_time_build_info().length > 0)
 
     // Program info.
-    test_true(program_name().find_string(".lobster") >= 0)
+    // In compiled (Lobster -> C++) mode the program is a native executable
+    // which may be run from a dir where the .lobster sources are not
+    // reachable, so source related checks here and below are JIT-only.
+    let compiled = vm_compiled_mode()
+    if not compiled:
+        test_true(program_name().find_string(".lobster") >= 0)
     test_eq(command_line_arguments().length, 0)
-    test_eq(vm_compiled_mode(), false)  // This suite runs in JIT mode.
     // seconds_elapsed is monotonic.
     let t1 = seconds_elapsed()
     let t2 = seconds_elapsed()
@@ -159,23 +163,27 @@ def misc_tests():
 
     // File queries that don't touch the filesystem state.
     test_eq(exists_file("no_such_file_hopefully_12345.xyz"), false)
-    // This suite's own source must be findable, when run from unittest.lobster.
-    test_true(exists_file("deep/misc.lobster") or exists_file("misc.lobster"))
     // The dir this file is in relative to the main dir differs between an
     // unittest.lobster run and running deep/test.lobster directly.
     let deep_prefix = if read_file("deep/misc.lobster"): "deep/" else: ""
     let src = read_file(deep_prefix + "misc.lobster")
-    test_true(src and src.find_string("misc_tests") >= 0)
+    if not compiled:
+        // This suite's own source must be findable when running from source.
+        test_true(exists_file("deep/misc.lobster") or exists_file("misc.lobster"))
+        test_true(src and src.find_string("misc_tests") >= 0)
     test_true(read_file("no_such_file_hopefully_12345.xyz") == nil)
     // scan_folder returns parallel name/size vectors (rel=true searches
-    // relative to the import dirs, like other file functions).
-    let fnames, fsizes = scan_folder(if deep_prefix.length: "deep" else: ".", true)
-    test_true(fnames and fsizes, "scan_folder deep failed")
-    if fnames and fsizes:
-        test_eq(fnames.length, fsizes.length)
-        let self_idx = fnames.find(): _ == "misc.lobster"
-        test_true(self_idx >= 0, "scan_folder did not find misc.lobster")
-        test_true(fsizes[self_idx] > 0)
+    // relative to the import dirs, like other file functions). Only scan if
+    // src above established that the dir holding this file is reachable.
+    if src:
+        let fnames, fsizes = scan_folder(if deep_prefix.length: "deep" else: ".", true)
+        test_true(fnames and fsizes, "scan_folder deep failed")
+        if fnames and fsizes:
+            test_eq(fnames.length, fsizes.length)
+            let self_idx = fnames.find(): _ == "misc.lobster"
+            test_true(self_idx >= 0, "scan_folder did not find misc.lobster")
+            if self_idx >= 0:
+                test_true(fsizes[self_idx] > 0)
     test_true(scan_folder("no_such_dir_hopefully_12345", true) == nil)
     // Writing, reading back and deleting a file (in the main file's dir).
     let tmpname = "deep_tmp_test_file.tmp"
