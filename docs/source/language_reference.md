@@ -376,7 +376,10 @@ value, `b` otherwise. The unary operator `not` turns false values into `1`
 and others into `0`.
 
 The `is` operator returns true if the left hand side value is of the type
-specified on the right, e.g. `x is float`.
+specified on the right, e.g. `x is float`. For a class, a value of any of its
+subclasses also matches, consistent with `switch` cases on class types. Where
+the outcome is clear from the static type (e.g. testing against a superclass
+of the value's own type) this is computed at compile time.
 
 Function Definitions
 --------------------

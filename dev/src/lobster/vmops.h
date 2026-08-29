@@ -805,12 +805,26 @@ VM_INLINE void U_JUMP_TABLE_DISPATCH(VM &, StackPtr, const int *) {
     assert(false);
 }
 
-VM_INLINE void U_ISTYPE(VM &vm, StackPtr sp, int ty) {
+VM_INLINE void U_ISTYPE(VM &, StackPtr sp, int ty, int nilres) {
     auto to = (type_elem_t)ty;
     auto v = Pop(sp);
     // Optimizer guarantees we don't have to deal with scalars.
     if (v.refnil()) Push(sp, v.ref()->tti == to);
-    else Push(sp, vm.GetTypeInfo(to).is_nil != 0);
+    else Push(sp, nilres);
+}
+
+// Only emitted when the tested type is a class with subclasses, otherwise the
+// cheaper U_ISTYPE is used.
+VM_INLINE void U_ISSUBTYPE(VM &vm, StackPtr sp, int start, int end, int nilres) {
+    auto v = Pop(sp);
+    // The typechecker guarantees the value is statically a class (or nil), so
+    // its type info always has a subtype_dfs.
+    if (v.refnil()) {
+        auto dfs = v.ref()->ti(vm).subtype_dfs;
+        Push(sp, start <= dfs && dfs <= end);
+    } else {
+        Push(sp, nilres);
+    }
 }
 
 VM_INLINE void U_ABORT(VM &vm, StackPtr) {

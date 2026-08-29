@@ -342,7 +342,11 @@ next lower level of precedence, and both short-circuit:
 <code>b</code> otherwise. The unary operator <code>not</code> turns
 false values into <code>1</code> and others into <code>0</code>.</p>
 <p>The <code>is</code> operator returns true if the left hand side value
-is of the type specified on the right, e.g. <code>x is float</code>.</p>
+is of the type specified on the right, e.g. <code>x is float</code>. For
+a class, a value of any of its subclasses also matches, consistent with
+<code>switch</code> cases on class types. Where the outcome is clear
+from the static type (e.g. testing against a superclass of the value's
+own type) this is computed at compile time.</p>
 <h2 id="function-definitions">Function Definitions</h2>
 <p>Lobster's entire design centers around functions and how they can be
 composed. It has both <em>named functions</em> and <em>function

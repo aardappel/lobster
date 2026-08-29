@@ -20,7 +20,7 @@
 
 namespace lobster {
 
-const int LOBSTER_METADATA_FORMAT_VERSION = 23;
+const int LOBSTER_METADATA_FORMAT_VERSION = 24;
 
 // Any type specialized ops below must always have this ordering.
 enum MathOp {
@@ -104,7 +104,7 @@ enum MathOp {
     F(BINAND, 0, 2, 1) F(BINOR, 0, 2, 1) F(XOR, 0, 2, 1) F(ASL, 0, 2, 1) F(ASR, 0, 2, 1) F(NEG, 0, 1, 1) \
     F(I2F, 0, 1, 1) F(A2S, 1, 1, 1) F(E2B, 0, 1, 1) F(E2BREF, 0, 1, 1) F(ST2S, 1, ILUNKNOWN, 1) \
     F(RETURNLOCAL, 1, ILUNKNOWN, 0) F(RETURNNONLOCAL, 2, ILUNKNOWN, 0) F(RETURNANY, 1, 0, 0) \
-    F(ISTYPE, 1, 1, 1) \
+    F(ISTYPE, 2, 1, 1) F(ISSUBTYPE, 3, 1, 1) \
     F(FORLOOPI, 0, 1, 2) \
     F(IFORELEM, 0, 2, 3) \
     F(SFORELEM, 0, 2, 3) \

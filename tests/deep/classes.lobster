@@ -219,9 +219,11 @@ def classes_tests():
     test_eq((DCSquare {}).sup(), "sqabstract")
     // Fields from the abstract base.
     test_eq(shapes[0].name, "shape")
-    // is: true only for the exact dynamic type, not for a sibling type.
+    // is: matches the dynamic type and any of its superclasses, but not a
+    // sibling type.
     test_true(shapes[0] is DCCircle)
     test_true(not (shapes[0] is DCSquare))
+    test_true(shapes[0] is DCShape)  // Compile time: superclass of the static type.
     // switch cases may use a superclass to cover several subclasses.
     let kinds = map(shapes) s:
         switch s:
@@ -291,6 +293,30 @@ def classes_tests():
     def ts_name(t::TSD): return "d"
     def ts_name(t::TSE): return "e"
     test_seq(map(ts): ts_name(_), [ "b", "d", "e", "e" ])
+    // is over the same hierarchy matches the whole subtree of the tested type,
+    // consistent with switch cases.
+    test_seq(map(ts) t: t is TSB, [ true, false, false, false ])
+    test_seq(map(ts) t: t is TSC, [ false, true, true, true ])   // Abstract mid-hierarchy.
+    test_seq(map(ts) t: t is TSE, [ false, false, true, true ])
+    test_seq(map(ts) t: t is TSF, [ false, false, false, true ]) // Leaf: exact type check.
+    // A nil value only matches a nilable tested type.
+    var tsn:TSA? = nil
+    test_true(not (tsn is TSC))
+    test_true(tsn is TSC?)
+    tsn = TSF {}
+    test_true(tsn is TSC)
+    test_true(tsn is TSA)  // Runtime check only because of the nilable static type.
+    test_true(not (tsn is TSB?))
+    // For structs is is decided fully at compile time, including superclasses.
+    struct DSSup:
+        p = 1
+    struct DSSub : DSSup
+        q = 2
+    let dssub = DSSub {}
+    test_true(dssub is DSSup)
+    test_true(dssub is DSSub)
+    let dssup = DSSup {}
+    test_true(not (dssup is DSSub))
 
     // Generic classes.
     let bi = DCIntBox { 42 }

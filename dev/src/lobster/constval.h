@@ -98,22 +98,40 @@ ValueType IsType::ConstVal(TypeChecker *tc, VTValue &val) const {
     // NOTE: IsType::TypeCheck lifts out the child if it is a side effect, so
     // we can assume here it doesn't, and thus make the whole exp constant if
     // the type comparison is a constant.
-    // If the exp type is compile-time equal, this is compile-time true,
-    // except for class types that have sub-classes, since we don't know if
-    // the runtime type would be equal.
-    if ((child->exptype->Equal(*resolvedtype) &&
-         (resolvedtype->t != V_CLASS || !resolvedtype->udt->g.has_subclasses)) ||
-        resolvedtype->t == V_ANY) {
+    if (resolvedtype->t == V_ANY) {
         val = VTValue(true);
         return V_INT;
     }
-    if (!tc->ConvertsTo(resolvedtype, child->exptype, CF_UNIFICATION)) {
+    auto ctype = child->exptype;
+    auto ce = ctype->ElementIfNil();
+    auto te = resolvedtype->ElementIfNil();
+    // A value's runtime type is always its static type or a subtype thereof,
+    // so if the tested type is a superclass of (or equal to) the static type,
+    // this is compile-time true regardless of what subclasses exist, provided
+    // a possibly nil value is also matched by a nilable tested type.
+    auto is_static_super = ce->Equal(*te) ||
+                           (((ce->t == V_CLASS && te->t == V_CLASS) ||
+                             (IsStruct(ce->t) && IsStruct(te->t))) &&
+                            SuperDistance(te->udt, ce->udt) >= 0);
+    if (is_static_super && (resolvedtype->t == V_NIL || ctype->t != V_NIL)) {
+        val = VTValue(true);
+        return V_INT;
+    }
+    // Structs have no runtime type, so their static relation decides.
+    if (IsStruct(ce->t) || IsStruct(te->t)) {
+        val = VTValue(false);
+        return V_INT;
+    }
+    // If no runtime type could ever match the tested type, this is
+    // compile-time false. Tested against the non-nil element types, since
+    // whether a nil value matches is determined by the tested type alone.
+    if (!tc->ConvertsTo(te, ce, CF_UNIFICATION)) {
         val = VTValue(false);
         return V_INT;
     }
     // This means it is always a reference type, since int/float/function don't convert
     // into anything without coercion.
-    assert(IsRefNil(child->exptype->t));
+    assert(IsRefNil(ctype->t));
     return V_VOID;
 }
 

@@ -135,6 +135,10 @@ struct TypeInfo {
             int vtable_start_or_bitmask;
             type_elem_t superclass;
             int serializable_id;
+            // Pre-order index over the inheritance forest, such that the
+            // indices of any UDT's subtree form a contiguous range, allowing
+            // ISSUBTYPE to test subtype membership with a single range check.
+            int subtype_dfs;
             TIField elemtypes[1];  // len elems.
         };
         int enumidx;       // RTT_INT, -1 if not an enum.

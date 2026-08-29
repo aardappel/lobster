@@ -124,7 +124,7 @@ struct CodeGen  {
         //LOG_DEBUG("cg: ", ILNames()[op], " ", uses, "/", defs, " -> ", tstack.size());
     }
 
-    const int ti_num_udt_fields = 7;
+    const int ti_num_udt_fields = 8;
     const int ti_num_udt_per_field = 3;
 
     type_elem_t PushDefaultValue(ValueType vt, VTValue val) {
@@ -243,6 +243,7 @@ struct CodeGen  {
                     ? (type_elem_t)-1
                     : GetTypeTableOffset(&udt->ssuperclass->thistype));
                 tt.push_back((type_elem_t)udt->serializable_id);
+                tt.push_back((type_elem_t)udt->subtype_dfs);
                 PushFields(udt, tt);
                 assert(ssize(tt) == ttsize);
                 std::copy(tt.begin(), tt.end(), type_table.begin() + typeinfo);
@@ -287,6 +288,28 @@ struct CodeGen  {
             udt->vtable_start = (int)vtables.size();
             vtables.insert(vtables.end(), udt->dispatch_table.size(), -1);
         }
+
+        // Assign ids to all UDTs in depth-first pre-order over the inheritance
+        // forest, such that the ids of any UDT's subtree (including itself)
+        // form a contiguous range, allowing ISSUBTYPE to test for subtype
+        // membership with a single range check. The set of UDTs is complete
+        // here, so subclasses participate regardless of where they were
+        // declared relative to uses of "is".
+        for (auto udt : st.udttable) {
+            if (udt->ssuperclass) {
+                udt->next_subclass = udt->ssuperclass->first_subclass;
+                udt->ssuperclass->first_subclass = udt;
+            }
+        }
+        int subtype_id = 0;
+        auto assign_ids = [&](UDT *udt, auto &&assign_ids) -> void {
+            udt->subtype_dfs = subtype_id++;
+            for (auto sub = udt->first_subclass; sub; sub = sub->next_subclass)
+                assign_ids(sub, assign_ids);
+            udt->subtype_dfs_end = subtype_id - 1;
+        };
+        for (auto udt : st.udttable)
+            if (!udt->ssuperclass) assign_ids(udt, assign_ids);
 
         // Pre-load some types into the table, must correspond to type_elem_t enums.
         Type type_valuebuf(V_VALUEBUF);
@@ -906,11 +929,17 @@ struct CodeGen  {
         has_profile = true;
     }
 
-    void EmitISTYPE(int type_idx, TypeRef type) {
+    void EmitISTYPE(int type_idx, int nilres, TypeRef type) {
         EmitOp(IL_ISTYPE);
-        append(cb, "    U_ISTYPE(vm, ", sp(), ", ", type_idx, ");");
+        append(cb, "    U_ISTYPE(vm, ", sp(), ", ", type_idx, ", ", nilres, ");");
         if (IsUDT(type->t)) comment(type->udt->name);
         else cb += "\n";
+    }
+
+    void EmitISSUBTYPE(int start, int end, int nilres, TypeRef type) {
+        EmitOp(IL_ISSUBTYPE);
+        append(cb, "    U_ISSUBTYPE(vm, ", sp(), ", ", start, ", ", end, ", ", nilres, ");");
+        comment(type->udt->name);
     }
 
     void EmitNEWOBJECT(int type_idx, int uses, TypeRef type) {
@@ -2696,7 +2725,17 @@ void IsType::Generate(CodeGen &cg, size_t retval) const {
     assert(!IsUnBoxed(child->exptype->t));
     if (retval) {
         cg.TakeTemp(1, false);
-        cg.EmitISTYPE(cg.GetTypeTableOffset(resolvedtype), resolvedtype);
+        // Whether a nil value matches is resolved at compile time, so both ops
+        // only ever compare against the non-nil type.
+        int nilres = resolvedtype->t == V_NIL;
+        TypeRef te = resolvedtype->ElementIfNil();
+        if (te->t == V_CLASS && te->udt->subtype_dfs_end > te->udt->subtype_dfs) {
+            // The tested type has subclasses, so test the value's type against
+            // the id range of the tested type's subtree.
+            cg.EmitISSUBTYPE(te->udt->subtype_dfs, te->udt->subtype_dfs_end, nilres, te);
+        } else {
+            cg.EmitISTYPE(cg.GetTypeTableOffset(te), nilres, te);
+        }
     }
 }
 
