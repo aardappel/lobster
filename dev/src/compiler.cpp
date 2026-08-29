@@ -959,6 +959,8 @@ extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const VMMe
             THROW_OR_ABORT("lpak file from different version of the source code than the compiled code");
         }
         vma.vm->EvalProgram();
+        // Reflects any set_exit_code() calls, just like the JIT mode main().
+        return (int)vma.vm->evalret.second;
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
