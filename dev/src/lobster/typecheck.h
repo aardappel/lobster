@@ -3849,13 +3849,29 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
         // ("functions as environments"): callable while their enclosing
         // function is active, innermost active scope first, which mirrors
         // how their free variables work.
+        // Declared in a scope this call is lexically inside of: then lexical
+        // resolution already had jurisdiction and did not find it, so it sits
+        // in a block that does not contain this call (a different branch of an
+        // if, say), and picking it here would make blocks that can never both
+        // run share a function.
+        auto encloses_this_call = [&](Overload *decl_scope) {
+            for (auto ov = tc.scopes.back().sf->overload; ov; ov = ov->sf->lexical_parent)
+                if (ov == decl_scope) return true;
+            return false;
+        };
+        bool out_of_block = false;
         auto find_active = [&](string_view fname) -> Function * {
             auto it = tc.st.functions_by_name.find(fname);
             if (it == tc.st.functions_by_name.end()) return nullptr;
             for (auto &sc : reverse(tc.scopes)) {
                 for (auto f : it->second) {
                     for (auto ov : f->overloads) {
-                        if (ov->sf->lexical_parent == sc.sf->overload) return f;
+                        if (ov->sf->lexical_parent != sc.sf->overload) continue;
+                        if (encloses_this_call(ov->sf->lexical_parent)) {
+                            out_of_block = true;
+                            continue;
+                        }
+                        return f;
                     }
                 }
             }
@@ -3864,6 +3880,11 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
         if (!ns.empty() && name.find(".") == string_view::npos)
             ff = find_active(cat(ns, ".", name));
         if (!ff) ff = find_active(name);
+        if (!ff && out_of_block)
+            tc.Error(*this, "function ", Q(name), " is declared in a block that does not"
+                            " contain this call (a different branch of an ", Q("if"),
+                            ", for instance): a local function is only visible in the block"
+                            " it is declared in");
     }
     // We first typecheck the children, because we want to at least look at arg 1 to decide
     // what to call. But this doesn't allow an accurate parent_bound, so we only specify

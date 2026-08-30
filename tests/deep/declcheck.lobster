@@ -339,6 +339,21 @@ def declcheck_order_tests():
                  "def helper() -> int: return inner()\n" +
                  "return outer()", "7")
 
+    // And not for one declared in a block of this same function that does not
+    // contain the call: two branches of an if would otherwise each declare a
+    // version, and calls after the if would silently pick one of them.
+    expect_error("def outer(q) -> int:\n" +
+                 "    if q:\n        def foo(x:int) -> int: return x + 1\n        pass()\n" +
+                 "    else:\n        def foo(x:string) -> int: return x.length\n        pass()\n" +
+                 "    return foo(1)\n" +
+                 "return outer(1)", "does not contain this call")
+    // But a block that does contain the call is fine.
+    expect_dk_ok("def outer(q) -> int:\n" +
+                 "    def foo() -> int: return 5\n" +
+                 "    if q:\n        return foo()\n" +
+                 "    return 0\n" +
+                 "return outer(1)", "5")
+
     // But not when the enclosing function is not active.
     expect_error("def outer() -> int:\n" +
                  "    let v = 1\n" +
