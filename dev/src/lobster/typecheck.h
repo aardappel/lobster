@@ -214,10 +214,14 @@ struct TypeChecker {
         }
     }
 
-    // FIXME: we have bound at UnTypeRef to allow callers to just fail with unresolved types,
-    // but ideally they should resolve first.
-    bool ConvertsTo(UnTypeRef type, UnTypeRef bound, ConvertFlags cf,
-                    ValueType type_parent = V_UNDEFINED, ValueType bound_parent = V_UNDEFINED) {
+    // The try-and-fail entry point for overload filtering ONLY: there, bound
+    // comes from the given (unresolved) types of not yet typechecked
+    // overloads, and anything unresolved in it (V_UUDT with unbound type
+    // variables, V_TYPEVAR) simply fails to convert, moving matching on to
+    // the next strategy. Everything else should use ConvertsTo below, which
+    // demands resolved types.
+    bool UnConvertsTo(UnTypeRef type, UnTypeRef bound, ConvertFlags cf,
+                      ValueType type_parent = V_UNDEFINED, ValueType bound_parent = V_UNDEFINED) {
         if (bound->Equal(*type)) return true;
         if (type->t == V_VAR) {
             if (cf & CF_UNIFICATION) UnifyVar(bound, type, type_parent);
@@ -242,19 +246,19 @@ struct TypeChecker {
                        type->sf->args.empty();
             case V_NIL: {
                 auto scf = ConvertFlags(cf & CF_UNIFICATION);
-                return (type->t == V_NIL && ConvertsTo(type->Element(), bound->Element(), scf, V_NIL, V_NIL)) ||
+                return (type->t == V_NIL && UnConvertsTo(type->Element(), bound->Element(), scf, V_NIL, V_NIL)) ||
                        (!type->Numeric() && type->t != V_VOID && !IsStruct(type->t) &&
-                        ConvertsTo(type, bound->Element(), scf, type_parent, V_NIL)) ||
+                        UnConvertsTo(type, bound->Element(), scf, type_parent, V_NIL)) ||
                        ((cf & CF_NUMERIC_NIL) && type->Numeric() &&  // For builtins.
-                        ConvertsTo(type, bound->Element(), scf, type_parent, V_NIL));
+                        UnConvertsTo(type, bound->Element(), scf, type_parent, V_NIL));
             }
             case V_VECTOR: {
                 // We don't generally allow covariance here unless const (to avoid supertype
                 // elements added to subtype vectors) and no contravariance.
                 auto cov = cf & CF_COVARIANT ? CF_NONE : CF_EXACTTYPE;
                 return type->t == V_VECTOR &&
-                       ConvertsTo(type->Element(), bound->Element(),
-                                  ConvertFlags((cf & (CF_UNIFICATION | CF_NUMERIC_NIL)) | cov), V_VECTOR, V_VECTOR);
+                       UnConvertsTo(type->Element(), bound->Element(),
+                                    ConvertFlags((cf & (CF_UNIFICATION | CF_NUMERIC_NIL)) | cov), V_VECTOR, V_VECTOR);
             }
             case V_CLASS: {
                 if (type->t != V_CLASS) return false;
@@ -281,6 +285,15 @@ struct TypeChecker {
             default:
                 return false;
         }
+    }
+
+    // Can a value of `type` be passed where `bound` is expected, possibly
+    // with the given conversions? Both types must be resolved; see UnConvertsTo
+    // above for the one context that cannot guarantee that.
+    bool ConvertsTo(TypeRef type, TypeRef bound, ConvertFlags cf,
+                    ValueType type_parent = V_UNDEFINED, ValueType bound_parent = V_UNDEFINED) {
+        assert(bound->t != V_UUDT && bound->t != V_TYPEVAR);
+        return UnConvertsTo(type, bound, cf, type_parent, bound_parent);
     }
 
     bool ConvertsToTuple(const vector<Type::TupleElem> &ttup, const vector<Type::TupleElem> &stup) {
@@ -613,8 +626,8 @@ struct TypeChecker {
             if ((atype->t == V_UUDT &&
                  (DistanceToSpecializedSuper(atype->spec_udt->gudt, ctype->udt) >= 0 ||
                   (ctype->udt->g.is_abstract && DistanceFromSpecializedSub(ctype->udt, atype->spec_udt->gudt) >= 0))) ||
-                ConvertsTo(ctype, atype, CF_NONE) ||
-                (ctype->udt->g.is_abstract && ConvertsTo(atype, ctype, CF_NONE))) {
+                UnConvertsTo(ctype, atype, CF_NONE) ||
+                (ctype->udt->g.is_abstract && UnConvertsTo(atype, ctype, CF_NONE))) {
                 goto have_candidates;
             }
         }
@@ -1958,7 +1971,7 @@ struct TypeChecker {
             if (matches.empty()) {
                 for (auto ov : pickfrom) {
                     auto arg = ov->givenargs[argidx];
-                    if (!ConvertsTo(type, arg, CF_NONE)) {
+                    if (!UnConvertsTo(type, arg, CF_NONE)) {
                         continue;
                     }
                     if (matches.size() == 1 && type->t == V_CLASS) {
@@ -2012,7 +2025,7 @@ struct TypeChecker {
             // Then finally try with coercion.
             if (matches.empty()) {
                 for (auto ov : pickfrom) {
-                    if (ConvertsTo(type, ov->givenargs[argidx], CF_COERCIONS)) {
+                    if (UnConvertsTo(type, ov->givenargs[argidx], CF_COERCIONS)) {
                         matches.push_back(ov);
                     }
                 }
