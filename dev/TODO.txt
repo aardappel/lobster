@@ -1,5 +1,18 @@
-- Must call this.foo() if foo is a superclass method, otherwise automatic this
-  insertion does not work.
+- "Functions as environments" is now a specified feature (see declcheck.h): a call to a
+  name with no lexically visible function resolves to a local function of that name in
+  another scope, valid only while its enclosing function is active (innermost active scope
+  wins), mirroring how free variables work. Kept for now because matvoxels relies on it
+  (game.lobster's player-update helpers apply_damage/abort_active_item_action/
+  show_out_of_stamina/do_deflect are used from 34 call sites in game_item.lobster and
+  close over enclosing locals). Revisit whether we want to keep this long term, since
+  removing it requires threading those locals as args (or a context object) in such code.
+
+- `member` declarations are insufficiently scoped: their in_scope flag is toggled while the
+  declaring method's Member statements are active on the typechecking path, not lexically.
+  So e.g. moving matvoxels' ActionState set_selection (which uses members declared in
+  contents()) from inside contents() to a class-level method still compiled fine, happily
+  referring to another method's local member declarations. Access should probably be
+  restricted to the declaring method (or an explicitly shared scope).
 
 - Improve native compilation pipeline / emscripten support.
   https://github.com/aardappel/lobster/issues/375
