@@ -210,4 +210,32 @@ def generics_tests():
     dgv.get_or_create(1).push(9)
     test_eq(dgv.get_or_create(1).length, 1)
 
+    // A T {} constructor takes field tags and fills in defaults, like a
+    // constructor of a named type does.
+    class Tagged:
+        a:int
+        b = 7
+        c = "x"
+    def make_tagged<T>() -> T: return T { b: 2, a: 1 }
+    let tg = make_tagged<Tagged>()
+    test_eq(tg.a, 1)
+    test_eq(tg.b, 2)
+    test_eq(tg.c, "x")
+    def make_defaulted<T>() -> T: return T { a: 3 }
+    let td = make_defaulted<Tagged>()
+    test_eq(td.a, 3)
+    test_eq(td.b, 7)
+    // Untagged initializers still fill the fields without a default, in order.
+    class Pair2<A, B>:
+        pa:A
+        pb:B
+    def make_pair<T>() -> T: return T { 1, "s" }
+    let tp = make_pair<Pair2<int, string>>()
+    test_eq(tp.pa, 1)
+    test_eq(tp.pb, "s")
+    def make_pair_tagged<T>() -> T: return T { pb: "t", pa: 2 }
+    let tpt = make_pair_tagged<Pair2<int, string>>()
+    test_eq(tpt.pa, 2)
+    test_eq(tpt.pb, "t")
+
 generics_tests()

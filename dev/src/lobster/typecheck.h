@@ -4515,6 +4515,28 @@ Node *AutoConstructor::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_
     GUDT *g = nullptr;
     UnTypeRef ctype = giventype;
     if (!ctype.Null()) {
+        if (ctype->t == V_TYPEVAR) {
+            // A `T {}` constructor: what it constructs is only known now that
+            // the type variable is bound.
+            auto rt = tc.st.ResolveTypeVars(ctype, line);
+            if (!IsUDT(rt->t)) {
+                // A T that is not a class/struct has no fields to resolve
+                // against; ObjectConstructor turns `T {}` into that type's
+                // default value.
+                for (auto tag : tags)
+                    if (tag)
+                        tc.Error(*this, "type ", Q(TypeName(rt)), " does not have field ",
+                                        Q(tag->name));
+                unique_ptr<ObjectConstructor> oc(new ObjectConstructor(line, { rt }));
+                oc->children = children;
+                children.clear();
+                auto r = oc->TypeCheck(tc, reqret, parent_bound);
+                oc.release();
+                delete this;
+                return r;
+            }
+            ctype = { rt };
+        }
         g = GetGUDTAny(ctype);
         assert(g);
     } else {

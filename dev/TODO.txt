@@ -655,10 +655,6 @@
     let sub1 = Subscriber{}
     let sub2 = Subscriber{}
 
-- T { .. } constructors (where T is a type variable) still apply args in-order and don't
-  accept tags:. Now that Name { .. } parses to a tagged AutoConstructor resolved in the
-  typechecker, allowing tags here too should be easy.
-
 - a switch where all cases assign a non-nil value to nil variable doesn't make the var non-nil like if-then does.
 
 - replace our to_string_float with schubfach.

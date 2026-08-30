@@ -1898,14 +1898,11 @@ struct Parser {
         if (!type.Null()) {
             Expect(T_LEFTCURLY);
             if (type->t == V_TYPEVAR) {
-                auto constructor = new ObjectConstructor(lex, type);
-                // We don't know what args this type has, so parse any number of them, without tags.
-                // FIXME: now that we have AutoConstructor, we could use that and parse the tags?
-                while (lex.token != T_RIGHTCURLY) {
-                    constructor->Add(ParseExp());
-                    if (lex.token != T_RIGHTCURLY) Expect(T_COMMA);
-                }
-                lex.Next();
+                // Which fields this has is only known once the type variable is
+                // bound, so tags, defaults and the arg count are all resolved
+                // by AutoConstructor::TypeCheck, same as for a named type.
+                auto constructor = AssertIs<AutoConstructor>(ParseAutoConstructor());
+                constructor->giventype = type;
                 return constructor;
             } else {
                 Error("type ", Q(TypeName(type)), " does not have a {} constructor");
