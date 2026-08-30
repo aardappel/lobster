@@ -538,12 +538,6 @@
   But frankly there's a ton of these possible interactions, should maybe move to a single symboltable.
   Another example is trying to use a variable with the same name as an enum.
 
-- member x = y
-  Where y is another member variable gives the error "'this' is not in scope", because y is evaluated
-  when the class is being constructed, which is rather confusing.
-  This similarly can happen with normal member variables, but there it was somewhat understandable
-  because the object hasn't been fully constructed, here inside a method it makes even less sense.
-
 - Debug dump improvements:
   - automatically zip these files, can be 5x smaller.
   - Turn C++ crashes into Lobster errors so they can be saved with a lot of context.

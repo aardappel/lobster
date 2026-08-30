@@ -55,6 +55,21 @@ struct Parser {
         lex.Warn(cat(args...), what ? &what->line : nullptr);
     }
 
+    // Non-zero while parsing the initializer of a `member` declaration, holding
+    // the number of enclosing function scopes at that point. That initializer
+    // is the field's default, so it runs wherever the class is constructed and
+    // can't see anything declared by the method it is written in. Anything the
+    // initializer itself declares (a lambda's args, say) is fine.
+    size_t field_init_scopes = 0;
+
+    // Whether something declared by `sf_def` is one of those out of reach.
+    bool OutsideFieldInit(SubFunction *sf_def) {
+        // Index 0 is the top level, whose variables are globals, so in reach.
+        for (size_t i = 1; i < field_init_scopes; i++)
+            if (st.defsubfunctionstack[i] == sf_def) return true;
+        return false;
+    }
+
     NativeFun *FindNative(string_view name) {
         if (st.MaybeNameSpace(name)) {
             auto nf = natreg.FindNative(st.NameSpaced(name));
@@ -539,7 +554,17 @@ struct Parser {
         if (IsNext(T_COLON)) {
             type = ParseType(false);
         }
-        Node *init = IsNext(T_ASSIGN) ? ParseExp() : nullptr;
+        Node *init = nullptr;
+        if (IsNext(T_ASSIGN)) {
+            // Only for `member`: the default of an ordinary field may refer to
+            // an enclosing function's locals, since it is cloned into each
+            // construction site, which is typically in that same scope. A
+            // `member` is declared inside a method, but its default is used
+            // wherever the class gets constructed, which is not.
+            DS<size_t> ds(field_init_scopes,
+                          local_member ? st.defsubfunctionstack.size() : size_t(0));
+            init = ParseExp();
+        }
         if (local_member && !init) {
             Error("must specify default value");
         }
@@ -1991,6 +2016,10 @@ struct Parser {
         // Check for field reference in function with :: arguments.
         if (field) {
             assert(fieldid);
+            if (OutsideFieldInit(fieldid->cursid->sf_def))
+                Error("field ", Q(idname), " cannot be used in a ", Q("member"), " initializer:"
+                      " it is evaluated wherever the class is constructed, where there is no"
+                      " instance to read it from yet");
             fieldid->Read();
             return new Dot(field, lex, new IdentRef(lex, fieldid->cursid));
         }
@@ -2008,6 +2037,10 @@ struct Parser {
             if (f || nf) Error("can\'t use named function ", Q(idname), " as value");
             else Error("unknown identifier ", Q(idname));
         }
+        if (OutsideFieldInit(id->cursid->sf_def))
+            Error("local variable ", Q(idname), " cannot be used in a ", Q("member"),
+                  " initializer: it is evaluated wherever the class is constructed, not where"
+                  " the declaration is written");
         return new IdentRef(lex, id->cursid);
     }
 

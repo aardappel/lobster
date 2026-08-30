@@ -127,6 +127,15 @@ def errors_tests():
     expect_error("var x = \"hello\"\ndef f(y):\n    x = \"world\"\n    return y\nreturn f(x)",
                  "while borrowed")
 
+    // A `member` initializer is the field's default, so it runs wherever the
+    // class is constructed and cannot read the object or the method's locals.
+    expect_error("class C:\n    x = 1\n    def m():\n        member y = x\n        return y\n" +
+                 "return C \{\}.m()",
+                 "field `x` cannot be used in a `member` initializer")
+    expect_error("class C:\n    def m():\n        let n = 5\n        member y = n\n" +
+                 "        return y\nreturn C \{\}.m()",
+                 "local variable `n` cannot be used in a `member` initializer")
+
     // A `member` variable is scoped to its method, not visible on the object.
     expect_error("class C:\n    def m():\n        member x = 1\nlet c = C \{\}\nreturn c.x",
                  "not in scope")
