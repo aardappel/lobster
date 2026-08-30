@@ -43,6 +43,21 @@ struct DeclChecker {
         // regardless of where their declarations sit relative to the code
         // being typechecked.
         for (auto udt : st.udttable) st.RegisterSubUDT(udt);
+        // Any mention of a non generic type that parsed as V_UUDT (uses of a
+        // then pre-declared type, the self arg of methods) is from here on
+        // indistinguishable from its single specialization, so overwrite it
+        // in place, which updates every type that wraps or stores it (like
+        // UnifyVar does for type variables). This makes V_UUDT mean "involves
+        // unbound type variables" everywhere after this pass.
+        auto collapse = [](UnType &ut) {
+            if (ut.t != V_UUDT) return;
+            auto gudt = ut.spec_udt->gudt;
+            if (gudt->IsGeneric() || !ut.spec_udt->specializers.empty()) return;
+            if (!gudt->first || gudt->predeclaration) return;
+            *(Type *)&ut = *SingleNonGenericSpecialization(*gudt);
+        };
+        for (auto ut : st.untypelist) collapse(*ut);
+        for (auto gudt : st.gudttable) collapse(gudt->unspecialized_type);
         for (auto f : st.functiontable) {
             if (f->anonymous || f->overloads.empty()) continue;
             auto &fs = st.functions_by_name[f->name];

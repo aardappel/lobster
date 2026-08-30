@@ -41,6 +41,8 @@ enum ValueType : int {
     V_VOID,             // [typechecker/codegen only] this exp does not produce a value.
     V_TUPLE,            // [typechecker/codegen only] this exp produces >1 value.
     V_UUDT,             // [parser/typechecker only] udt with unresolved generics.
+                        // After the declchecker ran, guaranteed to involve
+                        // unbound type variables (see collapse there).
     V_UNDEFINED,        // [typechecker only] this type should never be accessed.
     V_MAXVTTYPES
 };
