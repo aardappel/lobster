@@ -116,7 +116,9 @@ struct Lex : LoadedFile {
         if (token == T_LINEFEED) Next();
     }
 
-    void Include(string_view _fn, bool do_cycle_check = true, bool relative = false) {
+    // Returns false if this file was already included elsewhere, in which case
+    // nothing was pushed and there will be no T_ENDOFINCLUDE for it either.
+    bool Include(string_view _fn, bool do_cycle_check = true, bool relative = false) {
         auto cycle_check = [&](const LoadedFile &pf) {
             if (pf.filename == _fn) {
                 string err = "cyclic import: ";
@@ -131,13 +133,14 @@ struct Lex : LoadedFile {
                 cycle_check(pf);
         }
         if (allfiles.find(_fn) != allfiles.end()) {
-            return;
+            return false;
         }
         allfiles.insert(string(_fn));
         parentfiles.push_back(*this);
         *((LoadedFile *)this) = LoadedFile(_fn, filenames, {}, relative);
         allsources.push_back(source);
         FirstToken();
+        return true;
     }
 
     void PopIncludeContinue() {

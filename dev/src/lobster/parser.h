@@ -232,10 +232,15 @@ struct Parser {
                             fn = dir + fn;
                         }
                     }
-                    Expect(T_LINEFEED);
-                    st.StartOfInclude();
-                    lex.Include(fn, true, relative);
-                    ParseTopExp(list);
+                    // The lexer generates no linefeed at the end of a file, so
+                    // an import may be the last thing in one.
+                    if (!AtEndOfFile()) Expect(T_LINEFEED);
+                    // A file already imported elsewhere is not included again,
+                    // and thus also has no T_ENDOFINCLUDE to close a scope with.
+                    if (lex.Include(fn, true, relative)) st.StartOfInclude();
+                    // Parses the first statement of the included file, or, if
+                    // there was none, the next statement of the current one.
+                    if (!AtEndOfFile()) ParseTopExp(list);
                 }
                 break;
             }
@@ -2021,6 +2026,12 @@ struct Parser {
         lastid = lex.sattr;
         Expect(T_IDENT);
         return lastid;
+    }
+
+    // No linefeed is generated for the last line of a file, so statements that
+    // want one need to accept this instead.
+    bool AtEndOfFile() {
+        return Either(T_ENDOFFILE, T_ENDOFINCLUDE);
     }
 
     bool Either(TType t1, TType t2) {

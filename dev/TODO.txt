@@ -2066,8 +2066,6 @@
 
 - This parses the map without the lambda:     assert 1 == map(2) i: 3
 
-- a file with only an include statement in it gives: error: linefeed expected, found: end of file
-
 - Swift's weak pointer feature has some merit.
   It's not a real weak pointer in the sense that it still holds an object alive, more like a
   "2nd class" refc.

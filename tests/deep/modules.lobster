@@ -7,6 +7,9 @@ import date_time
 // A relative import of a nested directory that has its own local (relative)
 // import, which resolves regardless of where the importing project lives.
 import .relimport.inner
+// A file whose only statement is a (here duplicate) import: it compiling at
+// all is the test.
+import .relimport.only_import
 
 // Pure-Lobster stdlib modules not covered elsewhere: color, match and the
 // date_time enum. (quaternion and mat2x2 are covered in overloads.lobster.)

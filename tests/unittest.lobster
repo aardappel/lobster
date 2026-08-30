@@ -33,5 +33,3 @@ import freevars
 
 // These are more exhaustive tests, that all run regardless of error.
 import deep.test
-
-"the end"  // FIXME: a file can not be only import files?
