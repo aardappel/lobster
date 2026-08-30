@@ -299,7 +299,12 @@ struct Parser {
             }
             case T_VAR:
             case T_CONST: {
-                list->Add(ParseDefine(isprivate, false, false));
+                auto def = ParseDefine(isprivate, false, false);
+                if (st.scopelevels.size() == 1 && def->tsids.size() == 1 &&
+                    !Is<DefaultVal>(def->child)) {
+                    def->tsids[0].sid->id->toplevel_initializer = def->child;
+                }
+                list->Add(def);
                 break;
             }
             case T_PREFERFREE: {
@@ -1873,48 +1878,14 @@ struct Parser {
         }
         if (gudt) {
             Expect(T_LEFTCURLY);
-            Line line = lex;
             if (gudt->is_abstract)
                 Error("cannot instantiate abstract class/struct ", Q(gudt->name));
-            // The logic for the code below is very similar to AutoConstructor::TypeCheck
-            node_small_vector exps(gudt->fields.size(), nullptr);
-            ParseVector([&] () {
-                auto id = lex.sattr;
-                if (IsNext(T_IDENT)) {
-                    if (IsNext(T_COLON)) {
-                        auto fld = st.FieldUse(id);
-                        auto field = gudt->Has(fld);
-                        if (field < 0) Error("unknown field ", Q(id));
-                        if (exps[field]) Error("field ", Q(id), " initialized twice");
-                        exps[field] = ParseExp();
-                        return;
-                    } else {
-                        lex.Undo(T_IDENT, id);
-                    }
-                }
-                // An initializer without a tag. Find first field without a default thats not
-                // set yet.
-                for (size_t i = 0; i < exps.size(); i++) {
-                    if (!exps[i] && !gudt->fields[i].gdefaultval) {
-                        exps[i] = ParseExp();
-                        return;
-                    }
-                }
-                // Since this struct may be pre-declared, we allow to parse more initializers
-                // than there are fields. We will catch this in the type checker.
-                exps.push_back(ParseExp());
-            }, T_RIGHTCURLY);
-            // Now fill in defaults, check for missing fields, and construct list.
-            auto constructor = new ObjectConstructor(line, type);
-            for (size_t i = 0; i < exps.size(); i++) {
-                if (!exps[i]) {
-                    if (gudt->fields[i].gdefaultval)
-                        exps[i] = gudt->fields[i].gdefaultval->Clone(true);
-                    else
-                        Error("field ", Q(gudt->fields[i].id->name), " not initialized");
-                }
-                constructor->Add(exps[i]);
-            }
+            // Field/tag resolution and default values are filled in by
+            // AutoConstructor::TypeCheck, since the fields of this type may
+            // not be complete yet (a pre-declared type, or a superclass that
+            // is), and defaults cloned here would not track that.
+            auto constructor = AssertIs<AutoConstructor>(ParseAutoConstructor());
+            constructor->giventype = type;
             return constructor;
         }
         if (!type.Null()) {

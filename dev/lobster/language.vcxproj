@@ -302,6 +302,7 @@
     <ClInclude Include="..\src\lobster\constval.h" />
     <ClInclude Include="..\src\lobster\dllist.h" />
     <ClInclude Include="..\src\lobster\geom.h" />
+    <ClInclude Include="..\src\lobster\declcheck.h" />
     <ClInclude Include="..\src\lobster\idents.h" />
     <ClInclude Include="..\src\lobster\il.h" />
     <ClInclude Include="..\src\lobster\lex.h" />

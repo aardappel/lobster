@@ -56,8 +56,7 @@ struct TypeChecker {
         : parser(_p), st(_st), query(query), full_error(full_error) {
         st.functions.clear();
         st.type_check_call_back = [&](UDT &udt) {
-            // FIXME: this gives entirely wrong error context!
-            TypeCheckUDT(udt, *scopes.back().call_context);
+            EnsureUDTChecked(udt, *scopes.back().call_context);
         };
         // FIXME: this is unfriendly.
         if (!st.RegisterDefaultTypes())
@@ -742,22 +741,164 @@ struct TypeChecker {
         return &n;
     }
 
-    void TypeCheckUDT(UDT &udt, const Node &errn) {
+    // Resolve which fields of `g` the (tagged) initializers of `ac` belong
+    // to, fill in defaults, check for missing fields, and return the
+    // equivalent ObjectConstructor (consuming `ac`). When report_errors is
+    // off, returns null on any failure instead, leaving `ac` unchanged.
+    ObjectConstructor *ResolveAutoConstructor(AutoConstructor *ac, GUDT *g, UnTypeRef ctype,
+                                              bool report_errors) {
+        node_small_vector exps(g->fields.size(), nullptr);
+        for (auto [i, c] : enumerate(ac->children)) {
+            auto tag = ac->tags[i];
+            if (tag) {
+                auto field = g->Has(tag);
+                if (field < 0) {
+                    if (report_errors)
+                        Error(*ac, "type ", Q(g->name), " does not have field ", Q(tag->name));
+                    return nullptr;
+                }
+                if (exps[field]) {
+                    if (report_errors)
+                        Error(*ac, "field ", Q(tag->name), " initialized twice");
+                    return nullptr;
+                }
+                exps[field] = c;
+            } else {
+                // An initializer without a tag. Find first field without a
+                // default thats not set yet.
+                for (size_t j = 0; j < exps.size(); j++) {
+                    if (!exps[j] && !g->fields[j].gdefaultval) {
+                        exps[j] = c;
+                        goto done;
+                    }
+                }
+                if (report_errors) Error(*ac, "too many initializers for ", Q(g->name));
+                return nullptr;
+                done:;
+            }
+        }
+        for (auto [i, e] : enumerate(exps)) {
+            if (e) continue;
+            if (!g->fields[i].gdefaultval) {
+                if (report_errors)
+                    Error(*ac, "field ", Q(g->fields[i].id->name), " not initialized");
+                return nullptr;
+            }
+            // If this type's own defaults are being type checked right now,
+            // cloning them in here could recursively construct it and never
+            // terminate.
+            for (auto u : udts_in_progress) {
+                if (&u->g == g) {
+                    if (report_errors)
+                        Error(*ac, "default value of field ", Q(g->fields[i].id->name),
+                                   " recursively constructs ", Q(g->name));
+                    return nullptr;
+                }
+            }
+        }
+        // Now that resolution can't fail anymore, transfer the children (but
+        // not ownership of `ac` itself: it may still sit in the tree, and if
+        // typechecking the result throws, it must be the one valid node
+        // there).
+        auto constructor = new ObjectConstructor(ac->line, ctype);
+        for (auto [i, e] : enumerate(exps)) {
+            constructor->Add(e ? e : g->fields[i].gdefaultval->Clone(true));
+        }
+        ac->children.clear();
+        return constructor;
+    }
+
+    // A default value that (transitively, thru the defaults of whatever it
+    // constructs) constructs its own type again would expand forever when
+    // cloned in at construction sites, so must be an error regardless of how
+    // the field got its type. Conservative: assumes all defaults of a
+    // constructed type apply, even for fields given explicitly.
+    void CheckRecursiveDefault(GUDT *origin, string_view fname, Node *n, set<GUDT *> &visited,
+                               const Node &errn) {
+        GUDT *g = nullptr;
+        if (auto ac = Is<AutoConstructor>(n)) {
+            if (!ac->giventype.Null()) g = GetGUDTAny(ac->giventype);
+        } else if (auto oc = Is<ObjectConstructor>(n)) {
+            g = GetGUDTAny(oc->giventype);
+        }
+        if (g) {
+            if (g == origin)
+                Error(errn, "default value of field ", Q(fname), " recursively constructs ",
+                            Q(origin->name));
+            if (visited.insert(g).second) {
+                for (auto &f : g->fields) {
+                    if (f.gdefaultval)
+                        CheckRecursiveDefault(origin, fname, f.gdefaultval, visited, errn);
+                }
+            }
+        }
+        for (size_t i = 0; i < n->Arity(); i++) {
+            CheckRecursiveDefault(origin, fname, n->Children()[i], visited, errn);
+        }
+    }
+
+    // Complete a UDT: typecheck field defaults (which may derive still
+    // unknown field types), register late specializations in the inheritance
+    // forest, and compute sizes. Idempotent, and called on demand by every
+    // consumer that needs any of that, so the order in which code gets
+    // typechecked cannot lead to observing partial state.
+    void EnsureUDTChecked(UDT &udt, const Node &errn) {
+        if (udt.state == UDTState::CHECKED) return;
+        // Already being checked further up the stack (recursive types):
+        // leave completion to that invocation. A consumer that needs the
+        // defaults of an in-progress UDT errors via udts_in_progress.
+        for (auto u : udts_in_progress) if (u == &udt) return;
+        assert(udt.state == UDTState::FIELDS_RESOLVED);
+        // A superclass must be complete first: field defaults get checked
+        // against superclass field types below, and dispatch code relies on
+        // superclasses being complete.
+        if (udt.ssuperclass) EnsureUDTChecked(*udt.ssuperclass, errn);
         udts_in_progress.push_back(&udt);
+        // The stored defaultval gets its constant values extracted by codegen
+        // for the VM (de)serializers, which needs the resolved constructor
+        // shape, not the parsed one.
+        auto clone_default = [&](Node *gdefaultval) {
+            auto dv = gdefaultval->Clone(true);
+            if (auto ac = Is<AutoConstructor>(dv)) {
+                if (!ac->giventype.Null()) {
+                    if (auto g = GetGUDTAny(ac->giventype)) {
+                        auto oc = ResolveAutoConstructor(ac, g, ac->giventype, false);
+                        if (oc) {
+                            delete ac;
+                            dv = oc;
+                        }
+                    }
+                }
+            }
+            return dv;
+        };
         // Give a type for fields that don't have one specified.
         for (auto [i, sfield] : enumerate(udt.sfields)) {
             auto &f = udt.g.fields[i];
             if (!f.gdefaultval) {
                 continue;
             }
-            sfield.defaultval = f.gdefaultval->Clone(true);
-            if (sfield.type->t != V_ANY) {
+            set<GUDT *> visited;
+            CheckRecursiveDefault(&udt.g, f.id->name, f.gdefaultval, visited, errn);
+            sfield.defaultval = clone_default(f.gdefaultval);
+            if (!sfield.type.Null()) {
                 // Type was specified explicitly or CFType succeeded, we are done.
                 sfield.defaultval->exptype = sfield.type;
                 continue;
             }
+            // With this specialization's bindings in scope, so SimpleType can
+            // resolve type variables in e.g. []::T defaults.
+            st.bound_typevars_stack.push_back(udt.GetBoundGenerics());
+            st.PushSuperGenerics(udt.ssuperclass);
             auto simple_type = sfield.defaultval->SimpleType(st);
+            st.PopSuperGenerics(udt.ssuperclass);
+            st.bound_typevars_stack.pop_back();
             if (simple_type.Null()) {
+                // Track how often field types can only be derived by fully
+                // typechecking the initializer (with --debug), since that is
+                // the one part of UDT resolution that can pull in arbitrary
+                // code, and a candidate for requiring explicit types instead.
+                LOG_DEBUG("field type from full typecheck: ", udt.name, ".", f.id->name);
                 // TODO: put in this error once we're confident about SimpleType being conservatively correct.
                 //Error(errn, "non-trivial default value for ", Q(udt.g.fields[i].id->name),
                 //      " requires explicit field type");
@@ -772,12 +913,12 @@ struct TypeChecker {
                 DecBorrowers(sfield.defaultval->lt, errn);
                 // FIXME: because the above may do things like insert coercions etc in exp,
                 // we have to undo that here.
-                auto n = f.gdefaultval->Clone(true);
+                auto n = clone_default(f.gdefaultval);
                 n->exptype = sfield.defaultval->exptype;  // FIXME: even safer if this was not set.
                 delete sfield.defaultval;
                 sfield.defaultval = n;
             } else {
-                // TODO: expand the cases where CFType is sufficient.
+                LOG_DEBUG("field type via SimpleType: ", udt.name, ".", f.id->name);
                 sfield.defaultval->exptype = simple_type;
             }
             sfield.defaultval->lt = LT_UNDEF;
@@ -801,45 +942,40 @@ struct TypeChecker {
                             Q(TypeName(sudt->sfields[i].type)));
             }
         }
-        udts_in_progress.pop_back();
-        for (auto u = &udt; u; u = u->ssuperclass) {
-            if (!u->subudts_dispatched_where.empty()) {
-                // DISPATCH_BEFORE_CLASS_DEF 1
-                // This is unfortunate, but code ordering has made it such that a
-                // dispatch has already been typechecked before this gudt has been
-                // fully processed. This should be solved by doing type-checking more
-                // safely multipass, but until then, this error. Without this error,
-                // the VM could run into empty vtable entries.
-                Error(errn, "class ", Q(udt.name), " already used in dynamic dispatch of ",
-                            Q(u->subudts_dispatched_where), " on ", Q(u->name),
-                            " before it has been declared");
-            }
-            u->subudts.push_back(&udt);
-            // May have already been added by predeclaration, but rather than skipping it in
-            // predeclaration (which would not put the dispatching gudt first), just remove this
-            // one.
-            for (size_t i = 0; i < u->subudts.size() - 1; i++) {
-                if (u->subudts[i] == &udt) {
-                    u->subudts.pop_back();
-                    break;
+        // The declchecker registered all specializations known after parsing
+        // in the inheritance forest; this can only be a specialization that
+        // got created during typechecking (of a generic type).
+        if (!udt.in_forest) {
+            for (auto u = &udt; u; u = u->ssuperclass) {
+                if (!u->subudts_dispatched_where.empty()) {
+                    // A dispatch on a superclass has already been typechecked, so
+                    // its vtables can no longer be extended with this new
+                    // specialization. Without this error, the VM could run into
+                    // empty vtable entries.
+                    Error(errn, "class ", Q(udt.name), " already used in dynamic dispatch of ",
+                                Q(u->subudts_dispatched_where), " on ", Q(u->name),
+                                " before it has been declared");
                 }
             }
-            if (udt.g.is_abstract) {
-                // Only necessary to add itself, but not to superclasses.
-                // FIXME: if we could separate the concept of dispatch_root and subudts,
-                // we wouldn't even need to add the root.
-                break;
-            }
+            st.RegisterSubUDT(&udt);
+        }
+        // Inline struct fields contribute their slots to our size, so they
+        // must be complete first.
+        for (auto &sfield : udt.sfields) {
+            if (!sfield.type.Null() && IsStruct(sfield.type->t))
+                EnsureUDTChecked(*sfield.type->udt, errn);
         }
         if (!udt.ComputeSizes()) {
             Error(errn, cat("struct ", Q(udt.name), " cannot be self-referential"));
         }
+        udts_in_progress.pop_back();
+        udt.state = UDTState::CHECKED;
     }
 
     void TypeCheckGUDT(GUDT &gudt, const Node &errn, bool predeclaration) {
         if (predeclaration) return;
         for (auto udt = gudt.first; udt; udt = udt->next) {
-            TypeCheckUDT(*udt, errn);
+            EnsureUDTChecked(*udt, errn);
         }
     }
 
@@ -3357,8 +3493,100 @@ Node *PreIncr::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bo
     return tc.TypeCheckPlusPlus(*this);
 }
 
+// SimpleType implementations: derive the type an expression will get from
+// full typechecking, for expressions where that can be decided locally, i.e.
+// without resolving names or type variables, calling functions, or any other
+// action that could have side effects on typechecking order. Must either
+// return exactly what TypeCheck() would make the exptype, or null.
+
+// Resolve a given type the way ResolveTypeVars would, for the subset of
+// shapes where that can't have side effects: concrete types, wrappings of
+// them, and type variables that are already bound (EnsureUDTChecked pushes
+// the specialization's bindings). Null for anything else, notably V_UUDT,
+// whose resolution can create new specializations.
+static TypeRef SimpleResolve(UnTypeRef t, SymbolTable &st) {
+    switch (t->t) {
+        case V_NIL:
+        case V_VECTOR: {
+            auto e = SimpleResolve({ t->Element() }, st);
+            if (e.Null()) return nullptr;
+            if (t->t == V_NIL && !st.IsNillable(e)) return nullptr;  // TT reports this error.
+            if (&*e == t->Element()) return TypeRef(t.get());
+            return st.Wrap(e, t->t);
+        }
+        case V_TYPEVAR: {
+            for (auto &bvec : reverse(st.bound_typevars_stack)) {
+                for (auto &gtv : bvec) {
+                    if (gtv.tv == t->tv && !gtv.type.Null()) return gtv.type;
+                }
+            }
+            return nullptr;
+        }
+        case V_UUDT:
+        case V_VAR:
+        case V_ANY:
+        case V_UNDEFINED:
+            return nullptr;
+        default:
+            return TypeRef(t.get());
+    }
+}
+
 TypeRef UnaryMinus::SimpleType(SymbolTable &st) {
     return child->SimpleType(st);
+}
+
+TypeRef BinOp::SimpleType(SymbolTable &st) {
+    auto lt = left->SimpleType(st);
+    if (lt.Null()) return nullptr;
+    // A string on the left of + makes the right side get converted to
+    // string whatever it is, so the type doesn't depend on it.
+    if (Is<Plus>(this) && lt->t == V_STRING) return type_string;
+    auto rt = right->SimpleType(st);
+    if (rt.Null()) return nullptr;
+    // Only plain scalar/string operands: anything else can involve operator
+    // overloads, vector math, enum unions, etc.
+    auto num = [](TypeRef t) { return t->t == V_FLOAT || (t->t == V_INT && !t->e); };
+    if (Is<Plus>(this) || Is<Minus>(this) || Is<Multiply>(this) || Is<Divide>(this) ||
+        Is<Mod>(this)) {
+        if (Is<Plus>(this) && rt->t == V_STRING) return type_string;
+        if (!num(lt) || !num(rt)) return nullptr;
+        return lt->t == V_FLOAT || rt->t == V_FLOAT ? type_float : type_int;
+    }
+    if (Is<BitAnd>(this) || Is<BitOr>(this) || Is<Xor>(this) || Is<ShiftLeft>(this) ||
+        Is<ShiftRight>(this)) {
+        return lt->t == V_INT && !lt->e && rt->t == V_INT && !rt->e ? type_int
+                                                                   : TypeRef(nullptr);
+    }
+    // Qualified, since unqualified Equal is the Node member function here.
+    if (Is<lobster::Equal>(this) || Is<NotEqual>(this) || Is<LessThan>(this) ||
+        Is<GreaterThan>(this) || Is<LessThanEq>(this) || Is<GreaterThanEq>(this)) {
+        if (!st.default_bool_type) return nullptr;
+        if ((num(lt) && num(rt)) || (lt->t == V_STRING && rt->t == V_STRING))
+            return &st.default_bool_type->thistype;
+    }
+    return nullptr;
+}
+
+TypeRef NativeCall::SimpleType(SymbolTable &) {
+    // Only builtins with a single fixed scalar/string return type, and no
+    // overloads whose selection could change that.
+    if (nf->first->overloads) return nullptr;
+    if (nf->retvals.size() != 1) return nullptr;
+    auto &ret = nf->retvals[0];
+    if (ret.flags != NF_NONE || ret.optional) return nullptr;
+    switch (ret.vttype->t) {
+        case V_INT:
+        case V_FLOAT:
+        case V_STRING:
+            return ret.vttype;
+        default:
+            return nullptr;
+    }
+}
+
+TypeRef EnumCoercion::SimpleType(SymbolTable &) {
+    return &e->thistype;
 }
 Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (auto nn = tc.OperatorOverload(*this)) return nn;
@@ -3371,10 +3599,30 @@ Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
     return this;
 }
 
-TypeRef IdentRef::SimpleType(SymbolTable &) {
-    // This should really never return a type that later is improved by TypeCheck() is that the case?
-    //return sid->id->constant && sid->id->scopelevel == 1 && !sid->type.Null() && sid->type->t != V_UNDEFINED ? sid->type : nullptr;
-    return nullptr;
+TypeRef IdentRef::SimpleType(SymbolTable &st) {
+    auto id = sid->id;
+    // Only globals: anything else may not even be in scope where this exp
+    // ends up being typechecked.
+    if (id->scopelevel != 1) return nullptr;
+    TypeRef type = nullptr;
+    if (!id->giventype.Null()) {
+        // Note: for a global, any type variables in scope here can't apply
+        // to its type, so anything not concrete fails to resolve.
+        type = SimpleResolve(id->giventype, st);
+        if (type.Null()) return nullptr;
+    } else if (id->single_assignment && id->toplevel_initializer) {
+        // Constant globals like float2_1: their type is that of their
+        // defining expression (which can only refer to globals defined
+        // before it, so this recursion terminates).
+        type = id->toplevel_initializer->SimpleType(st);
+        if (type.Null()) return nullptr;
+    } else {
+        return nullptr;
+    }
+    // A flow sensitive type could get promoted by TypeCheck(), so the
+    // declared type would not always equal what full typechecking gives.
+    if (type->FlowSensitive()) return nullptr;
+    return type;
 }
 Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.UpdateCurrentSid(sid);
@@ -4061,11 +4309,23 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     return this;
 }
 
-TypeRef VectorConstructor::SimpleType(SymbolTable &) {
-    // This should really never return a type that later is improved by TypeCheck() is that the case?
-    // How to deal with resolving types?
-    //return giventype.Null() ? nullptr : giventype;
-    return nullptr;
+TypeRef Nil::SimpleType(SymbolTable &st) {
+    return giventype.Null() ? TypeRef(nullptr) : SimpleResolve(giventype, st);
+}
+
+TypeRef VectorConstructor::SimpleType(SymbolTable &st) {
+    if (!giventype.Null()) return SimpleResolve(giventype, st);
+    // Without a given type, the element type is the union of the elements,
+    // which we can only match locally when they're all the same simple type.
+    if (children.empty()) return nullptr;
+    TypeRef elem = nullptr;
+    for (auto c : children) {
+        auto ct = c->SimpleType(st);
+        if (ct.Null()) return nullptr;
+        if (elem.Null()) elem = ct;
+        else if (!ct->Equal(*elem)) return nullptr;
+    }
+    return st.Wrap(elem, V_VECTOR, &line);
 }
 Node *VectorConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef parent_bound) {
     if (giventype.Null()) {
@@ -4106,52 +4366,43 @@ Node *VectorConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef p
 }
 
 Node *AutoConstructor::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_bound) {
-    parent_bound = parent_bound->ElementIfNil();
-    if (!IsUDT(parent_bound->t))
-        tc.Error(*this, "class/struct type for auto constructor unknown in this context");
-    auto udt = parent_bound->udt;
-    // The logic for the code below is very similar to parsing typed constructors in IdentFactor.
-    node_small_vector exps(udt->sfields.size(), nullptr);
-    for (auto [i, c] : enumerate(children)) {
-        auto tag = tags[i];
-        if (tag) {
-            auto field = udt->g.Has(tag);
-            if (field < 0) tc.Error(*this, "unknown field ", Q(tag->name));
-            if (exps[field]) tc.Error(*this, "field ", Q(tag->name), " initialized twice");
-            exps[field] = c;
-        } else {
-            // An initializer without a tag. Find first field without a default thats not
-            // set yet.
-            for (size_t i = 0; i < exps.size(); i++) {
-                if (!exps[i] && !udt->g.fields[i].gdefaultval) {
-                    exps[i] = c;
-                    goto done;
-                }
-            }
-            tc.Error(*this, "too many initializers for ", Q(udt->name));
-            done:;
-        }
+    // Resolve which fields the (tagged) initializers belong to, fill in
+    // defaults, and check for missing fields, all against the completed
+    // declaration of the type, then hand over to ObjectConstructor.
+    GUDT *g = nullptr;
+    UnTypeRef ctype = giventype;
+    if (!ctype.Null()) {
+        g = GetGUDTAny(ctype);
+        assert(g);
+    } else {
+        auto pb = parent_bound->ElementIfNil();
+        if (!IsUDT(pb->t))
+            tc.Error(*this, "class/struct type for auto constructor unknown in this context");
+        g = &pb->udt->g;
+        ctype = { &pb->udt->thistype };
     }
-    // Now fill in defaults, check for missing fields, and construct list.
-    auto constructor = new ObjectConstructor(line, &udt->thistype);
-    for (size_t i = 0; i < exps.size(); i++) {
-        if (!exps[i]) {
-            if (udt->g.fields[i].gdefaultval)
-                exps[i] = udt->g.fields[i].gdefaultval->Clone(true);
-            else
-                tc.Error(*this, "field ", Q(udt->g.fields[i].id->name), " not initialized");
-        }
-        constructor->Add(exps[i]);
-    }
-    children.clear();
-    constructor->TypeCheck(tc, reqret, parent_bound);
+    unique_ptr<ObjectConstructor> constructor(tc.ResolveAutoConstructor(this, g, ctype, true));
+    // Our children have been transferred; if typechecking below throws, the
+    // new node owns them and gets deleted, while this node (still in the
+    // tree) is left childless.
+    auto r = constructor->TypeCheck(tc, reqret, parent_bound);
+    constructor.release();
     delete this;
-    return constructor;
+    return r;
 }
 
 TypeRef ObjectConstructor::SimpleType(SymbolTable &) {
-    // This should really never return a type that later is improved by TypeCheck().
-    return nullptr;
+    // Only a directly concrete type: resolving type variables here could
+    // create specializations, which isn't local anymore. The argument
+    // expressions don't affect the type and get typechecked wherever this
+    // constructor ends up used.
+    return IsUDT(giventype->t) ? TypeRef(&giventype->udt->thistype) : TypeRef(nullptr);
+}
+
+TypeRef AutoConstructor::SimpleType(SymbolTable &) {
+    // As above.
+    return !giventype.Null() && IsUDT(giventype->t) ? TypeRef(&giventype->udt->thistype)
+                                                    : TypeRef(nullptr);
 }
 Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     UDT *udt = nullptr;
@@ -4167,6 +4418,7 @@ Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /
         int bestmatch = 0;
         for (auto udti = gudt->first; udti; udti = udti->next) {
             if (udti->unnamed_specialization) continue;
+            tc.EnsureUDTChecked(*udti, *this);
             int nmatches = 0;
             for (auto [i, arg] : enumerate(children)) {
                 auto &sfield = udti->sfields[i];
@@ -4231,9 +4483,10 @@ Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /
             tc.Error(*this, "type does not resolve to an object constructor: ", Q(TypeName(exptype)));
         }
         udt = exptype->udt;
-        // Sadly, this causes more problems than it solves, since these UDTs may depend
-        // on global vars not typechecked, etc.
-        //tc.TypeCheckUDT(*udt, *this, true);
+        // Complete the UDT on demand: its field defaults must have been
+        // typechecked before they can be cloned in below, regardless of where
+        // its declaration statement sits relative to this constructor.
+        tc.EnsureUDTChecked(*udt, *this);
         tc.st.PushSuperGenerics(udt);
         // Fill in default args.. already done in the parser normally, but can happen if
         // this is a T {} constructor.
@@ -4294,6 +4547,14 @@ Node *Dot::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*
         tc.Error(*this, "field ", Q(field.id->name), " is private");
     if (!field.in_scope) tc.Error(*this, "field ", Q(field.id->name), " is not in scope");
     exptype = udt->sfields[fieldidx].type;
+    if (exptype.Null()) {
+        // The field type is still to be inferred from its default value.
+        tc.EnsureUDTChecked(*udt, *this);
+        exptype = udt->sfields[fieldidx].type;
+        if (exptype.Null())
+            tc.Error(*this, "type of field ", Q(field.id->name),
+                            " cannot be inferred here, give it an explicit type");
+    }
     FlowItem fi(*this, exptype);
     if (fi.IsValid()) {
         auto flowtype = tc.UseFlow(fi);

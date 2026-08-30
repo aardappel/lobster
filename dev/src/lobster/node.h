@@ -247,7 +247,7 @@ struct TypeAnnotation : Node {
 
 // generic node types
 NARY_NODE(List, "list", false, )
-BINARY_NODE(BinOp, "binop", false, left, right, )
+BINARY_NODE(BinOp, "binop", false, left, right, SIMPLEMETHOD)
 UNOP_NODE(Coercion, "coercion", false, )
 
 BINOP_NODE(Plus, TName(T_PLUS), false, )
@@ -324,6 +324,7 @@ struct Nil : Node {
     }
     SHARED_SIGNATURE(Nil, TName(T_NIL), false)
     OPTMETHOD
+    SIMPLEMETHOD
 };
 
 struct IdentRef : Node {
@@ -507,6 +508,9 @@ struct ObjectConstructor : List {
 
 struct AutoConstructor : List {
     small_vector<SharedField *, 4> tags;
+    // Null for the naked { .. } form (type from context), the constructed
+    // type for the Name { .. } form.
+    UnTypeRef giventype = (UnType *)nullptr;
     AutoConstructor(const Line &ln) : List(ln) {};
     bool IsConstInit() const {
         for (auto n : children) {
@@ -521,6 +525,7 @@ struct AutoConstructor : List {
         return true;
     }
     SHARED_SIGNATURE(AutoConstructor, "auto_constructor", false)
+    SIMPLEMETHOD
 };
 
 struct Call : List {
@@ -565,6 +570,7 @@ struct NativeCall : List {
     }
     SHARED_SIGNATURE(NativeCall, "native call", true)
     RETURNSMETHOD
+    SIMPLEMETHOD
 };
 
 struct Return : Unary {
@@ -675,6 +681,7 @@ struct EnumCoercion : Unary {
         return e == ((EnumCoercion *)o)->e;
     }
     SHARED_SIGNATURE(EnumCoercion, e->name, false)
+    SIMPLEMETHOD
 };
 
 struct ToLifetime : Coercion {

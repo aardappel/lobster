@@ -26,6 +26,7 @@
 #include "lobster/compiler.h"
 
 #include "lobster/parser.h"
+#include "lobster/declcheck.h"
 #include "lobster/typecheck.h"
 #include "lobster/constval.h"
 #include "lobster/optimizer.h"
@@ -563,6 +564,8 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     SymbolTable st(lex);
     Parser parser(nfr, lex, st);
     parser.Parse();
+    DeclChecker dc(st, nfr);
+    dc.Check();
     if (query) PrepQuery(*query, filenames);
     TypeChecker tc(parser, st, return_value, query, full_error);
     if (query) { // Failed to find location during type checking.

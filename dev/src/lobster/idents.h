@@ -78,6 +78,11 @@ struct Ident : Named {
     SpecIdent *cursid = nullptr;
 
     UnTypeRef giventype = (UnType *)nullptr;
+    // For single-assignment top level vars only: the defining expression, so
+    // the type of simple constant globals can be derived without having
+    // typechecked their definition. Owned by the AST, so only valid during
+    // typechecking.
+    Node *toplevel_initializer = nullptr;
 
     Ident(string_view _name, int _idx, size_t _sl, Line &_line)
         : Named(_name, _idx), scopelevel(_sl), line(_line) {}
@@ -184,6 +189,28 @@ struct Field {
           in_scope(in_scope),
           defined_in(defined_in) {}
     Field(const Field &o);
+    // Moves transfer ownership of gdefaultval, so vector operations that
+    // shift elements (like insert) can't end up sharing it. Copy assignment
+    // would, so it stays deleted.
+    Field(Field &&o) noexcept
+        : id(o.id),
+          giventype(o.giventype),
+          gdefaultval(o.gdefaultval),
+          isprivate(o.isprivate),
+          in_scope(o.in_scope),
+          defined_in(o.defined_in) {
+        o.gdefaultval = nullptr;
+    }
+    Field &operator=(Field &&o) noexcept {
+        std::swap(id, o.id);
+        std::swap(giventype, o.giventype);
+        std::swap(gdefaultval, o.gdefaultval);
+        std::swap(isprivate, o.isprivate);
+        std::swap(in_scope, o.in_scope);
+        std::swap(defined_in, o.defined_in);
+        return *this;
+    }
+    Field &operator=(const Field &o) = delete;
     ~Field();
 };
 
@@ -259,6 +286,17 @@ struct GUDT : Named {
     }
 };
 
+// How far a UDT has progressed thru declaration resolving / typechecking.
+// Consumers complete a UDT on demand (EnsureUDTChecked) rather than relying
+// on the order declarations get visited, and can assert on this rather than
+// ever observing partial state.
+enum class UDTState {
+    DECLARED,         // Specialization exists, sfields not (fully) filled in.
+    FIELDS_RESOLVED,  // sfields filled, but inferred ones may be null,
+                      // defaultvals not yet typechecked.
+    CHECKED,          // Field types complete, defaultvals typechecked, sized.
+};
+
 // This is a fully specialized instance of a GUDT.
 struct UDT : Named {
     GUDT &g;
@@ -266,6 +304,8 @@ struct UDT : Named {
     vector<TypeRef> bound_generics;
     vector<SField> sfields;
     UDT *ssuperclass = nullptr;
+    UDTState state = UDTState::DECLARED;
+    bool in_forest = false;  // Present in the subudts of itself & superclasses.
     bool hasref = false;
     bool unnamed_specialization = false;
     Type thistype;  // convenient place to store the type corresponding to this.
@@ -313,7 +353,11 @@ struct UDT : Named {
         int size = 0;
         for (auto &sfield : sfields) {
             sfield.slot = size;
-            if (IsStruct(sfield.type->t)) {
+            if (sfield.type.Null()) {
+                // Field type still to be inferred, can only be reached in
+                // recursive situations that will error elsewhere.
+                size++;
+            } else if (IsStruct(sfield.type->t)) {
                 if (!sfield.type->udt->ComputeSizes(depth + 1)) return false;
                 size += sfield.type->udt->numslots;
             } else {
@@ -1383,6 +1427,12 @@ struct SymbolTable {
             // Can't use Union here since it will bind variables, use simplified
             // alternative:
             auto ftype = cudt.sfields[i].type;
+            if (ftype.Null()) {
+                // Field type still to be inferred from its default value, so
+                // it can't participate in sametype.
+                sametype = type_undefined;
+                break;
+            }
             if (IsStruct(ftype->t)) {
                 if (rec == 16) {  // We only for self-referential in the TypeChecker :(
                     sametype = type_undefined;
@@ -1408,11 +1458,26 @@ struct SymbolTable {
         if (supertype->t != V_UNDEFINED) {
             assert(IsUDT(supertype->t));
             udt.ssuperclass = supertype->udt;
+            // An inheritance cycle can be declared thru pre-declarations, and
+            // would make the walks over ssuperclass everywhere run forever.
+            // Checking at the moment the link is added means the chain below
+            // is guaranteed cycle-free.
+            for (auto u = udt.ssuperclass; u; u = u->ssuperclass) {
+                if (u == &udt)
+                    lex.Error(cat("inheritance cycle in type ", Q(udt.g.name)), &errl);
+            }
         }
         PushSuperGenerics(udt.ssuperclass);
         for (size_t i = udt.sfields.size(); i < udt.g.fields.size(); i++) {
             auto &field = udt.g.fields[i];
-            udt.sfields.push_back({ ResolveTypeVars(field.giventype, errl) });
+            // A field with no type given whose type could not be derived from
+            // its default value at parse time stays null until EnsureUDTChecked
+            // derives it by typechecking the default, so partially resolved
+            // state can never be silently read (V_ANY, the previous sentinel,
+            // is also a legitimate type).
+            udt.sfields.push_back({ field.gdefaultval && field.giventype->t == V_ANY
+                                        ? TypeRef(nullptr)
+                                        : ResolveTypeVars(field.giventype, errl) });
         }
         PopSuperGenerics(udt.ssuperclass);
         bound_typevars_stack.pop_back();
@@ -1424,12 +1489,31 @@ struct SymbolTable {
         // Update the type to the correct struct type.
         if (udt.g.is_struct) {
             for (auto &sfield : udt.sfields) {
-                if (IsRefNil(sfield.type->t)) {
+                // A still to be inferred field must conservatively count as a
+                // ref, since its inferred type may turn out to be one.
+                if (sfield.type.Null() || IsRefNil(sfield.type->t)) {
                     udt.hasref = true;
                     break;
                 }
             }
             const_cast<ValueType &>(udt.thistype.t) = udt.hasref ? V_STRUCT_R : V_STRUCT_S;
+        }
+        if (udt.state == UDTState::DECLARED && udt.sfields.size() == udt.g.fields.size())
+            udt.state = UDTState::FIELDS_RESOLVED;
+    }
+
+    // Register a specialization in the subudts list of itself and all its
+    // superclasses. Called by the declchecker for all specializations known
+    // after parsing, and from EnsureUDTChecked for specializations created
+    // during typechecking.
+    void RegisterSubUDT(UDT *udt) {
+        if (udt->in_forest) return;
+        udt->in_forest = true;
+        for (auto u = udt; u; u = u->ssuperclass) {
+            u->subudts.push_back(udt);
+            // An abstract class can never be a dispatch case itself, it only
+            // needs to be present as a dispatch root.
+            if (udt->g.is_abstract) break;
         }
     }
 
@@ -1515,7 +1599,11 @@ inline string Signature(const UDT &udt) {
     string r = udt.name;
     r += "{";
     for (auto [i, f] : enumerate(udt.g.fields)) {
-        FormatArg(r, f.id->name, i, udt.sfields[i].type);
+        // A null type is a field whose type is still to be inferred from its
+        // default value.
+        FormatArg(r, f.id->name, i,
+                  udt.sfields[i].type.Null() ? f.giventype
+                                             : UnTypeRef(udt.sfields[i].type.get()));
     }
     r += "}";
     return r;
