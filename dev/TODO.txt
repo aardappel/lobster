@@ -64,15 +64,6 @@
     dump all specializations of a function too, so we can see what causes the difference.
 
 
-- we should really gather `subudts` before the start of typechecking so these two dumb errors
-  can be removed:
-  https://github.com/aardappel/lobster/issues/391
-  Though in what ways does typechecking of the methods rely on those classes?
-  It almost feels like maybe classes should be treated like functions: typechecked when touched.
-  But to do that properly need to deal with type recursion gracefully.
-  This also related to the attempt to typecheck fields thru initializers which also doesn't always
-  work because of similar ordering issues.
-
 - We could add further syntactic sugar to the disciminated union use case.
   E.g.
   union Foo:
@@ -146,7 +137,11 @@
   simply emit code that does a simple int comparison per statement, not too expensive.
   More work is the UI to show all source code, allow to set breakpoints etc.
 
-- Fix defaultval typechecking in TypeCheckUDT
+- Field types derived from default values now go thru SimpleType where possible; the
+  remaining cases (function calls) still use the full-typecheck-then-clone-undo fallback
+  in EnsureUDTChecked (--debug logs both categories). Could be eliminated by requiring
+  explicit types on such fields (matvoxels would need ~235 annotations: mostly untyped
+  nil / [] defaults, which arguably deserve them, and builtin/function call defaults).
 
 - FIX:
     class A:
@@ -234,29 +229,6 @@
     Oh and if we're going to implement this syntax, we should also allow one-liner structs the
     same way:
     struct X { foo:string, bar:int }
-
-- FIX:
-  class PreDecl
-  class Foo:
-    p = PreDecl {}
-  Tries to typecheck that constructor and fails on not knowing its default values yet.
-  Should either know a UDT has not been typechecked and attempt to do so before typechecking constructor,
-  or this should be part of separating out a separate pass?
-
-- Thanks to FunctionDeclTT, this code still compiles, need some kind of lexical scope tracking.
-  Can't check this in the parser anymore.
-  It is very benign though, since bar() is not a method, its a free standing function with a free variable
-  called "this", and that exact same free variable is still in scope when baz calls it.
-  You could consider it a feature :P
-  Call graph scope.
-  class A:
-      def foo():
-          def bar():
-              pass()
-          bar()
-          baz()
-  def baz():
-      bar()
 
 - gl.polygon (and presumably any RenderArraySlow) leaks vbo/vao on Linux/Mesa?
   https://github.com/aardappel/lobster/issues/366
@@ -589,13 +561,6 @@
 - A document that explains what samples are available and what they demo.
   - Also move some more of my (Wouter) projects into the main repo as samples.
 
-- Unknown functions in untypechecked code do not error at all anymore?
-  The parser can't decide this at the call since functions/methods/fields may legitimately
-  be declared after it, and an end-of-parse check over all declarations was tried, but that
-  amounts to second guessing what the type checker resolves more exactly (scoping, methods
-  vs fields, natives per build), so is error prone. A real fix would be to resolve names in
-  a later pass, or to (partially) type check dead code.
-
 - Check if these are fixed by now:
     https://github.com/wolfpld/tracy/issues/419
     https://github.com/wolfpld/tracy/issues/422
@@ -685,11 +650,9 @@
     let sub1 = Subscriber{}
     let sub2 = Subscriber{}
 
-- For a Foo { .. }, the parser does resolution of initialized/named fields, but for T { .. } whatever args
-  are given are applied in-order, which is probably not expected. Either:
-  a) This resolution needs to be moved from parser to type checker (requiring us to add tags: unprocessed to the AST)
-  b) We recognise T { .. } (or make it a special node type) in the type checker and duplicate the parser logic
-     there. Even so, it be nice to allow tags:, which would just require the same as a).
+- T { .. } constructors (where T is a type variable) still apply args in-order and don't
+  accept tags:. Now that Name { .. } parses to a tagged AutoConstructor resolved in the
+  typechecker, allowing tags here too should be easy.
 
 - a switch where all cases assign a non-nil value to nil variable doesn't make the var non-nil like if-then does.
 
@@ -856,11 +819,12 @@
 - "C-style language to Lobster Cheat Sheet" could use improvements, and more about types.
   Also def for function values.
 
-- move to more of a many-passes architecture to facility cleaning up further messes,
-  in particular resolving generic types, and maybe some of the function checking.
-  Could start by having a number of passes between parser and type-checker, and
-  systematically pull steps from the typechecker into that, with the objective
-  that the final typechecker pass only works on concrete fully specialized types.
+- The declchecker (declcheck.h) now sits between parser and typechecker: inheritance
+  forest, superclass field copies, call name resolution, non generic V_UUDT collapse, and
+  demand driven UDT completion. Remaining ambitions in that direction: resolving more of
+  generics ahead of time, with the eventual objective that the typechecker only works on
+  concrete fully specialized types (see UnConvertsTo for where unresolved types still
+  reach it).
 
 - move function checking into typechecker.
   This is now mostly done.
@@ -877,29 +841,14 @@
     class C:
         def myfunc(x:int=1):
             pass()
-  - GenericCall::TypeCheck is a shaky stack of hacks, needs to be rewritten in a more principled manner.
-  - Fix non-lexical ordering issues in GenericCall::TypeCheck
-  - Make decision-making in GenericCall::TypeCheck more robust.
   - Further reduce whatever is happening in ParseFunctionCall
     - also merge with DynCall and Dot parsed elsewehere.
   - check that we're fixed all below:
-    - the biggest issue is that it first selects on args, then on 1st arg type, it should be the other
-      way around. Parser needs to stop trying to select Function based on args, and typechecker should
-      first filter on type (important: foo.unknown should complain about unknown, not about foo because
-      some completely unrelated type has an unknown defined on it).
-      Possibly not separate Function on args in the first place. different scopes
-      should have completely separate set of functions.
-    - generally having all functions global is a big source of confusion, should have methods separate.
+    - could go further than the current per-name overload sets and store methods on a per
+      type basis.
     - problematic error:
         error: no version of function `f` takes 0 arguments
-      - where `f` is a method yet to be declared in the current class, but also used in other classes.
-      - and even if it is already declared it gets confused, since strictly there's only versions with >0 args.
-      really need to move decision on which function is being called to the type checker.
-      possibly even store methods on a per type basis.
-    - problematic error:
-      test_worldmove.lobster(21): error: cannot define a variation of function set at a different scope level
-      in:                 def set(p, s, e):
-      (this with a `set` method somewhere on a class, and this set local to another function)
+      could mention the receiver type it looked for.
     - problematic error:
       cannot override built-in function `remove` with same (or less) arity
   before:
@@ -925,39 +874,11 @@
       - after cleaning up parser, for every top level definition should mark from which file it comes,
         and then each use should make sure that file has been included in the current file, to avoid
         suprises when things are included independently.
-      - if we can delay looking up the function to the type checker, then we can allow
-        "functions as environments", e.g.
-        def env(f):
-            v := 1
-            def m(): return v++
-            f()
-        env():
-            for 10: print m()
-            env():
-                m()  // increments different variable!
-        This is kinda like "with" or dynamic scope, and could benefit match.lobster, gui.lobster.
-        The type checker already supports this, its just the parser lookup!
-        Using this recursively will make it harder to optimize stack frame usage in the future,
-        though neither match nor gui is properly recursive, it is all instantiated.
-      - example of deciding between different methods going wrong:
-        class foo:
-            def f(): g(3)
-            def g(n): print(n)
-        class bar:
-            def f(): g(3, 4)
-            def g(n, m): print(n + " " + m)
-        bar{}.f()
-        bar{}.g(1, 2)
-        foo{}.f()
-        foo{}.g(1)
-        error: "g" (1st argument) requires type: foo, got: int
       - can things like closures be parsed conservatively after a function call without knowing
         the function? It seems to already work for some calls:
         def foo(fun):
           fun() x: print x
       - SharedField can be removed, only needed in deciding how to parse x.y and x.y(
-    - If we're NOT going to do the above, then some more uses of new GenericCall can
-      already be made to specific calls in the parser.
 
 - There's likely all sorts of uses of SubFunction that would be less buggy if Overload was used instead.
   - To find out, have to audit every use of it.
@@ -1403,13 +1324,6 @@
   "managed") programming language? You get:
 
   The terminal process "bin\lobster.exe infrecurse.lobster" terminated with exit code: 3221225477.
-
-- Typechecking top level annotated-but-unreached functions at the end (an old wish, see
-  elsewhere in this file) now has known blockers: (a) their callees would get typechecked
-  and thus codegenned for real, and bump numcallers (affecting inlining of live code),
-  which would need snapshot/restore around the pass; (b) dead code using the
-  "functions as environments" feature has no active enclosing scope, so it would produce
-  false "unknown function" errors. Needs a design pass (or an opt-in flag) first.
 
 - Would be good to finally make SDL modular, and get rid of that silly main-redef
   There's this: https://wiki.libsdl.org/SDL_SetMainReady
@@ -1907,12 +1821,6 @@
 
 - For fun: follow along https://github.com/kanaka/mal/blob/master/process/guide.md
 
-- Would be useful to typecheck top-level named functions that have a full type signature
-  and haven't been typechecked at the end of type-checking, to get any type errors they
-  may contain earlier.
-  - Have to be careful that it is still seen as dead code by the codegen, and not
-    contribute to any use-count for inlining by the optimizer etc.
-
 - Should refactor for size of files.. typechech.h is getting unwieldy.
   Can maybe pull out some lifetime stuff?
 
@@ -2260,15 +2168,9 @@
     - make public headers explicitly depend on it.
     - try to reduce the scope of it.
 
-- We should consider splitting the type checker in particular, but potentially also parts of
-  parser/opt/codegen into more passes.
-  This is a more complicated change that will not be easy.
-  In particular, type-checking of struct decls has ordering issues that creep into the language,
-  forcing users to declare things in a particular order that is not obvious.
-  This is hard though, because:
-  - types of fields may depend on initializers which depend on globals declared before it which
-    depend on other classes..
-  - other types (super classes, generics, fields) may be quite circular.
+- Could consider splitting more of the typechecker (and opt/codegen) into further passes;
+  the declaration ordering issues that motivated this originally are now handled by the
+  declchecker and demand driven UDT completion.
 
 - Add an optional mouse smoothing feature?
 
