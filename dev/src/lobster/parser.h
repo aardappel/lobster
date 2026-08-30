@@ -414,6 +414,8 @@ struct Parser {
                 // FIXME: this will lookup idents in this exp in the current context, and it should do so
                 // outside the current class it is in somehow.
                 ParseField(gudt, true, true);
+                // Only the method this sits in may access it, see Dot::TypeCheck.
+                gudt->fields.back().member_of = st.defsubfunctionstack.back()->overload;
                 st.bound_typevars_stack.pop_back();
                 auto initc = gudt->fields.back().gdefaultval->Clone(true);
                 SpecIdent *this_sid = nullptr;

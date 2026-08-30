@@ -136,9 +136,13 @@ def errors_tests():
                  "        return y\nreturn C \{\}.m()",
                  "local variable `n` cannot be used in a `member` initializer")
 
-    // A `member` variable is scoped to its method, not visible on the object.
+    // A `member` variable is scoped to the method that declares it: not
+    // visible on the object, nor from another method of the same class.
     expect_error("class C:\n    def m():\n        member x = 1\nlet c = C \{\}\nreturn c.x",
-                 "not in scope")
+                 "can only be used there")
+    expect_error("class C:\n    def m():\n        member x = 1\n        return x\n" +
+                 "    def other():\n        return x\nreturn C \{\}.other()",
+                 "declared by a `member` in `m`")
     // Once a class has a constructor function, plain {} construction elsewhere
     // is disallowed.
     expect_error("class C:\n    a:int\nconstructor C(n:int):\n    return C \{ n \}\n" +

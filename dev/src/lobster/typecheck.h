@@ -4786,7 +4786,22 @@ Node *Dot::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*
     auto &field = udt->g.fields[fieldidx];
     if (field.isprivate && line.fileidx != field.defined_in.fileidx)
         tc.Error(*this, "field ", Q(field.id->name), " is private");
-    if (!field.in_scope) tc.Error(*this, "field ", Q(field.id->name), " is not in scope");
+    if (field.member_of) {
+        // A field declared by `member` belongs to the method that declares it:
+        // it is in scope there once that statement has been reached, and in
+        // anything lexically nested in it, but nowhere else.
+        auto visible = false;
+        for (auto ov = tc.scopes.back().sf->overload; ov; ov = ov->sf->lexical_parent) {
+            if (ov == field.member_of) { visible = true; break; }
+        }
+        if (!visible)
+            tc.Error(*this, "field ", Q(field.id->name), " was declared by a ", Q("member"),
+                            " in ", Q(field.member_of->sf->parent->name), " (",
+                            tc.parser.lex.Location(field.defined_in),
+                            "), so it can only be used there");
+    }
+    if (!field.in_scope)
+        tc.Error(*this, "field ", Q(field.id->name), " is not in scope");
     exptype = udt->sfields[fieldidx].type;
     if (exptype.Null()) {
         // The field type is still to be inferred from its default value.

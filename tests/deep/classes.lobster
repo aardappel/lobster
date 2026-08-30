@@ -80,6 +80,13 @@ class DCCounter:
         member typed:float = 0.5  // With an explicit type.
         typed += 1.0
         return typed
+    def nested():
+        member deep = 1
+        // Anything lexically inside the declaring method sees it, including a
+        // lambda and a local function (which may be called from elsewhere).
+        let lam = fn: deep + 1
+        def loc(): return deep * 10
+        return lam() + loc()
 
 // Forward declaration: usable in types before the full definition exists.
 class DCFwd
@@ -372,6 +379,7 @@ def classes_tests():
     test_eq(cnt1.bumpf(), 102)  // member_frame persists within one frame.
     test_eq(cnt1.bumpt(), 1.5)
     test_eq(cnt1.bumpt(), 2.5)
+    test_eq(cnt1.nested(), 12)
 
     // Reference-typed field defaults are evaluated per instance, not shared.
     class VHolder:

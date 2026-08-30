@@ -172,12 +172,17 @@ struct SharedField : Named {
     SharedField() : SharedField("", 0) {}
 };
 
+struct Overload;
+
 struct Field {
     SharedField *id;
     UnTypeRef giventype;
     Node *gdefaultval;
     bool isprivate;
-    bool in_scope;  // For tracking scopes of ones declared by `member`.
+    bool in_scope;  // Whether the `member` statement declaring it has been reached.
+    // The method a `member` declared this in, null for an ordinary field. Only
+    // that method (and anything lexically inside it) may access it.
+    Overload *member_of = nullptr;
     Line defined_in;
 
     Field(SharedField *_id, UnTypeRef _type, Node *_gdefaultval, bool isprivate,
@@ -198,6 +203,7 @@ struct Field {
           gdefaultval(o.gdefaultval),
           isprivate(o.isprivate),
           in_scope(o.in_scope),
+          member_of(o.member_of),
           defined_in(o.defined_in) {
         o.gdefaultval = nullptr;
     }
@@ -206,6 +212,7 @@ struct Field {
         std::swap(giventype, o.giventype);
         std::swap(gdefaultval, o.gdefaultval);
         std::swap(isprivate, o.isprivate);
+        std::swap(member_of, o.member_of);
         std::swap(in_scope, o.in_scope);
         std::swap(defined_in, o.defined_in);
         return *this;

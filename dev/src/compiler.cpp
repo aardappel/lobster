@@ -1038,6 +1038,7 @@ Field::Field(const Field &o)
       gdefaultval(o.gdefaultval ? o.gdefaultval->Clone(true) : nullptr),
       isprivate(o.isprivate),
       in_scope(o.in_scope),
+      member_of(o.member_of),
       defined_in(o.defined_in) {}
 
 UDT::~UDT() {
