@@ -38,6 +38,7 @@ import .misc
 import .modules
 import .noeffect
 import .errors
+import .errorfiles
 import .declcheck
 
 print "deep tests: {num_checks} checks, {num_failures} failures"

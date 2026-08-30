@@ -1,3 +1,5 @@
+// EXPECT-OK
+
 // Bug that appears if a non local return goes out of a recursive dynamic dispatch:
 
 class A:

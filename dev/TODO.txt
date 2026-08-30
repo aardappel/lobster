@@ -1129,8 +1129,6 @@
   - Koka/Perceus: https://www.microsoft.com/en-us/research/publication/perceus-garbage-free-reference-counting-with-reuse/
 - docs only show switch used as exp
 
-- should really have a way to test errors.
-
 - Do better stats on specialization code bloat, and implement a byte-code level merging pass.
   - would first need to make jumps relative encoded.
 
