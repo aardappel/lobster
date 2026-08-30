@@ -49,6 +49,11 @@ struct TypeChecker {
     set<pair<Line, int64_t>> integer_literal_warnings;
     Query *query;
     bool full_error;
+    // Typechecking unreached functions at the end, purely for their errors:
+    // code that is only valid in the context of an active caller (see
+    // dead_code_skip_marker) gets skipped instead of erroring.
+    bool checking_dead_code = false;
+    static constexpr const char *dead_code_skip_marker = "not checkable out of context";
     Switch *switch_case_context = nullptr;
     set<pair<SubFunction *, SubFunction *>> freevar_check_preempt;
 
@@ -66,6 +71,110 @@ struct TypeChecker {
         assert(borrowstack.empty());
         assert(scopes.empty());
         assert(named_scopes.empty());
+        TypeCheckDeadCode();
+    }
+
+    // Typecheck top level named functions that were never reached, purely to
+    // report the basic errors they may contain. Everything that got
+    // typechecked only because of this is reverted to dead afterwards, so
+    // the optimizer and codegen treat it like any other unreached code.
+    // Only functions whose args are all concretely typed can be checked out
+    // of context, and code valid only with an active caller (uses of
+    // "functions as environments", free vars of a lexically enclosing
+    // scope) skips the containing function via dead_code_skip_marker.
+    void TypeCheckDeadCode() {
+        #ifdef USE_EXCEPTION_HANDLING
+        auto num_sfs = st.subfunctiontable.size();
+        struct SfState { int numcallers; size_t callers; bool typechecked; };
+        vector<SfState> sf_states;
+        for (auto sf : st.subfunctiontable) {
+            sf_states.push_back({ sf->numcallers, sf->callers.size(), sf->typechecked });
+        }
+        auto num_udts = st.udttable.size();
+        vector<size_t> dt_sizes;
+        for (auto udt : st.udttable) dt_sizes.push_back(udt->dispatch_table.size());
+        checking_dead_code = true;
+        for (size_t fi = 0; fi < st.functiontable.size(); fi++) {
+            auto f = st.functiontable[fi];
+            // Top level named functions only (scopelevel 2, 1 is file scope).
+            if (f->anonymous || f->istype || f->scopelevel != 2) continue;
+            for (auto ov : f->overloads) {
+                if (!ov->gbody) continue;
+                auto checked = false;
+                for (auto sf = ov->sf; sf; sf = sf->next) {
+                    if (sf->typechecked) checked = true;
+                }
+                if (checked || !ov->sf->generics.empty()) continue;
+                auto annotated = true;
+                for (auto &ga : ov->givenargs) {
+                    if (st.IsGeneric(ga)) {
+                        annotated = false;
+                        break;
+                    }
+                }
+                if (!annotated) continue;
+                auto sc_scopes = scopes.size();
+                auto sc_named = named_scopes.size();
+                auto sc_flow = flowstack.size();
+                auto sc_borrow = borrowstack.size();
+                auto sc_prefer = preferfreestack.size();
+                auto sc_define = definestack.size();
+                auto sc_progress = udts_in_progress.size();
+                auto sc_btv = st.bound_typevars_stack.size();
+                auto sc_sl = st.scopelevels.size();
+                try {
+                    auto sf = CloneFunction(*ov);
+                    sf->reqret = sf->returngiventype.Null()
+                        ? 0
+                        : st.ResolveTypeVars(sf->returngiventype, ov->declared_at)->NumValues();
+                    for (auto [i, arg] : enumerate(sf->args)) {
+                        arg.spec_type = st.ResolveTypeVars(ov->givenargs[i], ov->declared_at);
+                        arg.sid->lt = LT_KEEP;
+                    }
+                    TypeCheckFunctionDef(*sf, *sf->sbody->children[0]);
+                } catch (string &s) {
+                    if (s.find(dead_code_skip_marker) == string::npos) throw;
+                    // Not an error, just not checkable out of context.
+                    st.lex.num_errors--;
+                    // Restore all typechecking state the abandoned check
+                    // may have left half-pushed. NOTE: cursids overwritten by
+                    // it are not reverted; that only affects (the quality of
+                    // errors in) further dead code checks.
+                    while (st.scopelevels.size() > sc_sl) st.BlockScopeCleanup();
+                    scopes.resize(sc_scopes);
+                    named_scopes.resize(sc_named);
+                    CleanUpFlow(sc_flow);
+                    while (borrowstack.size() > sc_borrow) borrowstack.pop_back();
+                    preferfreestack.resize(sc_prefer);
+                    definestack.resize(sc_define);
+                    udts_in_progress.resize(sc_progress);
+                    st.bound_typevars_stack.resize(sc_btv);
+                }
+            }
+        }
+        checking_dead_code = false;
+        // Revert to dead: functions that were already typechecked keep that,
+        // everything else (including specializations of live functions
+        // created by dead code, whose emission nothing needs) does not count.
+        for (auto [i, state] : enumerate(sf_states)) {
+            auto sf = st.subfunctiontable[i];
+            sf->typechecked = state.typechecked;
+            sf->numcallers = state.numcallers;
+            sf->callers.resize(state.callers);
+        }
+        for (size_t i = num_sfs; i < st.subfunctiontable.size(); i++) {
+            st.subfunctiontable[i]->typechecked = false;
+        }
+        // Same for dispatch tables created by dead code, whose entries would
+        // otherwise refer to functions that don't get emitted.
+        for (size_t i = 0; i < num_udts; i++) {
+            auto &dt = st.udttable[i]->dispatch_table;
+            if (dt.size() > dt_sizes[i]) dt.resize(dt_sizes[i]);
+        }
+        for (size_t i = num_udts; i < st.udttable.size(); i++) {
+            st.udttable[i]->dispatch_table.clear();
+        }
+        #endif
     }
 
     // Needed for any sids in cloned code.
@@ -1081,8 +1190,13 @@ struct TypeChecker {
                 lookup(ssf.args);
                 if (fvd->spec.sid) break;
             }
-            if (!fvd->spec.sid)
+            if (!fvd->spec.sid) {
+                if (checking_dead_code) {
+                    // Requires an active caller providing it.
+                    Error(*sf.sbody->children[0], dead_code_skip_marker);
+                }
                 Error(*sf.sbody->children[0], "explicit free variable ", Q(fvd->name), " not found in context");
+            }
         }
         LOG_DEBUG("function start: ", SignatureWithFreeVars(sf, nullptr));
         Scope scope;
@@ -3626,6 +3740,10 @@ TypeRef IdentRef::SimpleType(SymbolTable &st) {
 Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.UpdateCurrentSid(sid);
     for (auto &sc : reverse(tc.scopes)) if (sc.sf == sid->sf_def) goto in_scope;
+    if (tc.checking_dead_code) {
+        // A free var of a scope that would have to be active.
+        tc.Error(*this, TypeChecker::dead_code_skip_marker);
+    }
     tc.Error(*this, "free variable ", Q(sid->id->name), " not in scope: it is defined in ",
              Q(sid->sf_def->parent->name), " (", tc.parser.lex.Location(sid->id->line),
              "), so a function value that uses it can only be called while that is in scope");
@@ -3912,6 +4030,10 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
         } else {
             if (fld && fromdot && noparens) {
                 tc.Error(*this, "type ", Q(TypeName(type)), " does not have field ", Q(fld->name));
+            }
+            if (tc.checking_dead_code && cand_nonlexical) {
+                // An env-function call: only valid with an active caller.
+                tc.Error(*this, TypeChecker::dead_code_skip_marker);
             }
             tc.Error(*this, "unknown field/function reference ", Q(name));
         }

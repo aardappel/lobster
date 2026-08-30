@@ -276,6 +276,25 @@ def declcheck_order_tests():
     // An unknown function errors even in code the typechecker never reaches.
     expect_error("if false:\n    completely_unknown_function(1, 2)\nreturn \"ok\"", "unknown")
 
+    // A top level function with concretely typed args that is never called
+    // still gets typechecked (then discarded), so basic errors surface.
+    expect_error("class H:\n    hf = 1\n" +
+                 "def dead(x:int) -> int:\n    return x.hf\n" +
+                 "return 1", "does not have field")
+
+    // But not when its args are generic (nothing to check it against) ...
+    expect_dk_ok("class H2:\n    g2 = 1\n" +
+                 "def deadg(x) -> int:\n    return x.g2\n" +
+                 "return 4", "4")
+
+    // ... and code otherwise valid, but requiring an active caller context
+    // (env functions, free variables), is skipped rather than an error.
+    expect_dk_ok("def outer2() -> int:\n" +
+                 "    def inner2() -> int: return 3\n" +
+                 "    return inner2()\n" +
+                 "def dead2(x:int) -> int:\n    return inner2() + x\n" +
+                 "assert outer2() == 3\nreturn 9", "9")
+
     // An inheritance cycle formed thru a pre-declaration is an error.
     expect_error("class A\nclass B : A\nclass A : B\nreturn 1", "inheritance cycle")
 

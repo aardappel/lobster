@@ -15,8 +15,8 @@ class OC:
     def operator&(o:OC): return OC { a & o.a }
     def operator|(o:OC): return OC { a | o.a }
     def operator^(o:OC): return OC { a ^ o.a }
-    def operator<<(o:int): return OC { a << o.a }
-    def operator>>(o:int): return OC { a >> o.a }
+    def operator<<(o:int): return OC { a << o }
+    def operator>>(o:int): return OC { a >> o }
 
     def operator+=(o:OC): a += o.a
     def operator-=(o:OC): a -= o.a
@@ -26,8 +26,8 @@ class OC:
     def operator&=(o:OC): a &= o.a
     def operator|=(o:OC): a |= o.a
     def operator^=(o:OC): a ^= o.a
-    def operator<<=(o:int): a <<= o.a
-    def operator>>=(o:int): a >>= o.a
+    def operator<<=(o:int): a <<= o
+    def operator>>=(o:int): a >>= o
 
     def operator==(o:OC): return a == o.a
     def operator!=(o:OC): return a != o.a
@@ -59,8 +59,8 @@ struct OS:
     def operator&(o:OS): return OS { a & o.a }
     def operator|(o:OS): return OS { a | o.a }
     def operator^(o:OS): return OS { a ^ o.a }
-    def operator<<(o:int): return OS { a << o.a }
-    def operator>>(o:int): return OS { a >> o.a }
+    def operator<<(o:int): return OS { a << o }
+    def operator>>(o:int): return OS { a >> o }
 
     def operator==(o:OS): return a == o.a
     def operator!=(o:OS): return a != o.a
