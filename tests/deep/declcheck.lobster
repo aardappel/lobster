@@ -263,7 +263,7 @@ def declcheck_order_tests():
     expect_error("return unknown_identifier_xyz", "unknown identifier")
 
     // A dispatch typechecked (and then reused) before a subclass is declared
-    // still sees the subclass (scenario from tests/errors/dispatchorder._lobster).
+    // still sees the subclass.
     expect_dk_ok("class A:\n    def f(): return 1\n" +
                  "var v:A? = nil\n" +
                  "def setv(x:A?): v = x\n" +

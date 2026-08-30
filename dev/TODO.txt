@@ -19,10 +19,6 @@
   against their given constraints once we have those, see interfaces/traits elsewhere in
   this file), and to methods of classes that are never instantiated.
 
-- tests/errors/dispatchorder._lobster now passes (dispatch sees subclasses regardless of
-  declaration position); its scenario is covered in tests/deep/declcheck.lobster, so the
-  disabled file can be re-enabled as a regular test or deleted.
-
 - Improve native compilation pipeline / emscripten support.
   https://github.com/aardappel/lobster/issues/375
 
