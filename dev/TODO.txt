@@ -14,6 +14,20 @@
   referring to another method's local member declarations. Access should probably be
   restricted to the declaring method (or an explicitly shared scope).
 
+- Dead code checking (TypeCheckDeadCode) covers top level named functions whose args all
+  have concrete given types. Could be extended to functions with generic args (checked
+  against their given constraints once we have those, see interfaces/traits elsewhere in
+  this file), and to methods of classes that are never instantiated.
+
+- tests/errors/dispatchorder._lobster now passes (dispatch sees subclasses regardless of
+  declaration position); its scenario is covered in tests/deep/declcheck.lobster, so the
+  disabled file can be re-enabled as a regular test or deleted.
+
+- tests/deep/operators.lobster relies on signed integer overflow wrapping (big + 1 < 0),
+  which gcc -O2 optimizes away in compiled mode (CI only builds the compiled tests in
+  Debug, so it doesn't see this). Either add -fwrapv to the compiled-code build flags, or
+  make the test not rely on UB.
+
 - Improve native compilation pipeline / emscripten support.
   https://github.com/aardappel/lobster/issues/375
 
@@ -846,6 +860,9 @@
   - check that we're fixed all below:
     - could go further than the current per-name overload sets and store methods on a per
       type basis.
+    - receiver-before-arity selection (GenericCall) only ranks variants when the first arg
+      is a class/struct; ranking scalar/string/vector receivers the same way would be more
+      consistent (currently those stay most-args-first).
     - problematic error:
         error: no version of function `f` takes 0 arguments
       could mention the receiver type it looked for.
