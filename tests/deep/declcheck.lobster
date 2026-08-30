@@ -348,6 +348,16 @@ def declcheck_order_tests():
                  "    return go(Local \{\})\n" +
                  "return test() + go(Unrelated \{\})", "6")
 
+    // Overload selection is on receiver type before arity: the variant with
+    // the closest matching first arg wins, even when it needs default args
+    // filled in and a worse match of the exact arity exists.
+    expect_dk_ok("class Base:\n    v = 1\n" +
+                 "class Der : Base\n    w = 2\n" +
+                 "def q(d:Der, c = 5) -> int: return 1\n" +
+                 "def q(b:Base) -> int: return 2\n" +
+                 "assert q(Base \{\}) == 2\n" +
+                 "return q(Der \{\})", "1")
+
     // Methods on a class can be called by an earlier-declared function
     // (methods resolve against the whole program, not parse position).
     expect_dk_ok("def call_it(x) -> int: return x.method_declared_later()\n" +

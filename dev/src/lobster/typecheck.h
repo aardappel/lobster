@@ -3766,19 +3766,20 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
         // Specialized error for nil deref, since if we don't, it will try and interpret this as a function call with a nil arg.
         tc.Error(*this, "dereferencing nillable type: ", Q(TypeName(type)));
     } else {
-        // A function or builtin call. Decided in this order:
-        // 1. Compute the best method overload for the receiver type (used to
-        //    prefer the function over the builtin, and as static dispatch
-        //    root).
-        // 2. The builtin applies unless a matching-arity function has more
-        //    args than it, or has a method overload matching the receiver.
-        // 3. Otherwise select the function variant by arity, in sibf order
-        //    (most args first, so an insertable :: self-arg takes priority
-        //    over smaller arity variants), inserting self/default args as
-        //    needed to complete the variant reached first.
-        // TODO: selecting on receiver type before arity would be more
-        // principled (an unrelated variant with default args can still win
-        // from a method), but changes the meaning of existing code.
+        // A function or builtin call. Selection is on receiver type first,
+        // then arity:
+        // 1. Determine which function variants (sibf chain) could complete
+        //    with the given args, allowing insertion of an implicit :: self
+        //    arg and default args.
+        // 2. If there is a receiver (arg 0 is a class/struct), the variant
+        //    with the closest matching first arg wins (a generic first arg
+        //    matches any receiver, at lower priority than all concrete
+        //    matches); ties and the no-receiver case go to the variant with
+        //    the most args, so an insertable self arg takes priority over
+        //    smaller variants.
+        // 3. The builtin applies unless the selected variant matches the
+        //    receiver, or is of matching arity with more args than the
+        //    builtin.
         auto nargs = children.size();
         // The closest overload of `f` whose first arg is declared withtype
         // (::) and is a (specialized) superclass of `in_udt`: such overloads
@@ -3798,30 +3799,80 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
             }
             return bsf;
         };
-        auto f = ff;
-        for (; f; f = f->sibf) {
-            if (nargs == f->nargs()) break;
-        }
-        if (!f) f = ff;
-        SubFunction *usf = nullptr;
-        if (udt && f && f->nargs()) {
+        // The withstack entry providing an implicit :: self arg for `f`, if
+        // any. We go down the withstack but skip items that don't correspond
+        // to lexical order for cases where
+        // withcontext1 -> withcontext2 -> lambdaincontext1,
+        // or to simply not use withstack items of unrelated callers.
+        auto find_self_arg = [&](Function *f) -> pair<SymbolTable::WithStackElem *, SubFunction *> {
+            Overload *lex_ov = tc.scopes.back().sf->overload;
+            for (auto &wse : reverse(tc.st.withstack)) {
+                bool in_lex_scope = false;
+                for (auto lov = lex_ov; lov; lov = lov->sf->lexical_parent) {
+                    if (lov == wse.sf->overload) {
+                        in_lex_scope = true;
+                        break;
+                    }
+                }
+                if (!in_lex_scope || !wse.id) continue;
+                auto wsf = best_withtype_overload(f, wse.udt_tc);
+                if (wsf) return { &wse, wsf };
+            }
+            return { nullptr, nullptr };
+        };
+        // Receiver match: smallest superclass distance of any overload's
+        // first arg, 998 for a generic first arg (matches anything, beaten
+        // by any concrete match), -1 for no match. Also gives the overload,
+        // as static dispatch root.
+        auto best_receiver_overload = [&](Function *f) -> pair<SubFunction *, int> {
             int udist = 999;
+            SubFunction *bsf = nullptr;
             for (auto ov : f->overloads) {
                 auto ti = ov->sf->overload->givenargs[0];
                 auto dist = IsUDT(ti->t)
                     ? SuperDistance(ti->udt, udt)
                     : ti->t == V_UUDT
                         ? DistanceToSpecializedSuper(ti->spec_udt->gudt, udt)
-                        : -1;
+                        : tc.st.IsGeneric(ti) ? 998 : -1;
                 if (dist >= 0 && dist < udist) {
-                    usf = ov->sf;
+                    bsf = ov->sf;
                     udist = dist;
                     if (dist == 0) break;
                 }
             }
+            return { bsf, bsf ? udist : -1 };
+        };
+        struct Variant {
+            Function *f;
+            bool needs_self;
+            SubFunction *rsf;  // Receiver-matched overload, if any.
+            int rdist;
+        };
+        small_vector<Variant, 4> viable;
+        for (auto f = ff; f; f = f->sibf) {
+            if (f->nargs() < nargs) continue;
+            auto n2 = nargs;
+            bool needs_self = false;
+            if (n2 < f->nargs() && !fromdot && (int)n2 + 1 >= f->first_default_arg &&
+                find_self_arg(f).first) {
+                n2++;
+                needs_self = true;
+            }
+            if (n2 < f->nargs() && (int)n2 >= f->first_default_arg) n2 = f->nargs();
+            if (n2 != f->nargs()) continue;
+            auto [rsf, rdist] =
+                udt && f->nargs() ? best_receiver_overload(f) : pair<SubFunction *, int>{ nullptr, -1 };
+            viable.push_back({ f, needs_self, rsf, rdist });
         }
-        auto prefer_ff = f && nf && f->nargs() == nargs &&
-                         (f->nargs() > nf->args.size() || usf);
+        Variant *sel = nullptr;
+        for (auto &v : viable) {
+            if (!sel) sel = &v;
+            else if (v.rdist >= 0 && (sel->rdist < 0 || v.rdist < sel->rdist)) sel = &v;
+        }
+        auto prefer_ff = sel && nf &&
+                         (sel->rdist >= 0 && sel->rdist < 998
+                              ? true
+                              : sel->f->nargs() == nargs && sel->f->nargs() > nf->args.size());
         if (nf && !prefer_ff) {
             unique_ptr<NativeCall> nc(new NativeCall(nf, line));
             nc->children = children;
@@ -3829,73 +3880,35 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
             sup_err();
             r = nc->TypeCheck(tc, reqret, {});
             nc.release();
-        } else if (f) {
-            // Select the variant, completing args as needed. Note that
-            // inserted self/default args stay if a variant still doesn't
-            // complete and selection moves on to the next.
-            small_vector<Function *, 4> candidates;
-            for (f = ff; f; f = f->sibf) {
-                if (f->nargs() >= nargs) candidates.push_back(f);
+        } else if (sel) {
+            auto f = sel->f;
+            SubFunction *usf = sel->rsf;
+            if (sel->needs_self) {
+                auto [wse, wsf] = find_self_arg(f);
+                assert(wse);
+                usf = wsf;
+                auto self = new IdentRef(line, wse->id->cursid);
+                children.insert(0, self);
+                tc.TT(children[0], 1, LT_ANY);
+                nargs++;
             }
-            Function *sel = nullptr;
-            for (auto [fi, fc] : enumerate(candidates)) {
-                f = fc;
-                // Try insert a self arg from an enclosing :: scope.
-                if (nargs < f->nargs() && !fromdot && (int)nargs + 1 >= f->first_default_arg) {
-                    // We go down the withstack but skip items that don't correspond to lexical order
-                    // for cases where withcontext1 -> withcontext2 -> lambdaincontext1
-                    // or to simply not use withstack items of unrelated callers.
-                    Overload *lex_ov = tc.scopes.back().sf->overload;
-                    for (auto &wse : reverse(tc.st.withstack)) {
-                        bool in_lex_scope = false;
-                        for (auto lov = lex_ov; lov; lov = lov->sf->lexical_parent) {
-                            if (lov == wse.sf->overload) {
-                                in_lex_scope = true;
-                                break;
-                            }
-                        }
-                        if (!in_lex_scope || !wse.id) continue;
-                        auto wsf = best_withtype_overload(f, wse.udt_tc);
-                        if (!wsf) continue;
-                        usf = wsf;
-                        auto self = new IdentRef(line, wse.id->cursid);
-                        children.insert(0, self);
-                        tc.TT(children[0], 1, LT_ANY);
-                        nargs++;
-                        break;
-                    }
-                }
-                // Only consider this variant for default args when it is the
-                // last, or when its first arg can apply to the receiver:
-                // this avoids a variant on an unrelated type with default
-                // args winning from a method further down the chain.
-                // FIXME: to be exact this would need to ensure the later
-                // variants can't also match, and cover the non-udt case.
-                auto blocked_defaults =
-                    fi + 1 < candidates.size() && nargs > 0 && f->nargs() > 0 && udt &&
-                    !best_withtype_overload(f, udt);
-                if (nargs < f->nargs() && !blocked_defaults && (int)nargs >= f->first_default_arg) {
-                    for (size_t i = nargs; i < f->nargs(); i++) {
-                        children.push_back(f->default_args[i - f->first_default_arg]->Clone(true));
-                        tc.TT(children.back(), 1, LT_ANY);
-                        nargs++;
-                    }
-                }
-                if (nargs == f->nargs()) {
-                    sel = f;
-                    break;
+            if (nargs < f->nargs()) {
+                for (size_t i = nargs; i < f->nargs(); i++) {
+                    children.push_back(f->default_args[i - f->first_default_arg]->Clone(true));
+                    tc.TT(children.back(), 1, LT_ANY);
+                    nargs++;
                 }
             }
-            if (!sel) {
-                tc.Error(*this, "no version of function ", Q(name), " takes ", nargs, " arguments");
-            }
+            assert(nargs == f->nargs());
             if (!usf || !usf->overload->method_of || usf->overload->method_of->gsuperclass->t == V_UNDEFINED)
                 sup_err();
-            unique_ptr<Call> fc(new Call(*this, usf && usf->parent == sel ? usf : sel->overloads[0]->sf));
+            unique_ptr<Call> fc(new Call(*this, usf && usf->parent == f ? usf : f->overloads[0]->sf));
             fc->children = children;
             children.clear();
             r = fc->TypeCheck(tc, reqret, {});
             fc.release();
+        } else if (ff) {
+            tc.Error(*this, "no version of function ", Q(name), " takes ", nargs, " arguments");
         } else {
             if (fld && fromdot && noparens) {
                 tc.Error(*this, "type ", Q(TypeName(type)), " does not have field ", Q(fld->name));
