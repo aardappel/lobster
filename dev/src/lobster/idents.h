@@ -696,6 +696,9 @@ struct SymbolTable {
     vector<SharedField *> fieldtable;
 
     unordered_map<string, vector<Function *>> functions;
+    // All named functions incl. ones in nested scopes, grouped per name
+    // (each entry a sibf chain head), filled in by the declchecker.
+    unordered_map<string_view, vector<Function *>> functions_by_name;
     unordered_map<string_view, Function *> operators;  // Key points to value!
     vector<Function *> functiontable;
     vector<SubFunction *> subfunctiontable;
@@ -1127,9 +1130,13 @@ struct SymbolTable {
         return *f;
     }
 
-    Function &FunctionDecl(const string &name, size_t nargs) {
+    Function &FunctionDecl(const string &name, size_t nargs, bool is_method) {
         auto &v = functions[name];
-        if (!v.empty() && v.back()->scopelevel == scopelevels.size()) {
+        // A method declared in a nested scope joins the visible function of
+        // that name rather than shadowing it: method applicability is decided
+        // by the type of the first argument, and dynamic dispatch must be
+        // able to see all methods of a name in one place.
+        if (!v.empty() && (v.back()->scopelevel == scopelevels.size() || is_method)) {
             for (auto f = v.back(); f; f = f->sibf) {
                 if (f->nargs() == nargs) {
                     return *f;
@@ -1163,15 +1170,6 @@ struct SymbolTable {
             }
             return f;
         }
-    }
-
-    void FunctionDeclTT(Function &f) {
-        auto &v = functions[f.name];
-        if (!v.empty()) {
-            for (auto ff = v.back(); ff; ff = ff->sibf)
-                if (ff == &f) return;
-        }
-        v.push_back(&f);
     }
 
     Function *GetFirstFunction(const string &name) {

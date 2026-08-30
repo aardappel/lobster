@@ -54,7 +54,6 @@ struct TypeChecker {
 
     TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq, Query *query, bool full_error)
         : parser(_p), st(_st), query(query), full_error(full_error) {
-        st.functions.clear();
         st.type_check_call_back = [&](UDT &udt) {
             EnsureUDTChecked(udt, *scopes.back().call_context);
         };
@@ -2834,26 +2833,13 @@ struct TypeChecker {
 };
 
 Node *Block::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
-    // Bring functions into scope.
-    for (auto def : children) {
-        if (auto fr = Is<FunRef>(def)) {
-            auto f = fr->sf->parent;
-            if (!f->anonymous) tc.st.FunctionDeclTT(*f);
-        }
-    };
-    // Now typecheck the body.
+    // Function scoping has been resolved by the declchecker, so no functions
+    // need to be brought into scope here.
     for (auto &c : children) {
         tc.TT(c, c != children.back() ? 0 : reqret, LT_ANY);
     }
     lt = children.back()->lt;
     exptype = children.back()->exptype;
-    // Remove functions from scope again. See also CleanupStatements.
-    for (auto def : children) {
-        if (auto fr = Is<FunRef>(def)) {
-            auto f = fr->sf->parent;
-            if (!f->anonymous) tc.st.Unregister(f);
-        }
-    };
     return this;
 }
 
@@ -3690,14 +3676,33 @@ Node *DefaultVal::TypeCheck(TypeChecker &, size_t, TypeRef /*parent_bound*/) {
 
 Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     STACK_PROFILE;
-    // Here we decide which of Dot / Call / NativeCall this call should be transformed into.
+    // Here we decide which of Dot / Call / NativeCall this call should be transformed into,
+    // from the candidates the declchecker resolved at our lexical position.
     tc.st.current_namespace = ns;
-    auto nf = tc.parser.FindNative(name);
-    auto fld = tc.st.FieldUse(name);
-    // FIXME: this doesn't always find lexically enclosing functions, since if the typechecker
-    // goes funlevel1a -> funlevel2b -> funlevel1c, it will still find functions from level2!
-    // Not the same as the parser, and not sure how to best fix that.
-    auto ff = tc.st.FindFunction(name);
+    auto nf = cand_native;
+    auto fld = cand_field;
+    auto ff = cand_function;
+    if (!ff && cand_nonlexical) {
+        // The name only refers to function(s) not lexically visible here
+        // ("functions as environments"): callable while their enclosing
+        // function is active, innermost active scope first, which mirrors
+        // how their free variables work.
+        auto find_active = [&](string_view fname) -> Function * {
+            auto it = tc.st.functions_by_name.find(fname);
+            if (it == tc.st.functions_by_name.end()) return nullptr;
+            for (auto &sc : reverse(tc.scopes)) {
+                for (auto f : it->second) {
+                    for (auto ov : f->overloads) {
+                        if (ov->sf->lexical_parent == sc.sf->overload) return f;
+                    }
+                }
+            }
+            return nullptr;
+        };
+        if (!ns.empty() && name.find(".") == string_view::npos)
+            ff = find_active(cat(ns, ".", name));
+        if (!ff) ff = find_active(name);
+    }
     // We first typecheck the children, because we want to at least look at arg 1 to decide
     // what to call. But this doesn't allow an accurate parent_bound, so we only specify
     // one if it looks unambiguous.

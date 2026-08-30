@@ -295,6 +295,47 @@ def declcheck_order_tests():
     // Pre-declared struct never defined is an error.
     expect_error("class Undefined\nreturn 1", "never defined")
 
+    // A local function shadows an outer one of the same name for lexically
+    // nested code only.
+    expect_dk_ok("def s() -> int: return 1\n" +
+                 "def outer() -> int:\n    def s() -> int: return 2\n    return s()\n" +
+                 "assert s() == 1\n" +
+                 "return outer()", "2")
+
+    // Local functions are visible in the whole block they are declared in,
+    // including in functions declared before them.
+    expect_dk_ok("def h() -> int:\n" +
+                 "    def p() -> int: return q()\n" +
+                 "    def q() -> int: return 3\n" +
+                 "    return p()\n" +
+                 "return h()", "3")
+
+    // A local function can be called from outside its lexical scope when its
+    // name is unique and its enclosing function is active at the call
+    // ("functions as environments").
+    expect_dk_ok("def outer() -> int:\n" +
+                 "    def inner() -> int: return 7\n" +
+                 "    return helper()\n" +
+                 "def helper() -> int: return inner()\n" +
+                 "return outer()", "7")
+
+    // But not when the enclosing function is not active.
+    expect_error("def outer() -> int:\n" +
+                 "    let v = 1\n" +
+                 "    def inner() -> int: return v\n" +
+                 "    return inner()\n" +
+                 "assert outer() == 1\n" +
+                 "return inner()", "unknown")
+
+    // A method declared in a nested scope joins the methods of that name
+    // rather than shadowing them, so dispatch from elsewhere sees it.
+    expect_dk_ok("abstract class Act:\n    def go() -> int: return 0\n" +
+                 "def runner(a:Act) -> int: return a.go()\n" +
+                 "def test() -> int:\n" +
+                 "    class MyAct : Act\n        def go() -> int: return 9\n" +
+                 "    return runner(MyAct \{\})\n" +
+                 "return test()", "9")
+
     // Methods on a class can be called by an earlier-declared function
     // (methods resolve against the whole program, not parse position).
     expect_dk_ok("def call_it(x) -> int: return x.method_declared_later()\n" +

@@ -452,6 +452,19 @@ struct GenericCall : List {
     bool noparens;
     bool super;
     vector<UnTypeRef> specializers;
+    // What `name` can possibly refer to, resolved by the declchecker: the
+    // lexically visible function with this name (its sibf chain holds the
+    // arity variants), the builtin, and/or the field. Which one applies is
+    // type-dependent and decided in TypeCheck. Survives cloning, so
+    // specialized copies of a body keep the resolution of their declaration
+    // site.
+    Function *cand_function = nullptr;
+    NativeFun *cand_native = nullptr;
+    SharedField *cand_field = nullptr;
+    // No lexically visible function, but function(s) of this name exist in
+    // other scopes: which one (if any) applies depends on what is active on
+    // the call path, so TypeCheck resolves it.
+    bool cand_nonlexical = false;
     GenericCall(const Line &ln, string_view name, string_view ns, bool fromdot, bool noparens,
                 bool super, vector<UnTypeRef> *spec)
         : List(ln), name(name), ns(ns), fromdot(fromdot), noparens(noparens), super(super) {

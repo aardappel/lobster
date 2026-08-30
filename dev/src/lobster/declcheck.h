@@ -24,7 +24,12 @@ struct DeclChecker {
     SymbolTable &st;
     NativeRegistry &natreg;
     set<GUDT *> fields_completed;
-    set<string_view> function_names;
+    unordered_map<string_view, vector<Function *>> function_scopes;
+    unordered_map<string_view, vector<Function *>> all_functions;
+    vector<Function *> function_stack;
+    set<Overload *> bodies_walked;
+    set<Function *> default_args_walked;
+    set<GUDT *> field_defaults_walked;
 
     DeclChecker(SymbolTable &st, NativeRegistry &natreg) : st(st), natreg(natreg) {}
 
@@ -38,7 +43,20 @@ struct DeclChecker {
         // regardless of where their declarations sit relative to the code
         // being typechecked.
         for (auto udt : st.udttable) st.RegisterSubUDT(udt);
-        CheckCallNamesExist();
+        for (auto f : st.functiontable) {
+            if (f->anonymous || f->overloads.empty()) continue;
+            auto &fs = st.functions_by_name[f->name];
+            // One entry per name group (sibf chains the arity variants).
+            if (std::find(fs.begin(), fs.end(), f->first) == fs.end()) fs.push_back(f->first);
+        }
+        auto toplevel = st.toplevel->overload;
+        if (toplevel->gbody) ResolveBlock(*toplevel->gbody);
+        bodies_walked.insert(toplevel);
+        // Anything unreachable from the top level lexical tree (which should
+        // not currently exist, but error recovery may produce it).
+        for (auto f : st.functiontable) {
+            for (auto ov : f->overloads) WalkBody(ov);
+        }
     }
 
     // Superclass fields are copied into subclasses at parse time, which
@@ -74,49 +92,120 @@ struct DeclChecker {
         }
     }
 
-    // A call to a name that exists nowhere in the program can now be
-    // reported even when it sits in code the typechecker never reaches.
-    // This is existence only: which function/field/builtin applies (and
-    // whether it is in scope) is still decided during typechecking, so a
-    // name that exists anywhere at all passes here.
-    void CheckCallNamesExist() {
-        for (auto f : st.functiontable) function_names.insert(f->name);
-        for (auto f : st.functiontable) {
-            for (auto ov : f->overloads) {
-                if (ov->gbody) CheckCallNamesRec(*ov->gbody);
-            }
-            for (auto da : f->default_args) {
-                if (da) CheckCallNamesRec(*da);
-            }
-        }
-        for (auto gudt : st.gudttable) {
-            for (auto &field : gudt->fields) {
-                if (field.gdefaultval) CheckCallNamesRec(*field.gdefaultval);
-            }
-        }
-    }
+    // Resolve what the name of every GenericCall can refer to, walking all
+    // code in lexical nesting order. Functions are visible in the whole
+    // block they are declared in (also before their declaration statement)
+    // and everything lexically nested in it, shadowing outer ones, which is
+    // what the typechecker used to approximate with its scope emulation
+    // during callgraph-order traversal (which also leaked functions to
+    // lexically unrelated code that happened to be typechecked from inside
+    // their scope). Which candidate applies is type-dependent and still
+    // decided during typechecking; a name with no candidates at all is an
+    // error here, which covers code the typechecker never reaches.
 
-    bool CallNameExists(string_view name, string_view ns) {
-        if (function_names.find(name) != function_names.end()) return true;
-        if (natreg.FindNative(name)) return true;
-        if (st.FieldUse(name)) return true;
+    Function *FindLexical(string_view name, string_view ns) {
         if (!ns.empty() && name.find(".") == string_view::npos) {
-            auto nsname = cat(ns, ".", name);
-            if (function_names.find(string_view(nsname)) != function_names.end()) return true;
-            if (natreg.FindNative(nsname)) return true;
+            auto it = function_scopes.find(cat(ns, ".", name));
+            if (it != function_scopes.end() && !it->second.empty()) return it->second.back();
         }
-        return false;
+        auto it = function_scopes.find(name);
+        if (it != function_scopes.end() && !it->second.empty()) return it->second.back();
+        return nullptr;
     }
 
-    void CheckCallNamesRec(Node &n) {
-        if (auto call = Is<GenericCall>(&n)) {
-            if (!CallNameExists(call->name, call->ns)) {
-                st.lex.Error(cat("unknown field/function reference ", Q(call->name)),
-                             &call->line);
+    // Does any function of this name exist at all, in any scope?
+    bool FunctionExists(string_view name, string_view ns) {
+        if (!ns.empty() && name.find(".") == string_view::npos) {
+            if (st.functions_by_name.find(cat(ns, ".", name)) != st.functions_by_name.end())
+                return true;
+        }
+        return st.functions_by_name.find(name) != st.functions_by_name.end();
+    }
+
+    NativeFun *FindNativeNS(string_view name, string_view ns) {
+        if (!ns.empty() && name.find(".") == string_view::npos) {
+            auto nf = natreg.FindNative(cat(ns, ".", name));
+            if (nf) return nf;
+        }
+        return natreg.FindNative(name);
+    }
+
+    void ResolveCall(GenericCall &call) {
+        call.cand_function = FindLexical(call.name, call.ns);
+        call.cand_native = FindNativeNS(call.name, call.ns);
+        call.cand_field = st.FieldUse(call.name);
+        if (!call.cand_function && !call.cand_native && !call.cand_field) {
+            // Local functions can additionally be called from outside their
+            // lexical scope while their enclosing function is active
+            // ("functions as environments"); which one applies depends on the
+            // call path, so the typechecker picks (see GenericCall).
+            if (FunctionExists(call.name, call.ns)) {
+                call.cand_nonlexical = true;
+            } else {
+                st.lex.Error(cat("unknown field/function reference ", Q(call.name)),
+                             &call.line);
             }
+        }
+    }
+
+    void WalkBody(Overload *ov) {
+        if (!ov->gbody) return;
+        if (!bodies_walked.insert(ov).second) return;
+        ResolveBlock(*ov->gbody);
+    }
+
+    void ResolveBlock(Block &b) {
+        // All functions declared directly in this block are visible in the
+        // whole of it.
+        auto stack_level = function_stack.size();
+        for (auto c : b.children) {
+            auto fr = Is<FunRef>(c);
+            if (!fr || fr->sf->parent->anonymous) continue;
+            auto f = fr->sf->parent->first;
+            auto &fscope = function_scopes[f->name];
+            if (fscope.empty() || fscope.back() != f) {
+                fscope.push_back(f);
+                function_stack.push_back(f);
+            }
+        }
+        for (auto c : b.children) ResolveRec(*c);
+        while (function_stack.size() > stack_level) {
+            function_scopes[function_stack.back()->name].pop_back();
+            function_stack.pop_back();
+        }
+    }
+
+    void ResolveRec(Node &n) {
+        if (auto fr = Is<FunRef>(&n)) {
+            // The definition site: resolve the body (and one-time extras)
+            // in the scope it is declared in.
+            auto f = fr->sf->parent;
+            if (default_args_walked.insert(f).second) {
+                for (auto da : f->default_args) {
+                    if (da) ResolveRec(*da);
+                }
+            }
+            WalkBody(fr->sf->overload);
+            return;
+        }
+        if (auto gr = Is<GUDTRef>(&n)) {
+            // Field default values belong to the scope the class is declared
+            // in (they don't have access to other members).
+            if (!gr->predeclaration && field_defaults_walked.insert(gr->gudt).second) {
+                for (auto &field : gr->gudt->fields) {
+                    if (field.gdefaultval) ResolveRec(*field.gdefaultval);
+                }
+            }
+            return;
+        }
+        if (auto call = Is<GenericCall>(&n)) {
+            ResolveCall(*call);
+        } else if (auto blk = Is<Block>(&n)) {
+            ResolveBlock(*blk);
+            return;
         }
         for (size_t i = 0; i < n.Arity(); i++) {
-            CheckCallNamesRec(*n.Children()[i]);
+            ResolveRec(*n.Children()[i]);
         }
     }
 };
