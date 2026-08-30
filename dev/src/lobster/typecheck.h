@@ -3753,20 +3753,46 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
         // Specialized error for nil deref, since if we don't, it will try and interpret this as a function call with a nil arg.
         tc.Error(*this, "dereferencing nillable type: ", Q(TypeName(type)));
     } else {
-        bool prefer_ff = false;
-        // Pick better match if any..
+        // A function or builtin call. Decided in this order:
+        // 1. Compute the best method overload for the receiver type (used to
+        //    prefer the function over the builtin, and as static dispatch
+        //    root).
+        // 2. The builtin applies unless a matching-arity function has more
+        //    args than it, or has a method overload matching the receiver.
+        // 3. Otherwise select the function variant by arity, in sibf order
+        //    (most args first, so an insertable :: self-arg takes priority
+        //    over smaller arity variants), inserting self/default args as
+        //    needed to complete the variant reached first.
+        // TODO: selecting on receiver type before arity would be more
+        // principled (an unrelated variant with default args can still win
+        // from a method), but changes the meaning of existing code.
         auto nargs = children.size();
-        auto f = ff;
-        // Get best one sofar.
-        for (; f; f = f->sibf) {
-            if (nargs == f->nargs()) {
-                break;
+        // The closest overload of `f` whose first arg is declared withtype
+        // (::) and is a (specialized) superclass of `in_udt`: such overloads
+        // can receive their first arg implicitly.
+        auto best_withtype_overload = [&](Function *f, UDT *in_udt) -> SubFunction * {
+            int best_superdist = INT_MAX;
+            SubFunction *bsf = nullptr;
+            for (auto ov : f->overloads) {
+                auto gudt0 = GetGUDTAny(ov->givenargs[0]);
+                if (gudt0 && ov->sf->args[0].sid->withtype) {
+                    auto superdist = DistanceToSpecializedSuper(gudt0, in_udt);
+                    if (superdist >= 0 && superdist < best_superdist) {
+                        best_superdist = superdist;
+                        bsf = ov->sf;
+                    }
+                }
             }
+            return bsf;
+        };
+        auto f = ff;
+        for (; f; f = f->sibf) {
+            if (nargs == f->nargs()) break;
         }
         if (!f) f = ff;
         SubFunction *usf = nullptr;
-        int udist = 999;
         if (udt && f && f->nargs()) {
+            int udist = 999;
             for (auto ov : f->overloads) {
                 auto ti = ov->sf->overload->givenargs[0];
                 auto dist = IsUDT(ti->t)
@@ -3781,13 +3807,8 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
                 }
             }
         }
-        if (f && nf && f->nargs() == nargs) {
-            // If we have an f with more & matching args than the nf, pick that.
-            // Or if any of f's specializations matches type, then it overrides nf.
-            if (f->nargs() > nf->args.size() || usf) {
-                prefer_ff = true;
-            }
-        }
+        auto prefer_ff = f && nf && f->nargs() == nargs &&
+                         (f->nargs() > nf->args.size() || usf);
         if (nf && !prefer_ff) {
             unique_ptr<NativeCall> nc(new NativeCall(nf, line));
             nc->children = children;
@@ -3796,18 +3817,17 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
             r = nc->TypeCheck(tc, reqret, {});
             nc.release();
         } else if (f) {
-            // Now that we're sure it's going to be a call, pick the right function
-            // First filter to only those that have more args.
+            // Select the variant, completing args as needed. Note that
+            // inserted self/default args stay if a variant still doesn't
+            // complete and selection moves on to the next.
             small_vector<Function *, 4> candidates;
             for (f = ff; f; f = f->sibf) {
                 if (f->nargs() >= nargs) candidates.push_back(f);
             }
-            // fill in default/self args.
-            // sibf is ordered by most args first, which is the right order for us to check them in,
-            // since if we possibly can insert a self-arg with matching type that should take priority.
+            Function *sel = nullptr;
             for (auto [fi, fc] : enumerate(candidates)) {
                 f = fc;
-                // If we have less args, try insert self arg.
+                // Try insert a self arg from an enclosing :: scope.
                 if (nargs < f->nargs() && !fromdot && (int)nargs + 1 >= f->first_default_arg) {
                     // We go down the withstack but skip items that don't correspond to lexical order
                     // for cases where withcontext1 -> withcontext2 -> lambdaincontext1
@@ -3821,56 +3841,27 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
                                 break;
                             }
                         }
-                        if (!in_lex_scope) continue;
-                        int best_superdist = INT_MAX;
-                        for (auto ov : f->overloads) {
-                            // If we're in the context of a withtype, calling a function that starts
-                            // with an arg of the same type we pass it in automatically. This is
-                            // maybe a bit very liberal, should maybe restrict it?
-                            auto gudt0 = GetGUDTAny(ov->givenargs[0]);
-                            if (gudt0 && ov->sf->args[0].sid->withtype && wse.id) {
-                                auto superdist = DistanceToSpecializedSuper(gudt0, wse.udt_tc);
-                                if (superdist >= 0 && superdist < best_superdist) {
-                                    best_superdist = superdist;
-                                    usf = ov->sf;
-                                }
-                            }
-                        }
-                        if (best_superdist < INT_MAX) {
-                            auto self = new IdentRef(line, wse.id->cursid);
-                            children.insert(0, self);
-                            tc.TT(children[0], 1, LT_ANY);
-                            nargs++;
-                            ff = f;
-                            break;
-                        }
+                        if (!in_lex_scope || !wse.id) continue;
+                        auto wsf = best_withtype_overload(f, wse.udt_tc);
+                        if (!wsf) continue;
+                        usf = wsf;
+                        auto self = new IdentRef(line, wse.id->cursid);
+                        children.insert(0, self);
+                        tc.TT(children[0], 1, LT_ANY);
+                        nargs++;
+                        break;
                     }
                 }
-                auto first_arg_can_match = true;
-                if (fi + 1 < candidates.size() && nargs > 0 && f->nargs() > 0 && udt) {
-                    // We have further candidates coming, only consider this candidate for inserting
-                    // default args if the type of first arg is compatible.
-                    // This avoids functions on unrelated types with default args causing the wrong function to be called.
-                    // FIXME: bit of a hack, since really we need to ensure the next candidates can't also match.
-                    // FIXME: only checks in the udt case, which we already partially checked above.
-                    // Really this whole function needs rewriting from scratch.
-                    int best_superdist = INT_MAX;
-                    for (auto ov : f->overloads) {
-                        // If we're in the context of a withtype, calling a function that starts
-                        // with an arg of the same type we pass it in automatically. This is
-                        // maybe a bit very liberal, should maybe restrict it?
-                        auto gudt0 = GetGUDTAny(ov->givenargs[0]);
-                        if (gudt0 && ov->sf->args[0].sid->withtype) {
-                            auto superdist = DistanceToSpecializedSuper(gudt0, udt);
-                            if (superdist >= 0 && superdist < best_superdist) {
-                                best_superdist = superdist;
-                            }
-                        }
-                    }
-                    if (best_superdist == INT_MAX) first_arg_can_match = false;
-                }
-                // If we have still have less args, try insert default args.
-                if (nargs < f->nargs() && first_arg_can_match && (int)nargs >= f->first_default_arg) {
+                // Only consider this variant for default args when it is the
+                // last, or when its first arg can apply to the receiver:
+                // this avoids a variant on an unrelated type with default
+                // args winning from a method further down the chain.
+                // FIXME: to be exact this would need to ensure the later
+                // variants can't also match, and cover the non-udt case.
+                auto blocked_defaults =
+                    fi + 1 < candidates.size() && nargs > 0 && f->nargs() > 0 && udt &&
+                    !best_withtype_overload(f, udt);
+                if (nargs < f->nargs() && !blocked_defaults && (int)nargs >= f->first_default_arg) {
                     for (size_t i = nargs; i < f->nargs(); i++) {
                         children.push_back(f->default_args[i - f->first_default_arg]->Clone(true));
                         tc.TT(children.back(), 1, LT_ANY);
@@ -3878,17 +3869,16 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
                     }
                 }
                 if (nargs == f->nargs()) {
-                    ff = f;
+                    sel = f;
                     break;
                 }
-                f = nullptr;
             }
-            if (!f) {
+            if (!sel) {
                 tc.Error(*this, "no version of function ", Q(name), " takes ", nargs, " arguments");
             }
             if (!usf || !usf->overload->method_of || usf->overload->method_of->gsuperclass->t == V_UNDEFINED)
                 sup_err();
-            unique_ptr<Call> fc(new Call(*this, usf && usf->parent == ff ? usf : ff->overloads[0]->sf));
+            unique_ptr<Call> fc(new Call(*this, usf && usf->parent == sel ? usf : sel->overloads[0]->sf));
             fc->children = children;
             children.clear();
             r = fc->TypeCheck(tc, reqret, {});

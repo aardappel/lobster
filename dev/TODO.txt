@@ -1404,6 +1404,13 @@
 
   The terminal process "bin\lobster.exe infrecurse.lobster" terminated with exit code: 3221225477.
 
+- Typechecking top level annotated-but-unreached functions at the end (an old wish, see
+  elsewhere in this file) now has known blockers: (a) their callees would get typechecked
+  and thus codegenned for real, and bump numcallers (affecting inlining of live code),
+  which would need snapshot/restore around the pass; (b) dead code using the
+  "functions as environments" feature has no active enclosing scope, so it would produce
+  false "unknown function" errors. Needs a design pass (or an opt-in flag) first.
+
 - Would be good to finally make SDL modular, and get rid of that silly main-redef
   There's this: https://wiki.libsdl.org/SDL_SetMainReady
   But elsewhere it still claims that things may fail or give you bad error messages if not used
