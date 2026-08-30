@@ -49,6 +49,7 @@ struct DeclChecker {
             // One entry per name group (sibf chains the arity variants).
             if (std::find(fs.begin(), fs.end(), f->first) == fs.end()) fs.push_back(f->first);
         }
+        CheckMethodScopes();
         auto toplevel = st.toplevel->overload;
         if (toplevel->gbody) ResolveBlock(*toplevel->gbody);
         bodies_walked.insert(toplevel);
@@ -111,6 +112,52 @@ struct DeclChecker {
         auto it = function_scopes.find(name);
         if (it != function_scopes.end() && !it->second.empty()) return it->second.back();
         return nullptr;
+    }
+
+    bool RelatedGUDT(GUDT *a, GUDT *b) {
+        for (auto g = a; g; g = GetGUDTSuper(g->gsuperclass)) if (g == b) return true;
+        for (auto g = b; g; g = GetGUDTSuper(g->gsuperclass)) if (g == a) return true;
+        return false;
+    }
+
+    // Methods only participate in overloading/dispatch with methods of the
+    // same name declared in the same scope: name resolution is lexical, so a
+    // method in a nested scope shadows rather than joins. When that splits
+    // methods of related classes over different scopes, dispatch would
+    // silently pick from only one of them, so make it an error.
+    void CheckMethodScopes() {
+        for (auto f : st.functiontable) {
+            // Top level functions are at scopelevel 2 (1 is the file scope).
+            if (f->anonymous || f->overloads.empty() || f->scopelevel <= 2) continue;
+            for (auto ov : f->overloads) {
+                auto g0 = ov->method_of;
+                if (!g0) continue;
+                auto it = st.functions_by_name.find(f->name);
+                if (it == st.functions_by_name.end()) continue;
+                for (auto of : it->second) {
+                    if (of == f->first) continue;
+                    for (auto off = of; off; off = off->sibf) {
+                        if (off->nargs() != f->nargs()) continue;
+                        for (auto oov : off->overloads) {
+                            // Only a strict super/sub relation splits a
+                            // dispatch; a method on the exact same class in
+                            // another scope is ordinary shadowing (and if
+                            // subclass overrides exist anywhere, those are
+                            // strictly related and still get here).
+                            if (oov->method_of && oov->method_of != g0 &&
+                                RelatedGUDT(g0, oov->method_of)) {
+                                st.lex.Error(cat("method ", Q(f->name), " of ", Q(g0->name),
+                                    " is in a nested scope, but a method of this name on"
+                                    " related type ", Q(oov->method_of->name),
+                                    " exists in another scope; methods must be declared in"
+                                    " the same scope to dispatch together"),
+                                    &ov->declared_at);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Does any function of this name exist at all, in any scope?

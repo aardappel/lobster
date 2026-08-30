@@ -1130,13 +1130,9 @@ struct SymbolTable {
         return *f;
     }
 
-    Function &FunctionDecl(const string &name, size_t nargs, bool is_method) {
+    Function &FunctionDecl(const string &name, size_t nargs) {
         auto &v = functions[name];
-        // A method declared in a nested scope joins the visible function of
-        // that name rather than shadowing it: method applicability is decided
-        // by the type of the first argument, and dynamic dispatch must be
-        // able to see all methods of a name in one place.
-        if (!v.empty() && (v.back()->scopelevel == scopelevels.size() || is_method)) {
+        if (!v.empty() && v.back()->scopelevel == scopelevels.size()) {
             for (auto f = v.back(); f; f = f->sibf) {
                 if (f->nargs() == nargs) {
                     return *f;

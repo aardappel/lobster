@@ -310,9 +310,10 @@ def declcheck_order_tests():
                  "    return p()\n" +
                  "return h()", "3")
 
-    // A local function can be called from outside its lexical scope when its
-    // name is unique and its enclosing function is active at the call
-    // ("functions as environments").
+    // A local function can be called from outside its lexical scope while
+    // its enclosing function is active ("functions as environments").
+    // NOTE: pending decision on whether to keep supporting this; matvoxels
+    // currently relies on it (game.lobster helpers used from game_item).
     expect_dk_ok("def outer() -> int:\n" +
                  "    def inner() -> int: return 7\n" +
                  "    return helper()\n" +
@@ -327,14 +328,25 @@ def declcheck_order_tests():
                  "assert outer() == 1\n" +
                  "return inner()", "unknown")
 
-    // A method declared in a nested scope joins the methods of that name
-    // rather than shadowing them, so dispatch from elsewhere sees it.
-    expect_dk_ok("abstract class Act:\n    def go() -> int: return 0\n" +
+    // Methods only dispatch together when declared in the same scope, so a
+    // nested method on a class related to one with methods elsewhere (which
+    // would silently split the dispatch) is an error.
+    expect_error("abstract class Act:\n    def go() -> int: return 0\n" +
                  "def runner(a:Act) -> int: return a.go()\n" +
                  "def test() -> int:\n" +
                  "    class MyAct : Act\n        def go() -> int: return 9\n" +
                  "    return runner(MyAct \{\})\n" +
-                 "return test()", "9")
+                 "return test()", "same scope")
+
+    // A local helper whose first arg happens to be a class with same-name
+    // methods on unrelated types elsewhere is its own function as usual.
+    expect_dk_ok("class Unrelated:\n    x = 1\n" +
+                 "def go(u:Unrelated) -> int: return 4\n" +
+                 "def test() -> int:\n" +
+                 "    class Local:\n        y = 2\n" +
+                 "    def go(l:Local) -> int: return l.y\n" +
+                 "    return go(Local \{\})\n" +
+                 "return test() + go(Unrelated \{\})", "6")
 
     // Methods on a class can be called by an earlier-declared function
     // (methods resolve against the whole program, not parse position).

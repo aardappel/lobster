@@ -864,7 +864,7 @@ struct Parser {
             }
         }
         if (parens) Expect(T_RIGHTPAREN);
-        auto &f = name ? st.FunctionDecl(*name, nargs, self != nullptr) : st.CreateFunction("");
+        auto &f = name ? st.FunctionDecl(*name, nargs) : st.CreateFunction("");
         auto nf = natreg.FindNative(f.name);
         if (nf && nf->args.size() >= nargs) {
             // TODO: could allow less args if we check nf's default args.
