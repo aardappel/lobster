@@ -470,7 +470,7 @@ struct LValContext {
     LValContext(SpecIdent *sid) : sid(sid) {}
     LValContext(const Node &n);
     bool IsValid() const { return sid; }
-    bool DerefsEqual(const LValContext &o) {
+    bool DerefsEqual(const LValContext &o) const {
         if (derefs.size() != o.derefs.size()) return false;
         for (auto &shf : derefs) if (shf != o.derefs[&shf - &derefs[0]]) return false;
         return true;

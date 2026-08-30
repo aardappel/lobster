@@ -138,26 +138,6 @@
   explicit types on such fields (matvoxels would need ~235 annotations: mostly untyped
   nil / [] defaults, which arguably deserve them, and builtin/function call defaults).
 
-- FIX:
-    class A:
-        x:bool = true
-        y:string? = nil
-
-    var a:A? = nil
-    if a:
-        if a.x:
-            a = nil
-        elif a.y:
-            pass()
-
-    test.lobster(9): error: type A? does not have field y
-
-- FIX:
-  a = nil
-  if not a:
-    a = ..
-  assert a
-
 - This simple code produces: access of x before being initialized
     foo()
     var x = 1
@@ -639,8 +619,6 @@
     let sub1 = Subscriber{}
     let sub2 = Subscriber{}
 
-- a switch where all cases assign a non-nil value to nil variable doesn't make the var non-nil like if-then does.
-
 - replace our to_string_float with schubfach.
 
 - Passing function values with free variables to declared function types is currently not safe, see
@@ -873,29 +851,6 @@
 - error on `if a:` where `a` is non-nillable ref type?
   - same for `assert a`.
   - would make specialization more restrictive, but avoids errors while refactoring etc.
-
-- this should not need an assert:
-  var a = nil
-  if not a:
-      a = val {}
-  (assert a).x
-
-- This complains about `a` being nillable in the else branch:
-    var a:string? = "a"
-    if a:
-        if seconds_elapsed():
-            a = nil
-        else:
-            print a.substring(0, 1)
-  If you switch the two branch blocks it works fine.
-  The problem is that AssignFlowDemote for `a = nil` has to conservatively reset a's promotion to non-nil,
-  which then also holds for the else branch. Same thing happens across switch cases.
-  A real solution would be some kind of "pending demotions" scope around the whole inner-if that
-  gets applied at the end of the inner-if. Meanwhile, the demotion still has to hold for any code
-  in the same block as `a = nil`, so demotions should should be added to the flowstack also rather
-  than only invalidating past promotions.
-  For single block scopes like for/while it doesn't matter, but probably should use the same delayed
-  demotion system for consistency.
 
 - We now have official `constructor` functions (to turn args into an object), we should maybe also have
   official `destructor`, to make official the pattern of having a `destruct` function that clears cycle
@@ -2029,11 +1984,6 @@
 - Can turn exceptions back on in emscripten once this fix lands:
   https://github.com/emscripten-core/emscripten/issues/7399
 
-- This doesn't typecheck correctly:
-  if !lhs:
-      lhs = ...
-  // lhs here required to be non-nil.
-
 - This doesn't parse:
   somestruct { def ():
     multi-line-anonymous-function-body
@@ -2311,11 +2261,6 @@
   - would be nice to have a way to indicate a generic argument that must be a vector, possibly
     as just []. See for example match.lobster that works on generic vectors.
   - x[i] does not do flow analysis.. not as trivial to add if i is an exp or could change.
-  - if !a: a = ..
-    // here a is still nillable.
-
-  - flow analysis should also know about if !a: return; a // not nil here
-
   - if you do [int] + [float] you get "error: "+" (left argument) requires type: [any], got: [int]"
 
   - should constants be excluded from freevars to reduce clutter?

@@ -73,6 +73,26 @@ def errors_tests():
     expect_error("let x = 1\nx = 2\nreturn x", "constant")
     expect_error("var x = 1\nx = \"s\"\nreturn x", "error")
     expect_error("return 1 +", "error")
+    // A promotion only survives a branching statement if every path that can
+    // reach the code after it establishes it.
+    expect_error("class N:\n    v = 1\nvar a:N? = nil\n" +
+                 "if rnd(2):\n    a = N \{\}\nreturn a.v", "dereferencing nillable")
+    expect_error("class N:\n    v = 1\nvar a:N? = nil\n" +
+                 "switch rnd(3):\n    case 1: a = N \{\}\n    default: pass()\nreturn a.v",
+                 "dereferencing nillable")
+    // A non-exhaustive switch is one such path, even if every case promotes.
+    expect_error("class N:\n    v = 1\nvar a:N? = nil\n" +
+                 "switch rnd(3):\n    case 1: a = N \{\}\n    case 2: a = N \{\}\nreturn a.v",
+                 "dereferencing nillable")
+    // Nor does one established inside a loop, which may run zero times.
+    expect_error("class N:\n    v = 1\nvar a:N? = nil\n" +
+                 "while rnd(2):\n    if not a: a = N \{\}\nreturn a.v",
+                 "dereferencing nillable")
+    // And an assignment in a loop body demotes for the code around it.
+    expect_error("class N:\n    v = 1\nvar a:N? = N \{\}\n" +
+                 "if a:\n    while rnd(2):\n        a = nil\n    return a.v\nreturn 0",
+                 "dereferencing nillable")
+
     // Flow-sensitivity: dereferencing a possibly-nil value.
     expect_error("def f(s:string?) -> int: return s.length\nreturn f(nil)", "error")
     // Exhaustive switch on enums enforced at compile time.

@@ -118,4 +118,41 @@ def nil_tests():
     let fresh = substring("xw", 1, 1)
     test_true(fresh == "w")  // Same comparison, by value, when non-nil.
 
+    // What holds after a branching statement is what holds on every path that
+    // can reach it, so assigning non-nil on all of them promotes.
+    class NVal:
+        nv = 3
+    var fm1:NVal? = nil
+    if not fm1:
+        fm1 = NVal {}
+    test_eq(fm1.nv, 3)  // No assert needed.
+    var fm2:NVal? = nil
+    if rnd(2): fm2 = NVal { nv: 1 } else: fm2 = NVal { nv: 2 }
+    test_true(fm2.nv > 0)
+    var fm3:NVal? = nil
+    switch rnd(3):
+        case 0: fm3 = NVal { nv: 4 }
+        case 1: fm3 = NVal { nv: 5 }
+        default: fm3 = NVal { nv: 6 }
+    test_true(fm3.nv > 3)
+    // A branch that returns can't reach the code after it, so what it did to
+    // the flow types does not count there.
+    var fm4:NVal? = NVal { nv: 7 }
+    def early_out() -> int:
+        if fm4:
+            if rnd(2):
+                fm4 = nil
+                return 0
+            return fm4.nv  // Only reached when the branch above wasn't taken.
+        return -1
+    test_true(early_out() >= 0)
+    // An assignment in one branch does not demote for a sibling branch, which
+    // it cannot have run before.
+    var fm5:NVal? = NVal { nv: 8 }
+    if fm5:
+        if rnd(2):
+            fm5 = nil
+        elif fm5.nv > 0:
+            test_true(true)
+
 nil_tests()

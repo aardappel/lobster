@@ -2248,11 +2248,85 @@ struct TypeChecker {
         }
     }
 
-    TypeRef TypeCheckBranch(bool iftrue, const Node *condition, Block *block, size_t reqret) {
+    // What one branch of a branching statement did to the flow types, so that
+    // it can be undone for its sibling branches (which it can't have run
+    // before) and combined for the code after them (which either may reach).
+    struct FlowBranch {
+        vector<FlowItem> promoted;  // What it established, still live at its end.
+        vector<size_t> demoted;     // Promotions from further out that it dropped.
+    };
+    // Switch cases are typechecked thru the generic TT(), so Case::TypeCheck
+    // leaves theirs here for Switch::TypeCheck to pick up.
+    FlowBranch case_flow;
+
+    TypeRef TypeCheckBranch(bool iftrue, const Node *condition, Block *block, size_t reqret,
+                            FlowBranch *fb = nullptr) {
         auto flowstart = CheckFlowTypeChanges(iftrue, condition);
+        // Loops don't pass an fb: their body may run any number of times, so
+        // its demotions have to hold for the code around it as well.
+        vector<TypeRef> outer;
+        if (fb) BackupFlow(flowstart, outer);
         block->TypeCheck(*this, reqret, {});
+        if (fb) {
+            CollectFlowPromotions(flowstart, fb->promoted);
+            CollectFlowDemotions(outer, fb->demoted);
+        }
         CleanUpFlow(flowstart);
         return block->exptype;
+    }
+
+    void BackupFlow(size_t upto, vector<TypeRef> &dest) {
+        for (size_t i = 0; i < upto; i++) dest.push_back(flowstack[i].now);
+    }
+
+    // The type changes a branch established that still hold at the end of it,
+    // i.e. what code following it on that path may rely on.
+    void CollectFlowPromotions(size_t start, vector<FlowItem> &dest) {
+        for (auto i = start; i < flowstack.size(); i++) {
+            auto &fi = flowstack[i];
+            if (!fi.now->Equal(*fi.old)) dest.push_back(fi);
+        }
+    }
+
+    // Promotions from outside the branch that it invalidated (by assigning to
+    // the variable), which are restored so a sibling branch, which the
+    // assignment can't have run before, still sees them.
+    void CollectFlowDemotions(const vector<TypeRef> &backup, vector<size_t> &dest) {
+        for (auto [i, was] : enumerate(backup)) {
+            if (!flowstack[i].now->Equal(*was)) {
+                dest.push_back(i);
+                flowstack[i].now = was;
+            }
+        }
+    }
+
+    // Reduce `a` to what `b` establishes as well, widened to their common type:
+    // code after a branching statement may have arrived over either path.
+    void MergeFlowPromotions(vector<FlowItem> &a, const vector<FlowItem> &b) {
+        size_t keep = 0;
+        for (auto &fa : a) {
+            for (auto &fb : b) {
+                if (fb.sid != fa.sid || !fb.DerefsEqual(fa)) continue;
+                if (!fa.now->Equal(*fb.now)) {
+                    auto u = Union(fa.now, fb.now, "", "", CF_NONE, nullptr);
+                    // No common type, or one that is nillable again: no promotion.
+                    if (u->t == V_UNDEFINED || u->Equal(*fa.old)) break;
+                    fa.now = u;
+                }
+                if (keep != size_t(&fa - &a[0])) a[keep] = fa;
+                keep++;
+                break;
+            }
+        }
+        a.erase(a.begin() + keep, a.end());
+    }
+
+    // Everything a branch that can fall through to the code after it left
+    // behind. Demotions apply if any such branch made them, promotions only if
+    // they survived merging with every one of them.
+    void ApplyFlow(const FlowBranch &fb) {
+        for (auto i : fb.demoted) flowstack[i].now = flowstack[i].old;
+        for (auto &fi : fb.promoted) flowstack.push_back(fi);
     }
 
     void CheckFlowTypeIdOrDot(const Node &n, TypeRef type) {
@@ -3031,10 +3105,25 @@ Node *And::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
 Node *IfThen::TypeCheck(TypeChecker &tc, size_t, TypeRef /*parent_bound*/) {
     auto constant = tc.TypeCheckCondition(condition, this, "if");
     if (!constant || constant->i) {
-        tc.TypeCheckBranch(true, condition, truepart, 0);
-        if (truepart->Terminal(tc)) {
+        TypeChecker::FlowBranch thenb;
+        tc.TypeCheckBranch(true, condition, truepart, 0, &thenb);
+        if (constant) {
+            // Always taken, so nothing merges into it.
+            tc.ApplyFlow(thenb);
+        } else if (truepart->Terminal(tc)) {
             // This is an if ..: return, we should leave promotions for code after the if.
+            // Nothing the branch did to the flow types reaches that code.
             tc.CheckFlowTypeChanges(false, condition);
+        } else {
+            // Code after the if is reached both by falling out of the branch and
+            // by skipping it, so keep only what holds either way. Skipping it
+            // means the condition was false, which may promote by itself.
+            auto flowstart = tc.CheckFlowTypeChanges(false, condition);
+            TypeChecker::FlowBranch elseb;
+            tc.CollectFlowPromotions(flowstart, elseb.promoted);
+            tc.CleanUpFlow(flowstart);
+            tc.MergeFlowPromotions(thenb.promoted, elseb.promoted);
+            tc.ApplyFlow(thenb);
         }
         if (constant && constant->i) {
             // Replace if-then by just the branch.
@@ -3061,14 +3150,27 @@ Node *IfThen::TypeCheck(TypeChecker &tc, size_t, TypeRef /*parent_bound*/) {
 Node *IfElse::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     auto constant = tc.TypeCheckCondition(condition, this, "if");
     if (!constant) {
-        auto tleft = tc.TypeCheckBranch(true, condition, truepart, reqret);
-        auto tright = tc.TypeCheckBranch(false, condition, falsepart, reqret);
+        TypeChecker::FlowBranch thenb, elseb;
+        auto tleft = tc.TypeCheckBranch(true, condition, truepart, reqret, &thenb);
+        auto tright = tc.TypeCheckBranch(false, condition, falsepart, reqret, &elseb);
+        auto tterm = truepart->Terminal(tc);
+        auto fterm = falsepart->Terminal(tc);
+        // Code after this is reached over whichever branches can fall out of.
+        if (tterm) {
+            if (!fterm) tc.ApplyFlow(elseb);
+        } else if (fterm) {
+            tc.ApplyFlow(thenb);
+        } else {
+            tc.MergeFlowPromotions(thenb.promoted, elseb.promoted);
+            for (auto i : elseb.demoted) thenb.demoted.push_back(i);
+            tc.ApplyFlow(thenb);
+        }
         // FIXME: this is a bit of a hack. Much better if we had an actual type
         // to signify NORETURN, to be taken into account in more places.
-        if (truepart->Terminal(tc)) {
+        if (tterm) {
             exptype = tright;
             lt = falsepart->lt;
-        } else if (falsepart->Terminal(tc)) {
+        } else if (fterm) {
             exptype = tleft;
             lt = truepart->lt;
         } else {
@@ -3081,14 +3183,18 @@ Node *IfElse::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
         return this;
     } else if (constant->i) {
         // Ignore the else part, and delete it, since we don't want to TT it.
-        tc.TypeCheckBranch(true, condition, truepart, reqret);
+        TypeChecker::FlowBranch thenb;
+        tc.TypeCheckBranch(true, condition, truepart, reqret, &thenb);
+        tc.ApplyFlow(thenb);
         auto r = truepart;
         truepart = nullptr;
         delete this;
         return r;
     } else {
         // Ignore the then part, and delete it, since we don't want to TT it.
-        tc.TypeCheckBranch(false, condition, falsepart, reqret);
+        TypeChecker::FlowBranch elseb;
+        tc.TypeCheckBranch(false, condition, falsepart, reqret, &elseb);
+        tc.ApplyFlow(elseb);
         auto r = falsepart;
         falsepart = nullptr;
         delete this;
@@ -3183,9 +3289,12 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
     if (ptype->t == V_INT) ints_seen.reserve(64);
     cases->exptype = type_void;
     cases->lt = LT_ANY;
+    TypeChecker::FlowBranch merged;
+    bool any_fallthrough = false;
     for (auto [i, n] : enumerate(cases->children)) {
         tc.switch_case_context = this;
         tc.TT(n, reqret, LT_KEEP);
+        auto cflow = std::move(tc.case_flow);
         auto cas = AssertIs<Case>(n);
         if (!cas->pattern->Arity()) default_loc = i;
         cas->pattern->exptype = type_void;
@@ -3230,6 +3339,12 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
             exptype = exptype.Null() ? cas->cbody->exptype
                                      : tc.Union(exptype, cas->cbody->exptype, "switch type", "case type",
                                                 CF_COERCIONS, cas);
+            // Only cases that can fall out of the switch decide what holds
+            // after it.
+            for (auto d : cflow.demoted) merged.demoted.push_back(d);
+            if (!any_fallthrough) merged.promoted = std::move(cflow.promoted);
+            else tc.MergeFlowPromotions(merged.promoted, cflow.promoted);
+            any_fallthrough = true;
         }
     }
     if (default_loc >= 0) {
@@ -3317,6 +3432,11 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
             if (reqret) tc.Error(*this, "non-exhaustive switch that returns a value must have a default case");
         }
     }
+    // A promotion made by every case only holds after the switch if some case
+    // always runs; the errors above guarantee that for a class or enum value.
+    // Demotions hold regardless, since any case may have run.
+    if (default_loc < 0 && ptype->t != V_CLASS && !ptype->IsEnum()) merged.promoted.clear();
+    tc.ApplyFlow(merged);
     lt = LT_KEEP;
     return this;
 }
@@ -3328,6 +3448,8 @@ Node *Case::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) 
     auto sw = tc.switch_case_context;
     tc.switch_case_context = nullptr;
     auto flowstart = tc.flowstack.size();
+    vector<TypeRef> outer;
+    tc.BackupFlow(flowstart, outer);
     if (pattern->Arity()) {
         if (auto udtref = Is<UDTRef>(pattern->children[0])) {
             tc.CheckFlowTypeIdOrDot(*sw->value, &udtref->udt->thistype);
@@ -3337,6 +3459,11 @@ Node *Case::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) 
         }
     }
     tc.TT(cbody, reqret, LT_KEEP);
+    // Cases are alternatives like the branches of an if, so the same applies:
+    // Switch::TypeCheck combines these for the code after it.
+    tc.case_flow = TypeChecker::FlowBranch();
+    tc.CollectFlowPromotions(flowstart, tc.case_flow.promoted);
+    tc.CollectFlowDemotions(outer, tc.case_flow.demoted);
     tc.CleanUpFlow(flowstart);
     exptype = cbody->exptype;
     lt = LT_KEEP;
