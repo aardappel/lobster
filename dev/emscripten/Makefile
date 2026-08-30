@@ -23,7 +23,7 @@ OPTLEVELLINK= -sASSERTIONS=0
 
 CFLAGS= $(OPTLEVEL)
 CXXFLAGS= $(OPTLEVEL)
-SHAREDFLAGS= -sUSE_SDL=3 -sUSE_SDL_MIXER=0 -sUSE_FREETYPE=1 \
+SHAREDFLAGS= -sUSE_SDL=3 -sUSE_SDL_MIXER=0 -sUSE_FREETYPE=1 -fwrapv \
          -Wall -pedantic -Wno-switch \
          -Wno-array-bounds -Wno-gnu-anonymous-struct -Wno-nested-anon-types \
 		 -Wno-nontrivial-memcall -Wno-strict-prototypes -Wno-empty-translation-unit
