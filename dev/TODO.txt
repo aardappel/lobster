@@ -850,11 +850,10 @@
     - receiver-before-arity selection (GenericCall) only ranks variants when the first arg
       is a class/struct; ranking scalar/string/vector receivers the same way would be more
       consistent (currently those stay most-args-first).
-    - problematic error:
-        error: no version of function `f` takes 0 arguments
-      could mention the receiver type it looked for.
-    - problematic error:
-      cannot override built-in function `remove` with same (or less) arity
+    - `cannot define function X with N arguments` (a builtin of that name and arity exists)
+      could be lifted rather than just explained: with receiver-based selection in
+      GenericCall, an overload whose first arg is a class/struct type can now be selected
+      over a builtin of the same arity, so such a definition would be safe.
   before:
     - Move checking for functions/builtins/selfarg etc to type checker.
       This is quite hard, it requires reworking a lot of stuff:

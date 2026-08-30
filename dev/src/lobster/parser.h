@@ -873,7 +873,14 @@ struct Parser {
         auto nf = natreg.FindNative(f.name);
         if (nf && nf->args.size() >= nargs) {
             // TODO: could allow less args if we check nf's default args.
-            Error("cannot override built-in function ", Q(f.name), " with same (or less) arity");
+            // TODO: with receiver-based selection in GenericCall, an overload
+            // whose first arg is a class/struct type could now safely shadow a
+            // builtin of the same arity.
+            Error("cannot define function ", Q(f.name), " with ", nargs,
+                  nargs == 1 ? " argument" : " arguments",
+                  ": a call with that many would always select the built-in ",
+                  Q(Signature(*nf)), ". Give it more arguments, a different name, or put it"
+                  " in a namespace");
         }
         // Check default args are being used consistently with the overloads & siblings.
         if (first_default_arg < 0) first_default_arg = (int)nargs;

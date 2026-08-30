@@ -279,6 +279,37 @@ struct TypeChecker {
         Error(callnode, err);
     }
 
+    // The signature an overload was declared with. Unlike Signature() this uses
+    // the given types, so it is also usable before it has been typechecked.
+    string DeclSignature(const Overload &ov) {
+        string r = ov.sf->parent->name;
+        r += "(";
+        for (auto [i, arg] : enumerate(ov.sf->args)) {
+            UnTypeRef t = ov.givenargs[i];
+            // An arg without a declared type got an implicit generic, which is
+            // not something the user wrote, so don't show it as its type.
+            if (t->t == V_TYPEVAR && !ov.sf->explicit_generics) t = type_any;
+            FormatArg(r, arg.sid->id->name, i, t);
+        }
+        r += ")";
+        return r;
+    }
+
+    // All overloads of all arity variants of a function, for errors about a
+    // call that none of them matched.
+    string DeclaredOverloads(Function *ff) {
+        string r;
+        int n = 0;
+        for (auto f = ff; f; f = f->sibf) {
+            for (auto ov : f->overloads) {
+                if (++n > 8) return r + "\n  (more overloads not shown)";
+                r += "\n  declared: " + DeclSignature(*ov) + " (" +
+                     parser.lex.Location(ov->declared_at) + ")";
+            }
+        }
+        return r;
+    }
+
     void AmbiguousOverloadError(const List &call_args, const Function &f, const TypeRef &type0,
                                 const vector<Overload *> &from) {
         string err = "multiple overloads for `" + f.name +"` match the argument types `(";
@@ -4026,7 +4057,31 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
             r = fc->TypeCheck(tc, reqret, {});
             fc.release();
         } else if (ff) {
-            tc.Error(*this, "no version of function ", Q(name), " takes ", nargs, " arguments");
+            string err = cat("no version of function ", Q(name), " takes ", nargs,
+                             nargs == 1 ? " argument" : " arguments");
+            if (udt) {
+                err += cat(" with ", Q(TypeName(type)), " as first argument");
+            } else if (!fromdot) {
+                // A call without a receiver inside a method can have a `this`
+                // inserted as first arg, so name the types that was tried with.
+                string selftypes;
+                Overload *lex_ov = tc.scopes.back().sf->overload;
+                for (auto &wse : reverse(tc.st.withstack)) {
+                    if (!wse.id || !wse.udt_tc) continue;
+                    for (auto lov = lex_ov; lov; lov = lov->sf->lexical_parent) {
+                        if (lov != wse.sf->overload) continue;
+                        auto n = Q(wse.udt_tc->name);
+                        if (selftypes.find(n) == string::npos)
+                            append(selftypes, selftypes.empty() ? "" : " or ", n);
+                        break;
+                    }
+                }
+                if (!selftypes.empty())
+                    err += cat(", or ", nargs + 1, " with ", selftypes,
+                               " as implicit first argument");
+            }
+            err += tc.DeclaredOverloads(ff);
+            tc.Error(*this, err);
         } else {
             if (fld && fromdot && noparens) {
                 tc.Error(*this, "type ", Q(TypeName(type)), " does not have field ", Q(fld->name));

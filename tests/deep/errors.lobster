@@ -95,7 +95,17 @@ def errors_tests():
     expect_error("struct s:\n    n:s\nreturn 1", "self-referential")
     // Unknown fields, and wrong argument counts.
     expect_error("class c:\n    x = 1\nreturn (c \{\}).y", "does not have field")
-    expect_error("def f(a, b): return a\nreturn f(1)", "takes 1 arguments")
+    expect_error("def f(a, b): return a\nreturn f(1)", "takes 1 argument")
+    // The error lists where the versions that do exist were declared, and, for
+    // a call inside a method, the receiver type an implicit first arg was
+    // looked for with.
+    expect_error("def f(a, b): return a\nreturn f(1)", "declared: f(a, b)")
+    expect_error("class A:\n    x = 1\nclass B:\n    y = 2\n    def m(): return h()\n" +
+                 "def h(a:A): return a.x\nreturn (B \{\}).m()",
+                 "or 1 with `B` as implicit first argument")
+    // A function that a call could never select over a builtin of that name.
+    expect_error("def length(a): return 1\nreturn length([ 1 ])",
+                 "would always select the built-in")
     // Class switches must cover all concrete subclasses.
     expect_error("abstract class a:\n    x = 0\nclass b : a\nclass c : a\n" +
                  "def f(v:a): return switch v:\n    case b: 1\nreturn f(b \{\})",
