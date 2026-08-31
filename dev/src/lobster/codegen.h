@@ -1026,33 +1026,6 @@ struct CodeGen  {
         }
     }
 
-    // Ops whose body is a single C operator on the two top stack slots, see GenSimpleBinOp.
-    static bool SimpleBinOpC(ILOP op, string_view &res, string_view &arg, string_view &cop) {
-        switch (op) {
-            case IL_IADD: res = "ival"; arg = "ival"; cop = "+";  return true;
-            case IL_ISUB: res = "ival"; arg = "ival"; cop = "-";  return true;
-            case IL_IMUL: res = "ival"; arg = "ival"; cop = "*";  return true;
-            case IL_ILT:  res = "ival"; arg = "ival"; cop = "<";  return true;
-            case IL_IGT:  res = "ival"; arg = "ival"; cop = ">";  return true;
-            case IL_ILE:  res = "ival"; arg = "ival"; cop = "<="; return true;
-            case IL_IGE:  res = "ival"; arg = "ival"; cop = ">="; return true;
-            case IL_IEQ:  res = "ival"; arg = "ival"; cop = "=="; return true;
-            case IL_INE:  res = "ival"; arg = "ival"; cop = "!="; return true;
-            case IL_FADD: res = "fval"; arg = "fval"; cop = "+";  return true;
-            case IL_FSUB: res = "fval"; arg = "fval"; cop = "-";  return true;
-            case IL_FMUL: res = "fval"; arg = "fval"; cop = "*";  return true;
-            case IL_FDIV: res = "fval"; arg = "fval"; cop = "/";  return true;
-            case IL_FLT:  res = "ival"; arg = "fval"; cop = "<";  return true;
-            case IL_FGT:  res = "ival"; arg = "fval"; cop = ">";  return true;
-            case IL_FLE:  res = "ival"; arg = "fval"; cop = "<="; return true;
-            case IL_FGE:  res = "ival"; arg = "fval"; cop = ">="; return true;
-            case IL_FEQ:  res = "ival"; arg = "fval"; cop = "=="; return true;
-            case IL_FNE:  res = "ival"; arg = "fval"; cop = "!="; return true;
-            // IDIV/IMOD/FMOD are left alone, they check for division by zero.
-            default: return false;
-        }
-    }
-
     void EmitOp0(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
         EmitOp(op, useslots, defslots);
         append(cb, "    U_", ILNames()[op], "(vm, ", sp(), ");\n");
@@ -1420,20 +1393,47 @@ struct CodeGen  {
     }
 
     // Going thru a call for an op this small costs more than the op itself, and pushes both
-    // operands and the result thru memory where the C compiler could otherwise keep them in
-    // registers, so emit the C operator directly where we can.
+    // operands and the result thru memory where the compiler could otherwise keep them in
+    // registers, so emit the operator directly instead.
     void GenSimpleBinOp(ILOP op) {
-        #if !RTT_ENABLED
-            // Only without the runtime type field, where a Value is just its payload.
-            string_view res, arg, cop;
-            if (!cpp && SimpleBinOpC(op, res, arg, cop)) {
-                EmitOp(op);
-                append(cb, "    (", sp(2), ")->", res, " = (", sp(2), ")->", arg, " ", cop, " (",
-                       sp(1), ")->", arg, ";\n");
-                return;
-            }
-        #endif
-        EmitOp0(op);
+        // Field for the result and the operands in the C backend, accessor for them in the C++
+        // one, and the operator itself. IDIV/IMOD/FMOD are absent: they check for div by zero.
+        string_view res, arg, cop;
+        // A comparison writes an int over what may have been a float, so in C, where we would
+        // have to keep any runtime type field correct ourselves, only do this without one.
+        // The C++ backend goes thru Value, which maintains it either way.
+        if (cpp || !RTT_ENABLED) switch (op) {
+            case IL_IADD: res = "ival"; arg = "ival"; cop = "+";  break;
+            case IL_ISUB: res = "ival"; arg = "ival"; cop = "-";  break;
+            case IL_IMUL: res = "ival"; arg = "ival"; cop = "*";  break;
+            case IL_ILT:  res = "ival"; arg = "ival"; cop = "<";  break;
+            case IL_IGT:  res = "ival"; arg = "ival"; cop = ">";  break;
+            case IL_ILE:  res = "ival"; arg = "ival"; cop = "<="; break;
+            case IL_IGE:  res = "ival"; arg = "ival"; cop = ">="; break;
+            case IL_IEQ:  res = "ival"; arg = "ival"; cop = "=="; break;
+            case IL_INE:  res = "ival"; arg = "ival"; cop = "!="; break;
+            case IL_FADD: res = "fval"; arg = "fval"; cop = "+";  break;
+            case IL_FSUB: res = "fval"; arg = "fval"; cop = "-";  break;
+            case IL_FMUL: res = "fval"; arg = "fval"; cop = "*";  break;
+            case IL_FDIV: res = "fval"; arg = "fval"; cop = "/";  break;
+            case IL_FLT:  res = "ival"; arg = "fval"; cop = "<";  break;
+            case IL_FGT:  res = "ival"; arg = "fval"; cop = ">";  break;
+            case IL_FLE:  res = "ival"; arg = "fval"; cop = "<="; break;
+            case IL_FGE:  res = "ival"; arg = "fval"; cop = ">="; break;
+            case IL_FEQ:  res = "ival"; arg = "fval"; cop = "=="; break;
+            case IL_FNE:  res = "ival"; arg = "fval"; cop = "!="; break;
+            default: break;
+        }
+        if (cop.empty()) { EmitOp0(op); return; }
+        EmitOp(op);
+        if (cpp) {
+            // Value's constructor picks the runtime type up from the expression.
+            append(cb, "    *(", sp(2), ") = Value((", sp(2), ")->", arg, "() ", cop, " (",
+                   sp(1), ")->", arg, "());\n");
+        } else {
+            append(cb, "    (", sp(2), ")->", res, " = (", sp(2), ")->", arg, " ", cop, " (",
+                   sp(1), ")->", arg, ";\n");
+        }
     }
 
     // U_POP only decrements its own copy of the stack pointer, and where the stack top is is
@@ -1443,29 +1443,29 @@ struct CodeGen  {
     // The int version of the loop condition is an increment and a compare, small enough to be
     // worth not calling for the same reasons as GenSimpleBinOp. The string and vector versions
     // need a length out of the object they iterate, whose layout the generated C doesn't know.
+    // The counter stays an int here, so this needs no care around a runtime type field.
     int GenForCond(ILOP op) {
-        #if !RTT_ENABLED
-            if (!cpp && op == IL_IFOR) {
-                EmitOp(op);
-                auto lab = Label();
-                append(cb, "    if (!(++(", sp(2), ")->ival < (", sp(1), ")->ival)) goto block",
-                       lab, ";\n");
-                return lab;
-            }
-        #endif
-        return EmitOpJump1(op);
+        if (op != IL_IFOR) return EmitOpJump1(op);
+        EmitOp(op);
+        auto lab = Label();
+        if (cpp) {
+            append(cb, "    *(", sp(2), ") = Value((", sp(2), ")->ival() + 1);\n");
+            append(cb, "    if (!((", sp(2), ")->ival() < (", sp(1), ")->ival())) goto block",
+                   lab, ";\n");
+        } else {
+            append(cb, "    (", sp(2), ")->ival = (", sp(2), ")->ival + 1;\n");
+            append(cb, "    if (!((", sp(2), ")->ival < (", sp(1), ")->ival)) goto block", lab,
+                   ";\n");
+        }
+        return lab;
     }
 
-    // Both of these just copy the loop counter to the top of the stack.
+    // Both of these copy the loop counter to the top of the stack, which is a whole Value and
+    // so carries any runtime type field with it.
     void GenForCounter(ILOP op) {
-        #if !RTT_ENABLED
-            if (!cpp && (op == IL_IFORELEM || op == IL_FORLOOPI)) {
-                EmitOp(op);
-                append(cb, "    (", sp(0), ")->ival = (", sp(2), ")->ival;\n");
-                return;
-            }
-        #endif
-        EmitOp0(op);
+        if (op != IL_IFORELEM && op != IL_FORLOOPI) { EmitOp0(op); return; }
+        EmitOp(op);
+        append(cb, "    *(", sp(0), ") = *(", sp(2), ");\n");
     }
 
     void GenPop(TypeLT typelt) {
