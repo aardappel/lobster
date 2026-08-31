@@ -2657,15 +2657,15 @@ struct TypeChecker {
     void AdjustLifetime(Node *&n, Lifetime recip, const node_small_vector *idents = nullptr) {
         assert(n->lt != LT_UNDEF && recip != LT_UNDEF);
         uint64_t incref = 0, decref = 0;
-        auto rt = n->exptype;
-        for (size_t i = 0; i < rt->NumValues(); i++) {
-            assert (n->lt != LT_MULTIPLE || rt->t == V_TUPLE);
-            auto givenlt = rt->GetLifetime(i, n->lt);
+        auto rtype = n->exptype;
+        for (size_t i = 0; i < rtype->NumValues(); i++) {
+            assert (n->lt != LT_MULTIPLE || rtype->t == V_TUPLE);
+            auto givenlt = rtype->GetLifetime(i, n->lt);
             auto given = LifetimeType(givenlt);
             if (idents) recip = LvalueLifetime(*(*idents)[i], false);  // FIXME: overwrite var?
             recip = LifetimeType(recip);
             if (given != recip) {
-                auto rtt = rt->Get(i)->t;
+                auto rtt = rtype->Get(i)->t;
                 // Sadly, if it a V_VAR we have to be conservate and assume it may become a ref.
                 if (IsRefNilVar(rtt)) {
                     // Special action required.
@@ -2710,9 +2710,9 @@ struct TypeChecker {
         // Central point from which each node is typechecked.
         n = n->TypeCheck(*this, reqret, parent_bound);
         // Check if we need to do any type adjustmenst.
-        auto &rt = n->exptype;
-        n->exptype = rt;
-        auto nret = rt->NumValues();
+        auto &rtype = n->exptype;
+        n->exptype = rtype;
+        auto nret = rtype->NumValues();
         if (nret < reqret) {
             if (!n->Terminal(*this)) {
                 Error(*n, Q(NiceName(*n)), " returns ", nret, " values, ", reqret, " needed");
@@ -2720,37 +2720,37 @@ struct TypeChecker {
                 // FIXME: would be better to have a general NORETURN type than patching things up
                 // this way.
                 if (reqret == 1) {
-                    rt = type_any;
+                    rtype = type_any;
                 } else {
                     auto nt = st.NewTuple(reqret);
                     for (size_t i = 0; i < reqret; i++) {
-                        if (i < nret) nt->Set(i, rt->Get(i), rt->GetLifetime(i, n->lt));
+                        if (i < nret) nt->Set(i, rtype->Get(i), rtype->GetLifetime(i, n->lt));
                         else nt->Set(i, &*type_any, LT_ANY);
                     }
-                    rt = nt;
+                    rtype = nt;
                 }
             }
         } else if (nret > reqret) {
             for (size_t i = reqret; i < nret; i++) {
                 // This value will be dropped.
-                DecBorrowers(rt->GetLifetime(i, n->lt), *n);
+                DecBorrowers(rtype->GetLifetime(i, n->lt), *n);
                 // If this is a LT_KEEP value, codegen will make sure to throw it away.
             }
             switch (reqret) {
                 case 0:
                     n->lt = LT_ANY;
-                    rt = type_void;
+                    rtype = type_void;
                     break;
                 case 1: {
                     auto typelt = TypeLT { *n, 0 };  // Get from tuple.
                     n->lt = typelt.lt;
-                    rt = typelt.type;
+                    rtype = typelt.type;
                     break;
                 }
                 default: {
                     auto nt = st.NewTuple(reqret);
-                    nt->tup->assign(rt->tup->begin(), rt->tup->begin() + reqret);
-                    rt = nt;
+                    nt->tup->assign(rtype->tup->begin(), rtype->tup->begin() + reqret);
+                    rtype = nt;
                 }
             }
         }
@@ -3650,32 +3650,32 @@ TypeRef UnaryMinus::SimpleType(SymbolTable &st) {
 }
 
 TypeRef BinOp::SimpleType(SymbolTable &st) {
-    auto lt = left->SimpleType(st);
-    if (lt.Null()) return nullptr;
+    auto ltype = left->SimpleType(st);
+    if (ltype.Null()) return nullptr;
     // A string on the left of + makes the right side get converted to
     // string whatever it is, so the type doesn't depend on it.
-    if (Is<Plus>(this) && lt->t == V_STRING) return type_string;
-    auto rt = right->SimpleType(st);
-    if (rt.Null()) return nullptr;
+    if (Is<Plus>(this) && ltype->t == V_STRING) return type_string;
+    auto rtype = right->SimpleType(st);
+    if (rtype.Null()) return nullptr;
     // Only plain scalar/string operands: anything else can involve operator
     // overloads, vector math, enum unions, etc.
     auto num = [](TypeRef t) { return t->t == V_FLOAT || (t->t == V_INT && !t->e); };
     if (Is<Plus>(this) || Is<Minus>(this) || Is<Multiply>(this) || Is<Divide>(this) ||
         Is<Mod>(this)) {
-        if (Is<Plus>(this) && rt->t == V_STRING) return type_string;
-        if (!num(lt) || !num(rt)) return nullptr;
-        return lt->t == V_FLOAT || rt->t == V_FLOAT ? type_float : type_int;
+        if (Is<Plus>(this) && rtype->t == V_STRING) return type_string;
+        if (!num(ltype) || !num(rtype)) return nullptr;
+        return ltype->t == V_FLOAT || rtype->t == V_FLOAT ? type_float : type_int;
     }
     if (Is<BitAnd>(this) || Is<BitOr>(this) || Is<Xor>(this) || Is<ShiftLeft>(this) ||
         Is<ShiftRight>(this)) {
-        return lt->t == V_INT && !lt->e && rt->t == V_INT && !rt->e ? type_int
+        return ltype->t == V_INT && !ltype->e && rtype->t == V_INT && !rtype->e ? type_int
                                                                    : TypeRef(nullptr);
     }
     // Qualified, since unqualified Equal is the Node member function here.
     if (Is<lobster::Equal>(this) || Is<NotEqual>(this) || Is<LessThan>(this) ||
         Is<GreaterThan>(this) || Is<LessThanEq>(this) || Is<GreaterThanEq>(this)) {
         if (!st.default_bool_type) return nullptr;
-        if ((num(lt) && num(rt)) || (lt->t == V_STRING && rt->t == V_STRING))
+        if ((num(ltype) && num(rtype)) || (ltype->t == V_STRING && rtype->t == V_STRING))
             return &st.default_bool_type->thistype;
     }
     return nullptr;
