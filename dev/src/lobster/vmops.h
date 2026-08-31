@@ -668,12 +668,9 @@ VM_INLINE void U_PUSHVARVF(VM &vm, StackPtr sp, int vidx, int l) {
     PushN(sp, l);
 }
 
-VM_INLINE void U_PUSHFLD(VM &vm, StackPtr sp, int i) {
-    Value r = Pop(sp);
-    VMASSERT(vm, r.ref());
-    assert(i < r.oval()->Len(vm));
-    Push(sp, r.oval()->At(i));
-}
+// The code generator emits the load itself, see GenPushField. That does lose the two debug
+// only checks that were here, on the reference being non-null and the index being in range.
+VM_INLINE void U_PUSHFLD(VM &, StackPtr, int) { assert(false); }
 VM_INLINE void U_PUSHFLDMREF(VM &vm, StackPtr sp, int i) {
     Value r = Pop(sp);
     if (!r.ref()) {

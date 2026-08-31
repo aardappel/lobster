@@ -1436,6 +1436,18 @@ struct CodeGen  {
         }
     }
 
+    // Reading a field is a load at a constant offset from the object, whose fields sit right
+    // behind its header. Copies the whole Value, so it carries any runtime type field along.
+    void GenPushField(int offset) {
+        EmitOp(IL_PUSHFLD);
+        if (cpp) {
+            append(cb, "    *(", sp(1), ") = (", sp(1), ")->oval()->At(", offset, ");\n");
+        } else {
+            append(cb, "    *(", sp(1), ") = ((Value *)((RefObj *)(", sp(1), ")->ref + 1))[",
+                   offset, "];\n");
+        }
+    }
+
     // U_POP only decrements its own copy of the stack pointer, and where the stack top is is
     // something we track statically, so all that is left of it is the bookkeeping.
     void GenPopSlot() { EmitOp(IL_POP); }
@@ -1834,7 +1846,7 @@ struct CodeGen  {
             if (IsStruct(ftype->t)) {
                 EmitOp2(IL_PUSHFLD2V, offset, fwidth, 1, fwidth);
             } else {
-                EmitOp1(IL_PUSHFLD, offset);
+                GenPushField(offset);
             }
         }
     }
