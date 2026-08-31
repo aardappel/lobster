@@ -425,8 +425,12 @@ typedef void(*fun_base_t)(VM &, StackPtr);
     extern "C" void compiled_entry_point(VM & vm, StackPtr sp);
 #endif
 
-#if defined(VM_JIT_MODE) && !defined(_MSC_VER) && defined(USE_EXCEPTION_HANDLING)
-    // Platforms like e.g. Linux cannot throw exceptions past jitted C code :(
+// Exceptions cannot always be thrown past jitted code, see VM::JitNeedsLongJmp for which cases.
+// This only compiles in the setjmp/longjmp machinery for those; whether it gets used is a runtime
+// decision, since one binary can run either JIT backend.
+// (Note this used to test defined(VM_JIT_MODE), which is always true, so a non-JIT build on Linux
+// took the longjmp path even though there was never any jitted code on its stack.)
+#if VM_JIT_MODE && defined(USE_EXCEPTION_HANDLING)
     #define VM_USE_LONGJMP 1
 #else
     #define VM_USE_LONGJMP 0
@@ -1046,6 +1050,15 @@ struct VMMetaData {
     span<const int> subfunctions_to_function;
 };
 
+// How to turn the C we generate into machine code. Selected on the command line, and passed on
+// to any program compiled from within a running one (compile_run_code and friends).
+struct JitOptions {
+    // Use MIR rather than libtcc.
+    bool mir = false;
+    // Backend optimization level, -1 for whatever the backend defaults to.
+    int optimize_level = -1;
+};
+
 struct VMArgs {
     NativeRegistry &nfr;
     string programname;
@@ -1056,6 +1069,7 @@ struct VMArgs {
     bool dump_leaks = true;
     int runtime_checks = RUNTIME_ASSERT;
     bool stack_trace_python_ordering = false;
+    JitOptions jit_options;
 };
 
 struct Line {
@@ -1210,6 +1224,7 @@ struct VM : VMBase {
     Value NormalExit(string err);
     void ErrorBase(const string &err);
     void VMAssert(const char *what);
+    bool JitNeedsLongJmp();
     void UnwindOnError();
 
     void StartWorkers(iint numthreads);

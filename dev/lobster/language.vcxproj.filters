@@ -27,6 +27,9 @@
     <Filter Include="tonative\libtcc">
       <UniqueIdentifier>{544afcaf-5825-41a5-9db0-a44268869235}</UniqueIdentifier>
     </Filter>
+    <Filter Include="tonative\mir">
+      <UniqueIdentifier>{3f2a91c4-6d18-4b7e-9a05-1c8f2e7d4b60}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\stdafx.cpp">
@@ -67,6 +70,18 @@
     </ClCompile>
     <ClCompile Include="..\src\tccbind.cpp">
       <Filter>tonative\libtcc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\mir\mir.c">
+      <Filter>tonative\mir</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\mir\mir-gen.c">
+      <Filter>tonative\mir</Filter>
+    </ClCompile>
+    <ClCompile Include="..\external\mir\c2mir\c2mir.c">
+      <Filter>tonative\mir</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\mirbind.cpp">
+      <Filter>tonative\mir</Filter>
     </ClCompile>
     <ClCompile Include="..\src\simplex.cpp">
       <Filter>compiler\builtins</Filter>

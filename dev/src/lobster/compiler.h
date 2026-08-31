@@ -23,9 +23,9 @@ extern void Compile(NativeRegistry &natreg, string_view fn, string_view stringso
                     string &metadata_buffer, string *parsedump, string *pakfile, bool return_value,
                     int runtime_checks, Query *query, int max_errors, bool full_error,
                     bool jit_mode, string &c_codegen, bool code_pak,
-                    string_view custom_pre_init_name);
+                    string_view custom_pre_init_name, const JitOptions &jit_options);
 
-extern pair<string, iint> RunTCC(NativeRegistry &nfr,
+extern pair<string, iint> RunJIT(NativeRegistry &nfr,
                           string_view metadata_buffer,
                           string_view fn,
                           const char *object_name /* save instead of run if non-null */,
@@ -35,7 +35,8 @@ extern pair<string, iint> RunTCC(NativeRegistry &nfr,
                           int runtime_checks,
                           bool dump_leaks,
                           bool stack_trace_python_ordering,
-                          const string &c_codegen);
+                          const string &c_codegen,
+                          const JitOptions &jit_options);
 
 extern bool LoadPakDir(const char *lpak, uint64_t &src_hash_dest);
 extern bool LoadMetaDataAndCode(string &metadata, string &c_codegen);

@@ -1,17 +1,20 @@
 #include "lobster/stdafx.h"
 
 #include "lobster/compiler.h"
+#include "lobster/tonative.h"
 
 #include "libtcc.h"
 
 namespace lobster {
 
-bool RunC(const char *source,
-          const char *object_name,
-          string &error,
-          const void **imports,
-          const char **export_names,
-          function<bool (void **)> runf) {
+bool RunTCC(const char *source,
+            const char *object_name,
+            string &error,
+            const void **imports,
+            const char **export_names,
+            const JitOptions &jit_options,
+            function<bool (void **)> runf) {
+    (void)jit_options;  // libtcc has no optimization levels to select.
     // Wrap this thing in a unique pointer since the compiled code may
     // throw an exception still.
     auto deleter = [&](TCCState *p) { tcc_delete(p); };

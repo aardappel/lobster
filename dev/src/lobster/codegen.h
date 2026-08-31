@@ -46,6 +46,9 @@ struct CodeGen  {
     size_t tstack_max = 0;
     const SubFunction *cursf = nullptr;
     bool cpp = false;
+    // Set when the C output is going to be fed to MIR rather than libtcc, for any places where
+    // the two need different code.
+    bool mir = false;
     size_t nil_type_table_size = 0;
 
     // C/C++ codegen related.
@@ -279,8 +282,9 @@ struct CodeGen  {
     }
 
     CodeGen(Parser &_p, SymbolTable &_st, bool return_value, int runtime_checks, bool cpp,
-            uint64_t src_hash, string &c_codegen, string_view custom_pre_init_name)
-        : parser(_p), st(_st), runtime_checks(runtime_checks), cpp(cpp), c_codegen(c_codegen) {
+            uint64_t src_hash, string &c_codegen, string_view custom_pre_init_name, bool mir)
+        : parser(_p), st(_st), runtime_checks(runtime_checks), cpp(cpp), mir(mir),
+          c_codegen(c_codegen) {
         node_context.push_back(parser.root);
 
         // Reserve space and index for all vtables.
@@ -1120,6 +1124,10 @@ struct CodeGen  {
 
     void Epilogue(string &sd, string_view custom_pre_init_name, uint64_t src_hash) {
         if (cpp) sd += "\nstatic";
+        // c2mir turns a file scope declaration that has both `extern` and an initializer into a
+        // mere import, dropping the definition, so for MIR we rely on the default external
+        // linkage of a file scope object instead.
+        else if (mir) sd += "\n";
         else sd += "\nextern";
         sd += " const fun_base_t vtables[] = {\n";
         for (auto id : vtables) {

@@ -30,6 +30,13 @@
 
 using namespace lobster;
 
+// For command line options with an optional numeric argument.
+static bool IsDigitsOnly(const char *s) {
+    if (!*s) return false;
+    for (; *s; s++) if (*s < '0' || *s > '9') return false;
+    return true;
+}
+
 void unit_test_all() {
     // We don't really have unit tests, but let's collect some that always
     // run in debug mode:
@@ -45,6 +52,10 @@ void unit_test_all() {
 int main(int argc, char* argv[]) {
     #ifdef _MSC_VER
     	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+        // Has to happen before the crash handler is installed, so this can't wait for the
+        // regular command line parsing below.
+        for (int i = 1; i < argc; i++)
+            if (strcmp(argv[i], "--no-crash-dialog") == 0) SuppressCrashDialogs();
         InitUnhandledExceptionFilter(argc, argv);
     #endif
     LOG_INFO("Lobster running...");
@@ -65,6 +76,7 @@ int main(int argc, char* argv[]) {
         bool dump_builtins = false;
         bool dump_names = false;
         bool tcc_out = false;
+        bool c_out = false;
         bool code_pak = false;
         bool compile_only = false;
         bool non_interactive_test = false;
@@ -72,6 +84,7 @@ int main(int argc, char* argv[]) {
         int runtime_checks = RUNTIME_ASSERT;
         bool stack_trace_python_ordering = false;
         int max_errors = 1;
+        JitOptions jit_options;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
         string fn;
@@ -109,6 +122,10 @@ int main(int argc, char* argv[]) {
             "--non-interactive-test  Quit after running 1 frame.\n"
             #endif
             "--tcc-out               Output tcc .o file instead of running.\n"
+            "--mir [N]               JIT with MIR instead of libtcc, optionally at\n"
+            "                        optimization level N (0..3, default 1).\n"
+            "--c-out                 Output the C the JIT backend would compile, don't run.\n"
+            "--no-crash-dialog       Exit silently on a crash rather than popping up a dialog.\n"
             "--wait                  Wait for input before exiting.\n"
             "--query QUERY_ARGS      Queries about definitions in the program being compiled.\n"
             "--errors N              Output up to N errors (default 1).\n";
@@ -143,6 +160,15 @@ int main(int argc, char* argv[]) {
                 else if (a == "--non-interactive-test") { non_interactive_test = true; SDLTestMode(); }
                 #endif
                 else if (a == "--tcc-out") { tcc_out = true; }
+                else if (a == "--mir") {
+                    jit_options.mir = true;
+                    // The optimization level is optional, so only take the next argument if it
+                    // could not be anything else.
+                    if (arg + 1 < argc && IsDigitsOnly(argv[arg + 1]))
+                        jit_options.optimize_level = parse_int<int>(string_view(argv[++arg]));
+                }
+                else if (a == "--c-out") { c_out = true; }
+                else if (a == "--no-crash-dialog") { /* Handled before main arg parsing. */ }
                 else if (a == "--import") {
                     arg++;
                     if (arg >= argc) THROW_OR_ABORT("missing import dir");
@@ -243,7 +269,7 @@ int main(int argc, char* argv[]) {
                 Compile(nfr, fn, {}, metadata_buffer, parsedump ? &dump : nullptr,
                         lpak ? &pakfile : nullptr, false, runtime_checks,
                         !query.kind.empty() ? &query : nullptr, max_errors, full_error, jit_mode,
-                        c_codegen, code_pak, "nullptr");
+                        c_codegen, code_pak, "nullptr", jit_options);
                 if (mainfile.empty()) break;
                 if (!FileExists(mainfile, true)) {
                     //LOG_WARN(mainfile, " does not exist, skipping");
@@ -265,9 +291,14 @@ int main(int argc, char* argv[]) {
                 return 0;
             }
         }
+        if (c_out) {
+            auto out = "compiled_lobster_jit.c";
+            if (!WriteFile(out, false, c_codegen, false)) THROW_OR_ABORT(cat("cannot write: ", out));
+            return 0;
+        }
         if (jit_mode) {
             string error;
-            auto ret = RunTCC(nfr,
+            auto ret = RunJIT(nfr,
                               metadata_buffer,
                               !fn.empty() ? fn : "",
                               tcc_out ? "tcc_out.o" : nullptr,
@@ -277,7 +308,8 @@ int main(int argc, char* argv[]) {
                               runtime_checks,
                               !non_interactive_test,
                               stack_trace_python_ordering,
-                              c_codegen);
+                              c_codegen,
+                              jit_options);
             if (!error.empty())
                 THROW_OR_ABORT(error);
             return (int)ret.second;

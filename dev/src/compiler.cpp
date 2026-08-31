@@ -548,7 +548,7 @@ void PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
 void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &metadata_buffer,
              string *parsedump, string *pakfile, bool return_value, int runtime_checks,
              Query *query, int max_errors, bool full_error, bool jit_mode, string &c_codegen,
-             bool code_pak, string_view custom_pre_init_name) {
+             bool code_pak, string_view custom_pre_init_name, const JitOptions &jit_options) {
     #ifdef NDEBUG
         SlabAlloc slaballoc;
         if (g_current_slaballoc) THROW_OR_ABORT("nested slab allocator use");
@@ -579,7 +579,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     if (parsedump) *parsedump = parser.DumpAll(true);
     auto src_hash = lex.HashAll();
     CodeGen cg(parser, st, return_value, runtime_checks, !jit_mode, src_hash,
-               c_codegen, custom_pre_init_name);
+               c_codegen, custom_pre_init_name, jit_mode && jit_options.mir);
     st.Serialize(cg.type_table, cg.sids, cg.stringtable, metadata_buffer, filenames, cg.ser_ids, src_hash);
     if (pakfile) {
         auto err = BuildPakFile(*pakfile, metadata_buffer, parser.pakfiles, src_hash,
@@ -588,18 +588,20 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     }
 }
 
-pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, string_view fn,
+pair<string, iint> RunJIT(NativeRegistry &nfr, string_view metadata_buffer, string_view fn,
                           const char *object_name, vector<string> &&program_args,
                           bool compile_only, string &error, int runtime_checks, bool dump_leaks,
-                          bool stack_trace_python_ordering, const string &c_codegen) {
+                          bool stack_trace_python_ordering, const string &c_codegen,
+                          const JitOptions &jit_options) {
     #if VM_JIT_MODE
         const char *export_names[] = { "compiled_entry_point", "vtables", nullptr };
         auto start_time = SecondsSinceStart();
         pair<string, iint> ret;
         auto ok = RunC(
-            c_codegen.c_str(), object_name, error, vm_ops_jit_table, export_names,
+            c_codegen.c_str(), object_name, error, vm_ops_jit_table, export_names, jit_options,
             [&](void **exports) -> bool {
-                LOG_INFO("time to tcc (seconds): ", SecondsSinceStart() - start_time);
+                LOG_INFO("time to ", jit_options.mir ? "mir" : "tcc",
+                         " (seconds): ", SecondsSinceStart() - start_time);
                 if (compile_only) return true;
                 // Verify the bytecode.
                 flatbuffers::Verifier verifier((uint8_t *)metadata_buffer.data(), metadata_buffer.size());
@@ -693,7 +695,7 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                     nfr, string(fn), &vmmeta,
                     std::move(program_args),
                     (fun_base_t *)exports[1], (fun_base_t)exports[0], dump_leaks,
-                    runtime_checks, stack_trace_python_ordering
+                    runtime_checks, stack_trace_python_ordering, jit_options
                 };
                 lobster::VMAllocator vma(std::move(vmargs));
                 vma.vm->EvalProgram();
@@ -707,7 +709,8 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
                 fputs(c_codegen.c_str(), f);
                 fclose(f);
             }
-            error = "libtcc JIT error: " + string(fn) + ":\n" + error;
+            error = (jit_options.mir ? "MIR JIT error: " : "libtcc JIT error: ") + string(fn) +
+                    ":\n" + error;
         }
         return ret;
     #else
@@ -721,7 +724,8 @@ pair<string, iint> RunTCC(NativeRegistry &nfr, string_view metadata_buffer, stri
         (void)runtime_checks;
         (void)metadata_buffer;
         (void)nfr;
-        error = "cannot JIT code: libtcc not enabled";
+        (void)jit_options;
+        error = "cannot JIT code: JIT backend not enabled";
         return { "", 0 };
     #endif
 }
@@ -738,10 +742,11 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value source, bool stringis
         string c_codegen;
         Compile(parent_vm.vma.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
                 metadata_buffer, nullptr, nullptr, true, runtime_checks, nullptr, 1, false, true,
-                c_codegen, false, "nullptr");
+                c_codegen, false, "nullptr", parent_vm.vma.jit_options);
         string error;
-        auto ret = RunTCC(parent_vm.vma.nfr, metadata_buffer, fn, nullptr, std::move(args),
-                          false, error, runtime_checks, true, false, c_codegen);
+        auto ret = RunJIT(parent_vm.vma.nfr, metadata_buffer, fn, nullptr, std::move(args),
+                          false, error, runtime_checks, true, false, c_codegen,
+                          parent_vm.vma.jit_options);
         if (!error.empty()) THROW_OR_ABORT(error);
         Push(parent_sp, Value(parent_vm.NewString(ret.first)));
         return NilVal();
@@ -827,7 +832,7 @@ Value CompileRunCCode(VM &vm, StackPtr &sp, Value code, Value input) {
         string error;
         auto prev_ctx = g_c_code_ctx;
         g_c_code_ctx = &ctx;
-        auto ok = RunC(source.c_str(), nullptr, error, imports, export_names,
+        auto ok = RunC(source.c_str(), nullptr, error, imports, export_names, vm.vma.jit_options,
             [&](void **exports) -> bool {
                 auto cmain = (int (*)())exports[0];
                 if (!cmain) {

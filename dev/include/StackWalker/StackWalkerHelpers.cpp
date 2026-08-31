@@ -11,8 +11,24 @@
  **********************************************************************/
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <crtdbg.h>
 #include <tchar.h>
 #include "StackWalker\stackwalker.h"
+
+static BOOL s_bNoCrashDialogs = FALSE;
+
+void SuppressCrashDialogs() {
+    s_bNoCrashDialogs = TRUE;
+    // Windows Error Reporting, plus the "abort() has been called" and assert dialogs from the CRT.
+    SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+    _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+    static const int reports[] = { _CRT_WARN, _CRT_ERROR, _CRT_ASSERT };
+    for (int i = 0; i < 3; i++) {
+        _CrtSetReportMode(reports[i], _CRTDBG_MODE_FILE);
+        _CrtSetReportFile(reports[i], _CRTDBG_FILE_STDERR);
+    }
+}
 
 static TCHAR s_szExceptionLogFileName[_MAX_PATH] = _T("\\exceptions.log");  // default
 static BOOL s_bUnhandledExeptionFilterSet = FALSE;
@@ -134,6 +150,11 @@ static LONG __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS *pExPtrs) {
         strcat_s(lString, buflen, " ");
     }
     strcat_s(lString, buflen, "\n");
+    if (s_bNoCrashDialogs) {
+        fputs(lString, stderr);
+        fflush(stderr);
+        TerminateProcess(GetCurrentProcess(), 3);
+    }
     FatalAppExit(-1, lString);
     return EXCEPTION_CONTINUE_SEARCH;
 }

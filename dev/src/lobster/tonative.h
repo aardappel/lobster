@@ -22,12 +22,33 @@ namespace lobster {
 struct CodeGen;
 struct SymbolTable;
 
-extern bool RunC(const char *source,
-                 const char *object_name /* save instead of run if non-null */,
+extern bool RunTCC(const char *source,
+                   const char *object_name /* save instead of run if non-null */,
+                   string &error,
+                   const void **imports,
+                   const char **export_names,
+                   const JitOptions &jit_options,
+                   function<bool (void **)> runf);
+
+extern bool RunMIR(const char *source,
+                   const char *object_name /* save instead of run if non-null */,
+                   string &error,
+                   const void **imports,
+                   const char **export_names,
+                   const JitOptions &jit_options,
+                   function<bool (void **)> runf);
+
+inline bool RunC(const char *source,
+                 const char *object_name,
                  string &error,
                  const void **imports,
                  const char **export_names,
-                 function<bool (void **)> runf);
+                 const JitOptions &jit_options,
+                 function<bool (void **)> runf) {
+    return jit_options.mir
+        ? RunMIR(source, object_name, error, imports, export_names, jit_options, std::move(runf))
+        : RunTCC(source, object_name, error, imports, export_names, jit_options, std::move(runf));
+}
 
 }  // namespace lobster;
 

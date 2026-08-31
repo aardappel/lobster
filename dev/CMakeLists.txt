@@ -91,6 +91,7 @@ else()
     src/vm.cpp
     src/vmdata.cpp
     src/tccbind.cpp
+    src/mirbind.cpp
   )
   add_definitions(-DLOBSTER_ENGINE=0)
 endif()
@@ -179,6 +180,8 @@ include_directories(SYSTEM
                     external/freetype/include
                     external/imgui
                     external/libtcc
+                    external/mir
+                    external/mir/c2mir
                     $(STEAM_INCLUDES))
 
 if(LOBSTER_ENGINE)
@@ -251,6 +254,7 @@ if(LOBSTER_TOCPP)
   add_definitions(-DVM_JIT_MODE=0)
   removecpp(main)
   removecpp(tccbind)
+  removecpp(mirbind)
   list(APPEND LOBSTER_SRCS "compiled_lobster/src/compiled_lobster.cpp")
   add_definitions(-flto)
   set(EXE_NAME compiled_lobster)
@@ -262,6 +266,16 @@ elseif(LOBSTER_JIT)
   add_definitions(-DVM_JIT_MODE=1)
   list (APPEND EXTERNAL_SRCS "external/libtcc/libtcc.c")
   set_source_files_properties(external/libtcc/libtcc.c PROPERTIES COMPILE_FLAGS -w)
+  # The alternative JIT backend, selected at runtime with --mir. MIR needs C11 and does not
+  # build cleanly with the warnings we use for our own code.
+  list (APPEND EXTERNAL_SRCS
+        "external/mir/mir.c"
+        "external/mir/mir-gen.c"
+        "external/mir/c2mir/c2mir.c")
+  set_source_files_properties(external/mir/mir.c
+                              external/mir/mir-gen.c
+                              external/mir/c2mir/c2mir.c
+                              PROPERTIES COMPILE_FLAGS "-w -std=gnu11" C_STANDARD 11)
   # Check for SELinux...
   if(UNIX)
     find_program(SELINUX_CHECKER selinuxenabled)
@@ -279,6 +293,10 @@ elseif(LOBSTER_JIT)
 endif()
 add_executable(${EXE_NAME} ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
 target_link_libraries(${EXE_NAME} ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
+if(UNIX)
+  # MIR needs libm.
+  target_link_libraries(${EXE_NAME} m)
+endif()
 if(CMAKE_BUILD_TYPE MATCHES RELEASE AND CMAKE_COMPILER_IS_GNUCXX)
   target_link_libraries(${EXE_NAME} -static-libgcc -static-libstdc++)
 endif()

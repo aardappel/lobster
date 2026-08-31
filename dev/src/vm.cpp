@@ -606,14 +606,47 @@ void VM::EndEval(StackPtr &, Value ret, const TypeInfo &ti) {
     DumpLeaks();
 }
 
+#if VM_USE_LONGJMP && defined(_MSC_VER)
+    // Skipping destructors is the whole point here, see UnwindOnError.
+    #pragma warning(disable: 4611)  // interaction between setjmp and C++ object destruction
+#endif
+
+// An error inside the VM has to get back out to EvalProgram, and there is jitted code in between
+// (this is only ever called in JIT mode). Whether an exception can unwind thru that code depends
+// on it having unwind info: libtcc registers some on Windows (RtlAddFunctionTable), MIR registers
+// none on any platform, and on Linux etc. neither of them does. Where it can't, we longjmp.
+bool VM::JitNeedsLongJmp() {
+    #if !VM_USE_LONGJMP
+        return false;
+    #elif defined(_MSC_VER)
+        return vma.jit_options.mir;
+    #else
+        return true;
+    #endif
+}
+
+#if VM_USE_LONGJMP
+static void PrepareLongJmpBuffer(jmp_buf buf) {
+    #ifdef _MSC_VER
+        // On Windows longjmp normally unwinds the stack, which needs unwind info for every frame
+        // in between, and jitted code has none. A null frame pointer makes it restore the saved
+        // context directly instead, which is all we want anyway (see UnwindOnError on why we
+        // must not run destructors here).
+        ((_JUMP_BUFFER *)buf)->Frame = 0;
+    #else
+        (void)buf;
+    #endif
+}
+#endif
+
 void VM::UnwindOnError() {
     // This is the single location from which we unwind the execution stack from within the VM.
     // This requires special care, because there may be jitted code on the stack, and depending
     // on the platform we can use exception handling, or not.
     // This code is only needed upon error, the regular execution path uses normal returns.
     #if VM_USE_LONGJMP
-        // We are in JIT mode, and on a platform that cannot throw exceptions "thru" C code,
-        // e.g. Linux.
+    if (JitNeedsLongJmp()) {
+        // We are in JIT mode, and the code on the stack cannot be unwound thru by an exception.
         // To retain modularity (allow the VM to be used in an environment where a VM error
         // shouldn't terminate the whole app) we try to work around this with setjmp/longjmp.
         // This does NOT call destructors on the way, so code calling into here should make sure
@@ -623,20 +656,23 @@ void VM::UnwindOnError() {
         // FIXME: audit calling code for destructors. Can we automatically enforce this?
         longjmp(jump_buffer, 1);
         // The corresponding setjmp is right below here.
-    #else
-        // Use the standard error mechanism, which uses exceptions (on Windows, or other platforms
-        // when not JIT-ing) or aborts (Wasm).
-        THROW_OR_ABORT(errmsg);
+    }
     #endif
+    // Use the standard error mechanism, which uses exceptions (on Windows, or other platforms
+    // when not JIT-ing) or aborts (Wasm).
+    THROW_OR_ABORT(errmsg);
 }
 
 void VM::EvalProgram() {
     #if VM_USE_LONGJMP
+    if (JitNeedsLongJmp()) {
         // See longjmp above for why this is needed.
         if (setjmp(jump_buffer)) {
             // Resume normal error now that we've jumped past the C/JIT-ted code.
             THROW_OR_ABORT(errmsg);
         }
+        PrepareLongJmpBuffer(jump_buffer);
+    }
     #endif
     #if VM_JIT_MODE
         vma.jit_entry(*this, nullptr);
