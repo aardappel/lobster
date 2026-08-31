@@ -922,22 +922,27 @@ LVALCASER(FVSMUL, _FVOPS(*, 0, &fa))
 LVALCASER(FVSDIV, _FVOPS(/, 0, &fa))
 LVALCASER(FVSMOD, _FVOPS(/, 2, &fa))
 
-LVALCASES(IADD  , _IOP(+, 0); a = res;)
-LVALCASES(ISUB  , _IOP(-, 0); a = res;)
-LVALCASES(IMUL  , _IOP(*, 0); a = res;)
+// The code generator emits the ones that are a single operator itself, see
+// GenLvalModifierOpWithStructInfo. What is left on the macro either checks for division by zero
+// or masks a shift count, so it is still called.
+#define LVALDONEINLINE(N) VM_INLINE void U_LV_##N(VM &, StackPtr) { assert(false); }
+
+LVALDONEINLINE(IADD)
+LVALDONEINLINE(ISUB)
+LVALDONEINLINE(IMUL)
 LVALCASES(IDIV  , _IOP(/, 1); a = res;)
 LVALCASES(IMOD  , _IOP(%, 1); a = res;)
 
-LVALCASES(BINAND, _IOP(&,  0); a = res;)
-LVALCASES(BINOR , _IOP(|,  0); a = res;)
-LVALCASES(XOR   , _IOP(^,  0); a = res;)
+LVALDONEINLINE(BINAND)
+LVALDONEINLINE(BINOR)
+LVALDONEINLINE(XOR)
 LVALCASES(ASL   , _ISHIFTOP(MaskedShiftLeft);  a = res;)
 LVALCASES(ASR   , _ISHIFTOP(MaskedShiftRight); a = res;)
 
-LVALCASES(FADD  , _FOP(+, 0); a = res;)
-LVALCASES(FSUB  , _FOP(-, 0); a = res;)
-LVALCASES(FMUL  , _FOP(*, 0); a = res;)
-LVALCASES(FDIV  , _FOP(/, 0); a = res;)
+LVALDONEINLINE(FADD)
+LVALDONEINLINE(FSUB)
+LVALDONEINLINE(FMUL)
+LVALDONEINLINE(FDIV)
 LVALCASES(FMOD  , _FOP(/, 2); a = res;)
 
 VM_INLINE void U_LV_SADD(VM &vm, StackPtr sp) {
@@ -960,12 +965,8 @@ VM_INLINE void U_LV_WRITEREF(VM &vm, StackPtr sp) {
     a = b;
 }
 
-VM_INLINE void U_LV_WRITEV(VM &vm, StackPtr sp, int l) {
-    auto &a = *vm.temp_lval;
-    auto b = TopPtr(sp) - l;
-    tsnz_memcpy(&a, b, l);
-    PopN(sp, l);
-}
+// Emitted as a copy per slot of the struct, see GenLvalModifierOpWithStructInfo.
+VM_INLINE void U_LV_WRITEV(VM &, StackPtr, int) { assert(false); }
 
 VM_INLINE void U_LV_WRITEREFV(VM &vm, StackPtr sp, int l, int bitmask) {
     // TODO: if this bitmask checking is expensive, either make a version of
@@ -978,25 +979,13 @@ VM_INLINE void U_LV_WRITEREFV(VM &vm, StackPtr sp, int l, int bitmask) {
     PopN(sp, l);
 }
 
-VM_INLINE void U_LV_IPP(VM &vm, StackPtr) {
-    auto &a = *vm.temp_lval;
-    a.setival(a.ival() + 1);
-}
+VM_INLINE void U_LV_IPP(VM &, StackPtr) { assert(false); }
 
-VM_INLINE void U_LV_IMM(VM & vm, StackPtr) {
-    auto &a = *vm.temp_lval;
-    a.setival(a.ival() - 1);
-}
+VM_INLINE void U_LV_IMM(VM &, StackPtr) { assert(false); }
 
-VM_INLINE void U_LV_FPP(VM & vm, StackPtr) {
-    auto &a = *vm.temp_lval;
-    a.setfval(a.fval() + 1);
-}
+VM_INLINE void U_LV_FPP(VM &, StackPtr) { assert(false); }
 
-VM_INLINE void U_LV_FMM(VM & vm, StackPtr) {
-    auto &a = *vm.temp_lval;
-    a.setfval(a.fval() - 1);
-}
+VM_INLINE void U_LV_FMM(VM &, StackPtr) { assert(false); }
 
 VM_INLINE void U_PROFILE(VM &, StackPtr, int) {
     assert(false);

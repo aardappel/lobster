@@ -1564,10 +1564,55 @@ struct CodeGen  {
         EmitPUSHINT( ValWidth(type));
     }
 
+    // The lvalue ops that read/modify/write thru temp_lval with a single operator, the same
+    // deal as GenSimpleBinOp. The ones absent here either check for division by zero, decrement
+    // a reference (which can free it), or are not scalar.
+    static bool SimpleLvalOpC(ILOP op, string_view &fld, string_view &cop) {
+        switch (op) {
+            case IL_LV_IADD:   fld = "ival"; cop = "+";  return true;
+            case IL_LV_ISUB:   fld = "ival"; cop = "-";  return true;
+            case IL_LV_IMUL:   fld = "ival"; cop = "*";  return true;
+            case IL_LV_BINAND: fld = "ival"; cop = "&";  return true;
+            case IL_LV_BINOR:  fld = "ival"; cop = "|";  return true;
+            case IL_LV_XOR:    fld = "ival"; cop = "^";  return true;
+            case IL_LV_FADD:   fld = "fval"; cop = "+";  return true;
+            case IL_LV_FSUB:   fld = "fval"; cop = "-";  return true;
+            case IL_LV_FMUL:   fld = "fval"; cop = "*";  return true;
+            case IL_LV_FDIV:   fld = "fval"; cop = "/";  return true;
+            default: return false;
+        }
+    }
+
     void GenLvalModifierOpWithStructInfo(ILOP op, TypeRef type) {
         EmitOp(op, ValWidth(type));
+        auto lval = cat(vmref(), "temp_lval");
+        string_view fld, cop;
         if (op == IL_LV_WRITE) {
-            GenValueCopy(cb, cat(vmref(), "temp_lval"), sp(1));
+            GenValueCopy(cb, lval, sp(1));
+        } else if (op == IL_LV_WRITEV) {
+            // Same copy, one per slot of the struct being written.
+            for (int i = 0; i < ValWidth(type); i++)
+                GenValueCopy(cb, cat(lval, " + ", i), sp(ValWidth(type) - i));
+        } else if (SimpleLvalOpC(op, fld, cop)) {
+            // These keep the type of what is already in the slot, so no care is needed around a
+            // runtime type field.
+            if (cpp) {
+                append(cb, "    *(", lval, ") = Value((", lval, ")->", fld, "() ", cop, " (",
+                       sp(1), ")->", fld, "());\n");
+            } else {
+                append(cb, "    (", lval, ")->", fld, " = (", lval, ")->", fld, " ", cop, " (",
+                       sp(1), ")->", fld, ";\n");
+            }
+        } else if (op == IL_LV_IPP || op == IL_LV_IMM || op == IL_LV_FPP || op == IL_LV_FMM) {
+            auto f = op == IL_LV_IPP || op == IL_LV_IMM ? "ival" : "fval";
+            auto c = op == IL_LV_IPP || op == IL_LV_FPP ? "+" : "-";
+            if (cpp) {
+                append(cb, "    *(", lval, ") = Value((", lval, ")->", f, "() ", c,
+                       " 1);\n");
+            } else {
+                append(cb, "    (", lval, ")->", f, " = (", lval, ")->", f, " ", c,
+                       " 1;\n");
+            }
         } else {
             append(cb, "    U_", ILNames()[opc], "(vm, ", sp());
             if (IsStruct(type->t)) append(cb, ", ", ValWidth(type));
