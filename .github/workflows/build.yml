@@ -61,7 +61,7 @@ jobs:
 
   build-windows:
     name: Build Windows
-    runs-on: windows-2022
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
     - name: Add msbuild to PATH

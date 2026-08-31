@@ -8,7 +8,7 @@ on:
 jobs:
   build-windows:
     name: Release Windows
-    runs-on: windows-2022
+    runs-on: windows-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v2
