@@ -332,7 +332,11 @@ VM_INLINE void U_NEWOBJECT(VM &vm, StackPtr sp, int ty) {
     Push(sp, Value(vec));
 }
 
-VM_INLINE void U_POP(VM &, StackPtr sp) { Pop(sp); }
+VM_INLINE void U_POP(VM &, StackPtr) {
+    // Popping only moves where the stack top is, which the code generator tracks statically,
+    // so it emits no code for IL_POP at all and this is never called.
+    assert(false);
+}
 VM_INLINE void U_POPREF(VM &vm, StackPtr sp) { auto x = Pop(sp); x.LTDECRTNIL(vm); }
 VM_INLINE void U_POPV(VM &, StackPtr sp, int len) { PopN(sp, len); }
 

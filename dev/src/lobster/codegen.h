@@ -1026,6 +1026,33 @@ struct CodeGen  {
         }
     }
 
+    // Ops whose body is a single C operator on the two top stack slots, see GenSimpleBinOp.
+    static bool SimpleBinOpC(ILOP op, string_view &res, string_view &arg, string_view &cop) {
+        switch (op) {
+            case IL_IADD: res = "ival"; arg = "ival"; cop = "+";  return true;
+            case IL_ISUB: res = "ival"; arg = "ival"; cop = "-";  return true;
+            case IL_IMUL: res = "ival"; arg = "ival"; cop = "*";  return true;
+            case IL_ILT:  res = "ival"; arg = "ival"; cop = "<";  return true;
+            case IL_IGT:  res = "ival"; arg = "ival"; cop = ">";  return true;
+            case IL_ILE:  res = "ival"; arg = "ival"; cop = "<="; return true;
+            case IL_IGE:  res = "ival"; arg = "ival"; cop = ">="; return true;
+            case IL_IEQ:  res = "ival"; arg = "ival"; cop = "=="; return true;
+            case IL_INE:  res = "ival"; arg = "ival"; cop = "!="; return true;
+            case IL_FADD: res = "fval"; arg = "fval"; cop = "+";  return true;
+            case IL_FSUB: res = "fval"; arg = "fval"; cop = "-";  return true;
+            case IL_FMUL: res = "fval"; arg = "fval"; cop = "*";  return true;
+            case IL_FDIV: res = "fval"; arg = "fval"; cop = "/";  return true;
+            case IL_FLT:  res = "ival"; arg = "fval"; cop = "<";  return true;
+            case IL_FGT:  res = "ival"; arg = "fval"; cop = ">";  return true;
+            case IL_FLE:  res = "ival"; arg = "fval"; cop = "<="; return true;
+            case IL_FGE:  res = "ival"; arg = "fval"; cop = ">="; return true;
+            case IL_FEQ:  res = "ival"; arg = "fval"; cop = "=="; return true;
+            case IL_FNE:  res = "ival"; arg = "fval"; cop = "!="; return true;
+            // IDIV/IMOD/FMOD are left alone, they check for division by zero.
+            default: return false;
+        }
+    }
+
     void EmitOp0(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
         EmitOp(op, useslots, defslots);
         append(cb, "    U_", ILNames()[op], "(vm, ", sp(), ");\n");
@@ -1392,19 +1419,40 @@ struct CodeGen  {
         return IsRefNil(typelt.type->t) && typelt.lt == LT_KEEP;
     }
 
+    // Going thru a call for an op this small costs more than the op itself, and pushes both
+    // operands and the result thru memory where the C compiler could otherwise keep them in
+    // registers, so emit the C operator directly where we can.
+    void GenSimpleBinOp(ILOP op) {
+        #if !RTT_ENABLED
+            // Only without the runtime type field, where a Value is just its payload.
+            string_view res, arg, cop;
+            if (!cpp && SimpleBinOpC(op, res, arg, cop)) {
+                EmitOp(op);
+                append(cb, "    (", sp(2), ")->", res, " = (", sp(2), ")->", arg, " ", cop, " (",
+                       sp(1), ")->", arg, ";\n");
+                return;
+            }
+        #endif
+        EmitOp0(op);
+    }
+
+    // U_POP only decrements its own copy of the stack pointer, and where the stack top is is
+    // something we track statically, so all that is left of it is the bookkeeping.
+    void GenPopSlot() { EmitOp(IL_POP); }
+
     void GenPop(TypeLT typelt) {
         if (IsStruct(typelt.type->t)) {
             if (typelt.type->t == V_STRUCT_R) {
                 // TODO: alternatively emit a single op with a list or bitmask? see BitMaskForRefStuct
                 for (int j = typelt.type->udt->numslots - 1; j >= 0; j--) {
-                    EmitOp0(IsRefNil(FindSlot(*typelt.type->udt, j)->type->t) ? IL_POPREF
-                                                                              : IL_POP);
+                    if (IsRefNil(FindSlot(*typelt.type->udt, j)->type->t)) EmitOp0(IL_POPREF);
+                    else GenPopSlot();
                 }
             } else {
                 EmitOp1(IL_POPV, typelt.type->udt->numslots, typelt.type->udt->numslots, 0);
             }
         } else {
-            EmitOp0(ShouldDec(typelt) ? IL_POPREF : IL_POP);
+            if (ShouldDec(typelt)) EmitOp0(IL_POPREF); else GenPopSlot();
         }
     }
 
@@ -1651,9 +1699,9 @@ struct CodeGen  {
         // Have to check right and left because comparison ops generate ints for node
         // overall.
         if (rtype->t == V_INT && ltype->t == V_INT) {
-            EmitOp0(GENOP(IL_IADD + op));
+            GenSimpleBinOp(GENOP(IL_IADD + op));
         } else if (rtype->t == V_FLOAT && ltype->t == V_FLOAT) {
-            EmitOp0(GENOP(IL_FADD + op));
+            GenSimpleBinOp(GENOP(IL_FADD + op));
         } else if (rtype->t == V_STRING && ltype->t == V_STRING) {
             // Nillable version handled below.
             EmitOp0(GENOP(IL_SADD + op));
@@ -1662,7 +1710,7 @@ struct CodeGen  {
             EmitOp0(GENOP(IL_LEQ + (op - MOP_EQ)));
         } else if ((rtype->t == V_TYPEID && ltype->t == V_TYPEID)) {
             assert(op == MOP_EQ || op == MOP_NE);
-            EmitOp0(GENOP(IL_IEQ + (op - MOP_EQ)));
+            GenSimpleBinOp(GENOP(IL_IEQ + (op - MOP_EQ)));
         } else {
             if (op >= MOP_EQ) {  // EQ/NEQ
                 if (IsStruct(ltype->t)) {
@@ -2307,7 +2355,7 @@ void And::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(left, 1);
     cg.TakeTemp(1, false);
     auto lab = cg.EmitOpJump1(retval ? IL_JUMPFAILR : IL_JUMPFAIL);
-    if (retval) cg.EmitOp0(IL_POP);
+    if (retval) cg.GenPopSlot();
     cg.Gen(right, retval);
     if (retval) cg.TakeTemp(1, false);
     cg.EmitLabelDef(lab);
@@ -2317,7 +2365,7 @@ void Or::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(left, 1);
     cg.TakeTemp(1, false);
     auto lab = cg.EmitOpJump1(retval ? IL_JUMPNOFAILR : IL_JUMPNOFAIL);
-    if (retval) cg.EmitOp0(IL_POP);
+    if (retval) cg.GenPopSlot();
     cg.Gen(right, retval);
     if (retval) cg.TakeTemp(1, false);
     cg.EmitLabelDef(lab);
