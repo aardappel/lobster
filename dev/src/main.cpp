@@ -123,7 +123,7 @@ int main(int argc, char* argv[]) {
             #endif
             "--tcc-out               Output tcc .o file instead of running.\n"
             "--mir [N]               JIT with MIR instead of libtcc, optionally at\n"
-            "                        optimization level N (0..3, default 1).\n"
+            "                        optimization level N (0..3, default 2).\n"
             "--c-out                 Output the C the JIT backend would compile, don't run.\n"
             "--no-crash-dialog       Exit silently on a crash rather than popping up a dialog.\n"
             "--wait                  Wait for input before exiting.\n"

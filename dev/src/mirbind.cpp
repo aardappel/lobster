@@ -204,11 +204,7 @@ bool RunMIR(const char *source,
     job.imports = imports;
     job.export_names = export_names;
     job.exports = exports.data();
-    // MIR's own default is 2, but from that level on it miscompiles what we generate: c2mir
-    // gives each member of the anonymous union in Value its own alias, so a store thru .ival and
-    // a load thru .ref of the same slot are taken to be independent. Unless asked otherwise,
-    // stay one below.
-    job.optimize_level = jit_options.optimize_level >= 0 ? jit_options.optimize_level : 1;
+    job.optimize_level = jit_options.optimize_level;
     job.msgs = MIROpenMessageFile();
     job.ctx = MIR_init();
     // The generated code may still throw an exception, so tear down thru a destructor.
