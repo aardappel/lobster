@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29025.244
+# Visual Studio Version 18
+VisualStudioVersion = 18.9.12120.119 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "engine", "lobster.vcxproj", "{EB07932C-0AC4-4962-B691-713B05E36832}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -21,6 +21,7 @@ Global
 		Debug|x64 = Debug|x64
 		Release|x64 = Release|x64
 		ReleaseASAN|x64 = ReleaseASAN|x64
+		ReleaseClang|x64 = ReleaseClang|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{EB07932C-0AC4-4962-B691-713B05E36832}.Debug|x64.ActiveCfg = Debug|x64
@@ -29,18 +30,24 @@ Global
 		{EB07932C-0AC4-4962-B691-713B05E36832}.Release|x64.Build.0 = Release|x64
 		{EB07932C-0AC4-4962-B691-713B05E36832}.ReleaseASAN|x64.ActiveCfg = ReleaseASAN|x64
 		{EB07932C-0AC4-4962-B691-713B05E36832}.ReleaseASAN|x64.Build.0 = ReleaseASAN|x64
+		{EB07932C-0AC4-4962-B691-713B05E36832}.ReleaseClang|x64.ActiveCfg = ReleaseClang|x64
+		{EB07932C-0AC4-4962-B691-713B05E36832}.ReleaseClang|x64.Build.0 = ReleaseClang|x64
 		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Debug|x64.ActiveCfg = Debug|x64
 		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Debug|x64.Build.0 = Debug|x64
 		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Release|x64.ActiveCfg = Release|x64
 		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.Release|x64.Build.0 = Release|x64
 		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.ReleaseASAN|x64.ActiveCfg = ReleaseASAN|x64
 		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.ReleaseASAN|x64.Build.0 = ReleaseASAN|x64
+		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.ReleaseClang|x64.ActiveCfg = ReleaseClang|x64
+		{7EC54AF7-36F5-4C86-8919-2EDB16E90D94}.ReleaseClang|x64.Build.0 = ReleaseClang|x64
 		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Debug|x64.ActiveCfg = Debug|x64
 		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Debug|x64.Build.0 = Debug|x64
 		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Release|x64.ActiveCfg = Release|x64
 		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.Release|x64.Build.0 = Release|x64
 		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.ReleaseASAN|x64.ActiveCfg = ReleaseASAN|x64
 		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.ReleaseASAN|x64.Build.0 = ReleaseASAN|x64
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.ReleaseClang|x64.ActiveCfg = ReleaseClang|x64
+		{2C576764-3A5A-4CCD-B50D-C7C9C0349282}.ReleaseClang|x64.Build.0 = ReleaseClang|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
