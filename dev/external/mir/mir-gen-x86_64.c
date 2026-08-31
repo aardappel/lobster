@@ -46,11 +46,11 @@ static inline int target_call_used_hard_reg_p (MIR_reg_t hard_reg, MIR_type_t ty
 |---------------|     (known only after RA)	       |---------------|
 | alloca areas  |  optional			       |               |
 |---------------|				       | slot assigned |
-| slots for     |  dynamically reserved/freed	       |   to pseudos  |
-|  passing args |      by caller		       |               |
+| slots for     |  max over the calls in the func,     |   to pseudos  |
+|  passing args |  reserved once in the prolog         |               |
 |---------------|				       |---------------|
 |  spill space  |  WIN32 only: 32 bytes spill space    |  spill space  |
-|---------------|     for reg args (allocated at call) |---------------|
+|---------------|  for reg args, part of the above     |---------------|
 
    size of slots and saved regs is multiple of 16 bytes
    will be fp ommited is defined after machinize
@@ -168,6 +168,7 @@ static void gen_mov (gen_ctx_t gen_ctx, MIR_insn_t anchor, MIR_insn_code_t code,
 }
 
 static void prohibit_omitting_fp (gen_ctx_t gen_ctx);
+static void reserve_call_arg_area (gen_ctx_t gen_ctx, size_t size);
 
 static void machinize_call (gen_ctx_t gen_ctx, MIR_insn_t call_insn) {
   MIR_context_t ctx = gen_ctx->ctx;
@@ -502,22 +503,15 @@ static void machinize_call (gen_ctx_t gen_ctx, MIR_insn_t call_insn) {
 #ifdef _WIN32
   if (block_offset > arg_stack_size) arg_stack_size = block_offset;
 #endif
-  if (arg_stack_size != 0) { /* allocate/deallocate stack for args passed on stack */
+  if (arg_stack_size != 0) { /* stack space for args passed on stack */
     arg_stack_size = (arg_stack_size + 15) / 16 * 16; /* make it of several 16 bytes */
-    new_insn
-      = MIR_new_insn (ctx, MIR_SUB, _MIR_new_var_op (ctx, SP_HARD_REG),
-                      _MIR_new_var_op (ctx, SP_HARD_REG), MIR_new_int_op (ctx, arg_stack_size));
-    MIR_insert_insn_after (ctx, curr_func_item, prev_call_insn, new_insn);
-    next_insn = DLIST_NEXT (MIR_insn_t, new_insn);
-    create_new_bb_insns (gen_ctx, prev_call_insn, next_insn, call_insn);
-    new_insn
-      = MIR_new_insn (ctx, MIR_ADD, _MIR_new_var_op (ctx, SP_HARD_REG),
-                      _MIR_new_var_op (ctx, SP_HARD_REG), MIR_new_int_op (ctx, arg_stack_size));
-    MIR_insert_insn_after (ctx, curr_func_item, call_insn, new_insn);
-    next_insn = DLIST_NEXT (MIR_insn_t, new_insn);
-    create_new_bb_insns (gen_ctx, call_insn, next_insn, call_insn);
+    /* One area at the bottom of the frame serves every call in the func, so rather than moving
+       sp around each of them we take the max here and reserve it in the prolog.  On win32 this
+       is what most calls need it for at all: spill_space_size makes arg_stack_size non-zero
+       even when every arg goes in a register. */
+    reserve_call_arg_area (gen_ctx, arg_stack_size);
+    prohibit_omitting_fp (gen_ctx);
   }
-  if (arg_stack_size != 0) prohibit_omitting_fp (gen_ctx);
 }
 
 static float mir_ui2f (uint64_t i) { return (float) i; }
@@ -629,6 +623,7 @@ DEF_VARR (call_ref_t);
 
 struct target_ctx {
   unsigned char alloca_p, block_arg_func_p, leaf_p, keep_fp_p;
+  size_t call_arg_area_size;
   int start_sp_from_bp_offset;
   MIR_insn_t temp_jump;
   int temp_jump_pat_ind;
@@ -647,6 +642,7 @@ struct target_ctx {
 #define block_arg_func_p gen_ctx->target_ctx->block_arg_func_p
 #define leaf_p gen_ctx->target_ctx->leaf_p
 #define keep_fp_p gen_ctx->target_ctx->keep_fp_p
+#define call_arg_area_size gen_ctx->target_ctx->call_arg_area_size
 #define start_sp_from_bp_offset gen_ctx->target_ctx->start_sp_from_bp_offset
 #define temp_jump gen_ctx->target_ctx->temp_jump
 #define temp_jump_pat_ind gen_ctx->target_ctx->temp_jump_pat_ind
@@ -661,6 +657,10 @@ struct target_ctx {
 #define relocs gen_ctx->target_ctx->relocs
 
 static void prohibit_omitting_fp (gen_ctx_t gen_ctx) { keep_fp_p = TRUE; }
+
+static void reserve_call_arg_area (gen_ctx_t gen_ctx, size_t size) {
+  if (size > call_arg_area_size) call_arg_area_size = size;
+}
 
 static MIR_disp_t target_get_stack_slot_offset (gen_ctx_t gen_ctx, MIR_type_t type,
                                                 MIR_reg_t slot) {
@@ -825,6 +825,7 @@ static void target_machinize (gen_ctx_t gen_ctx) {
   }
   alloca_p = FALSE;
   leaf_p = TRUE;
+  call_arg_area_size = 0;
   for (insn = DLIST_HEAD (MIR_insn_t, func->insns); insn != NULL; insn = next_insn) {
     next_insn = DLIST_NEXT (MIR_insn_t, insn);
     code = insn->code;
@@ -1126,6 +1127,19 @@ static void target_machinize (gen_ctx_t gen_ctx) {
       break;
     }
   }
+  if (call_arg_area_size != 0 && alloca_p) {
+    /* The outgoing arg area is at the bottom of the frame, and an alloca moves that bottom, so
+       take the area off sp again after each one.  The alloca result itself does not shift: the
+       block it returned now sits just above the fresh area. */
+    for (insn = DLIST_HEAD (MIR_insn_t, func->insns); insn != NULL; insn = next_insn) {
+      next_insn = DLIST_NEXT (MIR_insn_t, insn);
+      if (insn->code != MIR_ALLOCA) continue;
+      new_insn = MIR_new_insn (ctx, MIR_SUB, _MIR_new_var_op (ctx, SP_HARD_REG),
+                               _MIR_new_var_op (ctx, SP_HARD_REG),
+                               MIR_new_int_op (ctx, (int64_t) call_arg_area_size));
+      gen_add_insn_after (gen_ctx, insn, new_insn);
+    }
+  }
 }
 
 static void isave (gen_ctx_t gen_ctx, MIR_insn_t anchor, int disp, MIR_reg_t hard_reg) {
@@ -1170,7 +1184,7 @@ static void target_make_prolog_epilog (gen_ctx_t gen_ctx, bitmap_t used_hard_reg
       saved_hard_regs_size += 16;
 #endif
   if (leaf_p && !alloca_p && !block_arg_func_p && saved_hard_regs_size == 0 && !func->vararg_p
-      && stack_slots_num == 0)
+      && stack_slots_num == 0 && call_arg_area_size == 0)
     return;
   anchor = DLIST_HEAD (MIR_insn_t, func->insns);
   sp_reg_op = _MIR_new_var_op (ctx, SP_HARD_REG);
@@ -1208,9 +1222,10 @@ static void target_make_prolog_epilog (gen_ctx_t gen_ctx, bitmap_t used_hard_reg
   if (!keep_fp_p) stack_slots_size = (stack_slots_size + 15) / 16 * 16;
   /* stack slots, and saved regs as multiple of 16 bytes: */
   block_size = (stack_slots_size + saved_hard_regs_size + 15) / 16 * 16;
-  new_insn = MIR_new_insn (ctx, MIR_SUB, sp_reg_op, sp_reg_op,
-                           MIR_new_int_op (ctx, block_size + service_area_size));
-  gen_add_insn_before (gen_ctx, anchor, new_insn); /* sp -= block size + service_area_size */
+  new_insn
+    = MIR_new_insn (ctx, MIR_SUB, sp_reg_op, sp_reg_op,
+                    MIR_new_int_op (ctx, block_size + service_area_size + call_arg_area_size));
+  gen_add_insn_before (gen_ctx, anchor, new_insn); /* sp -= frame + outgoing arg area */
   bp_saved_reg_offset = block_size;
 #ifdef MIR_NO_RED_ZONE_ABI
   if (keep_fp_p) {
@@ -1298,9 +1313,10 @@ static void target_make_prolog_epilog (gen_ctx_t gen_ctx, bitmap_t used_hard_reg
       offset += 8;
     }
   if (!keep_fp_p) {
-    new_insn = MIR_new_insn (ctx, MIR_ADD, sp_reg_op, sp_reg_op,
-                             MIR_new_int_op (ctx, block_size + service_area_size));
-    gen_add_insn_before (gen_ctx, anchor, new_insn); /* sp += block size + service_area_size */
+    new_insn
+      = MIR_new_insn (ctx, MIR_ADD, sp_reg_op, sp_reg_op,
+                      MIR_new_int_op (ctx, block_size + service_area_size + call_arg_area_size));
+    gen_add_insn_before (gen_ctx, anchor, new_insn); /* sp += frame + outgoing arg area */
   } else {
 #ifdef MIR_NO_RED_ZONE_ABI
     new_insn = MIR_new_insn (ctx, MIR_MOV, temp_reg_op, fp_reg_op);
