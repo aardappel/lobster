@@ -1440,6 +1440,34 @@ struct CodeGen  {
     // something we track statically, so all that is left of it is the bookkeeping.
     void GenPopSlot() { EmitOp(IL_POP); }
 
+    // The int version of the loop condition is an increment and a compare, small enough to be
+    // worth not calling for the same reasons as GenSimpleBinOp. The string and vector versions
+    // need a length out of the object they iterate, whose layout the generated C doesn't know.
+    int GenForCond(ILOP op) {
+        #if !RTT_ENABLED
+            if (!cpp && op == IL_IFOR) {
+                EmitOp(op);
+                auto lab = Label();
+                append(cb, "    if (!(++(", sp(2), ")->ival < (", sp(1), ")->ival)) goto block",
+                       lab, ";\n");
+                return lab;
+            }
+        #endif
+        return EmitOpJump1(op);
+    }
+
+    // Both of these just copy the loop counter to the top of the stack.
+    void GenForCounter(ILOP op) {
+        #if !RTT_ENABLED
+            if (!cpp && (op == IL_IFORELEM || op == IL_FORLOOPI)) {
+                EmitOp(op);
+                append(cb, "    (", sp(0), ")->ival = (", sp(2), ")->ival;\n");
+                return;
+            }
+        #endif
+        EmitOp0(op);
+    }
+
     void GenPop(TypeLT typelt) {
         if (IsStruct(typelt.type->t)) {
             if (typelt.type->t == V_STRUCT_R) {
@@ -2435,9 +2463,9 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     auto tstack_level = cg.tstack.size();
     int exitloop = -1;
     switch (iter->exptype->t) {
-        case V_INT:      exitloop = cg.EmitOpJump1(IL_IFOR); break;
-        case V_STRING:   exitloop = cg.EmitOpJump1(IL_SFOR); break;
-        case V_VECTOR:   exitloop = cg.EmitOpJump1(IL_VFOR); break;
+        case V_INT:      exitloop = cg.GenForCond(IL_IFOR); break;
+        case V_STRING:   exitloop = cg.GenForCond(IL_SFOR); break;
+        case V_VECTOR:   exitloop = cg.GenForCond(IL_VFOR); break;
         default:         assert(false);
     }
     cg.Gen(fbody, 0);
@@ -2457,7 +2485,7 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
     auto typelt = cg.temptypestack.back();
     switch (typelt.type->t) {
         case V_INT:
-            cg.EmitOp0(IL_IFORELEM);
+            cg.GenForCounter(IL_IFORELEM);
             break;
         case V_STRING:
             cg.EmitOp0(IL_SFORELEM);
@@ -2485,7 +2513,7 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
 }
 
 void ForLoopCounter::Generate(CodeGen &cg, size_t /*retval*/) const {
-    cg.EmitOp0(IL_FORLOOPI);
+    cg.GenForCounter(IL_FORLOOPI);
 }
 
 void Break::Generate(CodeGen &cg, size_t retval) const {
