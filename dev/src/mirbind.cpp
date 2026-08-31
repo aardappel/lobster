@@ -3,6 +3,18 @@
 #include "lobster/compiler.h"
 #include "lobster/tonative.h"
 
+// The mir includes don't do well with the crtdbg.h instrumentation.
+#ifdef _CRTDBG_MAP_ALLOC
+    #undef malloc
+    #undef free
+    #undef calloc
+    #undef realloc
+    #undef _malloc_dbg
+    #undef _free_dbg
+    #undef _calloc_dbg
+    #undef _realloc_dbg
+#endif
+
 #include <setjmp.h>
 #include <stdarg.h>
 
