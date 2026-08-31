@@ -136,7 +136,9 @@ if(LOBSTER_ENGINE)
   list (APPEND EXTERNAL_SRCS ${EXTERNAL_ENGINE_SRCS})
 endif()
 
-set(COMMON_GCC_STYLE "-Wall -Wno-switch -Wno-unused-value -Wno-multichar") # -fno-exceptions
+# -fwrapv because Lobster integers wrap around on overflow, which the C++ we generate expresses
+# as plain signed arithmetic, and that is undefined behaviour a compiler is free to exploit.
+set(COMMON_GCC_STYLE "-Wall -Wno-switch -Wno-unused-value -Wno-multichar -fwrapv") # -fno-exceptions
 if(LOBSTER_WERROR)
   set(COMMON_GCC_STYLE "${COMMON_GCC_STYLE} -Werror")
 endif()

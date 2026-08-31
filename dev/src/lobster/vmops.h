@@ -216,15 +216,14 @@ VM_INLINE bool ForLoop(VM &, StackPtr sp, iint len) {
     auto i = TopM(sp, 1).ival(); \
     assert(i < L);
 
-VM_INLINE bool U_IFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).ival()); }
+// The code generator emits an increment and a compare for this itself, see GenForCond.
+VM_INLINE bool U_IFOR(VM &, StackPtr) { assert(false); return false; }
 VM_INLINE bool U_VFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).vval()->len); }
 VM_INLINE bool U_SFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).sval()->len); }
 
-VM_INLINE void U_IFORELEM(VM &, StackPtr sp) {
-    FORELEM(iter.ival());
-    (void)iter;
-    Push(sp, i);
-}
+// Copying the loop counter to the top of the stack is emitted by the code generator itself,
+// see GenForCounter, for this and for FORLOOPI below.
+VM_INLINE void U_IFORELEM(VM &, StackPtr) { assert(false); }
 VM_INLINE void U_SFORELEM(VM &, StackPtr sp) {
     FORELEM(iter.sval()->len);
     Push(sp, Value(((uint8_t *)iter.sval()->data())[i]));
@@ -248,11 +247,7 @@ VM_INLINE void U_VFORELEMREF2S(VM &, StackPtr sp, int bitmask) {
     iter.vval()->AtVWInc(sp, i, bitmask);
 }
 
-VM_INLINE void U_FORLOOPI(VM &, StackPtr sp) {
-    auto i = TopM(sp, 1);  // This relies on for being inlined, otherwise it would be 2.
-    TYPE_ASSERT(i.type == RTT_INT);
-    Push(sp, i);
-}
+VM_INLINE void U_FORLOOPI(VM &, StackPtr) { assert(false); }
 
 #if LOBSTER_FRAME_PROFILER_BUILTINS
     #define BPROF_START(NFI) auto ctx = ___tracy_emit_zone_begin(&vm.vma.nfr.pre_allocated_function_locations[NFI], true)
@@ -547,6 +542,9 @@ VM_INLINE void U_STNE(VM &, StackPtr sp, int len) { STCOMPEN(!=, false, ||); }
 VM_INLINE void U_LEQ(VM &, StackPtr sp) { LOP(==); }
 VM_INLINE void U_LNE(VM &, StackPtr sp) { LOP(!=); }
 
+// The arithmetic and comparison ops below are emitted as the C operator they are, see
+// GenSimpleBinOp, so only a C backend build that has a runtime type field to keep correct still
+// calls them. Division and modulo are always called, for their division by zero check.
 VM_INLINE void U_IADD(VM &vm, StackPtr sp) { IOP(+,  0); }
 VM_INLINE void U_ISUB(VM &vm, StackPtr sp) { IOP(-,  0); }
 VM_INLINE void U_IMUL(VM &vm, StackPtr sp) { IOP(*,  0); }
