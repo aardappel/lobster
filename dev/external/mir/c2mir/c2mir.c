@@ -10496,6 +10496,21 @@ static MIR_alias_t get_type_alias (c2m_ctx_t c2m_ctx, struct type *type) {
   return MIR_alias (ctx, VARR_ADDR (char, temp_string));
 }
 
+/* All members of a union share an address, so accesses thru different members of one must not
+   end up with different aliases. The field access code below only recognized a union as the
+   directly accessed type, which misses one nested inside a struct (anonymous or not), so be
+   conservative and treat any aggregate containing a union as aliasing everything. */
+static int type_has_union_p (struct type *type) {
+  if (type->mode == TM_UNION) return TRUE;
+  if (type->mode == TM_ARR) return type_has_union_p (type->u.arr_type->el_type);
+  if (type->mode != TM_STRUCT || type->u.tag_type == NULL) return FALSE;
+  for (node_t member = NL_HEAD (NL_EL (type->u.tag_type->u.ops, 1)->u.ops); member != NULL;
+       member = NL_NEXT (member))
+    if (member->code == N_MEMBER && type_has_union_p (((decl_t) member->attr)->decl_spec.type))
+      return TRUE;
+  return FALSE;
+}
+
 static op_t gen (c2m_ctx_t c2m_ctx, node_t r, MIR_label_t true_label, MIR_label_t false_label,
                  int val_p, op_t *desirable_dest, int *expect_res);
 
@@ -12637,9 +12652,13 @@ static op_t gen (c2m_ctx_t c2m_ctx, node_t r, MIR_label_t true_label, MIR_label_
     op1 = gen (c2m_ctx, NL_HEAD (r->u.ops), NULL, NULL, r->code == N_DEREF_FIELD, NULL, NULL);
     t = get_mir_type (c2m_ctx, decl->decl_spec.type);
     if (r->code == N_FIELD) {
+      struct expr *base = NL_HEAD (r->u.ops)->attr;
+
       assert (op1.mir_op.mode == MIR_OP_MEM);
       alias = (op1.mir_op.u.mem.alias != 0 && MIR_alias_name (ctx, op1.mir_op.u.mem.alias)[0] == 'U'
                  ? op1.mir_op.u.mem.alias
+               : type_has_union_p (base->type)
+                 ? get_type_alias (c2m_ctx, base->type)
                  : get_type_alias (c2m_ctx, e->type));
       op1.mir_op
         = MIR_new_alias_mem_op (ctx, t, op1.mir_op.u.mem.disp + decl->offset, op1.mir_op.u.mem.base,
@@ -12652,9 +12671,10 @@ static op_t gen (c2m_ctx_t c2m_ctx, node_t r, MIR_label_t true_label, MIR_label_
       assert (op1.mir_op.mode == MIR_OP_REG);
       op1.mir_op
         = MIR_new_alias_mem_op (ctx, t, decl->offset, op1.mir_op.u.reg, 0, 1,
-                                get_type_alias (c2m_ctx, left->type->u.ptr_type->mode == TM_UNION
-                                                           ? left->type->u.ptr_type
-                                                           : e->type),
+                                get_type_alias (c2m_ctx,
+                                                type_has_union_p (left->type->u.ptr_type)
+                                                  ? left->type->u.ptr_type
+                                                  : e->type),
                                 decl->decl_spec.type->antialias);
     }
     res = new_op (decl, op1.mir_op);
@@ -13061,11 +13081,15 @@ static op_t gen (c2m_ctx_t c2m_ctx, node_t r, MIR_label_t true_label, MIR_label_
                 != NULL)
               break;
         }
-        if (decl->u.item == NULL) decl->u.item = MIR_new_import (ctx, name);
+        /* A declaration with an initializer is the definition even with `extern` on it, so
+           don't turn this one into an import; the code below emits the data for it. */
+        if (decl->u.item == NULL && initializer->code == N_IGNORE)
+          decl->u.item = MIR_new_import (ctx, name);
         if (decl->scope != top_scope) move_item_forward (c2m_ctx, decl->u.item);
       }
       if (declarator->code == N_DECL && decl->decl_spec.type->mode != TM_FUNC
-          && !decl->decl_spec.typedef_p && !decl->decl_spec.extern_p && !decl->asm_p) {
+          && !decl->decl_spec.typedef_p && !decl->asm_p
+          && (!decl->decl_spec.extern_p || initializer->code != N_IGNORE)) {
         if (initializer->code == N_IGNORE) {
           if (decl->scope != top_scope && decl->decl_spec.static_p) {
             decl->u.item = MIR_new_bss (ctx, name, raw_type_size (c2m_ctx, decl->decl_spec.type));
