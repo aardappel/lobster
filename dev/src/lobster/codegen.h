@@ -993,7 +993,12 @@ struct CodeGen  {
 
     void EmitPUSHFUN(int fidx) {
         EmitOp(IL_PUSHFUN);
-        append(cb, "    U_PUSHFUN(vm, ", sp(), ", 0, ", "fun_", fidx, ");\n");
+        if (cpp) {
+            append(cb, "    *(", sp(), ") = Value((fun_base_t)fun_", fidx, ");\n");
+        } else {
+            append(cb, "    { StackPtr _sp = ", sp(), "; _sp->ival = (long long)fun_",
+                   fidx, ";", SetType(RTT_FUNCTION), " }\n");
+        }
     }
 
     void EmitCALL(int fidx, int uses, int defs) {

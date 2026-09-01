@@ -129,10 +129,8 @@ VM_INLINE void U_PUSHFLT64(VM &, StackPtr sp, int a, int b) {
     Push(sp, Value(int2float64(Int64FromInts(a, b)).f));
 }
 
-VM_INLINE void U_PUSHFUN(VM &, StackPtr sp, int start, fun_base_t fcont) {
-    (void)start;
-    Push(sp, Value(FunPtr(fcont)));
-}
+// The code generator emits the store itself, see EmitPUSHFUN.
+VM_INLINE void U_PUSHFUN(VM &, StackPtr, int, fun_base_t) { assert(false); }
 
 // Only still called when the constants are kept rather than borrowed; otherwise the code
 // generator emits the copy out of the VM itself, see EmitPUSHSTR.
