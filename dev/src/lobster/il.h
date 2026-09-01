@@ -193,13 +193,6 @@ enum ILOP {
     IL_MAX_OPS
 };
 
-inline const char **ILNames() {
-    #define F(N, A) #N,
-        static const char *ilnames[] = { ILNAMES };
-    #undef F
-    return ilnames;
-}
-
 }
 
 #endif  // LOBSTER_IL
