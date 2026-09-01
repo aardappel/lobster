@@ -11,19 +11,19 @@ namespace lobster {
 #define VM_OP_ARGS1 int _a
 #define VM_OP_ARGS2 int _a, int _b
 #define VM_OP_ARGS3 int _a, int _b, int _c
-#define VM_OP_ARGS999999 const int *ip  // ILUNKNOWN
+#define VM_OP_ARGSV const int *ip  // A variable number of them, passed as a list.
 #define VM_OP_ARGSN(N) VM_OP_ARGS##N
 #define VM_OP_PASS0
 #define VM_OP_PASS1 _a
 #define VM_OP_PASS2 _a, _b
 #define VM_OP_PASS3 _a, _b, _c
-#define VM_OP_PASS999999 ip  // ILUNKNOWN
+#define VM_OP_PASSV ip
 #define VM_OP_PASSN(N) VM_OP_PASS##N
 #define VM_COMMA_0
 #define VM_COMMA_1 ,
 #define VM_COMMA_2 ,
 #define VM_COMMA_3 ,
-#define VM_COMMA_999999 ,  // ILUNKNOWN
+#define VM_COMMA_V ,
 #define VM_COMMA_IF(N) VM_COMMA_##N
 
 #if RTT_ENABLED

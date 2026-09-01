@@ -1076,43 +1076,43 @@ void CVM_EndProfile(___tracy_c_zone_context ctx) {
 }
 #endif
 
-#define F(N, A, USE, DEF) \
+#define F(N, A) \
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A));              \
     }
 ILBASENAMES
 #undef F
-#define F(N, A, USE, DEF) \
+#define F(N, A) \
     Value *CVM_##N(VM *vm, StackPtr sp, Value *lv VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         return U_##N(*vm, sp, lv VM_COMMA_IF(A) VM_OP_PASSN(A));                    \
     }
 ILLVALNAMES
 #undef F
-#define F(N, A, USE, DEF) \
+#define F(N, A) \
     void CVM_##N(VM *vm, StackPtr sp, Value *lv VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         return U_##N(*vm, sp, lv VM_COMMA_IF(A) VM_OP_PASSN(A));                  \
     }
 ILLVNAMES
 #undef F
-#define F(N, A, USE, DEF) \
+#define F(N, A) \
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A), fun_base_t fcont) { \
         return U_##N(*vm, sp, VM_OP_PASSN(A) VM_COMMA_IF(A) fcont);                         \
     }
 ILCALLNAMES
 #undef F
-#define F(N, A, USE, DEF) \
+#define F(N, A) \
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A));              \
     }
 ILVARARGNAMES
 #undef F
-#define F(N, A, USE, DEF) \
+#define F(N, A) \
     int CVM_##N(VM *vm, StackPtr sp) {                     \
         return U_##N(*vm, sp);                             \
     }
 ILJUMPNAMES1
 #undef F
-#define F(N, A, USE, DEF) \
+#define F(N, A) \
     int CVM_##N(VM *vm, StackPtr sp, int df) {                           \
         return U_##N(*vm, sp, df);                                       \
     }
@@ -1126,7 +1126,7 @@ extern "C" void GLFrame(StackPtr sp, VM & vm);
 #endif
 
 const void *vm_ops_jit_table[] = {
-    #define F(N, A, USE, DEF) "U_" #N, (void *)&CVM_##N,
+    #define F(N, A) "U_" #N, (void *)&CVM_##N,
         ILNAMES
     #undef F
     "GetNextCallTarget", (void *)CVM_GetNextCallTarget,
