@@ -1121,7 +1121,18 @@ struct VMBase {
     Line last{ -1, -1 };
     int ret_unwind_to = -1;
     int ret_slots = -1;
+    // The generated code reads globals and string constants thru these rather than thru a call,
+    // so they live here where its mirror of this type can see them, see CodeGen::Prologue. Both
+    // are set up once by the VM constructor and never move after.
+    Value *fvars_ptr = nullptr;
+    Value *constant_strings_ptr = nullptr;
 };
+
+// The generated code reads globals and string constants out of these directly, so its mirror of
+// this type has to find them in the same place, see CodeGen::Prologue.
+static_assert(offsetof(VMBase, fvars_ptr) == sizeof(int) * 4);
+static_assert(offsetof(VMBase, constant_strings_ptr) == sizeof(int) * 4 + sizeof(Value *));
+static_assert(sizeof(VMBase) == sizeof(int) * 4 + sizeof(Value *) * 2);
 
 typedef void (*EngineShutdownFunctionPtr)();
 
@@ -1153,7 +1164,8 @@ struct VM : VMBase {
 
     vector<RefObj *> delete_delay;
 
-    vector<LString *> constant_strings;
+    // Kept as Values so pushing one is a plain copy, which the generated code can do itself.
+    vector<Value> constant_strings;
 
     int64_t vm_count_ins = 0;
     int64_t vm_count_fcalls = 0;

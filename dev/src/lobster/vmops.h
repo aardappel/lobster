@@ -134,14 +134,16 @@ VM_INLINE void U_PUSHFUN(VM &, StackPtr sp, int start, fun_base_t fcont) {
     Push(sp, Value(FunPtr(fcont)));
 }
 
+// Only still called when the constants are kept rather than borrowed; otherwise the code
+// generator emits the copy out of the VM itself, see EmitPUSHSTR.
 // FIXME: have a way that constant strings can stay in the bytecode, so this doesn't need the
 // indirection thru the VM at all.
 VM_INLINE void U_PUSHSTR(VM &vm, StackPtr sp, int i) {
     auto s = vm.constant_strings[i];
     #if STRING_CONSTANTS_KEEP
-        s->Inc();
+        s.LTINCRT();
     #endif
-    Push(sp, Value(s));
+    Push(sp, s);
 }
 
 VM_INLINE void U_INCREF(VM &, StackPtr, int) {
@@ -642,17 +644,17 @@ VM_INLINE void U_PUSHVARL(VM &, StackPtr, int) {
     assert(false);
 }
 
-VM_INLINE void U_PUSHVARF(VM &vm, StackPtr sp, int vidx) {
-    Push(sp, vm.fvars[vidx]);
+// The code generator emits the loads for these itself, see GenPushVar.
+VM_INLINE void U_PUSHVARF(VM &, StackPtr, int) {
+    assert(false);
 }
 
 VM_INLINE void U_PUSHVARVL(VM &, StackPtr, int, int) {
     assert(false);
 }
 
-VM_INLINE void U_PUSHVARVF(VM &vm, StackPtr sp, int vidx, int l) {
-    tsnz_memcpy(TopPtr(sp), &vm.fvars[vidx], l);
-    PushN(sp, l);
+VM_INLINE void U_PUSHVARVF(VM &, StackPtr, int, int) {
+    assert(false);
 }
 
 // The code generator emits the load itself, see GenPushField. That does lose the two debug
@@ -822,8 +824,10 @@ VM_INLINE Value *U_LVAL_VARL(VM &, StackPtr, Value *, int) {
     return nullptr;
 }
 
-VM_INLINE Value *U_LVAL_VARF(VM &vm, StackPtr, Value *, int vidx) {
-    return &vm.fvars[vidx];
+// The code generator emits the address itself, see EmitLVAL_VARF.
+VM_INLINE Value *U_LVAL_VARF(VM &, StackPtr, Value *, int) {
+    assert(false);
+    return nullptr;
 }
 
 VM_INLINE Value *U_LVAL_FLD(VM &vm, StackPtr sp, Value *, int i) {

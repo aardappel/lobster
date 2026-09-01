@@ -36,7 +36,9 @@ VM::VM(VMArgs &&vmargs)
     // Allocated up front rather than on first use, so that pushing one is a load rather than a
     // load and a branch. They are owned by the VM for its entire lifetime, see EndEval.
     constant_strings.reserve(vma.meta->stringtable.size());
-    for (auto s : vma.meta->stringtable) constant_strings.push_back(NewString(s));
+    for (auto s : vma.meta->stringtable) constant_strings.push_back(Value(NewString(s)));
+    constant_strings_ptr = constant_strings.data();
+    fvars_ptr = fvars;
     assert(vma.native_vtables);
 
     #if LOBSTER_FRAME_PROFILER
@@ -598,7 +600,7 @@ void VM::EndEval(StackPtr &, Value ret, const TypeInfo &ti) {
     TerminateWorkers();
     ret.ToString(*this, evalret.first, ti, programprintprefs);
     ret.LTDECTYPE(*this, ti.t);
-    for (auto s : constant_strings) s->Dec(*this);
+    for (auto s : constant_strings) s.LTDECRT(*this);
     while (!delete_delay.empty()) {
         auto ro = delete_delay.back();
         delete_delay.pop_back();

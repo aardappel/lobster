@@ -611,6 +611,8 @@ struct CodeGen  {
                 "    int last_fileidx;\n"
                 "    int ret_unwind_to;\n"
                 "    int ret_slots;\n"
+                "    Value *fvars_ptr;\n"
+                "    Value *constant_strings_ptr;\n"
                 "} VMBase;\n"
                 "typedef Value *StackPtr;\n"
                 "typedef VMBase *VMRef;\n"
@@ -750,31 +752,30 @@ struct CodeGen  {
         }
     }
 
+    // Where a global lives. The C++ backend addresses the VM's own array at a constant offset,
+    // which is why that array sits at the end of the VM; the C one has no way to know where that
+    // is, so it goes thru the pointer to it that VMBase carries for that purpose.
+    string FVar(int offset) {
+        return cpp ? cat("vm.fvars + ", offset) : cat("vm->fvars_ptr + ", offset);
+    }
+
     void GenPushVar(size_t retval, TypeRef type, int offset, bool used_as_freevar) {
         if (!retval) return;
+        auto slot = [&](int i) {
+            return used_as_freevar ? FVar(offset + i)
+                                   : cat("locals + ", var_to_local[offset + i]);
+        };
         if (IsStruct(type->t)) {
             auto width = ValWidth(type);
-            if (used_as_freevar) {
-                EmitOp(IL_PUSHVARVF, 0, width);
-                append(cb, "    U_PUSHVARVF(vm, ", sp(), ", ", offset, ", ", width, ");");
-                comment(IdName(offset, false, type));
-            } else {
-                EmitOp(IL_PUSHVARVL, 0, width);
-                for (int i = 0; i < width; i++) {
-                    GenValueCopy(cb, sp(-i), cat("locals + ", var_to_local[offset + i]), "");
-                    comment(cat(IdName(offset, true, type), ".", i));
-                }
+            EmitOp(used_as_freevar ? IL_PUSHVARVF : IL_PUSHVARVL, 0, width);
+            for (int i = 0; i < width; i++) {
+                GenValueCopy(cb, sp(-i), slot(i), "");
+                comment(cat(IdName(offset, true, type), ".", i));
             }
         } else {
-            if (used_as_freevar) {
-                EmitOp(IL_PUSHVARF);
-                append(cb, "    U_PUSHVARF(vm, ", sp(), ", ", offset, ");");
-                comment(IdName(offset, false, type));
-            } else {
-                EmitOp(IL_PUSHVARL);
-                GenValueCopy(cb, sp(0), cat("locals + ", var_to_local[offset]), "");
-                comment(IdName(offset, false, type));
-            }
+            EmitOp(used_as_freevar ? IL_PUSHVARF : IL_PUSHVARL);
+            GenValueCopy(cb, sp(0), slot(0), "");
+            comment(IdName(offset, false, type));
         }
     }
 
@@ -786,10 +787,11 @@ struct CodeGen  {
         append(cb, "    // lval: ", IdName(offset, false, type), "\n");
     }
 
+    // A global is at a known address too, once the generated code can get at the array.
     void EmitLVAL_VARF(int offset, TypeRef type) {
         EmitOp(IL_LVAL_VARF);
-        EmitLvalCall(IL_LVAL_VARF, { offset });
-        comment(IdName(offset, false, type));
+        f_lval = FVar(offset);
+        append(cb, "    // lval: ", IdName(offset, false, type), "\n");
     }
 
     // The lvalue ops hand their address to the ops that follow thru a local rather than thru the
@@ -812,7 +814,15 @@ struct CodeGen  {
 
     void EmitPUSHSTR(int stringtableindex) {
         EmitOp(IL_PUSHSTR);
-        append(cb, "    U_PUSHSTR(vm, ", sp(), ", ", stringtableindex, ");");
+        if (STRING_CONSTANTS_KEEP) {
+            // Still has a reference to take, so leave it to the op.
+            append(cb, "    U_PUSHSTR(vm, ", sp(), ", ", stringtableindex, ");");
+        } else {
+            // Borrowed, so all that is left is the copy out of the VM's table of them.
+            GenValueCopy(cb, sp(0), cpp ? cat("vm.constant_strings_ptr + ", stringtableindex)
+                                        : cat("vm->constant_strings_ptr + ", stringtableindex),
+                         "");
+        }
         auto sv = stringtable[stringtableindex];
         sv = sv.substr(0, 50);
         string q;
