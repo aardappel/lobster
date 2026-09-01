@@ -460,7 +460,7 @@ struct CodeGen  {
     // FIXME: remove.
     void Dummy(size_t retval) {
         assert(!retval);
-        while (retval--) EmitOp0(IL_PUSHNIL);
+        while (retval--) EmitPUSHNIL();
     }
 
     void GenStatDebug(const Node *c) {
@@ -1130,47 +1130,47 @@ struct CodeGen  {
         GenIncRef(sp(off + 1));
     }
 
-    // Ops that are a move or a test on the stack and nothing else. Going thru a call for one of
-    // these costs more than the op itself, and pushes its operand and result thru memory where
-    // the compiler could otherwise keep them in a register.
-    bool GenSimpleOp(ILOP op) {
-        switch (op) {
-            case IL_PUSHNIL:
-                SetToNil(cb, sp(0));
-                return true;
-            case IL_DUP:
-                GenValueCopy(cb, sp(0), sp(1));
-                return true;
-            case IL_POPREF:
-                GenDecRef(sp(1));
-                return true;
-            case IL_E2BREF:
-                // The value is only tested against nil after this, which does not need it alive.
-                GenDecRef(sp(1));
-                [[fallthrough]];
-            case IL_E2B:
-            case IL_LOGNOT: {
-                // These write an int over what may have been a reference, so in C, where we have
-                // to keep any runtime type field correct ourselves, say so.
-                auto test = op == IL_LOGNOT ? "== 0" : "!= 0";
-                if (cpp) {
-                    append(cb, "    *(", sp(1), ") = Value((", sp(1), ")->ival() ", test, ");\n");
-                } else {
-                    append(cb, "    { StackPtr _sp = ", sp(1), "; _sp->ival = _sp->ival ", test,
-                           ";", SetType(RTT_INT), " }\n");
-                }
-                return true;
-            }
-            case IL_I2F:
-                if (cpp) {
-                    append(cb, "    *(", sp(1), ") = Value((double)(", sp(1), ")->ival());\n");
-                } else {
-                    append(cb, "    { StackPtr _sp = ", sp(1), "; double _d = (double)_sp->ival;"
-                               " _sp->fval = _d;", SetType(RTT_FLOAT), " }\n");
-                }
-                return true;
-            default:
-                return false;
+    // The ops below are a move or a test on the stack and nothing else. Going thru a call for
+    // one of them costs more than the op itself, and pushes its operand and result thru memory
+    // where the compiler could otherwise keep them in a register.
+
+    void EmitPUSHNIL() {
+        EmitOp(IL_PUSHNIL);
+        SetToNil(cb, sp(0));
+    }
+
+    void EmitDUP() {
+        EmitOp(IL_DUP);
+        GenValueCopy(cb, sp(0), sp(1));
+    }
+
+    void EmitPOPREF() {
+        EmitOp(IL_POPREF);
+        GenDecRef(sp(1));
+    }
+
+    // LOGNOT and E2B write an int over what may have been a reference, so in C, where we have to
+    // keep any runtime type field correct ourselves, say so. E2BREF drops a reference first: what
+    // is left only gets tested against nil, which does not need the value alive.
+    void EmitTestNil(ILOP op) {
+        EmitOp(op);
+        if (op == IL_E2BREF) GenDecRef(sp(1));
+        auto test = op == IL_LOGNOT ? "== 0" : "!= 0";
+        if (cpp) {
+            append(cb, "    *(", sp(1), ") = Value((", sp(1), ")->ival() ", test, ");\n");
+        } else {
+            append(cb, "    { StackPtr _sp = ", sp(1), "; _sp->ival = _sp->ival ", test, ";",
+                   SetType(RTT_INT), " }\n");
+        }
+    }
+
+    void EmitI2F() {
+        EmitOp(IL_I2F);
+        if (cpp) {
+            append(cb, "    *(", sp(1), ") = Value((double)(", sp(1), ")->ival());\n");
+        } else {
+            append(cb, "    { StackPtr _sp = ", sp(1), "; double _d = (double)_sp->ival;"
+                       " _sp->fval = _d;", SetType(RTT_FLOAT), " }\n");
         }
     }
 
@@ -1207,7 +1207,6 @@ struct CodeGen  {
 
     void EmitOp0(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
         EmitOp(op, useslots, defslots);
-        if (GenSimpleOp(op)) return;
         append(cb, "    U_", ILNames()[op], "(vm, ", sp(), ");\n");
     }
 
@@ -1826,19 +1825,19 @@ struct CodeGen  {
             if (typelt.type->t == V_STRUCT_R) {
                 // TODO: alternatively emit a single op with a list or bitmask? see BitMaskForRefStuct
                 for (int j = typelt.type->udt->numslots - 1; j >= 0; j--) {
-                    if (IsRefNil(FindSlot(*typelt.type->udt, j)->type->t)) EmitOp0(IL_POPREF);
+                    if (IsRefNil(FindSlot(*typelt.type->udt, j)->type->t)) EmitPOPREF();
                     else GenPopSlot();
                 }
             } else {
                 EmitOp1(IL_POPV, typelt.type->udt->numslots, typelt.type->udt->numslots, 0);
             }
         } else {
-            if (ShouldDec(typelt)) EmitOp0(IL_POPREF); else GenPopSlot();
+            if (ShouldDec(typelt)) EmitPOPREF(); else GenPopSlot();
         }
     }
 
     void GenDup(TypeLT tlt) {
-        EmitOp0(IL_DUP);
+        EmitDUP();
         temptypestack.push_back(tlt);
     }
 
@@ -2320,7 +2319,7 @@ struct CodeGen  {
 };
 
 void Nil::Generate(CodeGen &cg, size_t retval) const {
-    if (retval) { cg.EmitOp0(IL_PUSHNIL); }
+    if (retval) { cg.EmitPUSHNIL(); }
 }
 
 void IntConstant::Generate(CodeGen &cg, size_t retval) const {
@@ -2344,7 +2343,7 @@ void StringConstant::Generate(CodeGen &cg, size_t retval) const {
 
 void DefaultVal::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return;
-    cg.EmitOp0(IL_PUSHNIL);
+    cg.EmitPUSHNIL();
 }
 
 void IdentRef::Generate(CodeGen &cg, size_t retval) const {
@@ -2386,7 +2385,7 @@ void Member::Generate(CodeGen &cg, size_t retval) const {
         cg.EmitLabelDef(lab);
     }
     if (!retval) return;
-    cg.EmitOp0(IL_PUSHNIL);
+    cg.EmitPUSHNIL();
 }
 
 void Static::Generate(CodeGen &cg, size_t retval) const {
@@ -2398,7 +2397,7 @@ void Static::Generate(CodeGen &cg, size_t retval) const {
         cg.EmitLabelDef(lab);
     }
     if (!retval) return;
-    cg.EmitOp0(IL_PUSHNIL);
+    cg.EmitPUSHNIL();
 }
 
 void AssignList::Generate(CodeGen &cg, size_t retval) const {
@@ -2528,7 +2527,7 @@ void ToFloat::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (!retval) return;
     cg.TakeTemp(1, false);
-    cg.EmitOp0(IL_I2F);
+    cg.EmitI2F();
 }
 
 void ToString::Generate(CodeGen &cg, size_t retval) const {
@@ -2553,7 +2552,7 @@ void ToBool::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (!retval) return;
     cg.TakeTemp(1, false);
-    cg.EmitOp0(cg.ShouldDec(TypeLT(*child, 0)) ? IL_E2BREF : IL_E2B);
+    cg.EmitTestNil(cg.ShouldDec(TypeLT(*child, 0)) ? IL_E2BREF : IL_E2B);
 }
 
 void ToInt::Generate(CodeGen &cg, size_t retval) const {
@@ -2809,7 +2808,7 @@ void Not::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (retval) {
         cg.TakeTemp(1, false);
-        cg.EmitOp0(IL_LOGNOT);
+        cg.EmitTestNil(IL_LOGNOT);
     }
 }
 
@@ -3256,7 +3255,7 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
             cg.Gen(child, nretvals);
             cg.TakeTemp(nretvals, true);
         } else {
-            cg.EmitOp0(IL_PUSHNIL);
+            cg.EmitPUSHNIL();
             assert(nretvals == 1);
         }
         nretslots = ValWidthMulti(sf->returntype, nretvals);
