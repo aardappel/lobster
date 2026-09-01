@@ -820,6 +820,26 @@ struct CodeGen  {
         f_lval = "lv";
     }
 
+    // An element of a vector as an lvalue: the range check, then the address, at the width
+    // the vector holds its elements at plus wherever in one the assignment lands.
+    void EmitLVAL_IDXVI(int offset, int width) {
+        EmitOp(IL_LVAL_IDXVI, 2);
+        f_uses_lval = true;
+        if (cpp) {
+            append(cb, "    {\n    auto _o = (", sp(2), ")->vval(); auto _i = (", sp(1),
+                   ")->ival();\n");
+            append(cb, "    if ((uint64_t)_i >= (uint64_t)_o->len) vm.IDXErr(_i, _o->len, _o);\n");
+            append(cb, "    lv = _o->Elems() + _i * ", width, " + ", offset, ";\n    }\n");
+        } else {
+            append(cb, "    {\n    LVector *_o = (LVector *)(", sp(2), ")->ref; long long _i = (",
+                   sp(1), ")->ival;\n");
+            append(cb, "    if ((unsigned long long)_i >= (unsigned long long)_o->len)"
+                       " IDXErr(vm, _i, _o->len, &_o->ro);\n");
+            append(cb, "    lv = _o->elems + _i * ", width, " + ", offset, ";\n    }\n");
+        }
+        f_lval = "lv";
+    }
+
     void EmitLvalOp(ILOP op, std::initializer_list<int> args, int useslots = ILUNKNOWN) {
         EmitOp(op, useslots);
         EmitLvalCall(op, args);
@@ -1188,6 +1208,10 @@ struct CodeGen  {
 
     void EmitOp1(ILOP op, int a1, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
         EmitOp(op, useslots, defslots);
+        // For these a1 is the width of the struct they work on, which makes them a fixed number
+        // of the ops above rather than a loop over a count only known at runtime.
+        if (GenVecBinOp(op, a1)) return;
+        if (op == IL_STEQ || op == IL_STNE) { GenStructCompare(op, a1); return; }
         append(cb, "    U_", ILNames()[op], "(vm, ", sp(), ", ", a1, ");\n");
     }
 
@@ -1553,17 +1577,14 @@ struct CodeGen  {
         return IsRefNil(typelt.type->t) && typelt.lt == LT_KEEP;
     }
 
-    // Going thru a call for an op this small costs more than the op itself, and pushes both
-    // operands and the result thru memory where the compiler could otherwise keep them in
-    // registers, so emit the operator directly instead.
-    void GenSimpleBinOp(ILOP op) {
-        // Field for the result and the operands in the C backend, accessor for them in the C++
-        // one, and the operator itself. IDIV/IMOD/FMOD are absent: they check for div by zero.
-        string_view res, arg, cop;
-        // A comparison writes an int over what may have been a float, so in C, where we would
-        // have to keep any runtime type field correct ourselves, only do this without one.
-        // The C++ backend goes thru Value, which maintains it either way.
-        if (cpp || !RTT_ENABLED) switch (op) {
+    // Field for the result and the operands in the C backend, accessor for them in the C++ one,
+    // and the operator itself. IDIV/IMOD/FMOD are absent: they check for div by zero.
+    // A comparison writes an int over what may have been a float, so in C, where we would have to
+    // keep any runtime type field correct ourselves, only do this without one. The C++ backend
+    // goes thru Value, which maintains it either way.
+    bool SimpleBinOpC(ILOP op, string_view &res, string_view &arg, string_view &cop) {
+        if (!cpp && RTT_ENABLED) return false;
+        switch (op) {
             case IL_IADD: res = "ival"; arg = "ival"; cop = "+";  break;
             case IL_ISUB: res = "ival"; arg = "ival"; cop = "-";  break;
             case IL_IMUL: res = "ival"; arg = "ival"; cop = "*";  break;
@@ -1583,17 +1604,72 @@ struct CodeGen  {
             case IL_FGE:  res = "ival"; arg = "fval"; cop = ">="; break;
             case IL_FEQ:  res = "ival"; arg = "fval"; cop = "=="; break;
             case IL_FNE:  res = "ival"; arg = "fval"; cop = "!="; break;
-            default: break;
+            default: return false;
         }
-        if (cop.empty()) { EmitOp0(op); return; }
-        EmitOp(op);
+        return true;
+    }
+
+    void GenBinOpSlot(string_view res, string_view arg, string_view cop, string_view dest,
+                      string_view a, string_view b) {
         if (cpp) {
             // Value's constructor picks the runtime type up from the expression.
-            append(cb, "    *(", sp(2), ") = Value((", sp(2), ")->", arg, "() ", cop, " (",
-                   sp(1), ")->", arg, "());\n");
+            append(cb, "    *(", dest, ") = Value((", a, ")->", arg, "() ", cop, " (", b, ")->",
+                   arg, "());\n");
         } else {
-            append(cb, "    (", sp(2), ")->", res, " = (", sp(2), ")->", arg, " ", cop, " (",
-                   sp(1), ")->", arg, ";\n");
+            append(cb, "    (", dest, ")->", res, " = (", a, ")->", arg, " ", cop, " (", b, ")->",
+                   arg, ";\n");
+        }
+    }
+
+    // Going thru a call for an op this small costs more than the op itself, and pushes both
+    // operands and the result thru memory where the compiler could otherwise keep them in
+    // registers, so emit the operator directly instead.
+    void GenSimpleBinOp(ILOP op) {
+        string_view res, arg, cop;
+        if (!SimpleBinOpC(op, res, arg, cop)) { EmitOp0(op); return; }
+        EmitOp(op);
+        GenBinOpSlot(res, arg, cop, sp(2), sp(2), sp(1));
+    }
+
+    // The struct versions of those ops are the same operator, once per slot of the struct. VV has
+    // one on both sides, VS a struct and a scalar. SV, a scalar on the left, is left to the op:
+    // it writes its results over the slot its left operand is in, so it does not unroll as
+    // directly, and nothing we have measured emits it.
+    bool GenVecBinOp(ILOP op, int len) {
+        ILOP scalar;
+        bool withscalar = false;
+        if      (op >= IL_IVVADD && op <= IL_IVVGE) scalar = GENOP(IL_IADD + (op - IL_IVVADD));
+        else if (op >= IL_FVVADD && op <= IL_FVVGE) scalar = GENOP(IL_FADD + (op - IL_FVVADD));
+        else if (op >= IL_IVSADD && op <= IL_IVSGE) { scalar = GENOP(IL_IADD + (op - IL_IVSADD));
+                                                      withscalar = true; }
+        else if (op >= IL_FVSADD && op <= IL_FVSGE) { scalar = GENOP(IL_FADD + (op - IL_FVSADD));
+                                                      withscalar = true; }
+        else return false;
+        string_view res, arg, cop;
+        if (!SimpleBinOpC(scalar, res, arg, cop)) return false;
+        for (int j = 0; j < len; j++) {
+            auto a = sp(withscalar ? len + 1 - j : len * 2 - j);
+            GenBinOpSlot(res, arg, cop, a, a, withscalar ? sp(1) : sp(len - j));
+        }
+        return true;
+    }
+
+    // Comparing two structs is a compare per slot, on the raw bits the same way the op does it.
+    void GenStructCompare(ILOP op, int len) {
+        auto eq = op == IL_STEQ;
+        auto field = cpp ? "ival()" : "ival";
+        append(cb, "    { long long _c = ", eq ? "1" : "0", ";\n");
+        for (int j = 0; j < len; j++) {
+            append(cb, "    _c = _c ", eq ? "&&" : "||", " (", sp(len * 2 - j), ")->", field, " ",
+                   eq ? "==" : "!=", " (", sp(len - j), ")->", field, ";\n");
+        }
+        // Only written after all the reads, since the result lands in the first slot of the left
+        // hand side.
+        if (cpp) {
+            append(cb, "    *(", sp(len * 2), ") = Value(_c != 0);\n    }\n");
+        } else {
+            append(cb, "    { StackPtr _sp = ", sp(len * 2), "; _sp->ival = _c;",
+                   SetType(RTT_INT), " }\n    }\n");
         }
     }
 
@@ -1675,6 +1751,8 @@ struct CodeGen  {
     // condition already established the counter is in range, so this needs no check.
     void GenForElem(ILOP op, int defslots) {
         EmitOp(op, 2, defslots);
+        // Everything but the counter and the object being iterated is the element.
+        auto width = defslots - 2;
         auto idx = cat("(", sp(2), ")->", cpp ? "ival()" : "ival");
         if (op == IL_SFORELEM) {
             auto data = cpp ? cat("(unsigned char *)(", sp(1), ")->sval()->data()")
@@ -1689,6 +1767,14 @@ struct CodeGen  {
         }
         auto elems = cpp ? cat("(", sp(1), ")->vval()->Elems()")
                          : cat("((LVector *)(", sp(1), ")->ref)->elems");
+        if (width > 1) {
+            // A struct element is the same load per slot it occupies, at the width the vector
+            // holds them at, which is what the element type says it is.
+            append(cb, "    {\n    Value *_e = ", elems, " + ", idx, " * ", width, ";\n");
+            for (int i = 0; i < width; i++) GenValueCopy(cb, sp(-i), cat("_e + ", i));
+            cb += "    }\n";
+            return;
+        }
         GenValueCopy(cb, sp(0), cat(elems, " + ", idx));
         if (op == IL_VFORELEMREF) GenIncRef(sp(0));
     }
@@ -1696,8 +1782,8 @@ struct CodeGen  {
     // Reading an element out of a vector or a string. Unlike the loop above the index is
     // arbitrary, so it needs the range check, whose failure path stays a call. The object is
     // read out into a local first, since the element lands in the slot it came from.
-    void GenPushIdx(ILOP op) {
-        EmitOp(op);
+    void GenPushIdx(ILOP op, int width = 1, int defslots = ILUNKNOWN) {
+        EmitOp(op, ILUNKNOWN, defslots);
         auto str = op == IL_SPUSHIDXI;
         // A string index may read the terminating 0-byte, one past its length.
         auto bound = str ? "_o->len + 1" : "_o->len";
@@ -1710,7 +1796,8 @@ struct CodeGen  {
                 append(cb, "    *(", sp(2), ") = Value((iint)((unsigned char *)"
                            "_o->data())[_i]);\n");
             } else {
-                append(cb, "    *(", sp(2), ") = _o->AtS(_i);\n");
+                for (int i = 0; i < width; i++)
+                    GenValueCopy(cb, sp(2 - i), cat("_o->Elems() + _i * ", width, " + ", i));
             }
         } else {
             append(cb, "    {\n    ", str ? "LString" : "LVector", " *_o = (",
@@ -1722,7 +1809,8 @@ struct CodeGen  {
                 append(cb, "    { StackPtr _sp = ", sp(2), "; _sp->ival = LSTRING_DATA(_o)[_i];",
                        SetType(RTT_INT), " }\n");
             } else {
-                GenValueCopy(cb, sp(2), "_o->elems + _i");
+                for (int i = 0; i < width; i++)
+                    GenValueCopy(cb, sp(2 - i), cat("_o->elems + _i * ", width, " + ", i));
             }
         }
         cb += "    }\n";
@@ -1911,7 +1999,7 @@ struct CodeGen  {
             switch (indexing->object->exptype->t) {
                 case V_VECTOR:
                     if (indexing->index->exptype->t == V_INT) {
-                        EmitLvalOp(IL_LVAL_IDXVI, { offset }, 2);
+                        EmitLVAL_IDXVI(offset, ValWidth(indexing->object->exptype->Element()));
                     } else {
                         assert(IsStruct(indexing->index->exptype->t));
                         auto width = ValWidth(indexing->index->exptype);
@@ -2174,7 +2262,7 @@ struct CodeGen  {
                 if (struct_elem_sub_width < 0) {
                     if (index->exptype->t == V_INT) {
                         if (elemwidth == 1) GenPushIdx(IL_VPUSHIDXI);
-                        else EmitOp0(IL_VPUSHIDXI2V, inw, elemwidth);
+                        else GenPushIdx(IL_VPUSHIDXI2V, elemwidth, elemwidth);
                     } else {
                         assert(IsStruct(index->exptype->t));
                         EmitOp1(IL_VPUSHIDXV, ValWidth(index->exptype), inw, elemwidth);
@@ -2813,7 +2901,7 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
                 }
             } else {
                 if (IsStruct(typelt.type->sub->t)) {
-                    cg.EmitOp0(IL_VFORELEM2S, 2, outw);
+                    cg.GenForElem(IL_VFORELEM2S, outw);
                 } else {
                     cg.GenForElem(IL_VFORELEM, outw);
                 }

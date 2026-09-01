@@ -216,30 +216,18 @@ VM_INLINE bool ForLoop(VM &, StackPtr sp, iint len) {
 
 // The code generator emits an increment and a compare for this itself, see GenForCond.
 VM_INLINE bool U_IFOR(VM &, StackPtr) { assert(false); return false; }
-VM_INLINE bool U_VFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).vval()->len); }
-VM_INLINE bool U_SFOR(VM &vm, StackPtr sp) { return ForLoop(vm, sp, Top(sp).sval()->len); }
+// Same, see GenForCond.
+VM_INLINE bool U_VFOR(VM &, StackPtr) { assert(false); return false; }
+VM_INLINE bool U_SFOR(VM &, StackPtr) { assert(false); return false; }
 
 // Copying the loop counter to the top of the stack is emitted by the code generator itself,
 // see GenForCounter, for this and for FORLOOPI below.
 VM_INLINE void U_IFORELEM(VM &, StackPtr) { assert(false); }
-VM_INLINE void U_SFORELEM(VM &, StackPtr sp) {
-    FORELEM(iter.sval()->len);
-    Push(sp, Value(((uint8_t *)iter.sval()->data())[i]));
-}
-VM_INLINE void U_VFORELEM(VM &, StackPtr sp) {
-    FORELEM(iter.vval()->len);
-    Push(sp, iter.vval()->AtS(i));
-}
-VM_INLINE void U_VFORELEM2S(VM &, StackPtr sp) {
-    FORELEM(iter.vval()->len);
-    iter.vval()->AtVW(sp, i);
-}
-VM_INLINE void U_VFORELEMREF(VM &, StackPtr sp) {
-    FORELEM(iter.vval()->len);
-    auto el = iter.vval()->AtS(i);
-    el.LTINCRTNIL();
-    Push(sp, el);
-}
+VM_INLINE void U_SFORELEM(VM &, StackPtr) { assert(false); }
+// The code generator emits the loads for these itself, see GenForElem.
+VM_INLINE void U_VFORELEM(VM &, StackPtr) { assert(false); }
+VM_INLINE void U_VFORELEM2S(VM &, StackPtr) { assert(false); }
+VM_INLINE void U_VFORELEMREF(VM &, StackPtr) { assert(false); }
 VM_INLINE void U_VFORELEMREF2S(VM &, StackPtr sp, int bitmask) {
     FORELEM(iter.vval()->len);
     iter.vval()->AtVWInc(sp, i, bitmask);
@@ -664,15 +652,10 @@ VM_INLINE void U_PUSHFLDV2V(VM &, StackPtr sp, int i, int rl, int l) {
     PushN(sp, rl);
 }
 
-VM_INLINE void U_VPUSHIDXI(VM &vm, StackPtr sp) {
-    auto x = Pop(sp).ival();
-    PushDerefIdxVector1(vm, sp, x);
-}
+// The code generator emits the range check and the loads itself, see GenPushIdx.
+VM_INLINE void U_VPUSHIDXI(VM &, StackPtr) { assert(false); }
 
-VM_INLINE void U_VPUSHIDXI2V(VM &vm, StackPtr sp) {
-    auto x = Pop(sp).ival();
-    PushDerefIdxVector2V(vm, sp, x);
-}
+VM_INLINE void U_VPUSHIDXI2V(VM &, StackPtr) { assert(false); }
 
 VM_INLINE void U_VPUSHIDXV(VM &vm, StackPtr sp, int l) {
     auto x = vm.GrabIndex(sp, l);
@@ -699,10 +682,7 @@ VM_INLINE void U_NPUSHIDXI(VM &vm, StackPtr sp, int l) {
     PushDerefIdxStruct(vm, sp, x, l);
 }
 
-VM_INLINE void U_SPUSHIDXI(VM &vm, StackPtr sp) {
-    auto x = Pop(sp).ival();
-    PushDerefIdxString(vm, sp, x);
-}
+VM_INLINE void U_SPUSHIDXI(VM &, StackPtr) { assert(false); }
 
 VM_INLINE void U_LABEL(VM &, StackPtr, int) {
     assert(false);
@@ -817,9 +797,10 @@ VM_INLINE Value *U_LVAL_FLD(VM &, StackPtr, Value *, int) {
     return nullptr;
 }
 
-VM_INLINE Value *U_LVAL_IDXVI(VM &vm, StackPtr sp, Value *, int offset) {
-    auto x = Pop(sp).ival();
-    return &GetVecLVal(vm, sp, x) + offset;
+// The code generator emits the range check and the address itself, see EmitLVAL_IDXVI.
+VM_INLINE Value *U_LVAL_IDXVI(VM &, StackPtr, Value *, int) {
+    assert(false);
+    return nullptr;
 }
 
 VM_INLINE Value *U_LVAL_IDXVV(VM &vm, StackPtr sp, Value *, int offset, int l) {
