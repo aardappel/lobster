@@ -388,7 +388,8 @@ struct CodeGen  {
         f_args.clear();
         f_defs.clear();
         f_keepvars = 0;
-        EmitOp0(IL_ABORT, "ABORT", 0, 0);
+        EmitOp(IL_ABORT, 0, 0);
+        append(cb, "    U_ABORT(vm, ", sp(), ");\n");
         DefineFunction(c_codegen, false);
 
         // Generate all used functions.
@@ -418,8 +419,9 @@ struct CodeGen  {
         Gen(parser.root, return_value);
         auto type = parser.root->exptype;
         assert(type->NumValues() == (size_t)return_value);
-        EmitOp1(IL_EXIT, "EXIT", return_value ? GetTypeTableOffset(type) : -1,
-                int(return_value), 0);
+        EmitOp(IL_EXIT, int(return_value), 0);
+        append(cb, "    U_EXIT(vm, ", sp(), ", ",
+               return_value ? GetTypeTableOffset(type) : -1, ");\n");
         linenumbernodes.pop_back();
         DefineFunction(c_codegen, false);
 
@@ -1181,30 +1183,6 @@ struct CodeGen  {
         }
     }
 
-    void EmitOp0(ILOP op, string_view opname, int useslots, int defslots) {
-        EmitOp(op, useslots, defslots);
-        append(cb, "    U_", opname, "(vm, ", sp(), ");\n");
-    }
-
-    void EmitOp1(ILOP op, string_view opname, int a1, int useslots, int defslots) {
-        EmitOp(op, useslots, defslots);
-        // For these a1 is the width of the struct they work on, which makes them a fixed number
-        // of the ops above rather than a loop over a count only known at runtime.
-        if (GenVecBinOp(op, a1)) return;
-        if (op == IL_STEQ || op == IL_STNE) { GenStructCompare(op, a1); return; }
-        append(cb, "    U_", opname, "(vm, ", sp(), ", ", a1, ");\n");
-    }
-
-    void EmitOp2(ILOP op, string_view opname, int a1, int a2, int useslots, int defslots) {
-        EmitOp(op, useslots, defslots);
-        append(cb, "    U_", opname, "(vm, ", sp(), ", ", a1, ", ", a2, ");\n");
-    }
-
-    void EmitOp3(ILOP op, string_view opname, int a1, int a2, int a3, int useslots, int defslots) {
-        EmitOp(op, useslots, defslots);
-        append(cb, "    U_", opname, "(vm, ", sp(), ", ", a1, ", ", a2, ", ", a3, ");\n");
-    }
-
     void DefineFunction(string &sd, bool label) {
         sd += "\n";
         auto sf_idx = f_function_idx;
@@ -1606,9 +1584,12 @@ struct CodeGen  {
     // registers, so emit the operator directly instead. Either way the op takes two operands
     // off the stack and leaves the result.
     void GenSimpleBinOp(ILOP op, string_view opname) {
-        string_view res, arg, cop;
-        if (!SimpleBinOpC(op, res, arg, cop)) { EmitOp0(op, opname, 2, 1); return; }
         EmitOp(op, 2, 1);
+        string_view res, arg, cop;
+        if (!SimpleBinOpC(op, res, arg, cop)) {
+            append(cb, "    U_", opname, "(vm, ", sp(), ");\n");
+            return;
+        }
         GenBinOpSlot(res, arg, cop, sp(2), sp(2), sp(1));
     }
 
@@ -1840,8 +1821,9 @@ struct CodeGen  {
                     else GenPopSlot();
                 }
             } else {
-                EmitOp1(IL_POPV, "POPV", typelt.type->udt->numslots,
-                        typelt.type->udt->numslots, 0);
+                auto numslots = typelt.type->udt->numslots;
+                EmitOp(IL_POPV, numslots, 0);
+                append(cb, "    U_POPV(vm, ", sp(), ", ", numslots, ");\n");
             }
         } else {
             if (ShouldDec(typelt)) EmitPOPREF(); else GenPopSlot();
@@ -2159,9 +2141,12 @@ struct CodeGen  {
         if (!retval) return;
         if (strs.size() == 2) {
             // We still need this op for += and it's marginally more efficient, might as well use it.
-            EmitOp0(IL_SADD, "SADD", 2, 1);
+            EmitOp(IL_SADD, 2, 1);
+            append(cb, "    U_SADD(vm, ", sp(), ");\n");
         } else {
-            EmitOp1(IL_SADDN, "SADDN", (int)strs.size(), (int) strs.size(), 1);
+            auto n = (int)strs.size();
+            EmitOp(IL_SADDN, n, 1);
+            append(cb, "    U_SADDN(vm, ", sp(), ", ", n, ");\n");
         }
     }
 
@@ -2189,27 +2174,34 @@ struct CodeGen  {
             GenSimpleBinOp(GENOP(IL_FADD + op), MathOpName("F", op));
         } else if (rtype->t == V_STRING && ltype->t == V_STRING) {
             // Nillable version handled below.
-            EmitOp0(GENOP(IL_SADD + op), MathOpName("S", op), 2, 1);
+            EmitOp(GENOP(IL_SADD + op), 2, 1);
+            append(cb, "    U_", MathOpName("S", op), "(vm, ", sp(), ");\n");
         } else if ((rtype->t == V_FUNCTION && ltype->t == V_FUNCTION)) {
             assert(op == MOP_EQ || op == MOP_NE);
-            EmitOp0(GENOP(IL_LEQ + (op - MOP_EQ)), MathOpName("L", op), 2, 1);
+            EmitOp(GENOP(IL_LEQ + (op - MOP_EQ)), 2, 1);
+            append(cb, "    U_", MathOpName("L", op), "(vm, ", sp(), ");\n");
         } else if ((rtype->t == V_TYPEID && ltype->t == V_TYPEID)) {
             assert(op == MOP_EQ || op == MOP_NE);
             GenSimpleBinOp(GENOP(IL_IEQ + (op - MOP_EQ)), MathOpName("I", op));
         } else {
             if (op >= MOP_EQ) {  // EQ/NEQ
                 if (IsStruct(ltype->t)) {
+                    // Comparing two structs is one compare per slot, so this never becomes a
+                    // call at all.
+                    auto cmpop = GENOP(IL_STEQ + op - MOP_EQ);
                     auto width = ValWidth(ltype);
-                    EmitOp1(GENOP(IL_STEQ + op - MOP_EQ), MathOpName("ST", op), width,
-                            width * 2, 1);
+                    EmitOp(cmpop, width * 2, 1);
+                    GenStructCompare(cmpop, width);
                 } else {
                     assert(IsRefNil(ltype->t) &&
                            IsRefNil(rtype->t));
                     if ((ltype->t == V_NIL && ltype->sub->t == V_STRING) ||
                         (rtype->t == V_NIL && rtype->sub->t == V_STRING)) {
-                        EmitOp0(GENOP(IL_SNEQ + op - MOP_EQ), MathOpName("SN", op), 2, 1);
+                        EmitOp(GENOP(IL_SNEQ + op - MOP_EQ), 2, 1);
+                        append(cb, "    U_", MathOpName("SN", op), "(vm, ", sp(), ");\n");
                     } else {
-                        EmitOp0(GENOP(IL_AEQ + op - MOP_EQ), MathOpName("A", op), 2, 1);
+                        EmitOp(GENOP(IL_AEQ + op - MOP_EQ), 2, 1);
+                        append(cb, "    U_", MathOpName("A", op), "(vm, ", sp(), ");\n");
                     }
                 }
             } else {
@@ -2222,15 +2214,19 @@ struct CodeGen  {
                 auto outw = ValWidth(ptype);
                 auto inw = withscalar ? outw + 1 : outw * 2;
                 auto width = ValWidth(vectype);
-                if (sub->t == V_INT)
-                    EmitOp1(GENOP((withscalar ? (leftisvec ? IL_IVSADD : IL_SIVADD) : IL_IVVADD) + op),
-                            MathOpName(withscalar ? (leftisvec ? "IVS" : "SIV") : "IVV", op),
-                            width, inw, outw);
-                else if (sub->t == V_FLOAT)
-                    EmitOp1(GENOP((withscalar ? (leftisvec ? IL_FVSADD : IL_SFVADD) : IL_FVVADD) + op),
-                            MathOpName(withscalar ? (leftisvec ? "FVS" : "SFV") : "FVV", op),
-                            width, inw, outw);
-                else assert(false);
+                assert(sub->t == V_INT || sub->t == V_FLOAT);
+                auto isint = sub->t == V_INT;
+                auto base = isint ? (withscalar ? (leftisvec ? IL_IVSADD : IL_SIVADD) : IL_IVVADD)
+                                  : (withscalar ? (leftisvec ? IL_FVSADD : IL_SFVADD) : IL_FVVADD);
+                auto prefix = isint ? (withscalar ? (leftisvec ? "IVS" : "SIV") : "IVV")
+                                    : (withscalar ? (leftisvec ? "FVS" : "SFV") : "FVV");
+                auto vecop = GENOP(base + op);
+                EmitOp(vecop, inw, outw);
+                // Most of these are the same operator once per slot of the struct, which makes
+                // them a fixed number of the ops above rather than a call that loops.
+                if (!GenVecBinOp(vecop, width))
+                    append(cb, "    U_", MathOpName(prefix, op), "(vm, ", sp(), ", ", width,
+                           ");\n");
             }
         }
     }
@@ -2240,7 +2236,8 @@ struct CodeGen  {
         Gen(n->right, retval);
         if (retval) {
             TakeTemp(2, false);
-            EmitOp0(op, opname, 2, 1);
+            EmitOp(op, 2, 1);
+            append(cb, "    U_", opname, "(vm, ", sp(), ");\n");
         }
     }
 
@@ -2288,9 +2285,12 @@ struct CodeGen  {
         TakeTemp(1, true);
         if (IsStruct(stype->t)) {
             if (IsStruct(ftype->t)) {
-                EmitOp3(IL_PUSHFLDV2V, "PUSHFLDV2V", offset, fwidth, swidth, swidth, fwidth);
+                EmitOp(IL_PUSHFLDV2V, swidth, fwidth);
+                append(cb, "    U_PUSHFLDV2V(vm, ", sp(), ", ", offset, ", ", fwidth, ", ", swidth,
+                       ");\n");
             } else {
-                EmitOp2(IL_PUSHFLDV, "PUSHFLDV", offset, swidth, swidth, 1);
+                EmitOp(IL_PUSHFLDV, swidth, 1);
+                append(cb, "    U_PUSHFLDV(vm, ", sp(), ", ", offset, ", ", swidth, ");\n");
             }
         } else {
             if (IsStruct(ftype->t)) {
@@ -2333,17 +2333,20 @@ struct CodeGen  {
                     // We're indexing a sub-part of the element.
                     if (index->exptype->t == V_INT) {
                         if (elemwidth == 1) {
-                            EmitOp1(IL_VPUSHIDXIS, "VPUSHIDXIS", struct_elem_sub_offset,
-                                    inw, struct_elem_sub_width);
+                            EmitOp(IL_VPUSHIDXIS, inw, struct_elem_sub_width);
+                            append(cb, "    U_VPUSHIDXIS(vm, ", sp(), ", ",
+                                   struct_elem_sub_offset, ");\n");
                         } else {
-                            EmitOp2(IL_VPUSHIDXIS2V, "VPUSHIDXIS2V", struct_elem_sub_width,
-                                    struct_elem_sub_offset, inw, struct_elem_sub_width);
+                            EmitOp(IL_VPUSHIDXIS2V, inw, struct_elem_sub_width);
+                            append(cb, "    U_VPUSHIDXIS2V(vm, ", sp(), ", ",
+                                   struct_elem_sub_width, ", ", struct_elem_sub_offset, ");\n");
                         }
                     } else {
                         assert(IsStruct(index->exptype->t));
-                        EmitOp3(IL_VPUSHIDXVS, "VPUSHIDXVS", ValWidth(index->exptype),
-                                struct_elem_sub_width, struct_elem_sub_offset, inw,
-                                struct_elem_sub_width);
+                        EmitOp(IL_VPUSHIDXVS, inw, struct_elem_sub_width);
+                        append(cb, "    U_VPUSHIDXVS(vm, ", sp(), ", ", ValWidth(index->exptype),
+                               ", ", struct_elem_sub_width, ", ", struct_elem_sub_offset,
+                               ");\n");
                     }
                 }
                 break;
@@ -2351,7 +2354,8 @@ struct CodeGen  {
             case V_STRUCT_S: {
                 auto width = ValWidth(object->exptype);
                 assert(index->exptype->t == V_INT && object->exptype->udt->sametype->Numeric());
-                EmitOp1(IL_NPUSHIDXI, "NPUSHIDXI", width, width + 1, 1);
+                EmitOp(IL_NPUSHIDXI, width + 1, 1);
+                append(cb, "    U_NPUSHIDXI(vm, ", sp(), ", ", width, ");\n");
                 break;
             }
             case V_STRING:
@@ -2557,13 +2561,20 @@ void UnaryMinus::Generate(CodeGen &cg, size_t retval) const {
     cg.TakeTemp(1, true);
     auto ctype = child->exptype;
     switch (ctype->t) {
-        case V_INT: cg.EmitOp0(IL_IUMINUS, "IUMINUS", 1, 1); break;
-        case V_FLOAT: cg.EmitOp0(IL_FUMINUS, "FUMINUS", 1, 1); break;
+        case V_INT:
+            cg.EmitOp(IL_IUMINUS, 1, 1);
+            append(cg.cb, "    U_IUMINUS(vm, ", cg.sp(), ");\n");
+            break;
+        case V_FLOAT:
+            cg.EmitOp(IL_FUMINUS, 1, 1);
+            append(cg.cb, "    U_FUMINUS(vm, ", cg.sp(), ");\n");
+            break;
         case V_STRUCT_S: {
-            auto elem = ctype->udt->sametype->t;
+            auto isint = ctype->udt->sametype->t == V_INT;
             auto inw = ValWidth(ctype);
-            cg.EmitOp1(elem == V_INT ? IL_IVUMINUS : IL_FVUMINUS,
-                       elem == V_INT ? "IVUMINUS" : "FVUMINUS", inw, inw, inw);
+            cg.EmitOp(isint ? IL_IVUMINUS : IL_FVUMINUS, inw, inw);
+            append(cg.cb, "    U_", isint ? "IVUMINUS" : "FVUMINUS", "(vm, ", cg.sp(), ", ",
+                   inw, ");\n");
             break;
         }
         default: assert(false);
@@ -2580,7 +2591,8 @@ void Negate::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (!retval) return;
     cg.TakeTemp(1, false);
-    cg.EmitOp0(IL_NEG, "NEG", 1, 1);
+    cg.EmitOp(IL_NEG, 1, 1);
+    append(cg.cb, "    U_NEG(vm, ", cg.sp(), ");\n");
 }
 
 void ToFloat::Generate(CodeGen &cg, size_t retval) const {
@@ -2602,7 +2614,9 @@ void ToString::Generate(CodeGen &cg, size_t retval) const {
             break;
         }
         default: {
-            cg.EmitOp1(IL_A2S, "A2S", cg.GetTypeTableOffset(child->exptype->ElementIfNil()), 1, 1);
+            cg.EmitOp(IL_A2S, 1, 1);
+            append(cg.cb, "    U_A2S(vm, ", cg.sp(), ", ",
+                   (int)cg.GetTypeTableOffset(child->exptype->ElementIfNil()), ");\n");
             break;
         }
     }
@@ -3224,7 +3238,8 @@ void Case::Generate(CodeGen &cg, size_t retval) const {
         assert(pattern->children.empty() && !out_of_range);
         // FIXME: would be great to ensure the offending value is still on the stack for
         // this instruction to have access to.
-        cg.EmitOp0(IL_ENUM_RANGE_ERR, "ENUM_RANGE_ERR", 0, 0);
+        cg.EmitOp(IL_ENUM_RANGE_ERR, 0, 0);
+        append(cg.cb, "    U_ENUM_RANGE_ERR(vm, ", cg.sp(), ");\n");
     }
 }
 
@@ -3243,7 +3258,8 @@ void VectorConstructor::Generate(CodeGen &cg, size_t retval) const {
     cg.TakeTemp(Arity(), true);
     auto offset = cg.GetTypeTableOffset(exptype);
     assert(exptype->t == V_VECTOR);
-    cg.EmitOp2(IL_NEWVEC, "NEWVEC", offset, (int)Arity(), arg_width, 1);
+    cg.EmitOp(IL_NEWVEC, arg_width, 1);
+    append(cg.cb, "    U_NEWVEC(vm, ", cg.sp(), ", ", (int)offset, ", ", (int)Arity(), ");\n");
 }
 
 void ObjectConstructor::Generate(CodeGen &cg, size_t retval) const {
