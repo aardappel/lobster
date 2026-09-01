@@ -56,7 +56,6 @@ def loadtexturecached(name, tf:texture_format = texture_format_none):
 def render_to_texture(tex, size, depth, depthtex, texture_format, f):
     if not tex or gl.texture_size(tex) != size:
         tex = gl.create_colored_texture(int3(size, 0), color_clear, texture_format)
-    assert tex  // FIXME
     assert gl.switch_to_framebuffer(tex, depth, texture_format, nil, depthtex)
     f()
     assert gl.switch_to_framebuffer(nil)
@@ -66,7 +65,6 @@ def create_depth_texture(tex, size):
     if not tex or gl.texture_size(tex) != size:
         tex = gl.create_colored_texture(int3(size, 0), color_black, texture_format_depth |
             texture_format_nomipmap | texture_format_clamp | texture_format_nearest_mag)
-    assert tex  // FIXME
     return tex
 
 // Same, but processes a source texture. Takes size from that texture.
