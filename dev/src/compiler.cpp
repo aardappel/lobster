@@ -16,7 +16,6 @@
 //
 #include "lobster/stdafx.h"
 
-#include "lobster/il.h"
 #include "lobster/natreg.h"
 
 #include "lobster/lex.h"

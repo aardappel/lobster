@@ -14,8 +14,6 @@
 
 #include "lobster/stdafx.h"
 
-#include "lobster/il.h"
-
 #include "lobster/vmops.h"
 
 #include "lobster/lobsterreader.h"
@@ -1080,43 +1078,43 @@ void CVM_EndProfile(___tracy_c_zone_context ctx) {
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A));              \
     }
-ILBASENAMES
+VM_OPS_BASE
 #undef F
 #define F(N, A) \
     Value *CVM_##N(VM *vm, StackPtr sp, Value *lv VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         return U_##N(*vm, sp, lv VM_COMMA_IF(A) VM_OP_PASSN(A));                    \
     }
-ILLVALNAMES
+VM_OPS_LVAL
 #undef F
 #define F(N, A) \
     void CVM_##N(VM *vm, StackPtr sp, Value *lv VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         return U_##N(*vm, sp, lv VM_COMMA_IF(A) VM_OP_PASSN(A));                  \
     }
-ILLVNAMES
+VM_OPS_LV
 #undef F
 #define F(N, A) \
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A), fun_base_t fcont) { \
         return U_##N(*vm, sp, VM_OP_PASSN(A) VM_COMMA_IF(A) fcont);                         \
     }
-ILCALLNAMES
+VM_OPS_CALL
 #undef F
 #define F(N, A) \
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
         return U_##N(*vm, sp VM_COMMA_IF(A) VM_OP_PASSN(A));              \
     }
-ILVARARGNAMES
+VM_OPS_VARARG
 #undef F
 #define F(N, A) \
     int CVM_##N(VM *vm, StackPtr sp) {                     \
         return U_##N(*vm, sp);                             \
     }
-ILJUMPNAMES1
+VM_OPS_JUMP1
 #undef F
 #define F(N, A) \
     int CVM_##N(VM *vm, StackPtr sp, int df) {                           \
         return U_##N(*vm, sp, df);                                       \
     }
-ILJUMPNAMES2
+VM_OPS_JUMP2
 #undef F
 
 #if VM_JIT_MODE
@@ -1127,7 +1125,7 @@ extern "C" void GLFrame(StackPtr sp, VM & vm);
 
 const void *vm_ops_jit_table[] = {
     #define F(N, A) "U_" #N, (void *)&CVM_##N,
-        ILNAMES
+        VM_OPS_ALL
     #undef F
     "GetNextCallTarget", (void *)CVM_GetNextCallTarget,
     "Entry", (void *)CVM_Entry,

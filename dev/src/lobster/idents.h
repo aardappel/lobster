@@ -22,6 +22,10 @@
 
 namespace lobster {
 
+// FlatBuffers takes care of backwards compatibility of all metadata, but not of the C the
+// compiler emits, so this needs to be bumped each time we change the format.
+const int LOBSTER_METADATA_FORMAT_VERSION = 25;
+
 struct NativeFun;
 struct SymbolTable;
 

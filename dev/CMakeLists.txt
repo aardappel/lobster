@@ -52,7 +52,6 @@ else()
     src/lobster/compiler.h
     src/lobster/geom.h
     src/lobster/idents.h
-    src/lobster/il.h
     src/lobster/lex.h
     src/lobster/natreg.h
     src/lobster/node.h

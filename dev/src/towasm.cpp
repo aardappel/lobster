@@ -88,20 +88,20 @@ string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest, string_view bytecod
     #define C_ARGS3 TI_I_IIIIII
     #define C_ARGSN(N) C_ARGS##N
     #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, S_ARGSN(A));
-        ILBASENAMES
+        VM_OPS_BASE
     #undef F
     #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, C_ARGSN(A));
-        ILCALLNAMES
+        VM_OPS_CALL
     #undef F
     // These take a pointer to their list of cases rather than a count of int arguments.
     #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_III);
-        ILVARARGNAMES
+        VM_OPS_VARARG
     #undef F
     #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_II);
-        ILJUMPNAMES1
+        VM_OPS_JUMP1
     #undef F
     #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_III);
-        ILJUMPNAMES2
+        VM_OPS_JUMP2
     #undef F
     size_t import_erccm = bw.AddImportLinkFunction("RunCompiledCodeMain", TI_I_IIIII);
     size_t import_gnct = bw.AddImportLinkFunction("CVM_GetNextCallTarget", TI_I_I);
