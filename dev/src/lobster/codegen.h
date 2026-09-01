@@ -23,8 +23,8 @@ enum {
     CODEGEN_SPECIAL_FUNCTION_ID_ENTRY = CODEGEN_SPECIAL_FUNCTION_ID_START + 2,
 };
 
-// The binary operators, in the order the ops specialized for them come, so that a type prefix
-// plus the name of one of these is the name of the op, see MathOpName.
+// The binary operators, in the order the helpers specialized for them come, so that a type
+// prefix plus the name of one of these is the name of a helper, see MathOpName.
 enum MathOp {
     MOP_ADD, MOP_SUB, MOP_MUL, MOP_DIV, MOP_MOD, MOP_LT, MOP_GT, MOP_LE, MOP_GE, MOP_EQ, MOP_NE
 };
@@ -403,7 +403,7 @@ struct CodeGen  {
 
         Prologue(c_codegen);
 
-        // Start of the actual bytecode.
+        // Start of the actual generated code.
         linenumbernodes.push_back(parser.root);
         // Generate a dummmy function for function values that are never called.
         // Would be good if the optimizer guarantees these don't exist, but for now this is
@@ -472,7 +472,7 @@ struct CodeGen  {
     // FIXME: remove.
     void Dummy(size_t retval) {
         assert(!retval);
-        while (retval--) EmitPUSHNIL();
+        while (retval--) EmitPushNil();
     }
 
     void GenStatDebug(const Node *c) {
@@ -542,7 +542,7 @@ struct CodeGen  {
                 }
             }
             stringtable.push_back(st.StoreName(str));
-            EmitPROFILE((int)stringtable.size() - 1);
+            EmitProfile((int)stringtable.size() - 1);
         }
 
         if (sf.sbody) for (auto c : sf.sbody->children) {
@@ -938,14 +938,14 @@ struct CodeGen  {
 
     // A local is at a known address, so this needs no code at all, just a note of where the
     // assignment that follows writes to.
-    void EmitLVAL_VARL(int offset, TypeRef type) {
+    void EmitLvalLocal(int offset, TypeRef type) {
         TrackUseDef(0, 0);
         f_lval = cat("locals + ", var_to_local[offset]);
         append(cb, "    // lval: ", IdName(offset, false, type), "\n");
     }
 
     // A global is at a known address too, once the generated code can get at the array.
-    void EmitLVAL_VARF(int offset, TypeRef type) {
+    void EmitLvalGlobal(int offset, TypeRef type) {
         TrackUseDef(0, 0);
         f_lval = FVar(offset);
         append(cb, "    // lval: ", IdName(offset, false, type), "\n");
@@ -953,7 +953,7 @@ struct CodeGen  {
 
     // A field as an lvalue is at a constant offset from the object, whose fields sit right behind
     // its header, same as reading one. That does lose a debug only range check.
-    void EmitLVAL_FLD(int slot) {
+    void EmitLvalField(int slot) {
         TrackUseDef(1, 0);
         f_uses_lval = true;
         if (cpp) {
@@ -966,7 +966,7 @@ struct CodeGen  {
 
     // An element of a vector as an lvalue: the range check, then the address, at the width
     // the vector holds its elements at plus wherever in one the assignment lands.
-    void EmitLVAL_IDXVI(int offset, int width) {
+    void EmitLvalVectorIndex(int offset, int width) {
         TrackUseDef(2, 0);
         f_uses_lval = true;
         if (cpp) {
@@ -984,12 +984,12 @@ struct CodeGen  {
         f_lval = "lv";
     }
 
-    // The remaining lvalue ops hand their address to the ops that follow thru a local rather than
-    // thru the VM, so they read as a chain of assignments. Only LVAL_IDXSI steps into an address
-    // it is given, which is what chained says; the rest start a fresh one and ignore it. None of
-    // them leave anything on the stack.
-    void EmitLvalOp(string_view opname, bool chained, std::initializer_list<int> args,
-                    int useslots) {
+    // Indexing to get an lvalue hands the address to whatever follows thru a local rather than
+    // thru the VM, so they read as a chain of assignments. Only the struct one steps into an
+    // address it is given, which is what chained says; the rest start a fresh one and ignore it.
+    // None of them leave anything on the stack.
+    void EmitLvalIndex(string_view opname, bool chained, std::initializer_list<int> args,
+                       int useslots) {
         TrackUseDef(useslots, 0);
         f_uses_lval = true;
         append(cb, "    lv = ", opname, "(vm, ", sp());
@@ -999,10 +999,10 @@ struct CodeGen  {
         f_lval = "lv";
     }
 
-    void EmitPUSHSTR(int stringtableindex) {
+    void EmitPushStr(int stringtableindex) {
         TrackUseDef(0, 1);
         if (STRING_CONSTANTS_KEEP) {
-            // Still has a reference to take, so leave it to the op.
+            // Still has a reference to take, so leave it to the helper.
             append(cb, "    RtPushStr(vm, ", sp(), ", ", stringtableindex, ");");
         } else {
             // Borrowed, so all that is left is the copy out of the VM's table of them.
@@ -1017,14 +1017,14 @@ struct CodeGen  {
         comment(q);
     }
 
-    int EmitJUMP() {
+    int EmitJump() {
         TrackUseDef(0, 0);
         auto lab = Label();
         append(cb, "    goto block", lab, ";\n");
         return lab;
     }
 
-    int EmitJUMPback(int lab) {
+    int EmitJumpBack(int lab) {
         TrackUseDef(0, 0);
         append(cb, "    goto block", lab, ";\n");
         return lab;
@@ -1065,9 +1065,9 @@ struct CodeGen  {
         return lab;
     }
 
-    // There is one op per number of arguments a native takes, plus a V one for those that take
-    // a variable number, which is what a negative count asks for.
-    void EmitBCALLRET(int nargs, NativeFun *nf, int has_ret, int useslots, int defslots) {
+    // There is one helper per number of arguments a native takes, plus a V one for those that
+    // take a variable number, which is what a negative count asks for.
+    void EmitNativeCall(int nargs, NativeFun *nf, int has_ret, int useslots, int defslots) {
         TrackUseDef(useslots, defslots);
         if (nf->IsGLFrame()) {
             append(cb, "    GLFrame(", sp(), ", vm);\n");
@@ -1089,15 +1089,15 @@ struct CodeGen  {
 
     }
 
-    void EmitRETURN(ReturnKind op, int nretslots, int parent_idx, int useslots) {
+    void EmitReturn(ReturnKind kind, int nretslots, int parent_idx, int useslots) {
         TrackUseDef(useslots, 0);
         // FIXME: emit epilogue stuff only once at end of function.
-        if (op == RET_LOCAL) {
+        if (kind == RET_LOCAL) {
             #if VM_EXTRA_CHECKING
                 append(cb, "    ", vmref(), "ret_slots = -9;\n");
                 append(cb, "    ", vmref(), "ret_unwind_to = -9;\n");
             #endif
-        } else if (op == RET_NONLOCAL) {
+        } else if (kind == RET_NONLOCAL) {
             append(cb, "    ", vmref(), "ret_slots = ", nretslots, ";\n");
             append(cb, "    ", vmref(), "ret_unwind_to = ", parent_idx, ";\n");
         }
@@ -1119,7 +1119,7 @@ struct CodeGen  {
                 append(cb, "    Pop(psp);\n");
             }
         }
-        if (op == RET_ANY) {
+        if (kind == RET_ANY) {
             append(cb, "    { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) "
                        "Push(psp, regs[i + ", regso - nretslots, "]); }\n");
         } else {
@@ -1134,7 +1134,7 @@ struct CodeGen  {
                 append(sdt, "    RestoreBackup(vm, ", varidx, ");\n");
             }
         }
-        if (op == RET_ANY) {
+        if (kind == RET_ANY) {
             // The above has taken care of falling thru retvals, but the normal retvals are
             // still on the tstack.
             for (int i = 0; i < nretslots; i++)
@@ -1146,7 +1146,7 @@ struct CodeGen  {
         append(cb, "    goto epilogue;\n");
     }
 
-    void EmitPUSHFUN(int fidx) {
+    void EmitPushFun(int fidx) {
         TrackUseDef(0, 1);
         if (cpp) {
             append(cb, "    *(", sp(), ") = Value((fun_base_t)fun_", fidx, ");\n");
@@ -1156,27 +1156,27 @@ struct CodeGen  {
         }
     }
 
-    void EmitCALL(int fidx, int uses, int defs) {
+    void EmitCall(int fidx, int uses, int defs) {
         TrackUseDef(uses, defs);
         append(cb, "    fun_", fidx, "(vm, ", sp(), ");");
         comment("call: " + Signature(*st.subfunctiontable[fidx]));
     }
 
-    void EmitCALLV(int uses, int defs) {
+    void EmitCallValue(int uses, int defs) {
         TrackUseDef(uses, defs);
         append(cb, "    RtCallValue(vm, ", sp(), "); ");
         if (cpp) append(cb, "vm.next_call_target(vm, ", sp(1), ");\n");
         else append(cb, "GetNextCallTarget(vm)(vm, ", sp(1), ");\n");
     }
 
-    void EmitDDCALL(int vtable_idx, int nargs, int uses, int defs) {
+    void EmitDynDispatch(int vtable_idx, int nargs, int uses, int defs) {
         TrackUseDef(uses, defs);
         append(cb, "    RtDynDispatch(vm, ", sp(), ", ", vtable_idx, ", ", nargs, "); ");
         if (cpp) append(cb, "vm.next_call_target(vm, ", sp(), ");\n");
         else append(cb, "GetNextCallTarget(vm)(vm, ", sp(), ");\n");
     }
 
-    void EmitPROFILE(int stringtable_idx) {
+    void EmitProfile(int stringtable_idx) {
         TrackUseDef(0, 0);
         string name;
         EscapeAndQuote(stringtable[stringtable_idx], name, true);
@@ -1186,27 +1186,27 @@ struct CodeGen  {
         has_profile = true;
     }
 
-    void EmitISTYPE(int type_idx, int nilres, TypeRef type) {
+    void EmitIsType(int type_idx, int nilres, TypeRef type) {
         TrackUseDef(1, 1);
         append(cb, "    RtIsType(", sp(), ", (type_elem_t)", type_idx, ", ", nilres, ");");
         if (IsUDT(type->t)) comment(type->udt->name);
         else cb += "\n";
     }
 
-    void EmitISSUBTYPE(int start, int end, int nilres, TypeRef type) {
+    void EmitIsSubType(int start, int end, int nilres, TypeRef type) {
         TrackUseDef(1, 1);
         append(cb, "    RtIsSubType(vm, ", sp(), ", ", start, ", ", end, ", ", nilres, ");");
         comment(type->udt->name);
     }
 
-    void EmitNEWOBJECT(int type_idx, int uses, TypeRef type) {
+    void EmitNewObject(int type_idx, int uses, TypeRef type) {
         TrackUseDef(uses, 1);
         append(cb, "    RtNewObject(vm, ", sp(), ", (type_elem_t)", type_idx, ");");
         if (IsUDT(type->t)) comment(type->udt->name);
         else cb += "\n";
     }
 
-    void EmitST2S(int type_idx, int uses, TypeRef type) {
+    void EmitStructToString(int type_idx, int uses, TypeRef type) {
         TrackUseDef(uses, 1);
         append(cb, "    RtStructToString(vm, ", sp(), ", (type_elem_t)", type_idx, ");");
         if (IsUDT(type->t)) comment(type->udt->name);
@@ -1222,7 +1222,7 @@ struct CodeGen  {
         #endif
     }
 
-    void EmitPUSHINT(int val) {
+    void EmitPushInt(int val) {
         TrackUseDef(0, 1);
         if (cpp) {
             append(cb, "    *(", sp(), ") = Value(", val, ");\n");
@@ -1234,9 +1234,9 @@ struct CodeGen  {
     void GenFloat(double f) {
         if ((float)f == f && isfinite(f)) {
             TrackUseDef(0, 1);
-            // We're printint the float as text which seems dangerous, but PUSHFLT is only used in cases where
-            // double and float are identical, meaning typically whole numbers and other precisely representable
-            // numbers.
+            // We're printing the float as text which seems dangerous, but this path is only
+            // taken where double and float are identical, meaning typically whole numbers and
+            // other precisely representable ones.
             if (cpp) {
                 append(cb, "    *(", sp(), ") = Value(", to_string_hexfloat((float)f), ");\n");
             } else {
@@ -1244,7 +1244,7 @@ struct CodeGen  {
             }
         } else {
             int2float64 i2f(f);
-            EmitPUSHCONST64(true, i2f.i);
+            EmitPushConst64(true, i2f.i);
             comment(to_string_float(f));
         }
     }
@@ -1275,31 +1275,25 @@ struct CodeGen  {
         }
     }
 
-    void EmitINCREF(int off, TypeRef type) {
+    void EmitIncRef(int off) {
         TrackUseDef(0, 0);
         // FIXME: even when the static type is IsRef (i.e. no NIL or scalar), at runtime it is
         // still possible we get passed an int false value due to the way and/or are compiled?
         // See e.g. astar_result in the test.
         // Would be great to remove this case since the if-check is not needed in almost all cases.
-        (void)type;
         GenIncRef(sp(off + 1));
     }
 
-    // The ops below are a move or a test on the stack and nothing else. Going thru a call for
-    // one of them costs more than the op itself, and pushes its operand and result thru memory
-    // where the compiler could otherwise keep them in a register.
+    // The ones below are a move or a test on the stack and nothing else. Calling a helper for
+    // one of those costs more than the work itself, and pushes its operand and result thru
+    // memory where the compiler could otherwise keep them in a register.
 
-    void EmitPUSHNIL() {
+    void EmitPushNil() {
         TrackUseDef(0, 1);
         SetToNil(cb, sp(0));
     }
 
-    void EmitDUP() {
-        TrackUseDef(1, 2);
-        GenValueCopy(cb, sp(0), sp(1));
-    }
-
-    void EmitPOPREF() {
+    void EmitPopRef() {
         TrackUseDef(1, 0);
         GenDecRef(sp(1));
     }
@@ -1307,7 +1301,7 @@ struct CodeGen  {
     // These write an int over what may have been a reference, so in C, where we have to keep any
     // runtime type field correct ourselves, say so. Turning a reference into a bool can drop it
     // first: what is left only gets tested against nil, which does not need the value alive.
-    void EmitTestNil(string_view test, bool decref) {
+    void EmitBoolTest(string_view test, bool decref) {
         TrackUseDef(1, 1);
         if (decref) GenDecRef(sp(1));
         if (cpp) {
@@ -1318,7 +1312,7 @@ struct CodeGen  {
         }
     }
 
-    void EmitI2F() {
+    void EmitIntToFloat() {
         TrackUseDef(1, 1);
         if (cpp) {
             append(cb, "    *(", sp(1), ") = Value((double)(", sp(1), ")->ival());\n");
@@ -1331,12 +1325,12 @@ struct CodeGen  {
     // A 64 bit constant, which only reaches us split in two because that is all an op argument
     // holds. For a float we write the bit pattern rather than a literal, since a decimal one
     // would not round trip exactly and not every C compiler we feed this to takes a hex float.
-    void EmitPUSHCONST64(bool isfloat, int64_t bits) {
+    void EmitPushConst64(bool isfloat, int64_t bits) {
         TrackUseDef(0, 1);
         string hex;
         to_string_hex(hex, (uint64_t)bits);
         if (cpp && isfloat) {
-            // Nothing is gained by inlining here, the op is already inline in C++.
+            // Nothing is gained by inlining here, the helper is already inline in C++.
             append(cb, "    RtPushFloat(", sp(), ", ", hex, "ULL);");
         } else if (cpp) {
             append(cb, "    *(", sp(), ") = Value((iint)", hex, "ULL);");
@@ -1347,7 +1341,7 @@ struct CodeGen  {
     }
 
     // All that is left of an assert in the common case is the test; the reporting is a call.
-    void EmitASSERT(int defslots, int line, int fileidx, int stringidx) {
+    void EmitAssert(int defslots, int line, int fileidx, int stringidx) {
         TrackUseDef(1, defslots);
         if (cpp) {
             append(cb, "    if (!(", sp(1), ")->True()) vm.AssertFailed(", line, ", ", fileidx,
@@ -1649,7 +1643,7 @@ struct CodeGen  {
         // Here we are emitting code executed only if we're falling thru,
         // so temp modify the tstack to match that.
         auto tstackbackup = tstack_size;
-        EmitRETURN(RET_ANY, nretslots_norm, -1, 0);
+        EmitReturn(RET_ANY, nretslots_norm, -1, 0);
         EmitLabelDef(lab);
         tstack_size = tstackbackup;
     }
@@ -1670,12 +1664,12 @@ struct CodeGen  {
                            " arguments, ", nargs, " given");
         TakeTemp(nargs, true);
         if (call.vtable_idx < 0) {
-            EmitCALL(sf.idx, inw, outw);
+            EmitCall(sf.idx, inw, outw);
             if (sf.returned_thru_to_max >= 0) {
                 GenUnwind(sf, sf.returned_thru_to_max, outw);
             }
         } else {
-            EmitDDCALL(call.vtable_idx, inw - 1, inw, outw);
+            EmitDynDispatch(call.vtable_idx, inw - 1, inw, outw);
             // We get the dispatch from arg 0, since sf is an arbitrary overloads and
             // doesn't necessarily point to the dispatch root (which may not even have an sf).
             auto dispatch_type = call.children[0]->exptype;
@@ -1740,10 +1734,10 @@ struct CodeGen  {
         }
     }
 
-    // Going thru a call for an op this small costs more than the op itself, and pushes both
-    // operands and the result thru memory where the compiler could otherwise keep them in
-    // registers, so emit the operator directly instead. Either way the op takes two operands
-    // off the stack and leaves the result.
+    // Calling a helper for something this small costs more than the work itself, and pushes
+    // both operands and the result thru memory where the compiler could otherwise keep them in
+    // registers, so emit the operator directly instead. Either way this takes two operands off
+    // the stack and leaves the result.
     void GenSimpleBinOp(bool isfloat, MathOp op, string_view opname) {
         TrackUseDef(2, 1);
         string_view res, arg, cop;
@@ -1754,9 +1748,9 @@ struct CodeGen  {
         GenBinOpSlot(res, arg, cop, sp(2), sp(2), sp(1));
     }
 
-    // The struct versions of those ops are the same operator, once per slot of the struct. VV has
-    // one on both sides, VS a struct and a scalar. SV, a scalar on the left, is left to the op:
-    // it writes its results over the slot its left operand is in, so it does not unroll as
+    // The struct versions are the same operator, once per slot of the struct. VV has one on
+    // both sides, VS a struct and a scalar. SV, a scalar on the left, is left to the helper: it
+    // writes its results over the slot its left operand is in, so it does not unroll as
     // directly, and nothing we have measured emits it.
     bool GenVecBinOp(bool isfloat, bool withscalar, bool leftisvec, MathOp op, int len) {
         if (withscalar && !leftisvec) return false;
@@ -1769,7 +1763,7 @@ struct CodeGen  {
         return true;
     }
 
-    // Comparing two structs is a compare per slot, on the raw bits the same way the op does it.
+    // Comparing two structs is a compare per slot, on the raw bits the same way a helper would.
     void GenStructCompare(bool eq, int len) {
         auto field = cpp ? "ival()" : "ival";
         append(cb, "    { long long _c = ", eq ? "1" : "0", ";\n");
@@ -1964,9 +1958,10 @@ struct CodeGen  {
     void GenPop(TypeLT typelt) {
         if (IsStruct(typelt.type->t)) {
             if (typelt.type->t == V_STRUCT_R) {
-                // TODO: alternatively emit a single op with a list or bitmask? see BitMaskForRefStuct
+                // TODO: alternatively call a single helper with a list or bitmask?
+                // See BitMaskForRefStuct.
                 for (int j = typelt.type->udt->numslots - 1; j >= 0; j--) {
-                    if (IsRefNil(FindSlot(*typelt.type->udt, j)->type->t)) EmitPOPREF();
+                    if (IsRefNil(FindSlot(*typelt.type->udt, j)->type->t)) EmitPopRef();
                     else GenPopSlot();
                 }
             } else {
@@ -1975,12 +1970,13 @@ struct CodeGen  {
                 append(cb, "    RtPopV(", sp(), ", ", numslots, ");\n");
             }
         } else {
-            if (ShouldDec(typelt)) EmitPOPREF(); else GenPopSlot();
+            if (ShouldDec(typelt)) EmitPopRef(); else GenPopSlot();
         }
     }
 
     void GenDup(TypeLT tlt) {
-        EmitDUP();
+        TrackUseDef(1, 2);
+        GenValueCopy(cb, sp(0), sp(1));
         temptypestack.push_back(tlt);
     }
 
@@ -2042,14 +2038,9 @@ struct CodeGen  {
         return ComputeBitMask(*type->udt);
     }
 
-    void GenValueWidth(TypeRef type) {
-        // FIXME: struct variable size.
-        EmitPUSHINT( ValWidth(type));
-    }
-
-    // The lvalue ops that read/modify/write thru temp_lval with a single operator, the same
-    // deal as GenSimpleBinOp. The ones absent here either check for division by zero, decrement
-    // a reference (which can free it), or are not scalar.
+    // The modifiers that read/modify/write thru the address in f_lval with a single operator,
+    // the same deal as GenSimpleBinOp. The ones absent here either check for division by zero,
+    // decrement a reference (which can free it), or are not scalar.
     static bool SimpleLvalOpC(LvalOp op, string_view &fld, string_view &cop) {
         switch (op) {
             case LV_IADD:   fld = "ival"; cop = "+";  return true;
@@ -2086,7 +2077,7 @@ struct CodeGen  {
         }
     }
 
-    void GenLvalModifierOpWithStructInfo(LvalOp op, TypeRef type) {
+    void GenLvalModifier(LvalOp op, TypeRef type) {
         TrackUseDef(LvalModifierUses(op, ValWidth(type)), 0);
         auto &lval = f_lval;
         string_view fld, cop;
@@ -2128,8 +2119,8 @@ struct CodeGen  {
                        " 1;\n");
             }
         } else {
-            // What is left is one op per operator per type, too many to name individually
-            // here, and the op we get is computed from the operator anyway.
+            // What is left is one helper per operator per type, too many to name individually
+            // here, and the one we need is computed from the operator anyway.
             static const char *lvnames[] = {
                 "RtLvDup", "RtLvDupV",
                 "RtLvWrite", "RtLvWriteRef", "RtLvWriteV", "RtLvWriteRefV",
@@ -2153,7 +2144,7 @@ struct CodeGen  {
         TakeTemp(1, true);
         GenLvalVar(sid, 0);
         auto op = AssignBaseOp({ sid });
-        GenLvalModifierOpWithStructInfo(op, sid.type);
+        GenLvalModifier(op, sid.type);
     }
 
     void GenAssignLvalRec(const Node *lval, int offset, int take_temp, TypeRef type) {
@@ -2169,7 +2160,7 @@ struct CodeGen  {
             if (stype->t == V_CLASS) {
                 Gen(dot->child, 1);
                 TakeTemp(take_temp + 1, true);
-                EmitLVAL_FLD(sfield.slot + offset);
+                EmitLvalField(sfield.slot + offset);
             } else {
                 GenAssignLvalRec(dot->child, sfield.slot + offset, take_temp, type);
             }
@@ -2187,24 +2178,24 @@ struct CodeGen  {
             switch (indexing->object->exptype->t) {
                 case V_VECTOR:
                     if (indexing->index->exptype->t == V_INT) {
-                        EmitLVAL_IDXVI(offset, ValWidth(indexing->object->exptype->Element()));
+                        EmitLvalVectorIndex(offset, ValWidth(indexing->object->exptype->Element()));
                     } else {
                         assert(IsStruct(indexing->index->exptype->t));
                         auto width = ValWidth(indexing->index->exptype);
-                        EmitLvalOp("RtLvalIndexVecV", false, { offset, width }, width + 1);
+                        EmitLvalIndex("RtLvalIndexVecV", false, { offset, width }, width + 1);
                     }
                     break;
                 case V_CLASS:
                     assert(indexing->index->exptype->t == V_INT &&
                            indexing->object->exptype->udt->sametype->Numeric());
-                    EmitLvalOp("RtLvalIndexClass", false, { offset }, 2);
+                    EmitLvalIndex("RtLvalIndexClass", false, { offset }, 2);
                     assert(!IsStruct(type->t));
                     break;
                 case V_STRUCT_R:
                 case V_STRUCT_S:
                     assert(indexing->index->exptype->t == V_INT &&
                            indexing->object->exptype->udt->sametype->Numeric());
-                    EmitLvalOp("RtLvalIndexStruct", true, { offset,
+                    EmitLvalIndex("RtLvalIndexStruct", true, { offset,
                                                 indexing->object->exptype->udt->numslots }, 1);
                     assert(!IsStruct(type->t));
                     break;
@@ -2249,7 +2240,7 @@ struct CodeGen  {
         if (rhs) Gen(rhs, 1);
         GenAssignLvalRec(lval, 0, take_temp, type);
         if (!post) {
-            GenLvalModifierOpWithStructInfo(lvalop, type);
+            GenLvalModifier(lvalop, type);
         }
         if (retval) {
             // FIXME: it seems these never need a refcount increase because they're always
@@ -2264,7 +2255,7 @@ struct CodeGen  {
             }
         }
         if (post) {
-            GenLvalModifierOpWithStructInfo(lvalop, type);
+            GenLvalModifier(lvalop, type);
         }
     }
 
@@ -2297,7 +2288,7 @@ struct CodeGen  {
         }
         if (!retval) return;
         if (strs.size() == 2) {
-            // We still need this op for += and it's marginally more efficient, might as well use it.
+            // We still need this helper for += and it is marginally more efficient here too.
             TrackUseDef(2, 1);
             append(cb, "    RtSAdd(vm, ", sp(), ");\n");
         } else {
@@ -2376,7 +2367,7 @@ struct CodeGen  {
                                     : (withscalar ? (leftisvec ? "Fvs" : "Sfv") : "Fvv");
                 TrackUseDef(inw, outw);
                 // Most of these are the same operator once per slot of the struct, which makes
-                // them a fixed number of the ops above rather than a call that loops.
+                // them a fixed number of the ones above rather than a call that loops.
                 if (!GenVecBinOp(!isint, withscalar, leftisvec, op, width))
                     append(cb, "    ", MathOpName(prefix, op), "(vm, ", sp(), ", ", width,
                            ");\n");
@@ -2403,9 +2394,9 @@ struct CodeGen  {
 
     void GenLvalVar(const SpecIdent &sid, int offset) {
         if (sid.used_as_freevar)
-            EmitLVAL_VARF(sid.Idx() + offset, sid.type);
+            EmitLvalGlobal(sid.Idx() + offset, sid.type);
         else
-            EmitLVAL_VARL(sid.Idx() + offset, sid.type);
+            EmitLvalLocal(sid.Idx() + offset, sid.type);
     }
 
     void GenPushField(size_t retval, Node *object, TypeRef stype, TypeRef ftype, int offset) {
@@ -2535,15 +2526,15 @@ struct CodeGen  {
 };
 
 void Nil::Generate(CodeGen &cg, size_t retval) const {
-    if (retval) { cg.EmitPUSHNIL(); }
+    if (retval) { cg.EmitPushNil(); }
 }
 
 void IntConstant::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return;
     if (integer == (int)integer) {
-        cg.EmitPUSHINT((int)integer);
+        cg.EmitPushInt((int)integer);
     } else {
-        cg.EmitPUSHCONST64(false, integer);
+        cg.EmitPushConst64(false, integer);
     }
 }
 
@@ -2554,12 +2545,12 @@ void FloatConstant::Generate(CodeGen &cg, size_t retval) const {
 void StringConstant::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return;
     cg.stringtable.push_back(str);
-    cg.EmitPUSHSTR((int)cg.stringtable.size() - 1);
+    cg.EmitPushStr((int)cg.stringtable.size() - 1);
 }
 
 void DefaultVal::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return;
-    cg.EmitPUSHNIL();
+    cg.EmitPushNil();
 }
 
 void IdentRef::Generate(CodeGen &cg, size_t retval) const {
@@ -2597,12 +2588,12 @@ void Member::Generate(CodeGen &cg, size_t retval) const {
         cg.Gen(child, 1);
         cg.GenPushVar(1, this_sid->type, this_sid->Idx(), this_sid->used_as_freevar);
         cg.TakeTemp(1, true);
-        cg.EmitLVAL_FLD(sfield.slot);
-        cg.GenLvalModifierOpWithStructInfo(cg.AssignBaseOp({ sfield.type, LT_KEEP }), sfield.type);
+        cg.EmitLvalField(sfield.slot);
+        cg.GenLvalModifier(cg.AssignBaseOp({ sfield.type, LT_KEEP }), sfield.type);
         cg.EmitLabelDef(lab);
     }
     if (!retval) return;
-    cg.EmitPUSHNIL();
+    cg.EmitPushNil();
 }
 
 void Static::Generate(CodeGen &cg, size_t retval) const {
@@ -2615,7 +2606,7 @@ void Static::Generate(CodeGen &cg, size_t retval) const {
         cg.EmitLabelDef(lab);
     }
     if (!retval) return;
-    cg.EmitPUSHNIL();
+    cg.EmitPushNil();
 }
 
 void AssignList::Generate(CodeGen &cg, size_t retval) const {
@@ -2754,7 +2745,7 @@ void ToFloat::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (!retval) return;
     cg.TakeTemp(1, false);
-    cg.EmitI2F();
+    cg.EmitIntToFloat();
 }
 
 void ToString::Generate(CodeGen &cg, size_t retval) const {
@@ -2765,7 +2756,8 @@ void ToString::Generate(CodeGen &cg, size_t retval) const {
         case V_STRUCT_R:
         case V_STRUCT_S: {
             // TODO: can also roll these into A2S?
-            cg.EmitST2S(cg.GetTypeTableOffset(child->exptype), ValWidth(child->exptype), child->exptype);
+            cg.EmitStructToString(cg.GetTypeTableOffset(child->exptype),
+                                  ValWidth(child->exptype), child->exptype);
             break;
         }
         default: {
@@ -2781,7 +2773,7 @@ void ToBool::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (!retval) return;
     cg.TakeTemp(1, false);
-    cg.EmitTestNil("!= 0", cg.ShouldDec(TypeLT(*child, 0)));
+    cg.EmitBoolTest("!= 0", cg.ShouldDec(TypeLT(*child, 0)));
 }
 
 void ToInt::Generate(CodeGen &cg, size_t retval) const {
@@ -2815,21 +2807,23 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
             if (incref & (1LL << i)) {
                 assert(IsRefNil(type->t));
                 if (type->t == V_STRUCT_R) {
-                    // TODO: alternatively emit a single op with a list or bitmask? see BitMaskForRefStuct
+                    // TODO: alternatively call a single helper with a list or bitmask?
+                    // See BitMaskForRefStuct.
                     for (int j = 0; j < type->udt->numslots; j++) {
                         auto stype = FindSlot(*type->udt, j)->type;
                         if (IsRefNil(stype->t)) {
-                            cg.EmitINCREF(stack_offset + type->udt->numslots - 1 - j, stype);
+                            cg.EmitIncRef(stack_offset + type->udt->numslots - 1 - j);
                         }
                     }
                 } else {
-                    cg.EmitINCREF(stack_offset, type);
+                    cg.EmitIncRef(stack_offset);
                 }
             }
             if (decref & (1LL << i)) {
                 assert(IsRefNil(type->t));
                 if (type->t == V_STRUCT_R) {
-                    // TODO: alternatively emit a single op with a list or bitmask? see BitMaskForRefStuct
+                    // TODO: alternatively call a single helper with a list or bitmask?
+                    // See BitMaskForRefStuct.
                     for (int j = 0; j < type->udt->numslots; j++) {
                         if (IsRefNil(FindSlot(*type->udt, j)->type->t))
                             cg.EmitKeep(stack_offset + (type->udt->numslots - j - 1), 0);
@@ -2855,9 +2849,9 @@ void FunRef::Generate(CodeGen &cg, size_t retval) const {
     // function value will never be used.
     // FIXME: instead, ensure such values are removed by the optimizer.
     if (sf->parent->anonymous && sf->sbody && sf->typechecked) {
-        cg.EmitPUSHFUN(sf->idx);
+        cg.EmitPushFun(sf->idx);
     } else {
-        cg.EmitPUSHFUN(CODEGEN_SPECIAL_FUNCTION_ID_DUMMY);
+        cg.EmitPushFun(CODEGEN_SPECIAL_FUNCTION_ID_DUMMY);
     }
 }
 
@@ -2878,7 +2872,7 @@ void Assert::Generate(CodeGen &cg, size_t retval) const {
         cg.Gen(child, 1);
         cg.TakeTemp(1, false);
         if (cg.runtime_checks >= RUNTIME_ASSERT) {
-            cg.EmitASSERT(!!retval, child->line.line, child->line.fileidx,
+            cg.EmitAssert(!!retval, child->line.line, child->line.fileidx,
                           (int)cg.stringtable.size());
             // FIXME: would be better to use the original source code here.
             cg.stringtable.push_back(cg.st.StoreName(DumpNode(*child, 0, true)));
@@ -2905,7 +2899,8 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
         if ((IsStruct(c->exptype->t) ||
              nf->args[i].flags & NF_PUSHVALUEWIDTH) &&
             !Is<DefaultVal>(c)) {
-            cg.GenValueWidth(c->exptype);
+            // FIXME: struct variable size.
+            cg.EmitPushInt(ValWidth(c->exptype));
             cg.temptypestack.push_back({ type_int, LT_ANY });
             numstructs++;
         }
@@ -2914,7 +2909,7 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     size_t nargs = children.size();
     cg.TakeTemp(nargs + numstructs, true);
     assert(nargs == nf->args.size() && (nf->fun.fnargs < 0 || nargs <= 7));
-    cg.EmitBCALLRET(nf->fun.fnargs >= 0 ? (int)nargs : -1, nf, !nf->retvals.empty(), inw,
+    cg.EmitNativeCall(nf->fun.fnargs >= 0 ? (int)nargs : -1, nf, !nf->retvals.empty(), inw,
                     ValWidthMulti(nattype, nattype->NumValues()));
     if (nf->retvals.size() > 0) {
         assert(nf->retvals.size() == nattype->NumValues());
@@ -2947,7 +2942,7 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
     assert(nargs == sf->args.size());
     cg.GenPushVar(1, type_function_null_void, sid->Idx(), sid->used_as_freevar);
     cg.TakeTemp(nargs, true);
-    cg.EmitCALLV(arg_width + 1, ValWidthMulti(exptype, sf->returntype->NumValues()));
+    cg.EmitCallValue(arg_width + 1, ValWidthMulti(exptype, sf->returntype->NumValues()));
     if (sf->reqret) {
         if (!retval) cg.GenPop({ exptype, lt });
     } else {
@@ -3036,7 +3031,7 @@ void Not::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (retval) {
         cg.TakeTemp(1, false);
-        cg.EmitTestNil("== 0", false);
+        cg.EmitBoolTest("== 0", false);
     }
 }
 
@@ -3058,7 +3053,7 @@ void IfElse::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(truepart, retval);
     bs.End();
     if (retval) cg.TakeTemp(retval, true);
-    auto lab2 = cg.EmitJUMP();
+    auto lab2 = cg.EmitJump();
     cg.EmitLabelDef(lab);
     bs.Start();
     cg.Gen(falsepart, retval);
@@ -3079,14 +3074,14 @@ void While::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(wbody, 0);
     cg.loops.pop_back();
     cg.continues.pop_back();
-    cg.EmitJUMPback(loopback);
+    cg.EmitJumpBack(loopback);
     cg.EmitLabelDef(jumpout);
     cg.ApplyBreaks(break_level);
     cg.Dummy(retval);
 }
 
 void For::Generate(CodeGen &cg, size_t retval) const {
-    cg.EmitPUSHINT(-1);  // i
+    cg.EmitPushInt(-1);  // i
     cg.temptypestack.push_back({ type_int, LT_ANY });
     cg.Gen(iter, 1);
     cg.loops.push_back(this);
@@ -3102,7 +3097,7 @@ void For::Generate(CodeGen &cg, size_t retval) const {
         default:         assert(false);
     }
     cg.Gen(fbody, 0);
-    cg.EmitJUMPback(startloop);
+    cg.EmitJumpBack(startloop);
     cg.EmitLabelDef(exitloop);
     cg.loops.pop_back();
     cg.continues.pop_back();
@@ -3156,11 +3151,11 @@ void Break::Generate(CodeGen &cg, size_t retval) const {
         // them to be there, so put them back once the jump is emitted.
         cg.GenPop(cg.temptypestack[cg.temptypestack.size() - 1]);
         cg.GenPop(cg.temptypestack[cg.temptypestack.size() - 2]);
-        lab = cg.EmitJUMP();
+        lab = cg.EmitJump();
         cg.PushTemp();
         cg.PushTemp();
     } else {
-        lab = cg.EmitJUMP();
+        lab = cg.EmitJump();
     }
     cg.breaks.push_back(lab);
 }
@@ -3171,7 +3166,7 @@ void Continue::Generate(CodeGen &cg, size_t retval) const {
     assert(!cg.rettypes.size());
     assert(!cg.loops.empty());
     int startloop = cg.continues.back();
-    cg.EmitJUMPback(startloop);
+    cg.EmitJumpBack(startloop);
 }
 
 void Switch::Generate(CodeGen &cg, size_t retval) const {
@@ -3234,7 +3229,7 @@ void Switch::Generate(CodeGen &cg, size_t retval) const {
         cas->Generate(cg, retval);
         bs.End();
         if (n != cases->children.back() || !have_default) {
-            auto lab = cg.EmitJUMP();
+            auto lab = cg.EmitJump();
             exitswitch.push_back(lab);
         }
     }
@@ -3350,7 +3345,7 @@ void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mi
         cas->Generate(cg, retval);
         bs.End();
         if (n != cases->children.back()) {
-            auto lab = cg.EmitJUMP();
+            auto lab = cg.EmitJump();
             exitswitch.push_back(lab);
         }
     }
@@ -3421,7 +3416,7 @@ void ObjectConstructor::Generate(CodeGen &cg, size_t retval) const {
     if (IsStruct(exptype->t)) {
         // This is now a no-op! Struct elements sit inline on the stack.
     } else {
-        cg.EmitNEWOBJECT(offset, arg_width, exptype);
+        cg.EmitNewObject(offset, arg_width, exptype);
     }
 }
 
@@ -3444,9 +3439,9 @@ void IsType::Generate(CodeGen &cg, size_t retval) const {
         if (te->t == V_CLASS && te->udt->subtype_dfs_end > te->udt->subtype_dfs) {
             // The tested type has subclasses, so test the value's type against
             // the id range of the tested type's subtree.
-            cg.EmitISSUBTYPE(te->udt->subtype_dfs, te->udt->subtype_dfs_end, nilres, te);
+            cg.EmitIsSubType(te->udt->subtype_dfs, te->udt->subtype_dfs_end, nilres, te);
         } else {
-            cg.EmitISTYPE(cg.GetTypeTableOffset(te), nilres, te);
+            cg.EmitIsType(cg.GetTypeTableOffset(te), nilres, te);
         }
     }
 }
@@ -3478,7 +3473,7 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
             cg.Gen(child, nretvals);
             cg.TakeTemp(nretvals, true);
         } else {
-            cg.EmitPUSHNIL();
+            cg.EmitPushNil();
             assert(nretvals == 1);
         }
         nretslots = ValWidthMulti(sf->returntype, nretvals);
@@ -3491,11 +3486,11 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     // Actually, doesn't work with DDCALL and RETURN_THRU.
     // FIXME: shouldn't need any type here if V_VOID, but nretvals is at least 1 ?
     if (sf == cg.cursf && sf->returned_thru_to_max < 0) {
-        cg.EmitRETURN(RET_LOCAL, nretslots, -1, nretslots);
+        cg.EmitReturn(RET_LOCAL, nretslots, -1, nretslots);
     } else {
         // This is for both if the return itself is non-local, or if the destination has
         // an unwind check.
-        cg.EmitRETURN(RET_NONLOCAL, nretslots, sf->parent->idx, nretslots);
+        cg.EmitReturn(RET_NONLOCAL, nretslots, sf->parent->idx, nretslots);
     }
 
     reset_from_small_vector(cg.temptypestack, typestackbackup);
@@ -3510,7 +3505,7 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
 void TypeOf::Generate(CodeGen &cg, size_t /*retval*/) const {
     // This is typically a TypeAnnotation or IdentRef, but
     // the IdentRef can also have been folded into various constants.
-    cg.EmitPUSHINT(cg.GetTypeTableOffset(child->exptype));
+    cg.EmitPushInt(cg.GetTypeTableOffset(child->exptype));
 }
 
 }  // namespace lobster
