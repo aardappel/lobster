@@ -675,6 +675,7 @@ struct CodeGen  {
                   "extern void SwapVars(VMRef, int, StackPtr, int);\n"
                   "extern void BackupVar(VMRef, int);\n"
                   "extern void DecOwned(VMRef, int);\n"
+                  "extern void DecDelete(VMRef, RefObj *);\n"
                   "extern void DecVal(VMRef, Value);\n"
                   "extern void RestoreBackup(VMRef, int);\n"
                   "extern StackPtr PopArg(VMRef, int, StackPtr);\n"
@@ -1061,6 +1062,17 @@ struct CodeGen  {
             append(sd, "    *(", target, ") = Value(0, lobster::RTT_NIL);\n");
         else
             append(sd, "    { StackPtr _sp = ", target, "; _sp->ival = 0;", SetType(RTT_NIL), " }\n");
+    }
+
+    // Only the decrement itself is worth emitting: what happens when it reaches zero is a good
+    // deal more code, and stays a call.
+    void GenDecRef(string_view slot) {
+        if (cpp) {
+            append(cb, "    (", slot, ")->LTDECRTNIL(vm);\n");
+        } else {
+            append(cb, "    { RefObj *_r = (", slot, ")->ref;"
+                       " if (_r && --_r->refc <= 0) DecDelete(vm, _r); }\n");
+        }
     }
 
     void GenIncRef(string_view slot) {
@@ -1736,6 +1748,10 @@ struct CodeGen  {
         auto &lval = f_lval;
         string_view fld, cop;
         if (op == IL_LV_WRITE) {
+            GenValueCopy(cb, lval, sp(1));
+        } else if (op == IL_LV_WRITEREF) {
+            // Whatever was there loses a reference to make way for what is written over it.
+            GenDecRef(lval);
             GenValueCopy(cb, lval, sp(1));
         } else if (op == IL_LV_WRITEV) {
             // Same copy, one per slot of the struct being written.

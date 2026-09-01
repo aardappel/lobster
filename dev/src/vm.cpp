@@ -1042,6 +1042,7 @@ void CVM_IDXErr(VM *vm, iint i, iint n, RefObj *v) { vm->IDXErr(i, n, v); }
 void CVM_SwapVars(VM *vm, int i, StackPtr psp, int off) { SwapVars(*vm, i, psp, off); }
 void CVM_BackupVar(VM *vm, int i) { BackupVar(*vm, i); }
 void CVM_DecOwned(VM *vm, int i) { DecOwned(*vm, i); }
+void CVM_DecDelete(VM *vm, RefObj *ro) { ro->DECDELETE(*vm); }
 void CVM_DecVal(VM *vm, Value v) { DecVal(*vm, v); }
 void CVM_RestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
 StackPtr CVM_PopArg(VM *vm, int i, StackPtr psp) { return PopArg(*vm, i, psp); }
@@ -1117,6 +1118,7 @@ const void *vm_ops_jit_table[] = {
     "SwapVars", (void *)CVM_SwapVars,
     "BackupVar", (void *)CVM_BackupVar,
     "DecOwned", (void *)CVM_DecOwned,
+    "DecDelete", (void *)CVM_DecDelete,
     "DecVal", (void *)CVM_DecVal,
     "RestoreBackup", (void *)CVM_RestoreBackup,
     "PopArg", (void *)CVM_PopArg,

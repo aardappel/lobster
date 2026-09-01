@@ -930,13 +930,8 @@ VM_INLINE void U_LV_WRITE(VM &, StackPtr, Value *) {
     assert(false);
 }
 
-VM_INLINE void U_LV_WRITEREF(VM &vm, StackPtr sp, Value *lv) {
-    auto &a = *lv;
-    auto  b = Pop(sp);
-    a.LTDECRTNIL(vm);
-    TYPE_ASSERT(a.type == b.type || a.type == RTT_NIL || b.type == RTT_NIL);
-    a = b;
-}
+// The code generator emits the decrement and the copy, see GenLvalModifierOpWithStructInfo.
+VM_INLINE void U_LV_WRITEREF(VM &, StackPtr, Value *) { assert(false); }
 
 // Emitted as a copy per slot of the struct, see GenLvalModifierOpWithStructInfo.
 VM_INLINE void U_LV_WRITEV(VM &, StackPtr, Value *, int) { assert(false); }
