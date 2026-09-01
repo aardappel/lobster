@@ -32,6 +32,7 @@ VM::VM(VMArgs &&vmargs)
     : vma(std::move(vmargs)) {
 
     typetable = vma.meta->type_table.data();
+    native_funs = vma.nfr.nfun_ptrs.data();
     // Allocated up front rather than on first use, so that pushing one is a load rather than a
     // load and a branch. They are owned by the VM for its entire lifetime, see EndEval.
     constant_strings.reserve(vma.meta->stringtable.size());
@@ -708,11 +709,12 @@ string VM::ProperTypeName(const TypeInfo &ti) {
     return ti.is_nil ? r + "?" : r;
 }
 
-void VM::BCallRetCheck(StackPtr sp, const NativeFun *nf) {
+void VM::BCallRetCheck(StackPtr sp, int nfi) {
     #if RTT_ENABLED
         // See if any builtin function is lying about what type it returns
         // other function types return intermediary values that don't correspond to final return
         // values.
+        auto nf = vma.nfr.nfuns[nfi];
         for (size_t i = 0; i < nf->retvals.size(); i++) {
             #ifndef NDEBUG
             auto t = (TopPtr(sp) - nf->retvals.size() + i)->type;
@@ -721,7 +723,7 @@ void VM::BCallRetCheck(StackPtr sp, const NativeFun *nf) {
             #endif
         }
     #else
-        (void)nf;
+        (void)nfi;
         (void)sp;
     #endif
 }

@@ -263,24 +263,22 @@ VM_INLINE void U_FORLOOPI(VM &, StackPtr) { assert(false); }
 
 
 VM_INLINE void U_BCALLRETV(VM &vm, StackPtr sp, int nfi, int /*has_ret*/) {
-    auto nf = vm.vma.nfr.nfuns[nfi];
     BPROF_START(nfi);
     GPROF_START(nfi);
-    nf->fun.fV(sp, vm);
+    vm.native_funs[nfi].fV(sp, vm);
     GPROF_END();
     BPROF_END();
 }
 
 #define BCALLOP(N,DECLS,ARGS) \
 VM_INLINE void U_BCALLRET##N(VM &vm, StackPtr sp, int nfi, int has_ret) { \
-    auto nf = vm.vma.nfr.nfuns[nfi]; \
     BPROF_START(nfi); \
     GPROF_START(nfi); \
     DECLS; \
-    Value v = nf->fun.f##N ARGS; \
+    Value v = vm.native_funs[nfi].f##N ARGS; \
     GPROF_END(); \
     BPROF_END(); \
-    if (has_ret) { Push(sp, v); vm.BCallRetCheck(sp, nf); } \
+    if (has_ret) { Push(sp, v); vm.BCallRetCheck(sp, nfi); } \
 }
 
 BCALLOP(0, {}, (sp, vm));

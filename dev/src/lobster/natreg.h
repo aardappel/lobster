@@ -214,6 +214,9 @@ struct NativeFun : Named {
 
 struct NativeRegistry {
     vector<NativeFun *> nfuns;
+    // The function pointers out of nfuns, flattened so that calling a builtin only needs to
+    // load the pointer itself rather than chase the NativeFun it lives in.
+    vector<BuiltinPtr> nfun_ptrs;
     unordered_map<string_view, NativeFun *> nfunlookup;  // Key points to value!
     vector<string> subsystems;
     vector<string_view> namespaces;
@@ -281,6 +284,7 @@ struct NativeRegistry {
             nfunlookup[nf->name /* must be in value */] = nf;
         }
         nfuns.push_back(nf);
+        nfun_ptrs.push_back(nf->fun);
     }
 
     NativeFun *FindNative(string_view name) {
