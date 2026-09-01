@@ -1753,7 +1753,7 @@ struct CodeGen  {
 
     // The element the loop is on, at the counter below the object being iterated. The loop
     // condition already established the counter is in range, so this needs no check.
-    void GenForElem(ILOP op, int defslots) {
+    void GenForElem(ILOP op, int defslots, int bitmask = 0) {
         EmitOp(op, 2, defslots);
         // Everything but the counter and the object being iterated is the element.
         auto width = defslots - 2;
@@ -1777,6 +1777,8 @@ struct CodeGen  {
             append(cb, "    {\n    Value *_e = ", elems, " + ", idx, " * ", width, ";\n");
             for (int i = 0; i < width; i++) GenValueCopy(cb, sp(-i), cat("_e + ", i));
             cb += "    }\n";
+            // The bitmask says which slots of the struct hold a reference the loop now owns.
+            for (int i = 0; i < width; i++) if ((1 << i) & bitmask) GenIncRef(sp(-i));
             return;
         }
         GenValueCopy(cb, sp(0), cat(elems, " + ", idx));
@@ -1786,6 +1788,37 @@ struct CodeGen  {
     // Reading an element out of a vector or a string. Unlike the loop above the index is
     // arbitrary, so it needs the range check, whose failure path stays a call. The object is
     // read out into a local first, since the element lands in the slot it came from.
+    // Indexing a vector with a struct: every component of it but the first steps into a nested
+    // vector, and the first one lands on the element. They sit above the vector on the stack and
+    // are used back to front, see VM::GrabIndex, with one range check per level.
+    void GenPushIdxNested(int levels, int width, int useslots) {
+        EmitOp(IL_VPUSHIDXV, useslots, width);
+        auto vec = sp(levels + 1);
+        if (cpp) {
+            append(cb, "    {\n    auto _o = (", vec, ")->vval();\n    iint _i;\n");
+            for (int j = levels - 1; j >= 0; j--) {
+                append(cb, "    _i = (", sp(levels - j), ")->ival();\n");
+                append(cb, "    if ((uint64_t)_i >= (uint64_t)_o->len)"
+                           " vm.IDXErr(_i, _o->len, _o);\n");
+                if (j) append(cb, "    _o = _o->AtS(_i).vval();\n");
+            }
+            for (int i = 0; i < width; i++)
+                GenValueCopy(cb, sp(levels + 1 - i), cat("_o->Elems() + _i * ", width, " + ", i));
+        } else {
+            append(cb, "    {\n    LVector *_o = (LVector *)(", vec,
+                   ")->ref;\n    long long _i;\n");
+            for (int j = levels - 1; j >= 0; j--) {
+                append(cb, "    _i = (", sp(levels - j), ")->ival;\n");
+                append(cb, "    if ((unsigned long long)_i >= (unsigned long long)_o->len)"
+                           " IDXErr(vm, _i, _o->len, &_o->ro);\n");
+                if (j) append(cb, "    _o = (LVector *)(_o->elems + _i)->ref;\n");
+            }
+            for (int i = 0; i < width; i++)
+                GenValueCopy(cb, sp(levels + 1 - i), cat("_o->elems + _i * ", width, " + ", i));
+        }
+        cb += "    }\n";
+    }
+
     void GenPushIdx(ILOP op, int width = 1, int defslots = ILUNKNOWN) {
         EmitOp(op, ILUNKNOWN, defslots);
         auto str = op == IL_SPUSHIDXI;
@@ -1933,10 +1966,17 @@ struct CodeGen  {
             // Whatever was there loses a reference to make way for what is written over it.
             GenDecRef(lval);
             GenValueCopy(cb, lval, sp(1));
-        } else if (op == IL_LV_WRITEV) {
-            // Same copy, one per slot of the struct being written.
-            for (int i = 0; i < ValWidth(type); i++)
-                GenValueCopy(cb, cat(lval, " + ", i), sp(ValWidth(type) - i));
+        } else if (op == IL_LV_WRITEV || op == IL_LV_WRITEREFV) {
+            // Same copy, one per slot of the struct being written, preceded by a decrement for
+            // each of those slots that holds a reference, which the bitmask says which are.
+            auto width = ValWidth(type);
+            if (op == IL_LV_WRITEREFV) {
+                auto bitmask = BitMaskForRefStuct(type);
+                for (int i = 0; i < width; i++)
+                    if ((1 << i) & bitmask) GenDecRef(cat(lval, " + ", i));
+            }
+            for (int i = 0; i < width; i++)
+                GenValueCopy(cb, cat(lval, " + ", i), sp(width - i));
         } else if (SimpleLvalOpC(op, fld, cop)) {
             // These keep the type of what is already in the slot, so no care is needed around a
             // runtime type field.
@@ -2269,7 +2309,7 @@ struct CodeGen  {
                         else GenPushIdx(IL_VPUSHIDXI2V, elemwidth, elemwidth);
                     } else {
                         assert(IsStruct(index->exptype->t));
-                        EmitOp1(IL_VPUSHIDXV, ValWidth(index->exptype), inw, elemwidth);
+                        GenPushIdxNested(ValWidth(index->exptype), elemwidth, inw);
                     }
                 } else {
                     // We're indexing a sub-part of the element.
@@ -2899,7 +2939,8 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
             auto outw = ValWidth(typelt.type->sub) + 2;
             if (IsRefNil(typelt.type->sub->t)) {
                 if (IsStruct(typelt.type->sub->t)) {
-                    cg.EmitOp1(IL_VFORELEMREF2S, cg.BitMaskForRefStuct(typelt.type->sub) , 2, outw);
+                    cg.GenForElem(IL_VFORELEMREF2S, outw,
+                                  cg.BitMaskForRefStuct(typelt.type->sub));
                 } else {
                     cg.GenForElem(IL_VFORELEMREF, outw);
                 }

@@ -226,10 +226,7 @@ VM_INLINE void U_SFORELEM(VM &, StackPtr) { assert(false); }
 VM_INLINE void U_VFORELEM(VM &, StackPtr) { assert(false); }
 VM_INLINE void U_VFORELEM2S(VM &, StackPtr) { assert(false); }
 VM_INLINE void U_VFORELEMREF(VM &, StackPtr) { assert(false); }
-VM_INLINE void U_VFORELEMREF2S(VM &, StackPtr sp, int bitmask) {
-    FORELEM(iter.vval()->len);
-    iter.vval()->AtVWInc(sp, i, bitmask);
-}
+VM_INLINE void U_VFORELEMREF2S(VM &, StackPtr, int) { assert(false); }
 
 VM_INLINE void U_FORLOOPI(VM &, StackPtr) { assert(false); }
 
@@ -655,10 +652,8 @@ VM_INLINE void U_VPUSHIDXI(VM &, StackPtr) { assert(false); }
 
 VM_INLINE void U_VPUSHIDXI2V(VM &, StackPtr) { assert(false); }
 
-VM_INLINE void U_VPUSHIDXV(VM &vm, StackPtr sp, int l) {
-    auto x = vm.GrabIndex(sp, l);
-    PushDerefIdxVector2V(vm, sp, x);
-}
+// The code generator emits the range checks and the loads itself, see GenPushIdxNested.
+VM_INLINE void U_VPUSHIDXV(VM &, StackPtr, int) { assert(false); }
 
 VM_INLINE void U_VPUSHIDXIS(VM &vm, StackPtr sp, int o) {
     auto x = Pop(sp).ival();
@@ -896,16 +891,9 @@ VM_INLINE void U_LV_WRITEREF(VM &, StackPtr, Value *) { assert(false); }
 // Emitted as a copy per slot of the struct, see GenLvalModifierOpWithStructInfo.
 VM_INLINE void U_LV_WRITEV(VM &, StackPtr, Value *, int) { assert(false); }
 
-VM_INLINE void U_LV_WRITEREFV(VM &vm, StackPtr sp, Value *lv, int l, int bitmask) {
-    // TODO: if this bitmask checking is expensive, either make a version of
-    // this op for structs with all ref elems, or better yet, special case for
-    // structs with a single elem.
-    auto &a = *lv;
-    for (int i = 0; i < l; i++) if ((1 << i) & bitmask) (&a)[i].LTDECRTNIL(vm);
-    auto b = TopPtr(sp) - l;
-    tsnz_memcpy(&a, b, l);
-    PopN(sp, l);
-}
+// Emitted as a decrement and a copy per slot of the struct, the bitmask deciding which slots
+// get the decrement at code generation time, see GenLvalModifierOpWithStructInfo.
+VM_INLINE void U_LV_WRITEREFV(VM &, StackPtr, Value *, int, int) { assert(false); }
 
 VM_INLINE void U_LV_IPP(VM &, StackPtr, Value *) { assert(false); }
 
