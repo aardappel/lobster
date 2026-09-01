@@ -1016,7 +1016,8 @@ fun_base_t CVM_GetNextCallTarget(VM *vm) {
     return vm->next_call_target;
 }
 
-void CVM_Entry(int value_size, int vmbase_size, int refobj_size) {
+void CVM_Entry(int value_size, int vmbase_size, int refobj_size, int lvector_size,
+               int lvector_elems_off, int lstring_size) {
     if (value_size != sizeof(Value)) {
         THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ Value size mismatch! (Debug vs Release?)");
     }
@@ -1026,7 +1027,15 @@ void CVM_Entry(int value_size, int vmbase_size, int refobj_size) {
     if (refobj_size != sizeof(RefObj)) {
         THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ RefObj size mismatch!");
     }
+    if (lvector_size != sizeof(LVector) || lvector_elems_off != lvector_elems_offset) {
+        THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ LVector layout mismatch!");
+    }
+    if (lstring_size != sizeof(LString)) {
+        THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ LString size mismatch!");
+    }
 }
+
+void CVM_IDXErr(VM *vm, iint i, iint n, RefObj *v) { vm->IDXErr(i, n, v); }
 
 void CVM_SwapVars(VM *vm, int i, StackPtr psp, int off) { SwapVars(*vm, i, psp, off); }
 void CVM_BackupVar(VM *vm, int i) { BackupVar(*vm, i); }
@@ -1102,6 +1111,7 @@ const void *vm_ops_jit_table[] = {
     #undef F
     "GetNextCallTarget", (void *)CVM_GetNextCallTarget,
     "Entry", (void *)CVM_Entry,
+    "IDXErr", (void *)CVM_IDXErr,
     "SwapVars", (void *)CVM_SwapVars,
     "BackupVar", (void *)CVM_BackupVar,
     "DecOwned", (void *)CVM_DecOwned,

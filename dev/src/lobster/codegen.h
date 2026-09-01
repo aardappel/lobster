@@ -588,6 +588,23 @@ struct CodeGen  {
                 "    int type;\n"
                 #endif
                 "} Value;\n"
+                // These need to correspond to the C++ LVector and LString, enforced in Entry().
+                // We mirror them so that reading a length or an element is a load rather than a
+                // call. Only the fields up to the last one we read have to be right, but keeping
+                // the whole type here means the size check covers the tail as well.
+                "typedef struct {\n"
+                "    RefObj ro;\n"
+                "    long long len;\n"
+                "    long long maxl;\n"
+                "    long long width;\n"
+                "    Value *elems;\n"
+                "} LVector;\n"
+                "typedef struct {\n"
+                "    RefObj ro;\n"
+                "    long long len;\n"
+                "} LString;\n"
+                // The characters of a string follow directly behind its header.
+                "#define LSTRING_DATA(S) ((unsigned char *)((S) + 1))\n"
                 // This needs to correspond to the C++ VMBase, enforced in Entry().
                 "typedef struct {\n"
                 "    int last_line;\n"
@@ -650,7 +667,8 @@ struct CodeGen  {
             #undef F
 
             sd += "extern fun_base_t GetNextCallTarget(VMRef);\n"
-                  "extern void Entry(int, int, int);\n"
+                  "extern void Entry(int, int, int, int, int, int);\n"
+                  "extern void IDXErr(VMRef, long long, long long, RefObj *);\n"
                   "extern void GLFrame(StackPtr, VMRef);\n"
                   "extern void SwapVars(VMRef, int, StackPtr, int);\n"
                   "extern void BackupVar(VMRef, int);\n"
@@ -1035,26 +1053,22 @@ struct CodeGen  {
             append(sd, "    { StackPtr _sp = ", target, "; _sp->ival = 0;", SetType(RTT_NIL), " }\n");
     }
 
+    void GenIncRef(string_view slot) {
+        if (cpp) {
+            append(cb, "    (", slot, ")->LTINCRTNIL();\n");
+        } else {
+            append(cb, "    { RefObj *_r = (", slot, ")->ref; if (_r) _r->refc++; }\n");
+        }
+    }
+
     void EmitINCREF(int off, TypeRef type) {
         EmitOp(IL_INCREF);
         // FIXME: even when the static type is IsRef (i.e. no NIL or scalar), at runtime it is
         // still possible we get passed an int false value due to the way and/or are compiled?
         // See e.g. astar_result in the test.
         // Would be great to remove this case since the if-check is not needed in almost all cases.
-        auto could_be_nil = true || !IsRef(type->t);
-        if (cpp) {
-            if (could_be_nil) {
-                append(cb, "    (", sp(off + 1), ")->LTINCRTNIL();\n");
-            } else {
-                append(cb, "    (", sp(off + 1), ")->LTINCRT();\n");
-            }
-        } else {
-            if (could_be_nil) {
-                append(cb, "    { RefObj *_r = (", sp(off + 1), ")->ref; if (_r) _r->refc++; }\n");
-            } else {
-                append(cb, "    (", sp(off + 1), ")->ref->refc++;\n");
-            }
-        }
+        (void)type;
+        GenIncRef(sp(off + 1));
     }
 
     void EmitOp0(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
@@ -1297,7 +1311,10 @@ struct CodeGen  {
             append(sd, "    if (vm.vma.nfr.HashAll() != ", parser.natreg.HashAll(),
                    "ULL) vm.BuiltinError(\"code compiled with mismatching builtin function library\");\n");
         } else {
-            sd += "    Entry(sizeof(Value), sizeof(VMBase), sizeof(RefObj));\n";
+            // The offsets are what the reads we emit inline depend on; the sizes catch a field
+            // being added or widened past the last one we read.
+            sd += "    Entry(sizeof(Value), sizeof(VMBase), sizeof(RefObj), sizeof(LVector),\n"
+                  "          (int)(long long)&((LVector *)0)->elems, sizeof(LString));\n";
         }
         append(sd, "    fun_", CODEGEN_SPECIAL_FUNCTION_ID_ENTRY, "(vm, sp);\n}\n\n");
         if (cpp) {
@@ -1499,22 +1516,39 @@ struct CodeGen  {
     // something we track statically, so all that is left of it is the bookkeeping.
     void GenPopSlot() { EmitOp(IL_POP); }
 
-    // The int version of the loop condition is an increment and a compare, small enough to be
-    // worth not calling for the same reasons as GenSimpleBinOp. The string and vector versions
-    // need a length out of the object they iterate, whose layout the generated C doesn't know.
-    // The counter stays an int here, so this needs no care around a runtime type field.
+    // The C expression for the length of what is being iterated or indexed, which for a vector
+    // or a string comes out of the object itself, see the mirrors of those in Prologue.
+    string LenOf(ILOP op, string_view slot) {
+        switch (op) {
+            case IL_IFOR:
+                return cat("(", slot, ")->", cpp ? "ival()" : "ival");
+            case IL_VFOR:
+            case IL_VPUSHIDXI:
+                return cpp ? cat("(", slot, ")->vval()->len")
+                           : cat("((LVector *)(", slot, ")->ref)->len");
+            case IL_SFOR:
+            case IL_SPUSHIDXI:
+                return cpp ? cat("(", slot, ")->sval()->len")
+                           : cat("((LString *)(", slot, ")->ref)->len");
+            default:
+                assert(false);
+                return {};
+        }
+    }
+
+    // The loop condition is an increment and a compare, small enough to be worth not calling for
+    // the same reasons as GenSimpleBinOp. The counter stays an int here, so this needs no care
+    // around a runtime type field.
     int GenForCond(ILOP op) {
-        if (op != IL_IFOR) return EmitOpJump1(op);
         EmitOp(op);
         auto lab = Label();
+        auto len = LenOf(op, sp(1));
         if (cpp) {
             append(cb, "    *(", sp(2), ") = Value((", sp(2), ")->ival() + 1);\n");
-            append(cb, "    if (!((", sp(2), ")->ival() < (", sp(1), ")->ival())) goto block",
-                   lab, ";\n");
+            append(cb, "    if (!((", sp(2), ")->ival() < ", len, ")) goto block", lab, ";\n");
         } else {
             append(cb, "    (", sp(2), ")->ival = (", sp(2), ")->ival + 1;\n");
-            append(cb, "    if (!((", sp(2), ")->ival < (", sp(1), ")->ival)) goto block", lab,
-                   ";\n");
+            append(cb, "    if (!((", sp(2), ")->ival < ", len, ")) goto block", lab, ";\n");
         }
         return lab;
     }
@@ -1525,6 +1559,63 @@ struct CodeGen  {
         if (op != IL_IFORELEM && op != IL_FORLOOPI) { EmitOp0(op); return; }
         EmitOp(op);
         append(cb, "    *(", sp(0), ") = *(", sp(2), ");\n");
+    }
+
+    // The element the loop is on, at the counter below the object being iterated. The loop
+    // condition already established the counter is in range, so this needs no check.
+    void GenForElem(ILOP op, int defslots) {
+        EmitOp(op, 2, defslots);
+        auto idx = cat("(", sp(2), ")->", cpp ? "ival()" : "ival");
+        if (op == IL_SFORELEM) {
+            auto data = cpp ? cat("(unsigned char *)(", sp(1), ")->sval()->data()")
+                            : cat("LSTRING_DATA((LString *)(", sp(1), ")->ref)");
+            if (cpp) {
+                append(cb, "    *(", sp(0), ") = Value((iint)", data, "[", idx, "]);\n");
+            } else {
+                append(cb, "    { StackPtr _sp = ", sp(0), "; _sp->ival = ", data, "[", idx, "];",
+                       SetType(RTT_INT), " }\n");
+            }
+            return;
+        }
+        auto elems = cpp ? cat("(", sp(1), ")->vval()->Elems()")
+                         : cat("((LVector *)(", sp(1), ")->ref)->elems");
+        GenValueCopy(cb, sp(0), cat(elems, " + ", idx));
+        if (op == IL_VFORELEMREF) GenIncRef(sp(0));
+    }
+
+    // Reading an element out of a vector or a string. Unlike the loop above the index is
+    // arbitrary, so it needs the range check, whose failure path stays a call. The object is
+    // read out into a local first, since the element lands in the slot it came from.
+    void GenPushIdx(ILOP op) {
+        EmitOp(op);
+        auto str = op == IL_SPUSHIDXI;
+        // A string index may read the terminating 0-byte, one past its length.
+        auto bound = str ? "_o->len + 1" : "_o->len";
+        if (cpp) {
+            append(cb, "    {\n    auto _o = (", sp(2), ")->", str ? "sval()" : "vval()",
+                   "; auto _i = (", sp(1), ")->ival();\n");
+            append(cb, "    if ((uint64_t)_i >= (uint64_t)(", bound, ")) vm.IDXErr(_i, ", bound,
+                   ", _o);\n");
+            if (str) {
+                append(cb, "    *(", sp(2), ") = Value((iint)((unsigned char *)"
+                           "_o->data())[_i]);\n");
+            } else {
+                append(cb, "    *(", sp(2), ") = _o->AtS(_i);\n");
+            }
+        } else {
+            append(cb, "    {\n    ", str ? "LString" : "LVector", " *_o = (",
+                   str ? "LString" : "LVector", " *)(", sp(2), ")->ref; long long _i = (", sp(1),
+                   ")->ival;\n");
+            append(cb, "    if ((unsigned long long)_i >= (unsigned long long)(", bound,
+                   ")) IDXErr(vm, _i, ", bound, ", &_o->ro);\n");
+            if (str) {
+                append(cb, "    { StackPtr _sp = ", sp(2), "; _sp->ival = LSTRING_DATA(_o)[_i];",
+                       SetType(RTT_INT), " }\n");
+            } else {
+                GenValueCopy(cb, sp(2), "_o->elems + _i");
+            }
+        }
+        cb += "    }\n";
     }
 
     void GenPop(TypeLT typelt) {
@@ -1968,7 +2059,8 @@ struct CodeGen  {
                 auto elemwidth = ValWidth(etype);
                 if (struct_elem_sub_width < 0) {
                     if (index->exptype->t == V_INT) {
-                        EmitOp0(elemwidth == 1 ? IL_VPUSHIDXI : IL_VPUSHIDXI2V, inw, elemwidth);
+                        if (elemwidth == 1) GenPushIdx(IL_VPUSHIDXI);
+                        else EmitOp0(IL_VPUSHIDXI2V, inw, elemwidth);
                     } else {
                         assert(IsStruct(index->exptype->t));
                         EmitOp1(IL_VPUSHIDXV, ValWidth(index->exptype), inw, elemwidth);
@@ -1999,7 +2091,7 @@ struct CodeGen  {
             }
             case V_STRING:
                 assert(index->exptype->t == V_INT);
-                EmitOp0(IL_SPUSHIDXI);
+                GenPushIdx(IL_SPUSHIDXI);
                 break;
             default:
                 assert(false);
@@ -2595,7 +2687,7 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
             cg.GenForCounter(IL_IFORELEM);
             break;
         case V_STRING:
-            cg.EmitOp0(IL_SFORELEM);
+            cg.GenForElem(IL_SFORELEM, 3);
             break;
         case V_VECTOR: {
             auto outw = ValWidth(typelt.type->sub) + 2;
@@ -2603,13 +2695,13 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
                 if (IsStruct(typelt.type->sub->t)) {
                     cg.EmitOp1(IL_VFORELEMREF2S, cg.BitMaskForRefStuct(typelt.type->sub) , 2, outw);
                 } else {
-                    cg.EmitOp0(IL_VFORELEMREF, 2, outw);
+                    cg.GenForElem(IL_VFORELEMREF, outw);
                 }
             } else {
                 if (IsStruct(typelt.type->sub->t)) {
                     cg.EmitOp0(IL_VFORELEM2S, 2, outw);
                 } else {
-                    cg.EmitOp0(IL_VFORELEM, 2, outw);
+                    cg.GenForElem(IL_VFORELEM, outw);
                 }
             }
             break;

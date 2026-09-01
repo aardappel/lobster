@@ -972,6 +972,31 @@ struct LVector : RefObj {
     }
 };
 
+// The code we generate mirrors LVector and LString so it can read a length or an element without
+// going thru a call, see CodeGen::Prologue. This is the layout that mirror assumes: moving or
+// resizing a field without updating it there fails the build right here. The generated code also
+// hands its own idea of these back to Entry(), which catches the C compiler laying them out
+// differently from the C++ one.
+#if defined(__GNUC__) || defined(__clang__)
+    // offsetof is only conditionally supported on a type with data members in both a base and
+    // itself, which all the compilers we build with do, they just want to be asked.
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Winvalid-offsetof"
+#endif
+static_assert(offsetof(LVector, len) == sizeof(RefObj));
+static_assert(offsetof(LVector, maxl) == sizeof(RefObj) + sizeof(iint));
+static_assert(offsetof(LVector, width) == sizeof(RefObj) + sizeof(iint) * 2);
+static_assert(offsetof(LString, len) == sizeof(RefObj));
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic pop
+#endif
+// The element pointer is the only member left, so pinning the three above and the total size
+// leaves it nowhere else to be.
+constexpr int lvector_elems_offset = (int)(sizeof(RefObj) + sizeof(iint) * 3);
+static_assert(sizeof(LVector) == lvector_elems_offset + sizeof(Value *));
+// The characters of a string sit directly behind its header, which is all the mirror needs.
+static_assert(sizeof(LString) == sizeof(RefObj) + sizeof(iint));
+
 struct StackFrame {
     const int *funstart;
     iint spstart;
