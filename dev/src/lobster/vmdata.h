@@ -1096,7 +1096,6 @@ struct VMBase {
     Line last{ -1, -1 };
     int ret_unwind_to = -1;
     int ret_slots = -1;
-    Value *temp_lval = nullptr;
 };
 
 typedef void (*EngineShutdownFunctionPtr)();

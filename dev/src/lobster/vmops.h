@@ -95,10 +95,10 @@ VM_INLINE Value &GetFieldILVal(VM &vm, StackPtr &sp, iint i) {
     return vec.oval()->AtR(i);
 }
 
-VM_INLINE Value &GetFieldISLVal(VM &vm, iint i, int maxfields) {
+// This is the only time we turn one lval into another!
+VM_INLINE Value &GetFieldISLVal(VM &vm, Value *lv, iint i, int maxfields) {
     RANGECHECKS(vm, i, maxfields);
-    // This is the only time we turn one lval into another!
-    return vm.temp_lval[i];
+    return lv[i];
 }
 
 VM_INLINE Value &GetVecLVal(VM &vm, StackPtr &sp, iint i) {
@@ -821,69 +821,56 @@ VM_INLINE void U_ENUM_RANGE_ERR(VM &vm, StackPtr) {
     vm.Error("Enum out of range of possible values in switch");
 }
 
-VM_INLINE void U_LVAL_VARL(VM &, StackPtr, int) {
+// The code generator emits the address itself, see EmitLVAL_VARL.
+VM_INLINE Value *U_LVAL_VARL(VM &, StackPtr, Value *, int) {
     assert(false);
+    return nullptr;
 }
 
-VM_INLINE void U_LVAL_VARF(VM &vm, StackPtr, int vidx) {
-    vm.temp_lval = &vm.fvars[vidx];
+VM_INLINE Value *U_LVAL_VARF(VM &vm, StackPtr, Value *, int vidx) {
+    return &vm.fvars[vidx];
 }
 
-VM_INLINE void U_LVAL_FLD(VM &vm, StackPtr sp, int i) {
-    vm.temp_lval = &GetFieldLVal(vm, sp, i);
+VM_INLINE Value *U_LVAL_FLD(VM &vm, StackPtr sp, Value *, int i) {
+    return &GetFieldLVal(vm, sp, i);
 }
 
-VM_INLINE void U_LVAL_IDXVI(VM &vm, StackPtr sp, int offset) {
+VM_INLINE Value *U_LVAL_IDXVI(VM &vm, StackPtr sp, Value *, int offset) {
     auto x = Pop(sp).ival();
-    vm.temp_lval = &GetVecLVal(vm, sp, x) + offset;
+    return &GetVecLVal(vm, sp, x) + offset;
 }
 
-VM_INLINE void U_LVAL_IDXVV(VM &vm, StackPtr sp, int offset, int l) {
+VM_INLINE Value *U_LVAL_IDXVV(VM &vm, StackPtr sp, Value *, int offset, int l) {
     auto x = vm.GrabIndex(sp, l);
-    vm.temp_lval = &GetVecLVal(vm, sp, x) + offset;
+    return &GetVecLVal(vm, sp, x) + offset;
 }
 
 // Class accessed by index.
-VM_INLINE void U_LVAL_IDXNI(VM &vm, StackPtr sp, int offset) {
+VM_INLINE Value *U_LVAL_IDXNI(VM &vm, StackPtr sp, Value *, int offset) {
     auto x = Pop(sp).ival();
-    vm.temp_lval = &GetFieldILVal(vm, sp, x) + offset;
+    return &GetFieldILVal(vm, sp, x) + offset;
 }
 
-// Struct accessed by index.
-VM_INLINE void U_LVAL_IDXSI(VM &vm, StackPtr sp, int offset, int maxfields) {
+// Struct accessed by index, the one case that indexes an lvalue it was handed.
+VM_INLINE Value *U_LVAL_IDXSI(VM &vm, StackPtr sp, Value *lv, int offset, int maxfields) {
     auto x = Pop(sp).ival();
-    vm.temp_lval = &GetFieldISLVal(vm, x, maxfields) + offset;
+    return &GetFieldISLVal(vm, lv, x, maxfields) + offset;
 }
 
-VM_INLINE void U_LV_DUP(VM &vm, StackPtr sp) {
-    Push(sp, *vm.temp_lval);
+VM_INLINE void U_LV_DUP(VM &, StackPtr sp, Value *lv) {
+    Push(sp, *lv);
 }
 
-VM_INLINE void U_LV_DUPV(VM &vm, StackPtr sp, int l) {
-    tsnz_memcpy(TopPtr(sp), vm.temp_lval, l);
+VM_INLINE void U_LV_DUPV(VM &, StackPtr sp, Value *lv, int l) {
+    tsnz_memcpy(TopPtr(sp), lv, l);
     PushN(sp, l);
 }
 
-/*
-VM_INLINE void U_LV_DUPREF(VM &vm, StackPtr sp) {
-    vm.temp_lval->LTINCRTNIL();
-    Push(sp, *vm.temp_lval);
-}
+#define LVALCASES(N, B) VM_INLINE void U_LV_##N(VM &vm, StackPtr sp, Value *lv) { \
+    auto &a = *lv; Value b = Pop(sp); B; }
 
-VM_INLINE void U_LV_DUPREFV(VM &vm, StackPtr sp, int l) {
-    tsnz_memcpy(TopPtr(sp), vm.temp_lval, l);
-    for (int i = 0; i < l; i++) {
-        sp++;
-        Top(sp).LTINCRTNIL();
-    }
-}
-*/
-
-#define LVALCASES(N, B) VM_INLINE void U_LV_##N(VM &vm, StackPtr sp) { \
-    auto &a = *vm.temp_lval; Value b = Pop(sp); B; }
-
-#define LVALCASER(N, B) VM_INLINE void U_LV_##N(VM &vm, StackPtr sp, int len) { \
-    auto &fa = *vm.temp_lval; B; }
+#define LVALCASER(N, B) VM_INLINE void U_LV_##N(VM &vm, StackPtr sp, Value *lv, int len) { \
+    auto &fa = *lv; B; }
 
 LVALCASER(IVVADD, _IVOPV(+, 0, &fa))
 LVALCASER(IVVSUB, _IVOPV(-, 0, &fa))
@@ -912,7 +899,7 @@ LVALCASER(FVSMOD, _FVOPS(/, 2, &fa))
 // The code generator emits the ones that are a single operator itself, see
 // GenLvalModifierOpWithStructInfo. What is left on the macro either checks for division by zero
 // or masks a shift count, so it is still called.
-#define LVALDONEINLINE(N) VM_INLINE void U_LV_##N(VM &, StackPtr) { assert(false); }
+#define LVALDONEINLINE(N) VM_INLINE void U_LV_##N(VM &, StackPtr, Value *) { assert(false); }
 
 LVALDONEINLINE(IADD)
 LVALDONEINLINE(ISUB)
@@ -932,20 +919,20 @@ LVALDONEINLINE(FMUL)
 LVALDONEINLINE(FDIV)
 LVALCASES(FMOD  , _FOP(/, 2); a = res;)
 
-VM_INLINE void U_LV_SADD(VM &vm, StackPtr sp) {
-    auto &a = *vm.temp_lval;
+VM_INLINE void U_LV_SADD(VM &vm, StackPtr sp, Value *lv) {
+    auto &a = *lv;
     Value b = Pop(sp);
     _SCAT();
     a.LTDECRTNIL(vm);
     a = res;
 }
 
-VM_INLINE void U_LV_WRITE(VM &, StackPtr) {
+VM_INLINE void U_LV_WRITE(VM &, StackPtr, Value *) {
     assert(false);
 }
 
-VM_INLINE void U_LV_WRITEREF(VM &vm, StackPtr sp) {
-    auto &a = *vm.temp_lval;
+VM_INLINE void U_LV_WRITEREF(VM &vm, StackPtr sp, Value *lv) {
+    auto &a = *lv;
     auto  b = Pop(sp);
     a.LTDECRTNIL(vm);
     TYPE_ASSERT(a.type == b.type || a.type == RTT_NIL || b.type == RTT_NIL);
@@ -953,26 +940,26 @@ VM_INLINE void U_LV_WRITEREF(VM &vm, StackPtr sp) {
 }
 
 // Emitted as a copy per slot of the struct, see GenLvalModifierOpWithStructInfo.
-VM_INLINE void U_LV_WRITEV(VM &, StackPtr, int) { assert(false); }
+VM_INLINE void U_LV_WRITEV(VM &, StackPtr, Value *, int) { assert(false); }
 
-VM_INLINE void U_LV_WRITEREFV(VM &vm, StackPtr sp, int l, int bitmask) {
+VM_INLINE void U_LV_WRITEREFV(VM &vm, StackPtr sp, Value *lv, int l, int bitmask) {
     // TODO: if this bitmask checking is expensive, either make a version of
     // this op for structs with all ref elems, or better yet, special case for
     // structs with a single elem.
-    auto &a = *vm.temp_lval;
+    auto &a = *lv;
     for (int i = 0; i < l; i++) if ((1 << i) & bitmask) (&a)[i].LTDECRTNIL(vm);
     auto b = TopPtr(sp) - l;
     tsnz_memcpy(&a, b, l);
     PopN(sp, l);
 }
 
-VM_INLINE void U_LV_IPP(VM &, StackPtr) { assert(false); }
+VM_INLINE void U_LV_IPP(VM &, StackPtr, Value *) { assert(false); }
 
-VM_INLINE void U_LV_IMM(VM &, StackPtr) { assert(false); }
+VM_INLINE void U_LV_IMM(VM &, StackPtr, Value *) { assert(false); }
 
-VM_INLINE void U_LV_FPP(VM &, StackPtr) { assert(false); }
+VM_INLINE void U_LV_FPP(VM &, StackPtr, Value *) { assert(false); }
 
-VM_INLINE void U_LV_FMM(VM &, StackPtr) { assert(false); }
+VM_INLINE void U_LV_FMM(VM &, StackPtr, Value *) { assert(false); }
 
 VM_INLINE void U_PROFILE(VM &, StackPtr, int) {
     assert(false);

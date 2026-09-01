@@ -61,6 +61,10 @@ struct CodeGen  {
     vector<int> f_args;
     vector<int> f_defs;
     int f_keepvars = -1;
+    // The C expression for the address the lvalue op chain currently being emitted produced,
+    // and whether any of them needed the "lv" local to hold it.
+    string f_lval;
+    bool f_uses_lval = false;
     vector<int> ownedvars;
     vector<int> funstarttables;
     vector<int> var_to_local;
@@ -590,7 +594,6 @@ struct CodeGen  {
                 "    int last_fileidx;\n"
                 "    int ret_unwind_to;\n"
                 "    int ret_slots;\n"
-                "    Value *temp_lval;\n"
                 "} VMBase;\n"
                 "typedef Value *StackPtr;\n"
                 "typedef VMBase *VMRef;\n"
@@ -620,6 +623,14 @@ struct CodeGen  {
             #define F(N, A, USE, DEF) \
                 sd += "void U_" #N "(VMRef, StackPtr"; args(A); sd += ");\n";
                 ILBASENAMES
+            #undef F
+            #define F(N, A, USE, DEF) \
+                sd += "Value *U_" #N "(VMRef, StackPtr, Value *"; args(A); sd += ");\n";
+                ILLVALNAMES
+            #undef F
+            #define F(N, A, USE, DEF) \
+                sd += "void U_" #N "(VMRef, StackPtr, Value *"; args(A); sd += ");\n";
+                ILLVNAMES
             #undef F
             #define F(N, A, USE, DEF) \
                 sd += "void U_" #N "(VMRef, StackPtr"; args(A); sd += ", fun_base_t);\n";
@@ -749,16 +760,36 @@ struct CodeGen  {
         }
     }
 
+    // A local is at a known address, so this needs no code at all, just a note of where the
+    // assignment that follows writes to.
     void EmitLVAL_VARL(int offset, TypeRef type) {
         EmitOp(IL_LVAL_VARL);
-        append(cb, "    ", vmref(), "temp_lval = locals + ", var_to_local[offset], ";");
-        comment(IdName(offset, false, type));
+        f_lval = cat("locals + ", var_to_local[offset]);
+        append(cb, "    // lval: ", IdName(offset, false, type), "\n");
     }
 
     void EmitLVAL_VARF(int offset, TypeRef type) {
         EmitOp(IL_LVAL_VARF);
-        append(cb, "    U_LVAL_VARF(vm, ", sp(), ", ", offset, ");");
+        EmitLvalCall(IL_LVAL_VARF, { offset });
         comment(IdName(offset, false, type));
+    }
+
+    // The lvalue ops hand their address to the ops that follow thru a local rather than thru the
+    // VM, so they read as a chain of assignments. Only LVAL_IDXSI indexes an address it is given,
+    // the rest ignore that argument.
+    void EmitLvalCall(ILOP op, std::initializer_list<int> args) {
+        f_uses_lval = true;
+        append(cb, "    lv = U_", ILNames()[op], "(vm, ", sp(), ", ",
+               op == IL_LVAL_IDXSI ? f_lval : "0");
+        for (auto a : args) append(cb, ", ", a);
+        cb += ");";
+        f_lval = "lv";
+    }
+
+    void EmitLvalOp(ILOP op, std::initializer_list<int> args, int useslots = ILUNKNOWN) {
+        EmitOp(op, useslots);
+        EmitLvalCall(op, args);
+        cb += "\n";
     }
 
     void EmitPUSHSTR(int stringtableindex) {
@@ -1059,6 +1090,7 @@ struct CodeGen  {
         if (!f_regs_max) append(sd, "    (void)regs;\n");
         if (f_keepvars) append(sd, "    Value keepvar[", f_keepvars, "];\n");
         if (numlocals) append(sd, "    Value locals[", numlocals, "];\n");
+        if (f_uses_lval) append(sd, "    Value *lv = 0;\n");
         for (int i = 0; i < (int)f_args.size(); i++) {
             auto varidx = f_args[i];
             if (sids[varidx].used_as_freevar()) {
@@ -1116,6 +1148,8 @@ struct CodeGen  {
         sd += "}\n";
         ownedvars.clear();
         f_keepvars = -1;
+        f_uses_lval = false;
+        f_lval.clear();
         numlocals = 0;
         nlabel = 0;
         has_profile = false;
@@ -1585,7 +1619,7 @@ struct CodeGen  {
 
     void GenLvalModifierOpWithStructInfo(ILOP op, TypeRef type) {
         EmitOp(op, ValWidth(type));
-        auto lval = cat(vmref(), "temp_lval");
+        auto &lval = f_lval;
         string_view fld, cop;
         if (op == IL_LV_WRITE) {
             GenValueCopy(cb, lval, sp(1));
@@ -1614,7 +1648,7 @@ struct CodeGen  {
                        " 1;\n");
             }
         } else {
-            append(cb, "    U_", ILNames()[opc], "(vm, ", sp());
+            append(cb, "    U_", ILNames()[opc], "(vm, ", sp(), ", ", lval);
             if (IsStruct(type->t)) append(cb, ", ", ValWidth(type));
             if (op == IL_LV_WRITEREFV) append(cb, ", ", BitMaskForRefStuct(type));
             cb += ");\n";
@@ -1641,7 +1675,7 @@ struct CodeGen  {
             if (stype->t == V_CLASS) {
                 Gen(dot->child, 1);
                 TakeTemp(take_temp + 1, true);
-                EmitOp1(IL_LVAL_FLD, sfield.slot + offset);
+                EmitLvalOp(IL_LVAL_FLD, { sfield.slot + offset });
             } else {
                 GenAssignLvalRec(dot->child, sfield.slot + offset, take_temp, type);
             }
@@ -1659,24 +1693,25 @@ struct CodeGen  {
             switch (indexing->object->exptype->t) {
                 case V_VECTOR:
                     if (indexing->index->exptype->t == V_INT) {
-                        EmitOp1(IL_LVAL_IDXVI, offset, 2);
+                        EmitLvalOp(IL_LVAL_IDXVI, { offset }, 2);
                     } else {
                         assert(IsStruct(indexing->index->exptype->t));
                         auto width = ValWidth(indexing->index->exptype);
-                        EmitOp2(IL_LVAL_IDXVV, offset, width, width + 1);
+                        EmitLvalOp(IL_LVAL_IDXVV, { offset, width }, width + 1);
                     }
                     break;
                 case V_CLASS:
                     assert(indexing->index->exptype->t == V_INT &&
                            indexing->object->exptype->udt->sametype->Numeric());
-                    EmitOp1(IL_LVAL_IDXNI, offset);
+                    EmitLvalOp(IL_LVAL_IDXNI, { offset });
                     assert(!IsStruct(type->t));
                     break;
                 case V_STRUCT_R:
                 case V_STRUCT_S:
                     assert(indexing->index->exptype->t == V_INT &&
                            indexing->object->exptype->udt->sametype->Numeric());
-                    EmitOp2(IL_LVAL_IDXSI, offset, indexing->object->exptype->udt->numslots);
+                    EmitLvalOp(IL_LVAL_IDXSI, { offset,
+                                                indexing->object->exptype->udt->numslots });
                     assert(!IsStruct(type->t));
                     break;
                 case V_STRING:
@@ -1727,9 +1762,11 @@ struct CodeGen  {
             // borrowed? Be good to assert that somehow.
             if (IsStruct(type->t)) {
                 auto width = ValWidth(type);
-                EmitOp1(IL_LV_DUPV, width, 0, width);
+                EmitOp(IL_LV_DUPV, 0, width);
+                append(cb, "    U_LV_DUPV(vm, ", sp(), ", ", f_lval, ", ", width, ");\n");
             } else {
-                EmitOp0(IL_LV_DUP, 0, 1);
+                EmitOp(IL_LV_DUP, 0, 1);
+                append(cb, "    U_LV_DUP(vm, ", sp(), ", ", f_lval, ");\n");
             }
         }
         if (post) {
@@ -2032,7 +2069,7 @@ void Member::Generate(CodeGen &cg, size_t retval) const {
         cg.Gen(child, 1);
         cg.GenPushVar(1, this_sid->type, this_sid->Idx(), this_sid->used_as_freevar);
         cg.TakeTemp(1, true);
-        cg.EmitOp1(IL_LVAL_FLD, sfield.slot);
+        cg.EmitLvalOp(IL_LVAL_FLD, { sfield.slot });
         cg.GenLvalModifierOpWithStructInfo(cg.AssignBaseOp({ sfield.type, LT_KEEP }), sfield.type);
         cg.EmitLabelDef(lab);
     }

@@ -122,13 +122,22 @@ enum MathOp {
     F(LABEL, 1, 0, 0) \
     F(JUMP_TABLE_END, 0, 0, 0) \
     F(JUMP_TABLE_CASE_START, 1, 0, 0) \
+    F(ENUM_RANGE_ERR, 0, 0, 0)
+
+// These produce the address an assignment writes to, and return it rather than leaving it in the
+// VM, so that the generated code can hold on to it in a local. Only LVAL_IDXSI indexes an address
+// it is handed; the others start a fresh one and ignore that argument.
+#define ILLVALNAMES \
     F(LVAL_VARF, 1, 0, 0) \
     F(LVAL_VARL, 1, 0, 0) \
     F(LVAL_FLD, 1, 1, 0) \
     F(LVAL_IDXVI, 1, 2, 0) \
     F(LVAL_IDXVV, 2, ILUNKNOWN, 0) \
     F(LVAL_IDXNI, 1, 2, 0) \
-    F(LVAL_IDXSI, 2, 1, 0) \
+    F(LVAL_IDXSI, 2, 1, 0)
+
+// These consume an address produced by one of the above.
+#define ILLVNAMES \
     F(LV_DUP, 0, 0, 1) \
     F(LV_DUPV, 1, 0, ILUNKNOWN) \
     F(LV_WRITE, 0, 1, 0)  F(LV_WRITEREF, 0, 1, 0)  \
@@ -149,8 +158,7 @@ enum MathOp {
     F(LV_FVSMOD, 1, 1, 0) \
     F(LV_SADD, 0, 1, 0) \
     F(LV_IPP, 0, 0, 0) F(LV_IMM, 0, 0, 0) \
-    F(LV_FPP, 0, 0, 0) F(LV_FMM, 0, 0, 0) \
-    F(ENUM_RANGE_ERR, 0, 0, 0)
+    F(LV_FPP, 0, 0, 0) F(LV_FMM, 0, 0, 0)
 
 #define ILCALLNAMES \
     F(PUSHFUN, 1, 0, 1)
@@ -175,7 +183,8 @@ enum MathOp {
 
 #define GENOP(OP) ((ILOP)(OP))
 
-#define ILNAMES ILBASENAMES ILCALLNAMES ILVARARGNAMES ILJUMPNAMES1 ILJUMPNAMES2
+#define ILNAMES ILBASENAMES ILLVALNAMES ILLVNAMES ILCALLNAMES ILVARARGNAMES ILJUMPNAMES1 \
+                ILJUMPNAMES2
 
 enum ILOP {
     #define F(N, A, USE, DEF) IL_##N,

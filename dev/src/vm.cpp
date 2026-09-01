@@ -1054,6 +1054,18 @@ void CVM_EndProfile(___tracy_c_zone_context ctx) {
 ILBASENAMES
 #undef F
 #define F(N, A, USE, DEF) \
+    Value *CVM_##N(VM *vm, StackPtr sp, Value *lv VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
+        return U_##N(*vm, sp, lv VM_COMMA_IF(A) VM_OP_PASSN(A));                    \
+    }
+ILLVALNAMES
+#undef F
+#define F(N, A, USE, DEF) \
+    void CVM_##N(VM *vm, StackPtr sp, Value *lv VM_COMMA_IF(A) VM_OP_ARGSN(A)) { \
+        return U_##N(*vm, sp, lv VM_COMMA_IF(A) VM_OP_PASSN(A));                  \
+    }
+ILLVNAMES
+#undef F
+#define F(N, A, USE, DEF) \
     void CVM_##N(VM *vm, StackPtr sp VM_COMMA_IF(A) VM_OP_ARGSN(A), fun_base_t fcont) { \
         return U_##N(*vm, sp, VM_OP_PASSN(A) VM_COMMA_IF(A) fcont);                         \
     }
