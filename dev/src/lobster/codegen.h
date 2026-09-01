@@ -414,7 +414,7 @@ struct CodeGen  {
         f_defs.clear();
         f_keepvars = 0;
         TrackUseDef(0, 0);
-        append(cb, "    U_ABORT(vm, ", sp(), ");\n");
+        append(cb, "    RtAbort(vm);\n");
         DefineFunction(c_codegen, false);
 
         // Generate all used functions.
@@ -445,7 +445,7 @@ struct CodeGen  {
         auto type = parser.root->exptype;
         assert(type->NumValues() == (size_t)return_value);
         TrackUseDef(int(return_value), 0);
-        append(cb, "    U_EXIT(vm, ", sp(), ", ",
+        append(cb, "    RtExit(vm, ", sp(), ", (type_elem_t)",
                return_value ? GetTypeTableOffset(type) : -1, ");\n");
         linenumbernodes.pop_back();
         DefineFunction(c_codegen, false);
@@ -573,6 +573,7 @@ struct CodeGen  {
                 "typedef lobster::StackPtr StackPtr;\n"
                 "typedef lobster::VM &VMRef;\n"
                 "typedef lobster::fun_base_t fun_base_t;\n"
+                "typedef lobster::type_elem_t type_elem_t;\n"
                 "\n"
                 "#if LOBSTER_ENGINE\n"
                 "    // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.\n"
@@ -629,6 +630,8 @@ struct CodeGen  {
                 "typedef Value *StackPtr;\n"
                 "typedef VMBase *VMRef;\n"
                 "typedef void(*fun_base_t)(VMRef, StackPtr);\n"
+                // An offset into the type table, which is what the helpers take one as.
+                "typedef int type_elem_t;\n"
                 "#define Pop(sp) (*--(sp))\n"
                 "#define Push(sp, V) (*(sp)++ = (V))\n"
                 "#define TopM(sp, N) (*((sp) - (N) - 1))\n"
@@ -647,256 +650,177 @@ struct CodeGen  {
                 "\n"
                 ;
 
-            // Every op the generated code can call. These mirror the U_ functions in vmops.h,
-            // which is what the JIT links them to, see vm_ops_jit_table.
+            // Every runtime helper the generated code can call. These mirror the Rt functions in
+            // vmops.h, which is what the JIT links them to, see vm_ops_jit_table.
             sd +=
-                "void U_UNUSED(VMRef, StackPtr);\n"
-                "void U_PUSHINT(VMRef, StackPtr, int);\n"
-                "void U_PUSHINT64(VMRef, StackPtr, int, int);\n"
-                "void U_PUSHFLT(VMRef, StackPtr, int);\n"
-                "void U_PUSHFLT64(VMRef, StackPtr, int, int);\n"
-                "void U_PUSHSTR(VMRef, StackPtr, int);\n"
-                "void U_PUSHNIL(VMRef, StackPtr);\n"
-                "void U_PUSHVARF(VMRef, StackPtr, int);\n"
-                "void U_PUSHVARL(VMRef, StackPtr, int);\n"
-                "void U_PUSHVARVF(VMRef, StackPtr, int, int);\n"
-                "void U_PUSHVARVL(VMRef, StackPtr, int, int);\n"
-                "void U_VPUSHIDXI(VMRef, StackPtr);\n"
-                "void U_VPUSHIDXI2V(VMRef, StackPtr);\n"
-                "void U_VPUSHIDXV(VMRef, StackPtr, int);\n"
-                "void U_VPUSHIDXIS(VMRef, StackPtr, int);\n"
-                "void U_VPUSHIDXIS2V(VMRef, StackPtr, int, int);\n"
-                "void U_VPUSHIDXVS(VMRef, StackPtr, int, int, int);\n"
-                "void U_NPUSHIDXI(VMRef, StackPtr, int);\n"
-                "void U_SPUSHIDXI(VMRef, StackPtr);\n"
-                "void U_PUSHFLD(VMRef, StackPtr, int);\n"
-                "void U_PUSHFLDMREF(VMRef, StackPtr, int);\n"
-                "void U_PUSHFLDV(VMRef, StackPtr, int, int);\n"
-                "void U_PUSHFLD2V(VMRef, StackPtr, int, int);\n"
-                "void U_PUSHFLDV2V(VMRef, StackPtr, int, int, int);\n"
-                "void U_BCALLRETV(VMRef, StackPtr, int, int);\n"
-                "void U_BCALLRET0(VMRef, StackPtr, int, int);\n"
-                "void U_BCALLRET1(VMRef, StackPtr, int, int);\n"
-                "void U_BCALLRET2(VMRef, StackPtr, int, int);\n"
-                "void U_BCALLRET3(VMRef, StackPtr, int, int);\n"
-                "void U_BCALLRET4(VMRef, StackPtr, int, int);\n"
-                "void U_BCALLRET5(VMRef, StackPtr, int, int);\n"
-                "void U_BCALLRET6(VMRef, StackPtr, int, int);\n"
-                "void U_BCALLRET7(VMRef, StackPtr, int, int);\n"
-                "void U_ASSERT(VMRef, StackPtr, int, int, int);\n"
-                "void U_ASSERTR(VMRef, StackPtr, int, int, int);\n"
-                "void U_STATEMENT(VMRef, StackPtr, int, int);\n"
-                "void U_PROFILE(VMRef, StackPtr, int);\n"
-                "void U_NEWVEC(VMRef, StackPtr, int, int);\n"
-                "void U_NEWOBJECT(VMRef, StackPtr, int);\n"
-                "void U_POP(VMRef, StackPtr);\n"
-                "void U_POPREF(VMRef, StackPtr);\n"
-                "void U_POPV(VMRef, StackPtr, int);\n"
-                "void U_DUP(VMRef, StackPtr);\n"
-                "void U_EXIT(VMRef, StackPtr, int);\n"
-                "void U_ABORT(VMRef, StackPtr);\n"
-                "void U_IADD(VMRef, StackPtr);\n"
-                "void U_ISUB(VMRef, StackPtr);\n"
-                "void U_IMUL(VMRef, StackPtr);\n"
-                "void U_IDIV(VMRef, StackPtr);\n"
-                "void U_IMOD(VMRef, StackPtr);\n"
-                "void U_ILT(VMRef, StackPtr);\n"
-                "void U_IGT(VMRef, StackPtr);\n"
-                "void U_ILE(VMRef, StackPtr);\n"
-                "void U_IGE(VMRef, StackPtr);\n"
-                "void U_IEQ(VMRef, StackPtr);\n"
-                "void U_INE(VMRef, StackPtr);\n"
-                "void U_FADD(VMRef, StackPtr);\n"
-                "void U_FSUB(VMRef, StackPtr);\n"
-                "void U_FMUL(VMRef, StackPtr);\n"
-                "void U_FDIV(VMRef, StackPtr);\n"
-                "void U_FMOD(VMRef, StackPtr);\n"
-                "void U_FLT(VMRef, StackPtr);\n"
-                "void U_FGT(VMRef, StackPtr);\n"
-                "void U_FLE(VMRef, StackPtr);\n"
-                "void U_FGE(VMRef, StackPtr);\n"
-                "void U_FEQ(VMRef, StackPtr);\n"
-                "void U_FNE(VMRef, StackPtr);\n"
-                "void U_SADD(VMRef, StackPtr);\n"
-                "void U_SSUB(VMRef, StackPtr);\n"
-                "void U_SMUL(VMRef, StackPtr);\n"
-                "void U_SDIV(VMRef, StackPtr);\n"
-                "void U_SMOD(VMRef, StackPtr);\n"
-                "void U_SLT(VMRef, StackPtr);\n"
-                "void U_SGT(VMRef, StackPtr);\n"
-                "void U_SLE(VMRef, StackPtr);\n"
-                "void U_SGE(VMRef, StackPtr);\n"
-                "void U_SEQ(VMRef, StackPtr);\n"
-                "void U_SNE(VMRef, StackPtr);\n"
-                "void U_SADDN(VMRef, StackPtr, int);\n"
-                "void U_IVVADD(VMRef, StackPtr, int);\n"
-                "void U_IVVSUB(VMRef, StackPtr, int);\n"
-                "void U_IVVMUL(VMRef, StackPtr, int);\n"
-                "void U_IVVDIV(VMRef, StackPtr, int);\n"
-                "void U_IVVMOD(VMRef, StackPtr, int);\n"
-                "void U_IVVLT(VMRef, StackPtr, int);\n"
-                "void U_IVVGT(VMRef, StackPtr, int);\n"
-                "void U_IVVLE(VMRef, StackPtr, int);\n"
-                "void U_IVVGE(VMRef, StackPtr, int);\n"
-                "void U_FVVADD(VMRef, StackPtr, int);\n"
-                "void U_FVVSUB(VMRef, StackPtr, int);\n"
-                "void U_FVVMUL(VMRef, StackPtr, int);\n"
-                "void U_FVVDIV(VMRef, StackPtr, int);\n"
-                "void U_FVVMOD(VMRef, StackPtr, int);\n"
-                "void U_FVVLT(VMRef, StackPtr, int);\n"
-                "void U_FVVGT(VMRef, StackPtr, int);\n"
-                "void U_FVVLE(VMRef, StackPtr, int);\n"
-                "void U_FVVGE(VMRef, StackPtr, int);\n"
-                "void U_IVSADD(VMRef, StackPtr, int);\n"
-                "void U_IVSSUB(VMRef, StackPtr, int);\n"
-                "void U_IVSMUL(VMRef, StackPtr, int);\n"
-                "void U_IVSDIV(VMRef, StackPtr, int);\n"
-                "void U_IVSMOD(VMRef, StackPtr, int);\n"
-                "void U_IVSLT(VMRef, StackPtr, int);\n"
-                "void U_IVSGT(VMRef, StackPtr, int);\n"
-                "void U_IVSLE(VMRef, StackPtr, int);\n"
-                "void U_IVSGE(VMRef, StackPtr, int);\n"
-                "void U_FVSADD(VMRef, StackPtr, int);\n"
-                "void U_FVSSUB(VMRef, StackPtr, int);\n"
-                "void U_FVSMUL(VMRef, StackPtr, int);\n"
-                "void U_FVSDIV(VMRef, StackPtr, int);\n"
-                "void U_FVSMOD(VMRef, StackPtr, int);\n"
-                "void U_FVSLT(VMRef, StackPtr, int);\n"
-                "void U_FVSGT(VMRef, StackPtr, int);\n"
-                "void U_FVSLE(VMRef, StackPtr, int);\n"
-                "void U_FVSGE(VMRef, StackPtr, int);\n"
-                "void U_SIVADD(VMRef, StackPtr, int);\n"
-                "void U_SIVSUB(VMRef, StackPtr, int);\n"
-                "void U_SIVMUL(VMRef, StackPtr, int);\n"
-                "void U_SIVDIV(VMRef, StackPtr, int);\n"
-                "void U_SIVMOD(VMRef, StackPtr, int);\n"
-                "void U_SIVLT(VMRef, StackPtr, int);\n"
-                "void U_SIVGT(VMRef, StackPtr, int);\n"
-                "void U_SIVLE(VMRef, StackPtr, int);\n"
-                "void U_SIVGE(VMRef, StackPtr, int);\n"
-                "void U_SFVADD(VMRef, StackPtr, int);\n"
-                "void U_SFVSUB(VMRef, StackPtr, int);\n"
-                "void U_SFVMUL(VMRef, StackPtr, int);\n"
-                "void U_SFVDIV(VMRef, StackPtr, int);\n"
-                "void U_SFVMOD(VMRef, StackPtr, int);\n"
-                "void U_SFVLT(VMRef, StackPtr, int);\n"
-                "void U_SFVGT(VMRef, StackPtr, int);\n"
-                "void U_SFVLE(VMRef, StackPtr, int);\n"
-                "void U_SFVGE(VMRef, StackPtr, int);\n"
-                "void U_AEQ(VMRef, StackPtr);\n"
-                "void U_ANE(VMRef, StackPtr);\n"
-                "void U_SNEQ(VMRef, StackPtr);\n"
-                "void U_SNNE(VMRef, StackPtr);\n"
-                "void U_STEQ(VMRef, StackPtr, int);\n"
-                "void U_STNE(VMRef, StackPtr, int);\n"
-                "void U_LEQ(VMRef, StackPtr);\n"
-                "void U_LNE(VMRef, StackPtr);\n"
-                "void U_IUMINUS(VMRef, StackPtr);\n"
-                "void U_FUMINUS(VMRef, StackPtr);\n"
-                "void U_IVUMINUS(VMRef, StackPtr, int);\n"
-                "void U_FVUMINUS(VMRef, StackPtr, int);\n"
-                "void U_LOGNOT(VMRef, StackPtr);\n"
-                "void U_BINAND(VMRef, StackPtr);\n"
-                "void U_BINOR(VMRef, StackPtr);\n"
-                "void U_XOR(VMRef, StackPtr);\n"
-                "void U_ASL(VMRef, StackPtr);\n"
-                "void U_ASR(VMRef, StackPtr);\n"
-                "void U_NEG(VMRef, StackPtr);\n"
-                "void U_I2F(VMRef, StackPtr);\n"
-                "void U_A2S(VMRef, StackPtr, int);\n"
-                "void U_E2B(VMRef, StackPtr);\n"
-                "void U_E2BREF(VMRef, StackPtr);\n"
-                "void U_ST2S(VMRef, StackPtr, int);\n"
-                "void U_RETURNLOCAL(VMRef, StackPtr, int);\n"
-                "void U_RETURNNONLOCAL(VMRef, StackPtr, int, int);\n"
-                "void U_RETURNANY(VMRef, StackPtr, int);\n"
-                "void U_ISTYPE(VMRef, StackPtr, int, int);\n"
-                "void U_ISSUBTYPE(VMRef, StackPtr, int, int, int);\n"
-                "void U_FORLOOPI(VMRef, StackPtr);\n"
-                "void U_IFORELEM(VMRef, StackPtr);\n"
-                "void U_SFORELEM(VMRef, StackPtr);\n"
-                "void U_VFORELEM(VMRef, StackPtr);\n"
-                "void U_VFORELEMREF(VMRef, StackPtr);\n"
-                "void U_VFORELEM2S(VMRef, StackPtr);\n"
-                "void U_VFORELEMREF2S(VMRef, StackPtr, int);\n"
-                "void U_INCREF(VMRef, StackPtr, int);\n"
-                "void U_KEEPREF(VMRef, StackPtr, int, int);\n"
-                "void U_KEEPREFLOOP(VMRef, StackPtr, int, int);\n"
-                "void U_GOTOFUNEXIT(VMRef, StackPtr);\n"
-                "void U_CALL(VMRef, StackPtr, int);\n"
-                "void U_CALLV(VMRef, StackPtr);\n"
-                "void U_DDCALL(VMRef, StackPtr, int, int);\n"
-                "void U_LABEL(VMRef, StackPtr, int);\n"
-                "void U_JUMP_TABLE_END(VMRef, StackPtr);\n"
-                "void U_JUMP_TABLE_CASE_START(VMRef, StackPtr, int);\n"
-                "void U_ENUM_RANGE_ERR(VMRef, StackPtr);\n"
-                "Value *U_LVAL_VARF(VMRef, StackPtr, Value *, int);\n"
-                "Value *U_LVAL_VARL(VMRef, StackPtr, Value *, int);\n"
-                "Value *U_LVAL_FLD(VMRef, StackPtr, Value *, int);\n"
-                "Value *U_LVAL_IDXVI(VMRef, StackPtr, Value *, int);\n"
-                "Value *U_LVAL_IDXVV(VMRef, StackPtr, Value *, int, int);\n"
-                "Value *U_LVAL_IDXNI(VMRef, StackPtr, Value *, int);\n"
-                "Value *U_LVAL_IDXSI(VMRef, StackPtr, Value *, int, int);\n"
-                "void U_LV_DUP(VMRef, StackPtr, Value *);\n"
-                "void U_LV_DUPV(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_WRITE(VMRef, StackPtr, Value *);\n"
-                "void U_LV_WRITEREF(VMRef, StackPtr, Value *);\n"
-                "void U_LV_WRITEV(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_WRITEREFV(VMRef, StackPtr, Value *, int, int);\n"
-                "void U_LV_IADD(VMRef, StackPtr, Value *);\n"
-                "void U_LV_ISUB(VMRef, StackPtr, Value *);\n"
-                "void U_LV_IMUL(VMRef, StackPtr, Value *);\n"
-                "void U_LV_IDIV(VMRef, StackPtr, Value *);\n"
-                "void U_LV_IMOD(VMRef, StackPtr, Value *);\n"
-                "void U_LV_BINAND(VMRef, StackPtr, Value *);\n"
-                "void U_LV_BINOR(VMRef, StackPtr, Value *);\n"
-                "void U_LV_XOR(VMRef, StackPtr, Value *);\n"
-                "void U_LV_ASL(VMRef, StackPtr, Value *);\n"
-                "void U_LV_ASR(VMRef, StackPtr, Value *);\n"
-                "void U_LV_FADD(VMRef, StackPtr, Value *);\n"
-                "void U_LV_FSUB(VMRef, StackPtr, Value *);\n"
-                "void U_LV_FMUL(VMRef, StackPtr, Value *);\n"
-                "void U_LV_FDIV(VMRef, StackPtr, Value *);\n"
-                "void U_LV_FMOD(VMRef, StackPtr, Value *);\n"
-                "void U_LV_IVVADD(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_IVVSUB(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_IVVMUL(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_IVVDIV(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_IVVMOD(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_FVVADD(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_FVVSUB(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_FVVMUL(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_FVVDIV(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_FVVMOD(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_IVSADD(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_IVSSUB(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_IVSMUL(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_IVSDIV(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_IVSMOD(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_FVSADD(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_FVSSUB(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_FVSMUL(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_FVSDIV(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_FVSMOD(VMRef, StackPtr, Value *, int);\n"
-                "void U_LV_SADD(VMRef, StackPtr, Value *);\n"
-                "void U_LV_IPP(VMRef, StackPtr, Value *);\n"
-                "void U_LV_IMM(VMRef, StackPtr, Value *);\n"
-                "void U_LV_FPP(VMRef, StackPtr, Value *);\n"
-                "void U_LV_FMM(VMRef, StackPtr, Value *);\n"
-                "void U_PUSHFUN(VMRef, StackPtr, int, fun_base_t);\n"
-                "void U_JUMP_TABLE(VMRef, StackPtr, const int *);\n"
-                "void U_JUMP_TABLE_DISPATCH(VMRef, StackPtr, const int *);\n"
-                "int U_JUMP(VMRef, StackPtr);\n"
-                "int U_JUMPFAIL(VMRef, StackPtr);\n"
-                "int U_JUMPFAILR(VMRef, StackPtr);\n"
-                "int U_JUMPNOFAIL(VMRef, StackPtr);\n"
-                "int U_JUMPNOFAILR(VMRef, StackPtr);\n"
-                "int U_IFOR(VMRef, StackPtr);\n"
-                "int U_SFOR(VMRef, StackPtr);\n"
-                "int U_VFOR(VMRef, StackPtr);\n"
-                "int U_JUMPIFUNWOUND(VMRef, StackPtr, int);\n"
-                "int U_JUMPIFSTATICLF(VMRef, StackPtr, int);\n"
-                "int U_JUMPIFMEMBERLF(VMRef, StackPtr, int);\n"
+                "void RtPushFloat(StackPtr, long long);\n"
+                "void RtPushStr(VMRef, StackPtr, int);\n"
+                "void RtIndexVecSub(VMRef, StackPtr, int);\n"
+                "void RtIndexVecSubV(VMRef, StackPtr, int, int);\n"
+                "void RtIndexVecNestSubV(VMRef, StackPtr, int, int, int);\n"
+                "void RtIndexStruct(VMRef, StackPtr, int);\n"
+                "void RtPushFieldMRef(VMRef, StackPtr, int);\n"
+                "void RtPushFieldV(StackPtr, int, int);\n"
+                "void RtPushFieldV2V(StackPtr, int, int, int);\n"
+                "void RtNativeCallV(VMRef, StackPtr, int, int);\n"
+                "void RtNativeCall0(VMRef, StackPtr, int, int);\n"
+                "void RtNativeCall1(VMRef, StackPtr, int, int);\n"
+                "void RtNativeCall2(VMRef, StackPtr, int, int);\n"
+                "void RtNativeCall3(VMRef, StackPtr, int, int);\n"
+                "void RtNativeCall4(VMRef, StackPtr, int, int);\n"
+                "void RtNativeCall5(VMRef, StackPtr, int, int);\n"
+                "void RtNativeCall6(VMRef, StackPtr, int, int);\n"
+                "void RtNativeCall7(VMRef, StackPtr, int, int);\n"
+                "void RtNewVec(VMRef, StackPtr, type_elem_t, int);\n"
+                "void RtNewObject(VMRef, StackPtr, type_elem_t);\n"
+                "void RtPopV(StackPtr, int);\n"
+                "void RtExit(VMRef, StackPtr, type_elem_t);\n"
+                "void RtAbort(VMRef);\n"
+                "void RtIAdd(VMRef, StackPtr);\n"
+                "void RtISub(VMRef, StackPtr);\n"
+                "void RtIMul(VMRef, StackPtr);\n"
+                "void RtIDiv(VMRef, StackPtr);\n"
+                "void RtIMod(VMRef, StackPtr);\n"
+                "void RtILt(VMRef, StackPtr);\n"
+                "void RtIGt(VMRef, StackPtr);\n"
+                "void RtILe(VMRef, StackPtr);\n"
+                "void RtIGe(VMRef, StackPtr);\n"
+                "void RtIEq(VMRef, StackPtr);\n"
+                "void RtINe(VMRef, StackPtr);\n"
+                "void RtFAdd(VMRef, StackPtr);\n"
+                "void RtFSub(VMRef, StackPtr);\n"
+                "void RtFMul(VMRef, StackPtr);\n"
+                "void RtFDiv(VMRef, StackPtr);\n"
+                "void RtFMod(VMRef, StackPtr);\n"
+                "void RtFLt(VMRef, StackPtr);\n"
+                "void RtFGt(VMRef, StackPtr);\n"
+                "void RtFLe(VMRef, StackPtr);\n"
+                "void RtFGe(VMRef, StackPtr);\n"
+                "void RtFEq(VMRef, StackPtr);\n"
+                "void RtFNe(VMRef, StackPtr);\n"
+                "void RtSAdd(VMRef, StackPtr);\n"
+                "void RtSSub(VMRef, StackPtr);\n"
+                "void RtSMul(VMRef, StackPtr);\n"
+                "void RtSDiv(VMRef, StackPtr);\n"
+                "void RtSMod(VMRef, StackPtr);\n"
+                "void RtSLt(VMRef, StackPtr);\n"
+                "void RtSGt(VMRef, StackPtr);\n"
+                "void RtSLe(VMRef, StackPtr);\n"
+                "void RtSGe(VMRef, StackPtr);\n"
+                "void RtSEq(VMRef, StackPtr);\n"
+                "void RtSNe(VMRef, StackPtr);\n"
+                "void RtStrConcatN(VMRef, StackPtr, int);\n"
+                "void RtIvvAdd(VMRef, StackPtr, int);\n"
+                "void RtIvvSub(VMRef, StackPtr, int);\n"
+                "void RtIvvMul(VMRef, StackPtr, int);\n"
+                "void RtIvvDiv(VMRef, StackPtr, int);\n"
+                "void RtIvvMod(VMRef, StackPtr, int);\n"
+                "void RtIvvLt(VMRef, StackPtr, int);\n"
+                "void RtIvvGt(VMRef, StackPtr, int);\n"
+                "void RtIvvLe(VMRef, StackPtr, int);\n"
+                "void RtIvvGe(VMRef, StackPtr, int);\n"
+                "void RtFvvAdd(VMRef, StackPtr, int);\n"
+                "void RtFvvSub(VMRef, StackPtr, int);\n"
+                "void RtFvvMul(VMRef, StackPtr, int);\n"
+                "void RtFvvDiv(VMRef, StackPtr, int);\n"
+                "void RtFvvMod(VMRef, StackPtr, int);\n"
+                "void RtFvvLt(VMRef, StackPtr, int);\n"
+                "void RtFvvGt(VMRef, StackPtr, int);\n"
+                "void RtFvvLe(VMRef, StackPtr, int);\n"
+                "void RtFvvGe(VMRef, StackPtr, int);\n"
+                "void RtIvsAdd(VMRef, StackPtr, int);\n"
+                "void RtIvsSub(VMRef, StackPtr, int);\n"
+                "void RtIvsMul(VMRef, StackPtr, int);\n"
+                "void RtIvsDiv(VMRef, StackPtr, int);\n"
+                "void RtIvsMod(VMRef, StackPtr, int);\n"
+                "void RtIvsLt(VMRef, StackPtr, int);\n"
+                "void RtIvsGt(VMRef, StackPtr, int);\n"
+                "void RtIvsLe(VMRef, StackPtr, int);\n"
+                "void RtIvsGe(VMRef, StackPtr, int);\n"
+                "void RtFvsAdd(VMRef, StackPtr, int);\n"
+                "void RtFvsSub(VMRef, StackPtr, int);\n"
+                "void RtFvsMul(VMRef, StackPtr, int);\n"
+                "void RtFvsDiv(VMRef, StackPtr, int);\n"
+                "void RtFvsMod(VMRef, StackPtr, int);\n"
+                "void RtFvsLt(VMRef, StackPtr, int);\n"
+                "void RtFvsGt(VMRef, StackPtr, int);\n"
+                "void RtFvsLe(VMRef, StackPtr, int);\n"
+                "void RtFvsGe(VMRef, StackPtr, int);\n"
+                "void RtSivAdd(VMRef, StackPtr, int);\n"
+                "void RtSivSub(VMRef, StackPtr, int);\n"
+                "void RtSivMul(VMRef, StackPtr, int);\n"
+                "void RtSivDiv(VMRef, StackPtr, int);\n"
+                "void RtSivMod(VMRef, StackPtr, int);\n"
+                "void RtSivLt(VMRef, StackPtr, int);\n"
+                "void RtSivGt(VMRef, StackPtr, int);\n"
+                "void RtSivLe(VMRef, StackPtr, int);\n"
+                "void RtSivGe(VMRef, StackPtr, int);\n"
+                "void RtSfvAdd(VMRef, StackPtr, int);\n"
+                "void RtSfvSub(VMRef, StackPtr, int);\n"
+                "void RtSfvMul(VMRef, StackPtr, int);\n"
+                "void RtSfvDiv(VMRef, StackPtr, int);\n"
+                "void RtSfvMod(VMRef, StackPtr, int);\n"
+                "void RtSfvLt(VMRef, StackPtr, int);\n"
+                "void RtSfvGt(VMRef, StackPtr, int);\n"
+                "void RtSfvLe(VMRef, StackPtr, int);\n"
+                "void RtSfvGe(VMRef, StackPtr, int);\n"
+                "void RtAEq(StackPtr);\n"
+                "void RtANe(StackPtr);\n"
+                "void RtSnEq(StackPtr);\n"
+                "void RtSnNe(StackPtr);\n"
+                "void RtStEq(StackPtr, int);\n"
+                "void RtStNe(StackPtr, int);\n"
+                "void RtLEq(StackPtr);\n"
+                "void RtLNe(StackPtr);\n"
+                "void RtIUMinus(StackPtr);\n"
+                "void RtFUMinus(StackPtr);\n"
+                "void RtIvUMinus(VMRef, StackPtr, int);\n"
+                "void RtFvUMinus(VMRef, StackPtr, int);\n"
+                "void RtBinAnd(StackPtr);\n"
+                "void RtBinOr(StackPtr);\n"
+                "void RtXor(StackPtr);\n"
+                "void RtAsl(StackPtr);\n"
+                "void RtAsr(StackPtr);\n"
+                "void RtNeg(StackPtr);\n"
+                "void RtToString(VMRef, StackPtr, type_elem_t);\n"
+                "void RtStructToString(VMRef, StackPtr, type_elem_t);\n"
+                "void RtIsType(StackPtr, type_elem_t, int);\n"
+                "void RtIsSubType(VMRef, StackPtr, int, int, int);\n"
+                "void RtCallValue(VMRef, StackPtr);\n"
+                "void RtDynDispatch(VMRef, StackPtr, int, int);\n"
+                "void RtEnumRangeErr(VMRef);\n"
+                "Value *RtLvalIndexVecV(VMRef, StackPtr, int, int);\n"
+                "Value *RtLvalIndexClass(VMRef, StackPtr, int);\n"
+                "Value *RtLvalIndexStruct(VMRef, StackPtr, Value *, int, int);\n"
+                "void RtLvDupV(StackPtr, Value *, int);\n"
+                "void RtLvIDiv(VMRef, StackPtr, Value *);\n"
+                "void RtLvIMod(VMRef, StackPtr, Value *);\n"
+                "void RtLvAsl(VMRef, StackPtr, Value *);\n"
+                "void RtLvAsr(VMRef, StackPtr, Value *);\n"
+                "void RtLvFMod(VMRef, StackPtr, Value *);\n"
+                "void RtLvIvvAdd(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvIvvSub(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvIvvMul(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvIvvDiv(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvIvvMod(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvFvvAdd(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvFvvSub(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvFvvMul(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvFvvDiv(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvFvvMod(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvIvsAdd(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvIvsSub(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvIvsMul(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvIvsDiv(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvIvsMod(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvFvsAdd(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvFvsSub(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvFvsMul(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvFvsDiv(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvFvsMod(VMRef, StackPtr, Value *, int);\n"
+                "void RtLvSAdd(VMRef, StackPtr, Value *);\n"
+                "int RtStaticSetThisFrame(VMRef, int);\n"
+                "int RtMemberSetThisFrame(VMRef, StackPtr, int);\n"
                 ;
 
             sd += "extern fun_base_t GetNextCallTarget(VMRef);\n"
@@ -1068,7 +992,8 @@ struct CodeGen  {
                     int useslots) {
         TrackUseDef(useslots, 0);
         f_uses_lval = true;
-        append(cb, "    lv = U_", opname, "(vm, ", sp(), ", ", chained ? f_lval : "0");
+        append(cb, "    lv = ", opname, "(vm, ", sp());
+        if (chained) append(cb, ", ", f_lval);
         for (auto a : args) append(cb, ", ", a);
         cb += ");\n";
         f_lval = "lv";
@@ -1078,7 +1003,7 @@ struct CodeGen  {
         TrackUseDef(0, 1);
         if (STRING_CONSTANTS_KEEP) {
             // Still has a reference to take, so leave it to the op.
-            append(cb, "    U_PUSHSTR(vm, ", sp(), ", ", stringtableindex, ");");
+            append(cb, "    RtPushStr(vm, ", sp(), ", ", stringtableindex, ");");
         } else {
             // Borrowed, so all that is left is the copy out of the VM's table of them.
             GenValueCopy(cb, sp(0), cpp ? cat("vm.constant_strings_ptr + ", stringtableindex)
@@ -1133,8 +1058,10 @@ struct CodeGen  {
     int EmitJumpIfSetThisFrame(bool member, int varidx) {
         TrackUseDef(member ? 1 : 0, 0);
         auto lab = Label();
-        append(cb, "    if (!U_", member ? "JUMPIFMEMBERLF" : "JUMPIFSTATICLF", "(vm, ", sp(),
-               ", ", varidx, ")) goto block", lab, ";\n");
+        append(cb, "    if (!");
+        if (member) append(cb, "RtMemberSetThisFrame(vm, ", sp(), ", ");
+        else append(cb, "RtStaticSetThisFrame(vm, ");
+        append(cb, varidx, ")) goto block", lab, ";\n");
         return lab;
     }
 
@@ -1145,7 +1072,7 @@ struct CodeGen  {
         if (nf->IsGLFrame()) {
             append(cb, "    GLFrame(", sp(), ", vm);\n");
         } else {
-            append(cb, "    U_BCALLRET");
+            append(cb, "    RtNativeCall");
             if (nargs < 0) cb += "V"; else append(cb, nargs);
             append(cb, "(vm, ", sp(), ", ", nf->idx, ", ", has_ret, ");");
             comment(nf->name);
@@ -1237,14 +1164,14 @@ struct CodeGen  {
 
     void EmitCALLV(int uses, int defs) {
         TrackUseDef(uses, defs);
-        append(cb, "    U_CALLV(vm, ", sp(), "); ");
+        append(cb, "    RtCallValue(vm, ", sp(), "); ");
         if (cpp) append(cb, "vm.next_call_target(vm, ", sp(1), ");\n");
         else append(cb, "GetNextCallTarget(vm)(vm, ", sp(1), ");\n");
     }
 
     void EmitDDCALL(int vtable_idx, int nargs, int uses, int defs) {
         TrackUseDef(uses, defs);
-        append(cb, "    U_DDCALL(vm, ", sp(), ", ", vtable_idx, ", ", nargs, "); ");
+        append(cb, "    RtDynDispatch(vm, ", sp(), ", ", vtable_idx, ", ", nargs, "); ");
         if (cpp) append(cb, "vm.next_call_target(vm, ", sp(), ");\n");
         else append(cb, "GetNextCallTarget(vm)(vm, ", sp(), ");\n");
     }
@@ -1261,27 +1188,27 @@ struct CodeGen  {
 
     void EmitISTYPE(int type_idx, int nilres, TypeRef type) {
         TrackUseDef(1, 1);
-        append(cb, "    U_ISTYPE(vm, ", sp(), ", ", type_idx, ", ", nilres, ");");
+        append(cb, "    RtIsType(", sp(), ", (type_elem_t)", type_idx, ", ", nilres, ");");
         if (IsUDT(type->t)) comment(type->udt->name);
         else cb += "\n";
     }
 
     void EmitISSUBTYPE(int start, int end, int nilres, TypeRef type) {
         TrackUseDef(1, 1);
-        append(cb, "    U_ISSUBTYPE(vm, ", sp(), ", ", start, ", ", end, ", ", nilres, ");");
+        append(cb, "    RtIsSubType(vm, ", sp(), ", ", start, ", ", end, ", ", nilres, ");");
         comment(type->udt->name);
     }
 
     void EmitNEWOBJECT(int type_idx, int uses, TypeRef type) {
         TrackUseDef(uses, 1);
-        append(cb, "    U_NEWOBJECT(vm, ", sp(), ", ", type_idx, ");");
+        append(cb, "    RtNewObject(vm, ", sp(), ", (type_elem_t)", type_idx, ");");
         if (IsUDT(type->t)) comment(type->udt->name);
         else cb += "\n";
     }
 
     void EmitST2S(int type_idx, int uses, TypeRef type) {
         TrackUseDef(uses, 1);
-        append(cb, "    U_ST2S(vm, ", sp(), ", ", type_idx, ");");
+        append(cb, "    RtStructToString(vm, ", sp(), ", (type_elem_t)", type_idx, ");");
         if (IsUDT(type->t)) comment(type->udt->name);
         else cb += "\n";
     }
@@ -1410,8 +1337,7 @@ struct CodeGen  {
         to_string_hex(hex, (uint64_t)bits);
         if (cpp && isfloat) {
             // Nothing is gained by inlining here, the op is already inline in C++.
-            append(cb, "    U_PUSHFLT64(vm, ", sp(), ", ", (int)bits, ", ", (int)(bits >> 32),
-                   ");");
+            append(cb, "    RtPushFloat(", sp(), ", ", hex, "ULL);");
         } else if (cpp) {
             append(cb, "    *(", sp(), ") = Value((iint)", hex, "ULL);");
         } else {
@@ -1822,7 +1748,7 @@ struct CodeGen  {
         TrackUseDef(2, 1);
         string_view res, arg, cop;
         if (!SimpleBinOpC(isfloat, op, res, arg, cop)) {
-            append(cb, "    U_", opname, "(vm, ", sp(), ");\n");
+            append(cb, "    ", opname, "(vm, ", sp(), ");\n");
             return;
         }
         GenBinOpSlot(res, arg, cop, sp(2), sp(2), sp(1));
@@ -1886,8 +1812,8 @@ struct CodeGen  {
         cb += "    }\n";
     }
 
-    // U_POP only decrements its own copy of the stack pointer, and where the stack top is is
-    // something we track statically, so all that is left of it is the bookkeeping.
+    // Where the stack top is is something we track statically, so popping a slot needs no code
+    // at all, just the bookkeeping.
     void GenPopSlot() { TrackUseDef(1, 0); }
 
     // The C expression for how many times a loop over this value runs, which for a vector or a
@@ -2046,7 +1972,7 @@ struct CodeGen  {
             } else {
                 auto numslots = typelt.type->udt->numslots;
                 TrackUseDef(numslots, 0);
-                append(cb, "    U_POPV(vm, ", sp(), ", ", numslots, ");\n");
+                append(cb, "    RtPopV(", sp(), ", ", numslots, ");\n");
             }
         } else {
             if (ShouldDec(typelt)) EmitPOPREF(); else GenPopSlot();
@@ -2205,19 +2131,19 @@ struct CodeGen  {
             // What is left is one op per operator per type, too many to name individually
             // here, and the op we get is computed from the operator anyway.
             static const char *lvnames[] = {
-                "LV_DUP", "LV_DUPV",
-                "LV_WRITE", "LV_WRITEREF", "LV_WRITEV", "LV_WRITEREFV",
-                "LV_IADD", "LV_ISUB", "LV_IMUL", "LV_IDIV", "LV_IMOD",
-                "LV_BINAND", "LV_BINOR", "LV_XOR", "LV_ASL", "LV_ASR",
-                "LV_FADD", "LV_FSUB", "LV_FMUL", "LV_FDIV", "LV_FMOD",
-                "LV_IVVADD", "LV_IVVSUB", "LV_IVVMUL", "LV_IVVDIV", "LV_IVVMOD",
-                "LV_FVVADD", "LV_FVVSUB", "LV_FVVMUL", "LV_FVVDIV", "LV_FVVMOD",
-                "LV_IVSADD", "LV_IVSSUB", "LV_IVSMUL", "LV_IVSDIV", "LV_IVSMOD",
-                "LV_FVSADD", "LV_FVSSUB", "LV_FVSMUL", "LV_FVSDIV", "LV_FVSMOD",
-                "LV_SADD",
-                "LV_IPP", "LV_IMM", "LV_FPP", "LV_FMM",
+                "RtLvDup", "RtLvDupV",
+                "RtLvWrite", "RtLvWriteRef", "RtLvWriteV", "RtLvWriteRefV",
+                "RtLvIAdd", "RtLvISub", "RtLvIMul", "RtLvIDiv", "RtLvIMod",
+                "RtLvBinAnd", "RtLvBinOr", "RtLvXor", "RtLvAsl", "RtLvAsr",
+                "RtLvFAdd", "RtLvFSub", "RtLvFMul", "RtLvFDiv", "RtLvFMod",
+                "RtLvIvvAdd", "RtLvIvvSub", "RtLvIvvMul", "RtLvIvvDiv", "RtLvIvvMod",
+                "RtLvFvvAdd", "RtLvFvvSub", "RtLvFvvMul", "RtLvFvvDiv", "RtLvFvvMod",
+                "RtLvIvsAdd", "RtLvIvsSub", "RtLvIvsMul", "RtLvIvsDiv", "RtLvIvsMod",
+                "RtLvFvsAdd", "RtLvFvsSub", "RtLvFvsMul", "RtLvFvsDiv", "RtLvFvsMod",
+                "RtLvSAdd",
+                "RtLvIPp", "RtLvIMm", "RtLvFPp", "RtLvFMm",
             };
-            append(cb, "    U_", lvnames[op], "(vm, ", sp(), ", ", lval);
+            append(cb, "    ", lvnames[op], "(vm, ", sp(), ", ", lval);
             if (IsStruct(type->t)) append(cb, ", ", ValWidth(type));
             cb += ");\n";
         }
@@ -2265,20 +2191,20 @@ struct CodeGen  {
                     } else {
                         assert(IsStruct(indexing->index->exptype->t));
                         auto width = ValWidth(indexing->index->exptype);
-                        EmitLvalOp("LVAL_IDXVV", false, { offset, width }, width + 1);
+                        EmitLvalOp("RtLvalIndexVecV", false, { offset, width }, width + 1);
                     }
                     break;
                 case V_CLASS:
                     assert(indexing->index->exptype->t == V_INT &&
                            indexing->object->exptype->udt->sametype->Numeric());
-                    EmitLvalOp("LVAL_IDXNI", false, { offset }, 2);
+                    EmitLvalOp("RtLvalIndexClass", false, { offset }, 2);
                     assert(!IsStruct(type->t));
                     break;
                 case V_STRUCT_R:
                 case V_STRUCT_S:
                     assert(indexing->index->exptype->t == V_INT &&
                            indexing->object->exptype->udt->sametype->Numeric());
-                    EmitLvalOp("LVAL_IDXSI", true, { offset,
+                    EmitLvalOp("RtLvalIndexStruct", true, { offset,
                                                 indexing->object->exptype->udt->numslots }, 1);
                     assert(!IsStruct(type->t));
                     break;
@@ -2331,7 +2257,7 @@ struct CodeGen  {
             if (IsStruct(type->t)) {
                 auto width = ValWidth(type);
                 TrackUseDef(0, width);
-                append(cb, "    U_LV_DUPV(vm, ", sp(), ", ", f_lval, ", ", width, ");\n");
+                append(cb, "    RtLvDupV(", sp(), ", ", f_lval, ", ", width, ");\n");
             } else {
                 TrackUseDef(0, 1);
                 GenValueCopy(cb, sp(0), f_lval);
@@ -2373,11 +2299,11 @@ struct CodeGen  {
         if (strs.size() == 2) {
             // We still need this op for += and it's marginally more efficient, might as well use it.
             TrackUseDef(2, 1);
-            append(cb, "    U_SADD(vm, ", sp(), ");\n");
+            append(cb, "    RtSAdd(vm, ", sp(), ");\n");
         } else {
             auto nstrs = (int)strs.size();
             TrackUseDef(nstrs, 1);
-            append(cb, "    U_SADDN(vm, ", sp(), ", ", nstrs, ");\n");
+            append(cb, "    RtStrConcatN(vm, ", sp(), ", ", nstrs, ");\n");
         }
     }
 
@@ -2387,12 +2313,12 @@ struct CodeGen  {
         if (retval) GenMathOp(n->left->exptype, n->right->exptype, n->exptype, op);
     }
 
-    // The type specialized ops below come one per MathOp, in that order, so the name of each is
-    // the prefix for the types it works on followed by the name of the operator.
+    // The type specialized helpers below come one per MathOp, in that order, so the name of each
+    // is the prefix for the types it works on followed by the name of the operator.
     static string MathOpName(string_view prefix, MathOp op) {
-        static const char *ops[] = { "ADD", "SUB", "MUL", "DIV", "MOD",
-                                     "LT", "GT", "LE", "GE", "EQ", "NE" };
-        return cat(prefix, ops[op]);
+        static const char *ops[] = { "Add", "Sub", "Mul", "Div", "Mod",
+                                     "Lt", "Gt", "Le", "Ge", "Eq", "Ne" };
+        return cat("Rt", prefix, ops[op]);
     }
 
     void GenMathOp(TypeRef ltype, TypeRef rtype, TypeRef ptype, MathOp op) {
@@ -2406,11 +2332,11 @@ struct CodeGen  {
         } else if (rtype->t == V_STRING && ltype->t == V_STRING) {
             // Nillable version handled below.
             TrackUseDef(2, 1);
-            append(cb, "    U_", MathOpName("S", op), "(vm, ", sp(), ");\n");
+            append(cb, "    ", MathOpName("S", op), "(vm, ", sp(), ");\n");
         } else if ((rtype->t == V_FUNCTION && ltype->t == V_FUNCTION)) {
             assert(op == MOP_EQ || op == MOP_NE);
             TrackUseDef(2, 1);
-            append(cb, "    U_", MathOpName("L", op), "(vm, ", sp(), ");\n");
+            append(cb, "    ", MathOpName("L", op), "(", sp(), ");\n");
         } else if ((rtype->t == V_TYPEID && ltype->t == V_TYPEID)) {
             assert(op == MOP_EQ || op == MOP_NE);
             GenSimpleBinOp(false, op, MathOpName("I", op));
@@ -2428,10 +2354,10 @@ struct CodeGen  {
                     if ((ltype->t == V_NIL && ltype->sub->t == V_STRING) ||
                         (rtype->t == V_NIL && rtype->sub->t == V_STRING)) {
                         TrackUseDef(2, 1);
-                        append(cb, "    U_", MathOpName("SN", op), "(vm, ", sp(), ");\n");
+                        append(cb, "    ", MathOpName("Sn", op), "(", sp(), ");\n");
                     } else {
                         TrackUseDef(2, 1);
-                        append(cb, "    U_", MathOpName("A", op), "(vm, ", sp(), ");\n");
+                        append(cb, "    ", MathOpName("A", op), "(", sp(), ");\n");
                     }
                 }
             } else {
@@ -2446,13 +2372,13 @@ struct CodeGen  {
                 auto width = ValWidth(vectype);
                 assert(sub->t == V_INT || sub->t == V_FLOAT);
                 auto isint = sub->t == V_INT;
-                auto prefix = isint ? (withscalar ? (leftisvec ? "IVS" : "SIV") : "IVV")
-                                    : (withscalar ? (leftisvec ? "FVS" : "SFV") : "FVV");
+                auto prefix = isint ? (withscalar ? (leftisvec ? "Ivs" : "Siv") : "Ivv")
+                                    : (withscalar ? (leftisvec ? "Fvs" : "Sfv") : "Fvv");
                 TrackUseDef(inw, outw);
                 // Most of these are the same operator once per slot of the struct, which makes
                 // them a fixed number of the ops above rather than a call that loops.
                 if (!GenVecBinOp(!isint, withscalar, leftisvec, op, width))
-                    append(cb, "    U_", MathOpName(prefix, op), "(vm, ", sp(), ", ", width,
+                    append(cb, "    ", MathOpName(prefix, op), "(vm, ", sp(), ", ", width,
                            ");\n");
             }
         }
@@ -2464,7 +2390,7 @@ struct CodeGen  {
         if (retval) {
             TakeTemp(2, false);
             TrackUseDef(2, 1);
-            append(cb, "    U_", opname, "(vm, ", sp(), ");\n");
+            append(cb, "    ", opname, "(", sp(), ");\n");
         }
     }
 
@@ -2513,11 +2439,11 @@ struct CodeGen  {
         if (IsStruct(stype->t)) {
             if (IsStruct(ftype->t)) {
                 TrackUseDef(swidth, fwidth);
-                append(cb, "    U_PUSHFLDV2V(vm, ", sp(), ", ", offset, ", ", fwidth, ", ", swidth,
+                append(cb, "    RtPushFieldV2V(", sp(), ", ", offset, ", ", fwidth, ", ", swidth,
                        ");\n");
             } else {
                 TrackUseDef(swidth, 1);
-                append(cb, "    U_PUSHFLDV(vm, ", sp(), ", ", offset, ", ", swidth, ");\n");
+                append(cb, "    RtPushFieldV(", sp(), ", ", offset, ", ", swidth, ");\n");
             }
         } else {
             if (IsStruct(ftype->t)) {
@@ -2561,19 +2487,19 @@ struct CodeGen  {
                     if (index->exptype->t == V_INT) {
                         if (elemwidth == 1) {
                             TrackUseDef(inw, struct_elem_sub_width);
-                            append(cb, "    U_VPUSHIDXIS(vm, ", sp(), ", ",
+                            append(cb, "    RtIndexVecSub(vm, ", sp(), ", ",
                                    struct_elem_sub_offset, ");\n");
                         } else {
                             TrackUseDef(inw, struct_elem_sub_width);
-                            append(cb, "    U_VPUSHIDXIS2V(vm, ", sp(), ", ",
+                            append(cb, "    RtIndexVecSubV(vm, ", sp(), ", ",
                                    struct_elem_sub_width, ", ", struct_elem_sub_offset, ");\n");
                         }
                     } else {
                         assert(IsStruct(index->exptype->t));
                         TrackUseDef(inw, struct_elem_sub_width);
-                        append(cb, "    U_VPUSHIDXVS(vm, ", sp(), ", ", ValWidth(index->exptype),
-                               ", ", struct_elem_sub_width, ", ", struct_elem_sub_offset,
-                               ");\n");
+                        append(cb, "    RtIndexVecNestSubV(vm, ", sp(), ", ",
+                               ValWidth(index->exptype), ", ", struct_elem_sub_width, ", ",
+                               struct_elem_sub_offset, ");\n");
                     }
                 }
                 break;
@@ -2582,7 +2508,7 @@ struct CodeGen  {
                 auto width = ValWidth(object->exptype);
                 assert(index->exptype->t == V_INT && object->exptype->udt->sametype->Numeric());
                 TrackUseDef(width + 1, 1);
-                append(cb, "    U_NPUSHIDXI(vm, ", sp(), ", ", width, ");\n");
+                append(cb, "    RtIndexStruct(vm, ", sp(), ", ", width, ");\n");
                 break;
             }
             case V_STRING:
@@ -2792,17 +2718,17 @@ void UnaryMinus::Generate(CodeGen &cg, size_t retval) const {
     switch (ctype->t) {
         case V_INT:
             cg.TrackUseDef(1, 1);
-            append(cg.cb, "    U_IUMINUS(vm, ", cg.sp(), ");\n");
+            append(cg.cb, "    RtIUMinus(", cg.sp(), ");\n");
             break;
         case V_FLOAT:
             cg.TrackUseDef(1, 1);
-            append(cg.cb, "    U_FUMINUS(vm, ", cg.sp(), ");\n");
+            append(cg.cb, "    RtFUMinus(", cg.sp(), ");\n");
             break;
         case V_STRUCT_S: {
             auto isint = ctype->udt->sametype->t == V_INT;
             auto inw = ValWidth(ctype);
             cg.TrackUseDef(inw, inw);
-            append(cg.cb, "    U_", isint ? "IVUMINUS" : "FVUMINUS", "(vm, ", cg.sp(), ", ",
+            append(cg.cb, "    ", isint ? "RtIvUMinus" : "RtFvUMinus", "(vm, ", cg.sp(), ", ",
                    inw, ");\n");
             break;
         }
@@ -2810,18 +2736,18 @@ void UnaryMinus::Generate(CodeGen &cg, size_t retval) const {
     }
 }
 
-void BitAnd    ::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, "BINAND"); }
-void BitOr     ::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, "BINOR"); }
-void Xor       ::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, "XOR"); }
-void ShiftLeft ::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, "ASL"); }
-void ShiftRight::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, "ASR"); }
+void BitAnd    ::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, "RtBinAnd"); }
+void BitOr     ::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, "RtBinOr"); }
+void Xor       ::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, "RtXor"); }
+void ShiftLeft ::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, "RtAsl"); }
+void ShiftRight::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, "RtAsr"); }
 
 void Negate::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (!retval) return;
     cg.TakeTemp(1, false);
     cg.TrackUseDef(1, 1);
-    append(cg.cb, "    U_NEG(vm, ", cg.sp(), ");\n");
+    append(cg.cb, "    RtNeg(", cg.sp(), ");\n");
 }
 
 void ToFloat::Generate(CodeGen &cg, size_t retval) const {
@@ -2844,7 +2770,7 @@ void ToString::Generate(CodeGen &cg, size_t retval) const {
         }
         default: {
             cg.TrackUseDef(1, 1);
-            append(cg.cb, "    U_A2S(vm, ", cg.sp(), ", ",
+            append(cg.cb, "    RtToString(vm, ", cg.sp(), ", (type_elem_t)",
                    (int)cg.GetTypeTableOffset(child->exptype->ElementIfNil()), ");\n");
             break;
         }
@@ -3457,7 +3383,7 @@ void Case::Generate(CodeGen &cg, size_t retval) const {
         // FIXME: would be great to ensure the offending value is still on the stack for
         // this instruction to have access to.
         cg.TrackUseDef(0, 0);
-        append(cg.cb, "    U_ENUM_RANGE_ERR(vm, ", cg.sp(), ");\n");
+        append(cg.cb, "    RtEnumRangeErr(vm);\n");
     }
 }
 
@@ -3477,7 +3403,8 @@ void VectorConstructor::Generate(CodeGen &cg, size_t retval) const {
     auto offset = cg.GetTypeTableOffset(exptype);
     assert(exptype->t == V_VECTOR);
     cg.TrackUseDef(arg_width, 1);
-    append(cg.cb, "    U_NEWVEC(vm, ", cg.sp(), ", ", (int)offset, ", ", (int)Arity(), ");\n");
+    append(cg.cb, "    RtNewVec(vm, ", cg.sp(), ", (type_elem_t)", (int)offset, ", ",
+           (int)Arity(), ");\n");
 }
 
 void ObjectConstructor::Generate(CodeGen &cg, size_t retval) const {

@@ -1023,7 +1023,7 @@ extern "C" {
 
 using namespace lobster;
 
-fun_base_t CVM_GetNextCallTarget(VM *vm) {
+fun_base_t CRtGetNextCallTarget(VM *vm) {
     return vm->next_call_target;
 }
 
@@ -1031,7 +1031,7 @@ fun_base_t CVM_GetNextCallTarget(VM *vm) {
 // as, see CodeGen::Prologue, which catches the C compiler laying one out differently than the C++
 // one did. That the C++ types are still what those mirrors were written against is a static_assert
 // next to each of them instead.
-void CVM_Entry(int value_size, int vmbase_size, int refobj_size, int lvector_size,
+void CRtEntry(int value_size, int vmbase_size, int refobj_size, int lvector_size,
                int lvector_elems_off, int lstring_size) {
     auto check = [](bool ok, const char *what) {
         if (ok) return;
@@ -1049,278 +1049,199 @@ void CVM_Entry(int value_size, int vmbase_size, int refobj_size, int lvector_siz
     check(lstring_size == ssizeof<LString>(), "LString size");
 }
 
-void CVM_IDXErr(VM *vm, iint i, iint n, RefObj *v) { vm->IDXErr(i, n, v); }
+void CRtIDXErr(VM *vm, iint i, iint n, RefObj *v) { vm->IDXErr(i, n, v); }
 
-void CVM_SwapVars(VM *vm, int i, StackPtr psp, int off) { SwapVars(*vm, i, psp, off); }
-void CVM_BackupVar(VM *vm, int i) { BackupVar(*vm, i); }
-void CVM_DecOwned(VM *vm, int i) { DecOwned(*vm, i); }
-void CVM_DecDelete(VM *vm, RefObj *ro) { ro->DECDELETE(*vm); }
-void CVM_AssertFailed(VM *vm, int line, int fileidx, int stringidx) {
+void CRtSwapVars(VM *vm, int i, StackPtr psp, int off) { SwapVars(*vm, i, psp, off); }
+void CRtBackupVar(VM *vm, int i) { BackupVar(*vm, i); }
+void CRtDecOwned(VM *vm, int i) { DecOwned(*vm, i); }
+void CRtDecDelete(VM *vm, RefObj *ro) { ro->DECDELETE(*vm); }
+void CRtAssertFailed(VM *vm, int line, int fileidx, int stringidx) {
     vm->AssertFailed(line, fileidx, stringidx);
 }
-void CVM_DecVal(VM *vm, Value v) { DecVal(*vm, v); }
-void CVM_RestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
-StackPtr CVM_PopArg(VM *vm, int i, StackPtr psp) { return PopArg(*vm, i, psp); }
-int CVM_RetSlots(VM *vm) { return RetSlots(*vm); }
-int CVM_GetTypeSwitchID(VM *vm, Value self, int vtable_idx) { return GetTypeSwitchID(*vm, self, vtable_idx); }
-void CVM_PushFunId(VM *vm, const int *id, StackPtr locals) { PushFunId(*vm, id, locals); }
-void CVM_PopFunId(VM *vm) { PopFunId(*vm); }
+void CRtDecVal(VM *vm, Value v) { DecVal(*vm, v); }
+void CRtRestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
+StackPtr CRtPopArg(VM *vm, int i, StackPtr psp) { return PopArg(*vm, i, psp); }
+int CRtRetSlots(VM *vm) { return RetSlots(*vm); }
+int CRtGetTypeSwitchID(VM *vm, Value self, int vtable_idx) { return GetTypeSwitchID(*vm, self, vtable_idx); }
+void CRtPushFunId(VM *vm, const int *id, StackPtr locals) { PushFunId(*vm, id, locals); }
+void CRtPopFunId(VM *vm) { PopFunId(*vm); }
 #if LOBSTER_FRAME_PROFILER
-___tracy_c_zone_context CVM_StartProfile(___tracy_source_location_data *tsld) {
+___tracy_c_zone_context CRtStartProfile(___tracy_source_location_data *tsld) {
     return StartProfile(tsld);
 }
-void CVM_EndProfile(___tracy_c_zone_context ctx) {
+void CRtEndProfile(___tracy_c_zone_context ctx) {
     EndProfile(ctx);
 }
 #endif
 
-void CVM_UNUSED(VM *vm, StackPtr sp) { U_UNUSED(*vm, sp); }
-void CVM_PUSHINT(VM *vm, StackPtr sp, int _a) { U_PUSHINT(*vm, sp, _a); }
-void CVM_PUSHINT64(VM *vm, StackPtr sp, int _a, int _b) { U_PUSHINT64(*vm, sp, _a, _b); }
-void CVM_PUSHFLT(VM *vm, StackPtr sp, int _a) { U_PUSHFLT(*vm, sp, _a); }
-void CVM_PUSHFLT64(VM *vm, StackPtr sp, int _a, int _b) { U_PUSHFLT64(*vm, sp, _a, _b); }
-void CVM_PUSHSTR(VM *vm, StackPtr sp, int _a) { U_PUSHSTR(*vm, sp, _a); }
-void CVM_PUSHNIL(VM *vm, StackPtr sp) { U_PUSHNIL(*vm, sp); }
-void CVM_PUSHVARF(VM *vm, StackPtr sp, int _a) { U_PUSHVARF(*vm, sp, _a); }
-void CVM_PUSHVARL(VM *vm, StackPtr sp, int _a) { U_PUSHVARL(*vm, sp, _a); }
-void CVM_PUSHVARVF(VM *vm, StackPtr sp, int _a, int _b) { U_PUSHVARVF(*vm, sp, _a, _b); }
-void CVM_PUSHVARVL(VM *vm, StackPtr sp, int _a, int _b) { U_PUSHVARVL(*vm, sp, _a, _b); }
-void CVM_VPUSHIDXI(VM *vm, StackPtr sp) { U_VPUSHIDXI(*vm, sp); }
-void CVM_VPUSHIDXI2V(VM *vm, StackPtr sp) { U_VPUSHIDXI2V(*vm, sp); }
-void CVM_VPUSHIDXV(VM *vm, StackPtr sp, int _a) { U_VPUSHIDXV(*vm, sp, _a); }
-void CVM_VPUSHIDXIS(VM *vm, StackPtr sp, int _a) { U_VPUSHIDXIS(*vm, sp, _a); }
-void CVM_VPUSHIDXIS2V(VM *vm, StackPtr sp, int _a, int _b) { U_VPUSHIDXIS2V(*vm, sp, _a, _b); }
-void CVM_VPUSHIDXVS(VM *vm, StackPtr sp, int _a, int _b, int _c) { U_VPUSHIDXVS(*vm, sp, _a, _b, _c); }
-void CVM_NPUSHIDXI(VM *vm, StackPtr sp, int _a) { U_NPUSHIDXI(*vm, sp, _a); }
-void CVM_SPUSHIDXI(VM *vm, StackPtr sp) { U_SPUSHIDXI(*vm, sp); }
-void CVM_PUSHFLD(VM *vm, StackPtr sp, int _a) { U_PUSHFLD(*vm, sp, _a); }
-void CVM_PUSHFLDMREF(VM *vm, StackPtr sp, int _a) { U_PUSHFLDMREF(*vm, sp, _a); }
-void CVM_PUSHFLDV(VM *vm, StackPtr sp, int _a, int _b) { U_PUSHFLDV(*vm, sp, _a, _b); }
-void CVM_PUSHFLD2V(VM *vm, StackPtr sp, int _a, int _b) { U_PUSHFLD2V(*vm, sp, _a, _b); }
-void CVM_PUSHFLDV2V(VM *vm, StackPtr sp, int _a, int _b, int _c) { U_PUSHFLDV2V(*vm, sp, _a, _b, _c); }
-void CVM_BCALLRETV(VM *vm, StackPtr sp, int _a, int _b) { U_BCALLRETV(*vm, sp, _a, _b); }
-void CVM_BCALLRET0(VM *vm, StackPtr sp, int _a, int _b) { U_BCALLRET0(*vm, sp, _a, _b); }
-void CVM_BCALLRET1(VM *vm, StackPtr sp, int _a, int _b) { U_BCALLRET1(*vm, sp, _a, _b); }
-void CVM_BCALLRET2(VM *vm, StackPtr sp, int _a, int _b) { U_BCALLRET2(*vm, sp, _a, _b); }
-void CVM_BCALLRET3(VM *vm, StackPtr sp, int _a, int _b) { U_BCALLRET3(*vm, sp, _a, _b); }
-void CVM_BCALLRET4(VM *vm, StackPtr sp, int _a, int _b) { U_BCALLRET4(*vm, sp, _a, _b); }
-void CVM_BCALLRET5(VM *vm, StackPtr sp, int _a, int _b) { U_BCALLRET5(*vm, sp, _a, _b); }
-void CVM_BCALLRET6(VM *vm, StackPtr sp, int _a, int _b) { U_BCALLRET6(*vm, sp, _a, _b); }
-void CVM_BCALLRET7(VM *vm, StackPtr sp, int _a, int _b) { U_BCALLRET7(*vm, sp, _a, _b); }
-void CVM_ASSERT(VM *vm, StackPtr sp, int _a, int _b, int _c) { U_ASSERT(*vm, sp, _a, _b, _c); }
-void CVM_ASSERTR(VM *vm, StackPtr sp, int _a, int _b, int _c) { U_ASSERTR(*vm, sp, _a, _b, _c); }
-void CVM_STATEMENT(VM *vm, StackPtr sp, int _a, int _b) { U_STATEMENT(*vm, sp, _a, _b); }
-void CVM_PROFILE(VM *vm, StackPtr sp, int _a) { U_PROFILE(*vm, sp, _a); }
-void CVM_NEWVEC(VM *vm, StackPtr sp, int _a, int _b) { U_NEWVEC(*vm, sp, _a, _b); }
-void CVM_NEWOBJECT(VM *vm, StackPtr sp, int _a) { U_NEWOBJECT(*vm, sp, _a); }
-void CVM_POP(VM *vm, StackPtr sp) { U_POP(*vm, sp); }
-void CVM_POPREF(VM *vm, StackPtr sp) { U_POPREF(*vm, sp); }
-void CVM_POPV(VM *vm, StackPtr sp, int _a) { U_POPV(*vm, sp, _a); }
-void CVM_DUP(VM *vm, StackPtr sp) { U_DUP(*vm, sp); }
-void CVM_EXIT(VM *vm, StackPtr sp, int _a) { U_EXIT(*vm, sp, _a); }
-void CVM_ABORT(VM *vm, StackPtr sp) { U_ABORT(*vm, sp); }
-void CVM_IADD(VM *vm, StackPtr sp) { U_IADD(*vm, sp); }
-void CVM_ISUB(VM *vm, StackPtr sp) { U_ISUB(*vm, sp); }
-void CVM_IMUL(VM *vm, StackPtr sp) { U_IMUL(*vm, sp); }
-void CVM_IDIV(VM *vm, StackPtr sp) { U_IDIV(*vm, sp); }
-void CVM_IMOD(VM *vm, StackPtr sp) { U_IMOD(*vm, sp); }
-void CVM_ILT(VM *vm, StackPtr sp) { U_ILT(*vm, sp); }
-void CVM_IGT(VM *vm, StackPtr sp) { U_IGT(*vm, sp); }
-void CVM_ILE(VM *vm, StackPtr sp) { U_ILE(*vm, sp); }
-void CVM_IGE(VM *vm, StackPtr sp) { U_IGE(*vm, sp); }
-void CVM_IEQ(VM *vm, StackPtr sp) { U_IEQ(*vm, sp); }
-void CVM_INE(VM *vm, StackPtr sp) { U_INE(*vm, sp); }
-void CVM_FADD(VM *vm, StackPtr sp) { U_FADD(*vm, sp); }
-void CVM_FSUB(VM *vm, StackPtr sp) { U_FSUB(*vm, sp); }
-void CVM_FMUL(VM *vm, StackPtr sp) { U_FMUL(*vm, sp); }
-void CVM_FDIV(VM *vm, StackPtr sp) { U_FDIV(*vm, sp); }
-void CVM_FMOD(VM *vm, StackPtr sp) { U_FMOD(*vm, sp); }
-void CVM_FLT(VM *vm, StackPtr sp) { U_FLT(*vm, sp); }
-void CVM_FGT(VM *vm, StackPtr sp) { U_FGT(*vm, sp); }
-void CVM_FLE(VM *vm, StackPtr sp) { U_FLE(*vm, sp); }
-void CVM_FGE(VM *vm, StackPtr sp) { U_FGE(*vm, sp); }
-void CVM_FEQ(VM *vm, StackPtr sp) { U_FEQ(*vm, sp); }
-void CVM_FNE(VM *vm, StackPtr sp) { U_FNE(*vm, sp); }
-void CVM_SADD(VM *vm, StackPtr sp) { U_SADD(*vm, sp); }
-void CVM_SSUB(VM *vm, StackPtr sp) { U_SSUB(*vm, sp); }
-void CVM_SMUL(VM *vm, StackPtr sp) { U_SMUL(*vm, sp); }
-void CVM_SDIV(VM *vm, StackPtr sp) { U_SDIV(*vm, sp); }
-void CVM_SMOD(VM *vm, StackPtr sp) { U_SMOD(*vm, sp); }
-void CVM_SLT(VM *vm, StackPtr sp) { U_SLT(*vm, sp); }
-void CVM_SGT(VM *vm, StackPtr sp) { U_SGT(*vm, sp); }
-void CVM_SLE(VM *vm, StackPtr sp) { U_SLE(*vm, sp); }
-void CVM_SGE(VM *vm, StackPtr sp) { U_SGE(*vm, sp); }
-void CVM_SEQ(VM *vm, StackPtr sp) { U_SEQ(*vm, sp); }
-void CVM_SNE(VM *vm, StackPtr sp) { U_SNE(*vm, sp); }
-void CVM_SADDN(VM *vm, StackPtr sp, int _a) { U_SADDN(*vm, sp, _a); }
-void CVM_IVVADD(VM *vm, StackPtr sp, int _a) { U_IVVADD(*vm, sp, _a); }
-void CVM_IVVSUB(VM *vm, StackPtr sp, int _a) { U_IVVSUB(*vm, sp, _a); }
-void CVM_IVVMUL(VM *vm, StackPtr sp, int _a) { U_IVVMUL(*vm, sp, _a); }
-void CVM_IVVDIV(VM *vm, StackPtr sp, int _a) { U_IVVDIV(*vm, sp, _a); }
-void CVM_IVVMOD(VM *vm, StackPtr sp, int _a) { U_IVVMOD(*vm, sp, _a); }
-void CVM_IVVLT(VM *vm, StackPtr sp, int _a) { U_IVVLT(*vm, sp, _a); }
-void CVM_IVVGT(VM *vm, StackPtr sp, int _a) { U_IVVGT(*vm, sp, _a); }
-void CVM_IVVLE(VM *vm, StackPtr sp, int _a) { U_IVVLE(*vm, sp, _a); }
-void CVM_IVVGE(VM *vm, StackPtr sp, int _a) { U_IVVGE(*vm, sp, _a); }
-void CVM_FVVADD(VM *vm, StackPtr sp, int _a) { U_FVVADD(*vm, sp, _a); }
-void CVM_FVVSUB(VM *vm, StackPtr sp, int _a) { U_FVVSUB(*vm, sp, _a); }
-void CVM_FVVMUL(VM *vm, StackPtr sp, int _a) { U_FVVMUL(*vm, sp, _a); }
-void CVM_FVVDIV(VM *vm, StackPtr sp, int _a) { U_FVVDIV(*vm, sp, _a); }
-void CVM_FVVMOD(VM *vm, StackPtr sp, int _a) { U_FVVMOD(*vm, sp, _a); }
-void CVM_FVVLT(VM *vm, StackPtr sp, int _a) { U_FVVLT(*vm, sp, _a); }
-void CVM_FVVGT(VM *vm, StackPtr sp, int _a) { U_FVVGT(*vm, sp, _a); }
-void CVM_FVVLE(VM *vm, StackPtr sp, int _a) { U_FVVLE(*vm, sp, _a); }
-void CVM_FVVGE(VM *vm, StackPtr sp, int _a) { U_FVVGE(*vm, sp, _a); }
-void CVM_IVSADD(VM *vm, StackPtr sp, int _a) { U_IVSADD(*vm, sp, _a); }
-void CVM_IVSSUB(VM *vm, StackPtr sp, int _a) { U_IVSSUB(*vm, sp, _a); }
-void CVM_IVSMUL(VM *vm, StackPtr sp, int _a) { U_IVSMUL(*vm, sp, _a); }
-void CVM_IVSDIV(VM *vm, StackPtr sp, int _a) { U_IVSDIV(*vm, sp, _a); }
-void CVM_IVSMOD(VM *vm, StackPtr sp, int _a) { U_IVSMOD(*vm, sp, _a); }
-void CVM_IVSLT(VM *vm, StackPtr sp, int _a) { U_IVSLT(*vm, sp, _a); }
-void CVM_IVSGT(VM *vm, StackPtr sp, int _a) { U_IVSGT(*vm, sp, _a); }
-void CVM_IVSLE(VM *vm, StackPtr sp, int _a) { U_IVSLE(*vm, sp, _a); }
-void CVM_IVSGE(VM *vm, StackPtr sp, int _a) { U_IVSGE(*vm, sp, _a); }
-void CVM_FVSADD(VM *vm, StackPtr sp, int _a) { U_FVSADD(*vm, sp, _a); }
-void CVM_FVSSUB(VM *vm, StackPtr sp, int _a) { U_FVSSUB(*vm, sp, _a); }
-void CVM_FVSMUL(VM *vm, StackPtr sp, int _a) { U_FVSMUL(*vm, sp, _a); }
-void CVM_FVSDIV(VM *vm, StackPtr sp, int _a) { U_FVSDIV(*vm, sp, _a); }
-void CVM_FVSMOD(VM *vm, StackPtr sp, int _a) { U_FVSMOD(*vm, sp, _a); }
-void CVM_FVSLT(VM *vm, StackPtr sp, int _a) { U_FVSLT(*vm, sp, _a); }
-void CVM_FVSGT(VM *vm, StackPtr sp, int _a) { U_FVSGT(*vm, sp, _a); }
-void CVM_FVSLE(VM *vm, StackPtr sp, int _a) { U_FVSLE(*vm, sp, _a); }
-void CVM_FVSGE(VM *vm, StackPtr sp, int _a) { U_FVSGE(*vm, sp, _a); }
-void CVM_SIVADD(VM *vm, StackPtr sp, int _a) { U_SIVADD(*vm, sp, _a); }
-void CVM_SIVSUB(VM *vm, StackPtr sp, int _a) { U_SIVSUB(*vm, sp, _a); }
-void CVM_SIVMUL(VM *vm, StackPtr sp, int _a) { U_SIVMUL(*vm, sp, _a); }
-void CVM_SIVDIV(VM *vm, StackPtr sp, int _a) { U_SIVDIV(*vm, sp, _a); }
-void CVM_SIVMOD(VM *vm, StackPtr sp, int _a) { U_SIVMOD(*vm, sp, _a); }
-void CVM_SIVLT(VM *vm, StackPtr sp, int _a) { U_SIVLT(*vm, sp, _a); }
-void CVM_SIVGT(VM *vm, StackPtr sp, int _a) { U_SIVGT(*vm, sp, _a); }
-void CVM_SIVLE(VM *vm, StackPtr sp, int _a) { U_SIVLE(*vm, sp, _a); }
-void CVM_SIVGE(VM *vm, StackPtr sp, int _a) { U_SIVGE(*vm, sp, _a); }
-void CVM_SFVADD(VM *vm, StackPtr sp, int _a) { U_SFVADD(*vm, sp, _a); }
-void CVM_SFVSUB(VM *vm, StackPtr sp, int _a) { U_SFVSUB(*vm, sp, _a); }
-void CVM_SFVMUL(VM *vm, StackPtr sp, int _a) { U_SFVMUL(*vm, sp, _a); }
-void CVM_SFVDIV(VM *vm, StackPtr sp, int _a) { U_SFVDIV(*vm, sp, _a); }
-void CVM_SFVMOD(VM *vm, StackPtr sp, int _a) { U_SFVMOD(*vm, sp, _a); }
-void CVM_SFVLT(VM *vm, StackPtr sp, int _a) { U_SFVLT(*vm, sp, _a); }
-void CVM_SFVGT(VM *vm, StackPtr sp, int _a) { U_SFVGT(*vm, sp, _a); }
-void CVM_SFVLE(VM *vm, StackPtr sp, int _a) { U_SFVLE(*vm, sp, _a); }
-void CVM_SFVGE(VM *vm, StackPtr sp, int _a) { U_SFVGE(*vm, sp, _a); }
-void CVM_AEQ(VM *vm, StackPtr sp) { U_AEQ(*vm, sp); }
-void CVM_ANE(VM *vm, StackPtr sp) { U_ANE(*vm, sp); }
-void CVM_SNEQ(VM *vm, StackPtr sp) { U_SNEQ(*vm, sp); }
-void CVM_SNNE(VM *vm, StackPtr sp) { U_SNNE(*vm, sp); }
-void CVM_STEQ(VM *vm, StackPtr sp, int _a) { U_STEQ(*vm, sp, _a); }
-void CVM_STNE(VM *vm, StackPtr sp, int _a) { U_STNE(*vm, sp, _a); }
-void CVM_LEQ(VM *vm, StackPtr sp) { U_LEQ(*vm, sp); }
-void CVM_LNE(VM *vm, StackPtr sp) { U_LNE(*vm, sp); }
-void CVM_IUMINUS(VM *vm, StackPtr sp) { U_IUMINUS(*vm, sp); }
-void CVM_FUMINUS(VM *vm, StackPtr sp) { U_FUMINUS(*vm, sp); }
-void CVM_IVUMINUS(VM *vm, StackPtr sp, int _a) { U_IVUMINUS(*vm, sp, _a); }
-void CVM_FVUMINUS(VM *vm, StackPtr sp, int _a) { U_FVUMINUS(*vm, sp, _a); }
-void CVM_LOGNOT(VM *vm, StackPtr sp) { U_LOGNOT(*vm, sp); }
-void CVM_BINAND(VM *vm, StackPtr sp) { U_BINAND(*vm, sp); }
-void CVM_BINOR(VM *vm, StackPtr sp) { U_BINOR(*vm, sp); }
-void CVM_XOR(VM *vm, StackPtr sp) { U_XOR(*vm, sp); }
-void CVM_ASL(VM *vm, StackPtr sp) { U_ASL(*vm, sp); }
-void CVM_ASR(VM *vm, StackPtr sp) { U_ASR(*vm, sp); }
-void CVM_NEG(VM *vm, StackPtr sp) { U_NEG(*vm, sp); }
-void CVM_I2F(VM *vm, StackPtr sp) { U_I2F(*vm, sp); }
-void CVM_A2S(VM *vm, StackPtr sp, int _a) { U_A2S(*vm, sp, _a); }
-void CVM_E2B(VM *vm, StackPtr sp) { U_E2B(*vm, sp); }
-void CVM_E2BREF(VM *vm, StackPtr sp) { U_E2BREF(*vm, sp); }
-void CVM_ST2S(VM *vm, StackPtr sp, int _a) { U_ST2S(*vm, sp, _a); }
-void CVM_RETURNLOCAL(VM *vm, StackPtr sp, int _a) { U_RETURNLOCAL(*vm, sp, _a); }
-void CVM_RETURNNONLOCAL(VM *vm, StackPtr sp, int _a, int _b) { U_RETURNNONLOCAL(*vm, sp, _a, _b); }
-void CVM_RETURNANY(VM *vm, StackPtr sp, int _a) { U_RETURNANY(*vm, sp, _a); }
-void CVM_ISTYPE(VM *vm, StackPtr sp, int _a, int _b) { U_ISTYPE(*vm, sp, _a, _b); }
-void CVM_ISSUBTYPE(VM *vm, StackPtr sp, int _a, int _b, int _c) { U_ISSUBTYPE(*vm, sp, _a, _b, _c); }
-void CVM_FORLOOPI(VM *vm, StackPtr sp) { U_FORLOOPI(*vm, sp); }
-void CVM_IFORELEM(VM *vm, StackPtr sp) { U_IFORELEM(*vm, sp); }
-void CVM_SFORELEM(VM *vm, StackPtr sp) { U_SFORELEM(*vm, sp); }
-void CVM_VFORELEM(VM *vm, StackPtr sp) { U_VFORELEM(*vm, sp); }
-void CVM_VFORELEMREF(VM *vm, StackPtr sp) { U_VFORELEMREF(*vm, sp); }
-void CVM_VFORELEM2S(VM *vm, StackPtr sp) { U_VFORELEM2S(*vm, sp); }
-void CVM_VFORELEMREF2S(VM *vm, StackPtr sp, int _a) { U_VFORELEMREF2S(*vm, sp, _a); }
-void CVM_INCREF(VM *vm, StackPtr sp, int _a) { U_INCREF(*vm, sp, _a); }
-void CVM_KEEPREF(VM *vm, StackPtr sp, int _a, int _b) { U_KEEPREF(*vm, sp, _a, _b); }
-void CVM_KEEPREFLOOP(VM *vm, StackPtr sp, int _a, int _b) { U_KEEPREFLOOP(*vm, sp, _a, _b); }
-void CVM_GOTOFUNEXIT(VM *vm, StackPtr sp) { U_GOTOFUNEXIT(*vm, sp); }
-void CVM_CALL(VM *vm, StackPtr sp, int _a) { U_CALL(*vm, sp, _a); }
-void CVM_CALLV(VM *vm, StackPtr sp) { U_CALLV(*vm, sp); }
-void CVM_DDCALL(VM *vm, StackPtr sp, int _a, int _b) { U_DDCALL(*vm, sp, _a, _b); }
-void CVM_LABEL(VM *vm, StackPtr sp, int _a) { U_LABEL(*vm, sp, _a); }
-void CVM_JUMP_TABLE_END(VM *vm, StackPtr sp) { U_JUMP_TABLE_END(*vm, sp); }
-void CVM_JUMP_TABLE_CASE_START(VM *vm, StackPtr sp, int _a) { U_JUMP_TABLE_CASE_START(*vm, sp, _a); }
-void CVM_ENUM_RANGE_ERR(VM *vm, StackPtr sp) { U_ENUM_RANGE_ERR(*vm, sp); }
-Value *CVM_LVAL_VARF(VM *vm, StackPtr sp, Value *lv, int _a) { return U_LVAL_VARF(*vm, sp, lv, _a); }
-Value *CVM_LVAL_VARL(VM *vm, StackPtr sp, Value *lv, int _a) { return U_LVAL_VARL(*vm, sp, lv, _a); }
-Value *CVM_LVAL_FLD(VM *vm, StackPtr sp, Value *lv, int _a) { return U_LVAL_FLD(*vm, sp, lv, _a); }
-Value *CVM_LVAL_IDXVI(VM *vm, StackPtr sp, Value *lv, int _a) { return U_LVAL_IDXVI(*vm, sp, lv, _a); }
-Value *CVM_LVAL_IDXVV(VM *vm, StackPtr sp, Value *lv, int _a, int _b) { return U_LVAL_IDXVV(*vm, sp, lv, _a, _b); }
-Value *CVM_LVAL_IDXNI(VM *vm, StackPtr sp, Value *lv, int _a) { return U_LVAL_IDXNI(*vm, sp, lv, _a); }
-Value *CVM_LVAL_IDXSI(VM *vm, StackPtr sp, Value *lv, int _a, int _b) { return U_LVAL_IDXSI(*vm, sp, lv, _a, _b); }
-void CVM_LV_DUP(VM *vm, StackPtr sp, Value *lv) { U_LV_DUP(*vm, sp, lv); }
-void CVM_LV_DUPV(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_DUPV(*vm, sp, lv, _a); }
-void CVM_LV_WRITE(VM *vm, StackPtr sp, Value *lv) { U_LV_WRITE(*vm, sp, lv); }
-void CVM_LV_WRITEREF(VM *vm, StackPtr sp, Value *lv) { U_LV_WRITEREF(*vm, sp, lv); }
-void CVM_LV_WRITEV(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_WRITEV(*vm, sp, lv, _a); }
-void CVM_LV_WRITEREFV(VM *vm, StackPtr sp, Value *lv, int _a, int _b) { U_LV_WRITEREFV(*vm, sp, lv, _a, _b); }
-void CVM_LV_IADD(VM *vm, StackPtr sp, Value *lv) { U_LV_IADD(*vm, sp, lv); }
-void CVM_LV_ISUB(VM *vm, StackPtr sp, Value *lv) { U_LV_ISUB(*vm, sp, lv); }
-void CVM_LV_IMUL(VM *vm, StackPtr sp, Value *lv) { U_LV_IMUL(*vm, sp, lv); }
-void CVM_LV_IDIV(VM *vm, StackPtr sp, Value *lv) { U_LV_IDIV(*vm, sp, lv); }
-void CVM_LV_IMOD(VM *vm, StackPtr sp, Value *lv) { U_LV_IMOD(*vm, sp, lv); }
-void CVM_LV_BINAND(VM *vm, StackPtr sp, Value *lv) { U_LV_BINAND(*vm, sp, lv); }
-void CVM_LV_BINOR(VM *vm, StackPtr sp, Value *lv) { U_LV_BINOR(*vm, sp, lv); }
-void CVM_LV_XOR(VM *vm, StackPtr sp, Value *lv) { U_LV_XOR(*vm, sp, lv); }
-void CVM_LV_ASL(VM *vm, StackPtr sp, Value *lv) { U_LV_ASL(*vm, sp, lv); }
-void CVM_LV_ASR(VM *vm, StackPtr sp, Value *lv) { U_LV_ASR(*vm, sp, lv); }
-void CVM_LV_FADD(VM *vm, StackPtr sp, Value *lv) { U_LV_FADD(*vm, sp, lv); }
-void CVM_LV_FSUB(VM *vm, StackPtr sp, Value *lv) { U_LV_FSUB(*vm, sp, lv); }
-void CVM_LV_FMUL(VM *vm, StackPtr sp, Value *lv) { U_LV_FMUL(*vm, sp, lv); }
-void CVM_LV_FDIV(VM *vm, StackPtr sp, Value *lv) { U_LV_FDIV(*vm, sp, lv); }
-void CVM_LV_FMOD(VM *vm, StackPtr sp, Value *lv) { U_LV_FMOD(*vm, sp, lv); }
-void CVM_LV_IVVADD(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_IVVADD(*vm, sp, lv, _a); }
-void CVM_LV_IVVSUB(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_IVVSUB(*vm, sp, lv, _a); }
-void CVM_LV_IVVMUL(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_IVVMUL(*vm, sp, lv, _a); }
-void CVM_LV_IVVDIV(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_IVVDIV(*vm, sp, lv, _a); }
-void CVM_LV_IVVMOD(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_IVVMOD(*vm, sp, lv, _a); }
-void CVM_LV_FVVADD(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_FVVADD(*vm, sp, lv, _a); }
-void CVM_LV_FVVSUB(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_FVVSUB(*vm, sp, lv, _a); }
-void CVM_LV_FVVMUL(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_FVVMUL(*vm, sp, lv, _a); }
-void CVM_LV_FVVDIV(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_FVVDIV(*vm, sp, lv, _a); }
-void CVM_LV_FVVMOD(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_FVVMOD(*vm, sp, lv, _a); }
-void CVM_LV_IVSADD(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_IVSADD(*vm, sp, lv, _a); }
-void CVM_LV_IVSSUB(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_IVSSUB(*vm, sp, lv, _a); }
-void CVM_LV_IVSMUL(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_IVSMUL(*vm, sp, lv, _a); }
-void CVM_LV_IVSDIV(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_IVSDIV(*vm, sp, lv, _a); }
-void CVM_LV_IVSMOD(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_IVSMOD(*vm, sp, lv, _a); }
-void CVM_LV_FVSADD(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_FVSADD(*vm, sp, lv, _a); }
-void CVM_LV_FVSSUB(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_FVSSUB(*vm, sp, lv, _a); }
-void CVM_LV_FVSMUL(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_FVSMUL(*vm, sp, lv, _a); }
-void CVM_LV_FVSDIV(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_FVSDIV(*vm, sp, lv, _a); }
-void CVM_LV_FVSMOD(VM *vm, StackPtr sp, Value *lv, int _a) { U_LV_FVSMOD(*vm, sp, lv, _a); }
-void CVM_LV_SADD(VM *vm, StackPtr sp, Value *lv) { U_LV_SADD(*vm, sp, lv); }
-void CVM_LV_IPP(VM *vm, StackPtr sp, Value *lv) { U_LV_IPP(*vm, sp, lv); }
-void CVM_LV_IMM(VM *vm, StackPtr sp, Value *lv) { U_LV_IMM(*vm, sp, lv); }
-void CVM_LV_FPP(VM *vm, StackPtr sp, Value *lv) { U_LV_FPP(*vm, sp, lv); }
-void CVM_LV_FMM(VM *vm, StackPtr sp, Value *lv) { U_LV_FMM(*vm, sp, lv); }
-void CVM_PUSHFUN(VM *vm, StackPtr sp, int _a, fun_base_t fcont) { U_PUSHFUN(*vm, sp, _a, fcont); }
-void CVM_JUMP_TABLE(VM *vm, StackPtr sp, const int *ip) { U_JUMP_TABLE(*vm, sp, ip); }
-void CVM_JUMP_TABLE_DISPATCH(VM *vm, StackPtr sp, const int *ip) { U_JUMP_TABLE_DISPATCH(*vm, sp, ip); }
-int CVM_JUMP(VM *vm, StackPtr sp) { return U_JUMP(*vm, sp); }
-int CVM_JUMPFAIL(VM *vm, StackPtr sp) { return U_JUMPFAIL(*vm, sp); }
-int CVM_JUMPFAILR(VM *vm, StackPtr sp) { return U_JUMPFAILR(*vm, sp); }
-int CVM_JUMPNOFAIL(VM *vm, StackPtr sp) { return U_JUMPNOFAIL(*vm, sp); }
-int CVM_JUMPNOFAILR(VM *vm, StackPtr sp) { return U_JUMPNOFAILR(*vm, sp); }
-int CVM_IFOR(VM *vm, StackPtr sp) { return U_IFOR(*vm, sp); }
-int CVM_SFOR(VM *vm, StackPtr sp) { return U_SFOR(*vm, sp); }
-int CVM_VFOR(VM *vm, StackPtr sp) { return U_VFOR(*vm, sp); }
-int CVM_JUMPIFUNWOUND(VM *vm, StackPtr sp, int df) { return U_JUMPIFUNWOUND(*vm, sp, df); }
-int CVM_JUMPIFSTATICLF(VM *vm, StackPtr sp, int df) { return U_JUMPIFSTATICLF(*vm, sp, df); }
-int CVM_JUMPIFMEMBERLF(VM *vm, StackPtr sp, int df) { return U_JUMPIFMEMBERLF(*vm, sp, df); }
+void CRtPushFloat(StackPtr sp, int64_t bits) { RtPushFloat(sp, bits); }
+void CRtPushStr(VM *vm, StackPtr sp, int i) { RtPushStr(*vm, sp, i); }
+void CRtIndexVecSub(VM *vm, StackPtr sp, int o) { RtIndexVecSub(*vm, sp, o); }
+void CRtIndexVecSubV(VM *vm, StackPtr sp, int w, int o) { RtIndexVecSubV(*vm, sp, w, o); }
+void CRtIndexVecNestSubV(VM *vm, StackPtr sp, int l, int w, int o) { RtIndexVecNestSubV(*vm, sp, l, w, o); }
+void CRtIndexStruct(VM *vm, StackPtr sp, int l) { RtIndexStruct(*vm, sp, l); }
+void CRtPushFieldMRef(VM *vm, StackPtr sp, int i) { RtPushFieldMRef(*vm, sp, i); }
+void CRtPushFieldV(StackPtr sp, int i, int l) { RtPushFieldV(sp, i, l); }
+void CRtPushFieldV2V(StackPtr sp, int i, int rl, int l) { RtPushFieldV2V(sp, i, rl, l); }
+void CRtNativeCallV(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCallV(*vm, sp, nfi, has_ret); }
+void CRtNativeCall0(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall0(*vm, sp, nfi, has_ret); }
+void CRtNativeCall1(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall1(*vm, sp, nfi, has_ret); }
+void CRtNativeCall2(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall2(*vm, sp, nfi, has_ret); }
+void CRtNativeCall3(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall3(*vm, sp, nfi, has_ret); }
+void CRtNativeCall4(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall4(*vm, sp, nfi, has_ret); }
+void CRtNativeCall5(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall5(*vm, sp, nfi, has_ret); }
+void CRtNativeCall6(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall6(*vm, sp, nfi, has_ret); }
+void CRtNativeCall7(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall7(*vm, sp, nfi, has_ret); }
+void CRtNewVec(VM *vm, StackPtr sp, type_elem_t ti, int len) { RtNewVec(*vm, sp, ti, len); }
+void CRtNewObject(VM *vm, StackPtr sp, type_elem_t ti) { RtNewObject(*vm, sp, ti); }
+void CRtPopV(StackPtr sp, int len) { RtPopV(sp, len); }
+void CRtExit(VM *vm, StackPtr sp, type_elem_t ti) { RtExit(*vm, sp, ti); }
+void CRtAbort(VM *vm) { RtAbort(*vm); }
+void CRtIAdd(VM *vm, StackPtr sp) { RtIAdd(*vm, sp); }
+void CRtISub(VM *vm, StackPtr sp) { RtISub(*vm, sp); }
+void CRtIMul(VM *vm, StackPtr sp) { RtIMul(*vm, sp); }
+void CRtIDiv(VM *vm, StackPtr sp) { RtIDiv(*vm, sp); }
+void CRtIMod(VM *vm, StackPtr sp) { RtIMod(*vm, sp); }
+void CRtILt(VM *vm, StackPtr sp) { RtILt(*vm, sp); }
+void CRtIGt(VM *vm, StackPtr sp) { RtIGt(*vm, sp); }
+void CRtILe(VM *vm, StackPtr sp) { RtILe(*vm, sp); }
+void CRtIGe(VM *vm, StackPtr sp) { RtIGe(*vm, sp); }
+void CRtIEq(VM *vm, StackPtr sp) { RtIEq(*vm, sp); }
+void CRtINe(VM *vm, StackPtr sp) { RtINe(*vm, sp); }
+void CRtFAdd(VM *vm, StackPtr sp) { RtFAdd(*vm, sp); }
+void CRtFSub(VM *vm, StackPtr sp) { RtFSub(*vm, sp); }
+void CRtFMul(VM *vm, StackPtr sp) { RtFMul(*vm, sp); }
+void CRtFDiv(VM *vm, StackPtr sp) { RtFDiv(*vm, sp); }
+void CRtFMod(VM *vm, StackPtr sp) { RtFMod(*vm, sp); }
+void CRtFLt(VM *vm, StackPtr sp) { RtFLt(*vm, sp); }
+void CRtFGt(VM *vm, StackPtr sp) { RtFGt(*vm, sp); }
+void CRtFLe(VM *vm, StackPtr sp) { RtFLe(*vm, sp); }
+void CRtFGe(VM *vm, StackPtr sp) { RtFGe(*vm, sp); }
+void CRtFEq(VM *vm, StackPtr sp) { RtFEq(*vm, sp); }
+void CRtFNe(VM *vm, StackPtr sp) { RtFNe(*vm, sp); }
+void CRtSAdd(VM *vm, StackPtr sp) { RtSAdd(*vm, sp); }
+void CRtSSub(VM *vm, StackPtr sp) { RtSSub(*vm, sp); }
+void CRtSMul(VM *vm, StackPtr sp) { RtSMul(*vm, sp); }
+void CRtSDiv(VM *vm, StackPtr sp) { RtSDiv(*vm, sp); }
+void CRtSMod(VM *vm, StackPtr sp) { RtSMod(*vm, sp); }
+void CRtSLt(VM *vm, StackPtr sp) { RtSLt(*vm, sp); }
+void CRtSGt(VM *vm, StackPtr sp) { RtSGt(*vm, sp); }
+void CRtSLe(VM *vm, StackPtr sp) { RtSLe(*vm, sp); }
+void CRtSGe(VM *vm, StackPtr sp) { RtSGe(*vm, sp); }
+void CRtSEq(VM *vm, StackPtr sp) { RtSEq(*vm, sp); }
+void CRtSNe(VM *vm, StackPtr sp) { RtSNe(*vm, sp); }
+void CRtStrConcatN(VM *vm, StackPtr sp, int len) { RtStrConcatN(*vm, sp, len); }
+void CRtIvvAdd(VM *vm, StackPtr sp, int len) { RtIvvAdd(*vm, sp, len); }
+void CRtIvvSub(VM *vm, StackPtr sp, int len) { RtIvvSub(*vm, sp, len); }
+void CRtIvvMul(VM *vm, StackPtr sp, int len) { RtIvvMul(*vm, sp, len); }
+void CRtIvvDiv(VM *vm, StackPtr sp, int len) { RtIvvDiv(*vm, sp, len); }
+void CRtIvvMod(VM *vm, StackPtr sp, int len) { RtIvvMod(*vm, sp, len); }
+void CRtIvvLt(VM *vm, StackPtr sp, int len) { RtIvvLt(*vm, sp, len); }
+void CRtIvvGt(VM *vm, StackPtr sp, int len) { RtIvvGt(*vm, sp, len); }
+void CRtIvvLe(VM *vm, StackPtr sp, int len) { RtIvvLe(*vm, sp, len); }
+void CRtIvvGe(VM *vm, StackPtr sp, int len) { RtIvvGe(*vm, sp, len); }
+void CRtFvvAdd(VM *vm, StackPtr sp, int len) { RtFvvAdd(*vm, sp, len); }
+void CRtFvvSub(VM *vm, StackPtr sp, int len) { RtFvvSub(*vm, sp, len); }
+void CRtFvvMul(VM *vm, StackPtr sp, int len) { RtFvvMul(*vm, sp, len); }
+void CRtFvvDiv(VM *vm, StackPtr sp, int len) { RtFvvDiv(*vm, sp, len); }
+void CRtFvvMod(VM *vm, StackPtr sp, int len) { RtFvvMod(*vm, sp, len); }
+void CRtFvvLt(VM *vm, StackPtr sp, int len) { RtFvvLt(*vm, sp, len); }
+void CRtFvvGt(VM *vm, StackPtr sp, int len) { RtFvvGt(*vm, sp, len); }
+void CRtFvvLe(VM *vm, StackPtr sp, int len) { RtFvvLe(*vm, sp, len); }
+void CRtFvvGe(VM *vm, StackPtr sp, int len) { RtFvvGe(*vm, sp, len); }
+void CRtIvsAdd(VM *vm, StackPtr sp, int len) { RtIvsAdd(*vm, sp, len); }
+void CRtIvsSub(VM *vm, StackPtr sp, int len) { RtIvsSub(*vm, sp, len); }
+void CRtIvsMul(VM *vm, StackPtr sp, int len) { RtIvsMul(*vm, sp, len); }
+void CRtIvsDiv(VM *vm, StackPtr sp, int len) { RtIvsDiv(*vm, sp, len); }
+void CRtIvsMod(VM *vm, StackPtr sp, int len) { RtIvsMod(*vm, sp, len); }
+void CRtIvsLt(VM *vm, StackPtr sp, int len) { RtIvsLt(*vm, sp, len); }
+void CRtIvsGt(VM *vm, StackPtr sp, int len) { RtIvsGt(*vm, sp, len); }
+void CRtIvsLe(VM *vm, StackPtr sp, int len) { RtIvsLe(*vm, sp, len); }
+void CRtIvsGe(VM *vm, StackPtr sp, int len) { RtIvsGe(*vm, sp, len); }
+void CRtFvsAdd(VM *vm, StackPtr sp, int len) { RtFvsAdd(*vm, sp, len); }
+void CRtFvsSub(VM *vm, StackPtr sp, int len) { RtFvsSub(*vm, sp, len); }
+void CRtFvsMul(VM *vm, StackPtr sp, int len) { RtFvsMul(*vm, sp, len); }
+void CRtFvsDiv(VM *vm, StackPtr sp, int len) { RtFvsDiv(*vm, sp, len); }
+void CRtFvsMod(VM *vm, StackPtr sp, int len) { RtFvsMod(*vm, sp, len); }
+void CRtFvsLt(VM *vm, StackPtr sp, int len) { RtFvsLt(*vm, sp, len); }
+void CRtFvsGt(VM *vm, StackPtr sp, int len) { RtFvsGt(*vm, sp, len); }
+void CRtFvsLe(VM *vm, StackPtr sp, int len) { RtFvsLe(*vm, sp, len); }
+void CRtFvsGe(VM *vm, StackPtr sp, int len) { RtFvsGe(*vm, sp, len); }
+void CRtSivAdd(VM *vm, StackPtr sp, int len) { RtSivAdd(*vm, sp, len); }
+void CRtSivSub(VM *vm, StackPtr sp, int len) { RtSivSub(*vm, sp, len); }
+void CRtSivMul(VM *vm, StackPtr sp, int len) { RtSivMul(*vm, sp, len); }
+void CRtSivDiv(VM *vm, StackPtr sp, int len) { RtSivDiv(*vm, sp, len); }
+void CRtSivMod(VM *vm, StackPtr sp, int len) { RtSivMod(*vm, sp, len); }
+void CRtSivLt(VM *vm, StackPtr sp, int len) { RtSivLt(*vm, sp, len); }
+void CRtSivGt(VM *vm, StackPtr sp, int len) { RtSivGt(*vm, sp, len); }
+void CRtSivLe(VM *vm, StackPtr sp, int len) { RtSivLe(*vm, sp, len); }
+void CRtSivGe(VM *vm, StackPtr sp, int len) { RtSivGe(*vm, sp, len); }
+void CRtSfvAdd(VM *vm, StackPtr sp, int len) { RtSfvAdd(*vm, sp, len); }
+void CRtSfvSub(VM *vm, StackPtr sp, int len) { RtSfvSub(*vm, sp, len); }
+void CRtSfvMul(VM *vm, StackPtr sp, int len) { RtSfvMul(*vm, sp, len); }
+void CRtSfvDiv(VM *vm, StackPtr sp, int len) { RtSfvDiv(*vm, sp, len); }
+void CRtSfvMod(VM *vm, StackPtr sp, int len) { RtSfvMod(*vm, sp, len); }
+void CRtSfvLt(VM *vm, StackPtr sp, int len) { RtSfvLt(*vm, sp, len); }
+void CRtSfvGt(VM *vm, StackPtr sp, int len) { RtSfvGt(*vm, sp, len); }
+void CRtSfvLe(VM *vm, StackPtr sp, int len) { RtSfvLe(*vm, sp, len); }
+void CRtSfvGe(VM *vm, StackPtr sp, int len) { RtSfvGe(*vm, sp, len); }
+void CRtAEq(StackPtr sp) { RtAEq(sp); }
+void CRtANe(StackPtr sp) { RtANe(sp); }
+void CRtSnEq(StackPtr sp) { RtSnEq(sp); }
+void CRtSnNe(StackPtr sp) { RtSnNe(sp); }
+void CRtStEq(StackPtr sp, int len) { RtStEq(sp, len); }
+void CRtStNe(StackPtr sp, int len) { RtStNe(sp, len); }
+void CRtLEq(StackPtr sp) { RtLEq(sp); }
+void CRtLNe(StackPtr sp) { RtLNe(sp); }
+void CRtIUMinus(StackPtr sp) { RtIUMinus(sp); }
+void CRtFUMinus(StackPtr sp) { RtFUMinus(sp); }
+void CRtIvUMinus(VM *vm, StackPtr sp, int len) { RtIvUMinus(*vm, sp, len); }
+void CRtFvUMinus(VM *vm, StackPtr sp, int len) { RtFvUMinus(*vm, sp, len); }
+void CRtBinAnd(StackPtr sp) { RtBinAnd(sp); }
+void CRtBinOr(StackPtr sp) { RtBinOr(sp); }
+void CRtXor(StackPtr sp) { RtXor(sp); }
+void CRtAsl(StackPtr sp) { RtAsl(sp); }
+void CRtAsr(StackPtr sp) { RtAsr(sp); }
+void CRtNeg(StackPtr sp) { RtNeg(sp); }
+void CRtToString(VM *vm, StackPtr sp, type_elem_t ti) { RtToString(*vm, sp, ti); }
+void CRtStructToString(VM *vm, StackPtr sp, type_elem_t ti) { RtStructToString(*vm, sp, ti); }
+void CRtIsType(StackPtr sp, type_elem_t ti, int nilres) { RtIsType(sp, ti, nilres); }
+void CRtIsSubType(VM *vm, StackPtr sp, int start, int end, int nilres) { RtIsSubType(*vm, sp, start, end, nilres); }
+void CRtCallValue(VM *vm, StackPtr sp) { RtCallValue(*vm, sp); }
+void CRtDynDispatch(VM *vm, StackPtr sp, int vtable_idx, int stack_idx) { RtDynDispatch(*vm, sp, vtable_idx, stack_idx); }
+void CRtEnumRangeErr(VM *vm) { RtEnumRangeErr(*vm); }
+Value *CRtLvalIndexVecV(VM *vm, StackPtr sp, int offset, int l) { return RtLvalIndexVecV(*vm, sp, offset, l); }
+Value *CRtLvalIndexClass(VM *vm, StackPtr sp, int offset) { return RtLvalIndexClass(*vm, sp, offset); }
+Value *CRtLvalIndexStruct(VM *vm, StackPtr sp, Value *lv, int offset, int maxfields) { return RtLvalIndexStruct(*vm, sp, lv, offset, maxfields); }
+void CRtLvDupV(StackPtr sp, Value *lv, int len) { RtLvDupV(sp, lv, len); }
+void CRtLvIDiv(VM *vm, StackPtr sp, Value *lv) { RtLvIDiv(*vm, sp, lv); }
+void CRtLvIMod(VM *vm, StackPtr sp, Value *lv) { RtLvIMod(*vm, sp, lv); }
+void CRtLvAsl(VM *vm, StackPtr sp, Value *lv) { RtLvAsl(*vm, sp, lv); }
+void CRtLvAsr(VM *vm, StackPtr sp, Value *lv) { RtLvAsr(*vm, sp, lv); }
+void CRtLvFMod(VM *vm, StackPtr sp, Value *lv) { RtLvFMod(*vm, sp, lv); }
+void CRtLvIvvAdd(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvvAdd(*vm, sp, lv, len); }
+void CRtLvIvvSub(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvvSub(*vm, sp, lv, len); }
+void CRtLvIvvMul(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvvMul(*vm, sp, lv, len); }
+void CRtLvIvvDiv(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvvDiv(*vm, sp, lv, len); }
+void CRtLvIvvMod(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvvMod(*vm, sp, lv, len); }
+void CRtLvFvvAdd(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvvAdd(*vm, sp, lv, len); }
+void CRtLvFvvSub(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvvSub(*vm, sp, lv, len); }
+void CRtLvFvvMul(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvvMul(*vm, sp, lv, len); }
+void CRtLvFvvDiv(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvvDiv(*vm, sp, lv, len); }
+void CRtLvFvvMod(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvvMod(*vm, sp, lv, len); }
+void CRtLvIvsAdd(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvsAdd(*vm, sp, lv, len); }
+void CRtLvIvsSub(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvsSub(*vm, sp, lv, len); }
+void CRtLvIvsMul(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvsMul(*vm, sp, lv, len); }
+void CRtLvIvsDiv(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvsDiv(*vm, sp, lv, len); }
+void CRtLvIvsMod(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvsMod(*vm, sp, lv, len); }
+void CRtLvFvsAdd(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvsAdd(*vm, sp, lv, len); }
+void CRtLvFvsSub(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvsSub(*vm, sp, lv, len); }
+void CRtLvFvsMul(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvsMul(*vm, sp, lv, len); }
+void CRtLvFvsDiv(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvsDiv(*vm, sp, lv, len); }
+void CRtLvFvsMod(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvsMod(*vm, sp, lv, len); }
+void CRtLvSAdd(VM *vm, StackPtr sp, Value *lv) { RtLvSAdd(*vm, sp, lv); }
+int CRtStaticSetThisFrame(VM *vm, int vidx) { return RtStaticSetThisFrame(*vm, vidx); }
+int CRtMemberSetThisFrame(VM *vm, StackPtr sp, int slot) { return RtMemberSetThisFrame(*vm, sp, slot); }
 
 #if VM_JIT_MODE
 
@@ -1329,274 +1250,195 @@ extern "C" void GLFrame(StackPtr sp, VM & vm);
 #endif
 
 const void *vm_ops_jit_table[] = {
-    "U_UNUSED", (void *)&CVM_UNUSED,
-    "U_PUSHINT", (void *)&CVM_PUSHINT,
-    "U_PUSHINT64", (void *)&CVM_PUSHINT64,
-    "U_PUSHFLT", (void *)&CVM_PUSHFLT,
-    "U_PUSHFLT64", (void *)&CVM_PUSHFLT64,
-    "U_PUSHSTR", (void *)&CVM_PUSHSTR,
-    "U_PUSHNIL", (void *)&CVM_PUSHNIL,
-    "U_PUSHVARF", (void *)&CVM_PUSHVARF,
-    "U_PUSHVARL", (void *)&CVM_PUSHVARL,
-    "U_PUSHVARVF", (void *)&CVM_PUSHVARVF,
-    "U_PUSHVARVL", (void *)&CVM_PUSHVARVL,
-    "U_VPUSHIDXI", (void *)&CVM_VPUSHIDXI,
-    "U_VPUSHIDXI2V", (void *)&CVM_VPUSHIDXI2V,
-    "U_VPUSHIDXV", (void *)&CVM_VPUSHIDXV,
-    "U_VPUSHIDXIS", (void *)&CVM_VPUSHIDXIS,
-    "U_VPUSHIDXIS2V", (void *)&CVM_VPUSHIDXIS2V,
-    "U_VPUSHIDXVS", (void *)&CVM_VPUSHIDXVS,
-    "U_NPUSHIDXI", (void *)&CVM_NPUSHIDXI,
-    "U_SPUSHIDXI", (void *)&CVM_SPUSHIDXI,
-    "U_PUSHFLD", (void *)&CVM_PUSHFLD,
-    "U_PUSHFLDMREF", (void *)&CVM_PUSHFLDMREF,
-    "U_PUSHFLDV", (void *)&CVM_PUSHFLDV,
-    "U_PUSHFLD2V", (void *)&CVM_PUSHFLD2V,
-    "U_PUSHFLDV2V", (void *)&CVM_PUSHFLDV2V,
-    "U_BCALLRETV", (void *)&CVM_BCALLRETV,
-    "U_BCALLRET0", (void *)&CVM_BCALLRET0,
-    "U_BCALLRET1", (void *)&CVM_BCALLRET1,
-    "U_BCALLRET2", (void *)&CVM_BCALLRET2,
-    "U_BCALLRET3", (void *)&CVM_BCALLRET3,
-    "U_BCALLRET4", (void *)&CVM_BCALLRET4,
-    "U_BCALLRET5", (void *)&CVM_BCALLRET5,
-    "U_BCALLRET6", (void *)&CVM_BCALLRET6,
-    "U_BCALLRET7", (void *)&CVM_BCALLRET7,
-    "U_ASSERT", (void *)&CVM_ASSERT,
-    "U_ASSERTR", (void *)&CVM_ASSERTR,
-    "U_STATEMENT", (void *)&CVM_STATEMENT,
-    "U_PROFILE", (void *)&CVM_PROFILE,
-    "U_NEWVEC", (void *)&CVM_NEWVEC,
-    "U_NEWOBJECT", (void *)&CVM_NEWOBJECT,
-    "U_POP", (void *)&CVM_POP,
-    "U_POPREF", (void *)&CVM_POPREF,
-    "U_POPV", (void *)&CVM_POPV,
-    "U_DUP", (void *)&CVM_DUP,
-    "U_EXIT", (void *)&CVM_EXIT,
-    "U_ABORT", (void *)&CVM_ABORT,
-    "U_IADD", (void *)&CVM_IADD,
-    "U_ISUB", (void *)&CVM_ISUB,
-    "U_IMUL", (void *)&CVM_IMUL,
-    "U_IDIV", (void *)&CVM_IDIV,
-    "U_IMOD", (void *)&CVM_IMOD,
-    "U_ILT", (void *)&CVM_ILT,
-    "U_IGT", (void *)&CVM_IGT,
-    "U_ILE", (void *)&CVM_ILE,
-    "U_IGE", (void *)&CVM_IGE,
-    "U_IEQ", (void *)&CVM_IEQ,
-    "U_INE", (void *)&CVM_INE,
-    "U_FADD", (void *)&CVM_FADD,
-    "U_FSUB", (void *)&CVM_FSUB,
-    "U_FMUL", (void *)&CVM_FMUL,
-    "U_FDIV", (void *)&CVM_FDIV,
-    "U_FMOD", (void *)&CVM_FMOD,
-    "U_FLT", (void *)&CVM_FLT,
-    "U_FGT", (void *)&CVM_FGT,
-    "U_FLE", (void *)&CVM_FLE,
-    "U_FGE", (void *)&CVM_FGE,
-    "U_FEQ", (void *)&CVM_FEQ,
-    "U_FNE", (void *)&CVM_FNE,
-    "U_SADD", (void *)&CVM_SADD,
-    "U_SSUB", (void *)&CVM_SSUB,
-    "U_SMUL", (void *)&CVM_SMUL,
-    "U_SDIV", (void *)&CVM_SDIV,
-    "U_SMOD", (void *)&CVM_SMOD,
-    "U_SLT", (void *)&CVM_SLT,
-    "U_SGT", (void *)&CVM_SGT,
-    "U_SLE", (void *)&CVM_SLE,
-    "U_SGE", (void *)&CVM_SGE,
-    "U_SEQ", (void *)&CVM_SEQ,
-    "U_SNE", (void *)&CVM_SNE,
-    "U_SADDN", (void *)&CVM_SADDN,
-    "U_IVVADD", (void *)&CVM_IVVADD,
-    "U_IVVSUB", (void *)&CVM_IVVSUB,
-    "U_IVVMUL", (void *)&CVM_IVVMUL,
-    "U_IVVDIV", (void *)&CVM_IVVDIV,
-    "U_IVVMOD", (void *)&CVM_IVVMOD,
-    "U_IVVLT", (void *)&CVM_IVVLT,
-    "U_IVVGT", (void *)&CVM_IVVGT,
-    "U_IVVLE", (void *)&CVM_IVVLE,
-    "U_IVVGE", (void *)&CVM_IVVGE,
-    "U_FVVADD", (void *)&CVM_FVVADD,
-    "U_FVVSUB", (void *)&CVM_FVVSUB,
-    "U_FVVMUL", (void *)&CVM_FVVMUL,
-    "U_FVVDIV", (void *)&CVM_FVVDIV,
-    "U_FVVMOD", (void *)&CVM_FVVMOD,
-    "U_FVVLT", (void *)&CVM_FVVLT,
-    "U_FVVGT", (void *)&CVM_FVVGT,
-    "U_FVVLE", (void *)&CVM_FVVLE,
-    "U_FVVGE", (void *)&CVM_FVVGE,
-    "U_IVSADD", (void *)&CVM_IVSADD,
-    "U_IVSSUB", (void *)&CVM_IVSSUB,
-    "U_IVSMUL", (void *)&CVM_IVSMUL,
-    "U_IVSDIV", (void *)&CVM_IVSDIV,
-    "U_IVSMOD", (void *)&CVM_IVSMOD,
-    "U_IVSLT", (void *)&CVM_IVSLT,
-    "U_IVSGT", (void *)&CVM_IVSGT,
-    "U_IVSLE", (void *)&CVM_IVSLE,
-    "U_IVSGE", (void *)&CVM_IVSGE,
-    "U_FVSADD", (void *)&CVM_FVSADD,
-    "U_FVSSUB", (void *)&CVM_FVSSUB,
-    "U_FVSMUL", (void *)&CVM_FVSMUL,
-    "U_FVSDIV", (void *)&CVM_FVSDIV,
-    "U_FVSMOD", (void *)&CVM_FVSMOD,
-    "U_FVSLT", (void *)&CVM_FVSLT,
-    "U_FVSGT", (void *)&CVM_FVSGT,
-    "U_FVSLE", (void *)&CVM_FVSLE,
-    "U_FVSGE", (void *)&CVM_FVSGE,
-    "U_SIVADD", (void *)&CVM_SIVADD,
-    "U_SIVSUB", (void *)&CVM_SIVSUB,
-    "U_SIVMUL", (void *)&CVM_SIVMUL,
-    "U_SIVDIV", (void *)&CVM_SIVDIV,
-    "U_SIVMOD", (void *)&CVM_SIVMOD,
-    "U_SIVLT", (void *)&CVM_SIVLT,
-    "U_SIVGT", (void *)&CVM_SIVGT,
-    "U_SIVLE", (void *)&CVM_SIVLE,
-    "U_SIVGE", (void *)&CVM_SIVGE,
-    "U_SFVADD", (void *)&CVM_SFVADD,
-    "U_SFVSUB", (void *)&CVM_SFVSUB,
-    "U_SFVMUL", (void *)&CVM_SFVMUL,
-    "U_SFVDIV", (void *)&CVM_SFVDIV,
-    "U_SFVMOD", (void *)&CVM_SFVMOD,
-    "U_SFVLT", (void *)&CVM_SFVLT,
-    "U_SFVGT", (void *)&CVM_SFVGT,
-    "U_SFVLE", (void *)&CVM_SFVLE,
-    "U_SFVGE", (void *)&CVM_SFVGE,
-    "U_AEQ", (void *)&CVM_AEQ,
-    "U_ANE", (void *)&CVM_ANE,
-    "U_SNEQ", (void *)&CVM_SNEQ,
-    "U_SNNE", (void *)&CVM_SNNE,
-    "U_STEQ", (void *)&CVM_STEQ,
-    "U_STNE", (void *)&CVM_STNE,
-    "U_LEQ", (void *)&CVM_LEQ,
-    "U_LNE", (void *)&CVM_LNE,
-    "U_IUMINUS", (void *)&CVM_IUMINUS,
-    "U_FUMINUS", (void *)&CVM_FUMINUS,
-    "U_IVUMINUS", (void *)&CVM_IVUMINUS,
-    "U_FVUMINUS", (void *)&CVM_FVUMINUS,
-    "U_LOGNOT", (void *)&CVM_LOGNOT,
-    "U_BINAND", (void *)&CVM_BINAND,
-    "U_BINOR", (void *)&CVM_BINOR,
-    "U_XOR", (void *)&CVM_XOR,
-    "U_ASL", (void *)&CVM_ASL,
-    "U_ASR", (void *)&CVM_ASR,
-    "U_NEG", (void *)&CVM_NEG,
-    "U_I2F", (void *)&CVM_I2F,
-    "U_A2S", (void *)&CVM_A2S,
-    "U_E2B", (void *)&CVM_E2B,
-    "U_E2BREF", (void *)&CVM_E2BREF,
-    "U_ST2S", (void *)&CVM_ST2S,
-    "U_RETURNLOCAL", (void *)&CVM_RETURNLOCAL,
-    "U_RETURNNONLOCAL", (void *)&CVM_RETURNNONLOCAL,
-    "U_RETURNANY", (void *)&CVM_RETURNANY,
-    "U_ISTYPE", (void *)&CVM_ISTYPE,
-    "U_ISSUBTYPE", (void *)&CVM_ISSUBTYPE,
-    "U_FORLOOPI", (void *)&CVM_FORLOOPI,
-    "U_IFORELEM", (void *)&CVM_IFORELEM,
-    "U_SFORELEM", (void *)&CVM_SFORELEM,
-    "U_VFORELEM", (void *)&CVM_VFORELEM,
-    "U_VFORELEMREF", (void *)&CVM_VFORELEMREF,
-    "U_VFORELEM2S", (void *)&CVM_VFORELEM2S,
-    "U_VFORELEMREF2S", (void *)&CVM_VFORELEMREF2S,
-    "U_INCREF", (void *)&CVM_INCREF,
-    "U_KEEPREF", (void *)&CVM_KEEPREF,
-    "U_KEEPREFLOOP", (void *)&CVM_KEEPREFLOOP,
-    "U_GOTOFUNEXIT", (void *)&CVM_GOTOFUNEXIT,
-    "U_CALL", (void *)&CVM_CALL,
-    "U_CALLV", (void *)&CVM_CALLV,
-    "U_DDCALL", (void *)&CVM_DDCALL,
-    "U_LABEL", (void *)&CVM_LABEL,
-    "U_JUMP_TABLE_END", (void *)&CVM_JUMP_TABLE_END,
-    "U_JUMP_TABLE_CASE_START", (void *)&CVM_JUMP_TABLE_CASE_START,
-    "U_ENUM_RANGE_ERR", (void *)&CVM_ENUM_RANGE_ERR,
-    "U_LVAL_VARF", (void *)&CVM_LVAL_VARF,
-    "U_LVAL_VARL", (void *)&CVM_LVAL_VARL,
-    "U_LVAL_FLD", (void *)&CVM_LVAL_FLD,
-    "U_LVAL_IDXVI", (void *)&CVM_LVAL_IDXVI,
-    "U_LVAL_IDXVV", (void *)&CVM_LVAL_IDXVV,
-    "U_LVAL_IDXNI", (void *)&CVM_LVAL_IDXNI,
-    "U_LVAL_IDXSI", (void *)&CVM_LVAL_IDXSI,
-    "U_LV_DUP", (void *)&CVM_LV_DUP,
-    "U_LV_DUPV", (void *)&CVM_LV_DUPV,
-    "U_LV_WRITE", (void *)&CVM_LV_WRITE,
-    "U_LV_WRITEREF", (void *)&CVM_LV_WRITEREF,
-    "U_LV_WRITEV", (void *)&CVM_LV_WRITEV,
-    "U_LV_WRITEREFV", (void *)&CVM_LV_WRITEREFV,
-    "U_LV_IADD", (void *)&CVM_LV_IADD,
-    "U_LV_ISUB", (void *)&CVM_LV_ISUB,
-    "U_LV_IMUL", (void *)&CVM_LV_IMUL,
-    "U_LV_IDIV", (void *)&CVM_LV_IDIV,
-    "U_LV_IMOD", (void *)&CVM_LV_IMOD,
-    "U_LV_BINAND", (void *)&CVM_LV_BINAND,
-    "U_LV_BINOR", (void *)&CVM_LV_BINOR,
-    "U_LV_XOR", (void *)&CVM_LV_XOR,
-    "U_LV_ASL", (void *)&CVM_LV_ASL,
-    "U_LV_ASR", (void *)&CVM_LV_ASR,
-    "U_LV_FADD", (void *)&CVM_LV_FADD,
-    "U_LV_FSUB", (void *)&CVM_LV_FSUB,
-    "U_LV_FMUL", (void *)&CVM_LV_FMUL,
-    "U_LV_FDIV", (void *)&CVM_LV_FDIV,
-    "U_LV_FMOD", (void *)&CVM_LV_FMOD,
-    "U_LV_IVVADD", (void *)&CVM_LV_IVVADD,
-    "U_LV_IVVSUB", (void *)&CVM_LV_IVVSUB,
-    "U_LV_IVVMUL", (void *)&CVM_LV_IVVMUL,
-    "U_LV_IVVDIV", (void *)&CVM_LV_IVVDIV,
-    "U_LV_IVVMOD", (void *)&CVM_LV_IVVMOD,
-    "U_LV_FVVADD", (void *)&CVM_LV_FVVADD,
-    "U_LV_FVVSUB", (void *)&CVM_LV_FVVSUB,
-    "U_LV_FVVMUL", (void *)&CVM_LV_FVVMUL,
-    "U_LV_FVVDIV", (void *)&CVM_LV_FVVDIV,
-    "U_LV_FVVMOD", (void *)&CVM_LV_FVVMOD,
-    "U_LV_IVSADD", (void *)&CVM_LV_IVSADD,
-    "U_LV_IVSSUB", (void *)&CVM_LV_IVSSUB,
-    "U_LV_IVSMUL", (void *)&CVM_LV_IVSMUL,
-    "U_LV_IVSDIV", (void *)&CVM_LV_IVSDIV,
-    "U_LV_IVSMOD", (void *)&CVM_LV_IVSMOD,
-    "U_LV_FVSADD", (void *)&CVM_LV_FVSADD,
-    "U_LV_FVSSUB", (void *)&CVM_LV_FVSSUB,
-    "U_LV_FVSMUL", (void *)&CVM_LV_FVSMUL,
-    "U_LV_FVSDIV", (void *)&CVM_LV_FVSDIV,
-    "U_LV_FVSMOD", (void *)&CVM_LV_FVSMOD,
-    "U_LV_SADD", (void *)&CVM_LV_SADD,
-    "U_LV_IPP", (void *)&CVM_LV_IPP,
-    "U_LV_IMM", (void *)&CVM_LV_IMM,
-    "U_LV_FPP", (void *)&CVM_LV_FPP,
-    "U_LV_FMM", (void *)&CVM_LV_FMM,
-    "U_PUSHFUN", (void *)&CVM_PUSHFUN,
-    "U_JUMP_TABLE", (void *)&CVM_JUMP_TABLE,
-    "U_JUMP_TABLE_DISPATCH", (void *)&CVM_JUMP_TABLE_DISPATCH,
-    "U_JUMP", (void *)&CVM_JUMP,
-    "U_JUMPFAIL", (void *)&CVM_JUMPFAIL,
-    "U_JUMPFAILR", (void *)&CVM_JUMPFAILR,
-    "U_JUMPNOFAIL", (void *)&CVM_JUMPNOFAIL,
-    "U_JUMPNOFAILR", (void *)&CVM_JUMPNOFAILR,
-    "U_IFOR", (void *)&CVM_IFOR,
-    "U_SFOR", (void *)&CVM_SFOR,
-    "U_VFOR", (void *)&CVM_VFOR,
-    "U_JUMPIFUNWOUND", (void *)&CVM_JUMPIFUNWOUND,
-    "U_JUMPIFSTATICLF", (void *)&CVM_JUMPIFSTATICLF,
-    "U_JUMPIFMEMBERLF", (void *)&CVM_JUMPIFMEMBERLF,
-    "GetNextCallTarget", (void *)CVM_GetNextCallTarget,
-    "Entry", (void *)CVM_Entry,
-    "IDXErr", (void *)CVM_IDXErr,
-    "SwapVars", (void *)CVM_SwapVars,
-    "BackupVar", (void *)CVM_BackupVar,
-    "DecOwned", (void *)CVM_DecOwned,
-    "DecDelete", (void *)CVM_DecDelete,
-    "AssertFailed", (void *)CVM_AssertFailed,
-    "DecVal", (void *)CVM_DecVal,
-    "RestoreBackup", (void *)CVM_RestoreBackup,
-    "PopArg", (void *)CVM_PopArg,
-    "RetSlots", (void *)CVM_RetSlots,
-    "GetTypeSwitchID", (void *)CVM_GetTypeSwitchID,
-    "PushFunId", (void *)CVM_PushFunId,
-    "PopFunId", (void *)CVM_PopFunId,
+    "RtPushFloat", (void *)&CRtPushFloat,
+    "RtPushStr", (void *)&CRtPushStr,
+    "RtIndexVecSub", (void *)&CRtIndexVecSub,
+    "RtIndexVecSubV", (void *)&CRtIndexVecSubV,
+    "RtIndexVecNestSubV", (void *)&CRtIndexVecNestSubV,
+    "RtIndexStruct", (void *)&CRtIndexStruct,
+    "RtPushFieldMRef", (void *)&CRtPushFieldMRef,
+    "RtPushFieldV", (void *)&CRtPushFieldV,
+    "RtPushFieldV2V", (void *)&CRtPushFieldV2V,
+    "RtNativeCallV", (void *)&CRtNativeCallV,
+    "RtNativeCall0", (void *)&CRtNativeCall0,
+    "RtNativeCall1", (void *)&CRtNativeCall1,
+    "RtNativeCall2", (void *)&CRtNativeCall2,
+    "RtNativeCall3", (void *)&CRtNativeCall3,
+    "RtNativeCall4", (void *)&CRtNativeCall4,
+    "RtNativeCall5", (void *)&CRtNativeCall5,
+    "RtNativeCall6", (void *)&CRtNativeCall6,
+    "RtNativeCall7", (void *)&CRtNativeCall7,
+    "RtNewVec", (void *)&CRtNewVec,
+    "RtNewObject", (void *)&CRtNewObject,
+    "RtPopV", (void *)&CRtPopV,
+    "RtExit", (void *)&CRtExit,
+    "RtAbort", (void *)&CRtAbort,
+    "RtIAdd", (void *)&CRtIAdd,
+    "RtISub", (void *)&CRtISub,
+    "RtIMul", (void *)&CRtIMul,
+    "RtIDiv", (void *)&CRtIDiv,
+    "RtIMod", (void *)&CRtIMod,
+    "RtILt", (void *)&CRtILt,
+    "RtIGt", (void *)&CRtIGt,
+    "RtILe", (void *)&CRtILe,
+    "RtIGe", (void *)&CRtIGe,
+    "RtIEq", (void *)&CRtIEq,
+    "RtINe", (void *)&CRtINe,
+    "RtFAdd", (void *)&CRtFAdd,
+    "RtFSub", (void *)&CRtFSub,
+    "RtFMul", (void *)&CRtFMul,
+    "RtFDiv", (void *)&CRtFDiv,
+    "RtFMod", (void *)&CRtFMod,
+    "RtFLt", (void *)&CRtFLt,
+    "RtFGt", (void *)&CRtFGt,
+    "RtFLe", (void *)&CRtFLe,
+    "RtFGe", (void *)&CRtFGe,
+    "RtFEq", (void *)&CRtFEq,
+    "RtFNe", (void *)&CRtFNe,
+    "RtSAdd", (void *)&CRtSAdd,
+    "RtSSub", (void *)&CRtSSub,
+    "RtSMul", (void *)&CRtSMul,
+    "RtSDiv", (void *)&CRtSDiv,
+    "RtSMod", (void *)&CRtSMod,
+    "RtSLt", (void *)&CRtSLt,
+    "RtSGt", (void *)&CRtSGt,
+    "RtSLe", (void *)&CRtSLe,
+    "RtSGe", (void *)&CRtSGe,
+    "RtSEq", (void *)&CRtSEq,
+    "RtSNe", (void *)&CRtSNe,
+    "RtStrConcatN", (void *)&CRtStrConcatN,
+    "RtIvvAdd", (void *)&CRtIvvAdd,
+    "RtIvvSub", (void *)&CRtIvvSub,
+    "RtIvvMul", (void *)&CRtIvvMul,
+    "RtIvvDiv", (void *)&CRtIvvDiv,
+    "RtIvvMod", (void *)&CRtIvvMod,
+    "RtIvvLt", (void *)&CRtIvvLt,
+    "RtIvvGt", (void *)&CRtIvvGt,
+    "RtIvvLe", (void *)&CRtIvvLe,
+    "RtIvvGe", (void *)&CRtIvvGe,
+    "RtFvvAdd", (void *)&CRtFvvAdd,
+    "RtFvvSub", (void *)&CRtFvvSub,
+    "RtFvvMul", (void *)&CRtFvvMul,
+    "RtFvvDiv", (void *)&CRtFvvDiv,
+    "RtFvvMod", (void *)&CRtFvvMod,
+    "RtFvvLt", (void *)&CRtFvvLt,
+    "RtFvvGt", (void *)&CRtFvvGt,
+    "RtFvvLe", (void *)&CRtFvvLe,
+    "RtFvvGe", (void *)&CRtFvvGe,
+    "RtIvsAdd", (void *)&CRtIvsAdd,
+    "RtIvsSub", (void *)&CRtIvsSub,
+    "RtIvsMul", (void *)&CRtIvsMul,
+    "RtIvsDiv", (void *)&CRtIvsDiv,
+    "RtIvsMod", (void *)&CRtIvsMod,
+    "RtIvsLt", (void *)&CRtIvsLt,
+    "RtIvsGt", (void *)&CRtIvsGt,
+    "RtIvsLe", (void *)&CRtIvsLe,
+    "RtIvsGe", (void *)&CRtIvsGe,
+    "RtFvsAdd", (void *)&CRtFvsAdd,
+    "RtFvsSub", (void *)&CRtFvsSub,
+    "RtFvsMul", (void *)&CRtFvsMul,
+    "RtFvsDiv", (void *)&CRtFvsDiv,
+    "RtFvsMod", (void *)&CRtFvsMod,
+    "RtFvsLt", (void *)&CRtFvsLt,
+    "RtFvsGt", (void *)&CRtFvsGt,
+    "RtFvsLe", (void *)&CRtFvsLe,
+    "RtFvsGe", (void *)&CRtFvsGe,
+    "RtSivAdd", (void *)&CRtSivAdd,
+    "RtSivSub", (void *)&CRtSivSub,
+    "RtSivMul", (void *)&CRtSivMul,
+    "RtSivDiv", (void *)&CRtSivDiv,
+    "RtSivMod", (void *)&CRtSivMod,
+    "RtSivLt", (void *)&CRtSivLt,
+    "RtSivGt", (void *)&CRtSivGt,
+    "RtSivLe", (void *)&CRtSivLe,
+    "RtSivGe", (void *)&CRtSivGe,
+    "RtSfvAdd", (void *)&CRtSfvAdd,
+    "RtSfvSub", (void *)&CRtSfvSub,
+    "RtSfvMul", (void *)&CRtSfvMul,
+    "RtSfvDiv", (void *)&CRtSfvDiv,
+    "RtSfvMod", (void *)&CRtSfvMod,
+    "RtSfvLt", (void *)&CRtSfvLt,
+    "RtSfvGt", (void *)&CRtSfvGt,
+    "RtSfvLe", (void *)&CRtSfvLe,
+    "RtSfvGe", (void *)&CRtSfvGe,
+    "RtAEq", (void *)&CRtAEq,
+    "RtANe", (void *)&CRtANe,
+    "RtSnEq", (void *)&CRtSnEq,
+    "RtSnNe", (void *)&CRtSnNe,
+    "RtStEq", (void *)&CRtStEq,
+    "RtStNe", (void *)&CRtStNe,
+    "RtLEq", (void *)&CRtLEq,
+    "RtLNe", (void *)&CRtLNe,
+    "RtIUMinus", (void *)&CRtIUMinus,
+    "RtFUMinus", (void *)&CRtFUMinus,
+    "RtIvUMinus", (void *)&CRtIvUMinus,
+    "RtFvUMinus", (void *)&CRtFvUMinus,
+    "RtBinAnd", (void *)&CRtBinAnd,
+    "RtBinOr", (void *)&CRtBinOr,
+    "RtXor", (void *)&CRtXor,
+    "RtAsl", (void *)&CRtAsl,
+    "RtAsr", (void *)&CRtAsr,
+    "RtNeg", (void *)&CRtNeg,
+    "RtToString", (void *)&CRtToString,
+    "RtStructToString", (void *)&CRtStructToString,
+    "RtIsType", (void *)&CRtIsType,
+    "RtIsSubType", (void *)&CRtIsSubType,
+    "RtCallValue", (void *)&CRtCallValue,
+    "RtDynDispatch", (void *)&CRtDynDispatch,
+    "RtEnumRangeErr", (void *)&CRtEnumRangeErr,
+    "RtLvalIndexVecV", (void *)&CRtLvalIndexVecV,
+    "RtLvalIndexClass", (void *)&CRtLvalIndexClass,
+    "RtLvalIndexStruct", (void *)&CRtLvalIndexStruct,
+    "RtLvDupV", (void *)&CRtLvDupV,
+    "RtLvIDiv", (void *)&CRtLvIDiv,
+    "RtLvIMod", (void *)&CRtLvIMod,
+    "RtLvAsl", (void *)&CRtLvAsl,
+    "RtLvAsr", (void *)&CRtLvAsr,
+    "RtLvFMod", (void *)&CRtLvFMod,
+    "RtLvIvvAdd", (void *)&CRtLvIvvAdd,
+    "RtLvIvvSub", (void *)&CRtLvIvvSub,
+    "RtLvIvvMul", (void *)&CRtLvIvvMul,
+    "RtLvIvvDiv", (void *)&CRtLvIvvDiv,
+    "RtLvIvvMod", (void *)&CRtLvIvvMod,
+    "RtLvFvvAdd", (void *)&CRtLvFvvAdd,
+    "RtLvFvvSub", (void *)&CRtLvFvvSub,
+    "RtLvFvvMul", (void *)&CRtLvFvvMul,
+    "RtLvFvvDiv", (void *)&CRtLvFvvDiv,
+    "RtLvFvvMod", (void *)&CRtLvFvvMod,
+    "RtLvIvsAdd", (void *)&CRtLvIvsAdd,
+    "RtLvIvsSub", (void *)&CRtLvIvsSub,
+    "RtLvIvsMul", (void *)&CRtLvIvsMul,
+    "RtLvIvsDiv", (void *)&CRtLvIvsDiv,
+    "RtLvIvsMod", (void *)&CRtLvIvsMod,
+    "RtLvFvsAdd", (void *)&CRtLvFvsAdd,
+    "RtLvFvsSub", (void *)&CRtLvFvsSub,
+    "RtLvFvsMul", (void *)&CRtLvFvsMul,
+    "RtLvFvsDiv", (void *)&CRtLvFvsDiv,
+    "RtLvFvsMod", (void *)&CRtLvFvsMod,
+    "RtLvSAdd", (void *)&CRtLvSAdd,
+    "RtStaticSetThisFrame", (void *)&CRtStaticSetThisFrame,
+    "RtMemberSetThisFrame", (void *)&CRtMemberSetThisFrame,
+    "GetNextCallTarget", (void *)CRtGetNextCallTarget,
+    "Entry", (void *)CRtEntry,
+    "IDXErr", (void *)CRtIDXErr,
+    "SwapVars", (void *)CRtSwapVars,
+    "BackupVar", (void *)CRtBackupVar,
+    "DecOwned", (void *)CRtDecOwned,
+    "DecDelete", (void *)CRtDecDelete,
+    "AssertFailed", (void *)CRtAssertFailed,
+    "DecVal", (void *)CRtDecVal,
+    "RestoreBackup", (void *)CRtRestoreBackup,
+    "PopArg", (void *)CRtPopArg,
+    "RetSlots", (void *)CRtRetSlots,
+    "GetTypeSwitchID", (void *)CRtGetTypeSwitchID,
+    "PushFunId", (void *)CRtPushFunId,
+    "PopFunId", (void *)CRtPopFunId,
     #if LOBSTER_ENGINE
     "GLFrame", (void *)GLFrame,
     #endif
     #if LOBSTER_FRAME_PROFILER
-    "StartProfile", (void *)CVM_StartProfile,
-    "EndProfile", (void *)CVM_EndProfile,
+    "StartProfile", (void *)CRtStartProfile,
+    "EndProfile", (void *)CRtEndProfile,
     #endif
     0, 0
 };

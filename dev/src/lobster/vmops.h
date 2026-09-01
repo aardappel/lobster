@@ -89,35 +89,15 @@ VM_INLINE Value &GetVecLVal(VM &vm, StackPtr &sp, iint i) {
     return *v->AtSt(i);
 }
 
-VM_INLINE void U_PUSHINT(VM &, StackPtr, int) {
-    assert(false);
+VM_INLINE void RtPushFloat(StackPtr sp, int64_t bits) {
+    Push(sp, Value(int2float64(bits).f));
 }
-
-VM_INLINE void U_PUSHFLT(VM &, StackPtr, int) {
-    assert(false);
-}
-
-// The code generator emits these itself, see GenSimpleOp and EmitPUSHCONST64.
-VM_INLINE void U_PUSHNIL(VM &, StackPtr) {
-    assert(false);
-}
-
-VM_INLINE void U_PUSHINT64(VM &, StackPtr, int, int) {
-    assert(false);
-}
-
-VM_INLINE void U_PUSHFLT64(VM &, StackPtr sp, int a, int b) {
-    Push(sp, Value(int2float64(Int64FromInts(a, b)).f));
-}
-
-// The code generator emits the store itself, see EmitPUSHFUN.
-VM_INLINE void U_PUSHFUN(VM &, StackPtr, int, fun_base_t) { assert(false); }
 
 // Only still called when the constants are kept rather than borrowed; otherwise the code
 // generator emits the copy out of the VM itself, see EmitPUSHSTR.
 // FIXME: have a way that constant strings can stay in the bytecode, so this doesn't need the
 // indirection thru the VM at all.
-VM_INLINE void U_PUSHSTR(VM &vm, StackPtr sp, int i) {
+VM_INLINE void RtPushStr(VM &vm, StackPtr sp, int i) {
     auto s = vm.constant_strings[i];
     #if STRING_CONSTANTS_KEEP
         s.LTINCRT();
@@ -125,26 +105,13 @@ VM_INLINE void U_PUSHSTR(VM &vm, StackPtr sp, int i) {
     Push(sp, s);
 }
 
-VM_INLINE void U_INCREF(VM &, StackPtr, int) {
-    assert(false);
-}
-
-VM_INLINE void U_KEEPREFLOOP(VM &, StackPtr, int, int) { 
-}
-
-VM_INLINE void U_KEEPREF(VM &, StackPtr, int, int) {
-}
-
-VM_INLINE void U_CALL(VM &, StackPtr, int) {
-}
-
-VM_INLINE void U_CALLV(VM &vm, StackPtr sp) {
+VM_INLINE void RtCallValue(VM &vm, StackPtr sp) {
     Value fun = Pop(sp);
     VMTYPEEQ(fun, RTT_FUNCTION);
     vm.next_call_target = fun.ip();
 }
 
-VM_INLINE void U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) {
+VM_INLINE void RtDynDispatch(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) {
     auto self = TopM(sp, stack_idx);
     VMTYPEEQ(self, RTT_CLASS);
     auto start = self.oval()->ti(vm).vtable_start_or_bitmask;
@@ -152,32 +119,8 @@ VM_INLINE void U_DDCALL(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) {
     assert(vm.next_call_target);
 }
 
-VM_INLINE void U_RETURNLOCAL(VM &, StackPtr, int /*nrv*/) {
-    assert(false);
-}
-
-VM_INLINE void U_RETURNNONLOCAL(VM &, StackPtr, int, int) {
-    assert(false);
-}
-
-VM_INLINE void U_RETURNANY(VM &, StackPtr, int /*nretslots_norm*/) {
-    assert(false);
-}
-
-VM_INLINE void U_GOTOFUNEXIT(VM &, StackPtr) {
-    assert(false);
-}
-
-VM_INLINE void U_UNUSED(VM &, StackPtr) {
-    assert(false);
-}
-
-VM_INLINE void U_STATEMENT(VM &, StackPtr, int, int) {
-    assert(false);
-}
-
-VM_INLINE void U_EXIT(VM &vm, StackPtr sp, int tidx) {
-    if (tidx >= 0) vm.EndEval(sp, Pop(sp), vm.GetTypeInfo((type_elem_t)tidx));
+VM_INLINE void RtExit(VM &vm, StackPtr sp, type_elem_t ti) {
+    if (ti >= 0) vm.EndEval(sp, Pop(sp), vm.GetTypeInfo(ti));
     else vm.EndEval(sp, NilVal(), vm.GetTypeInfo(TYPE_ELEM_ANY));
 }
 
@@ -192,24 +135,6 @@ VM_INLINE bool ForLoop(VM &, StackPtr sp, iint len) {
     auto iter = Top(sp); \
     auto i = TopM(sp, 1).ival(); \
     assert(i < L);
-
-// The code generator emits an increment and a compare for this itself, see GenForCond.
-VM_INLINE bool U_IFOR(VM &, StackPtr) { assert(false); return false; }
-// Same, see GenForCond.
-VM_INLINE bool U_VFOR(VM &, StackPtr) { assert(false); return false; }
-VM_INLINE bool U_SFOR(VM &, StackPtr) { assert(false); return false; }
-
-// Copying the loop counter to the top of the stack is emitted by the code generator itself,
-// see GenForCounter, for this and for FORLOOPI below.
-VM_INLINE void U_IFORELEM(VM &, StackPtr) { assert(false); }
-VM_INLINE void U_SFORELEM(VM &, StackPtr) { assert(false); }
-// The code generator emits the loads for these itself, see GenForElem.
-VM_INLINE void U_VFORELEM(VM &, StackPtr) { assert(false); }
-VM_INLINE void U_VFORELEM2S(VM &, StackPtr) { assert(false); }
-VM_INLINE void U_VFORELEMREF(VM &, StackPtr) { assert(false); }
-VM_INLINE void U_VFORELEMREF2S(VM &, StackPtr, int) { assert(false); }
-
-VM_INLINE void U_FORLOOPI(VM &, StackPtr) { assert(false); }
 
 #if LOBSTER_FRAME_PROFILER_BUILTINS
     #define BPROF_START(NFI) auto ctx = ___tracy_emit_zone_begin(&vm.vma.nfr.pre_allocated_function_locations[NFI], true)
@@ -228,7 +153,7 @@ VM_INLINE void U_FORLOOPI(VM &, StackPtr) { assert(false); }
 #endif
 
 
-VM_INLINE void U_BCALLRETV(VM &vm, StackPtr sp, int nfi, int /*has_ret*/) {
+VM_INLINE void RtNativeCallV(VM &vm, StackPtr sp, int nfi, int /*has_ret*/) {
     BPROF_START(nfi);
     GPROF_START(nfi);
     vm.native_funs[nfi].fV(sp, vm);
@@ -237,7 +162,7 @@ VM_INLINE void U_BCALLRETV(VM &vm, StackPtr sp, int nfi, int /*has_ret*/) {
 }
 
 #define BCALLOP(N,DECLS,ARGS) \
-VM_INLINE void U_BCALLRET##N(VM &vm, StackPtr sp, int nfi, int has_ret) { \
+VM_INLINE void RtNativeCall##N(VM &vm, StackPtr sp, int nfi, int has_ret) { \
     BPROF_START(nfi); \
     GPROF_START(nfi); \
     DECLS; \
@@ -256,40 +181,24 @@ BCALLOP(5, auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(s
 BCALLOP(6, auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2, a3, a4, a5));
 BCALLOP(7, auto a6 = Pop(sp);auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2, a3, a4, a5, a6));
 
-// All that is left of this in the common case is the test, with the reporting out of line, so
-// that emitting it as a branch to a call is a faithful translation of it.
-VM_INLINE void U_ASSERTR(VM &, StackPtr, int, int, int) { assert(false); }
-
-VM_INLINE void U_ASSERT(VM &, StackPtr, int, int, int) { assert(false); }
-
-VM_INLINE void U_NEWVEC(VM &vm, StackPtr sp, int ty, int len) {
-    auto type = (type_elem_t)ty;
-    auto vec = vm.NewVec(len, len, type);
+VM_INLINE void RtNewVec(VM &vm, StackPtr sp, type_elem_t ti, int len) {
+    auto vec = vm.NewVec(len, len, ti);
     if (len) vec->CopyElemsShallow(TopPtr(sp) - len * vec->width);
     PopN(sp, len * (int)vec->width);
     Push(sp, Value(vec));
 }
 
-VM_INLINE void U_NEWOBJECT(VM &vm, StackPtr sp, int ty) {
-    auto type = (type_elem_t)ty;
-    auto len = vm.GetTypeInfo(type).len;
-    auto vec = vm.NewObject(len, type);
+VM_INLINE void RtNewObject(VM &vm, StackPtr sp, type_elem_t ti) {
+    auto len = vm.GetTypeInfo(ti).len;
+    auto vec = vm.NewObject(len, ti);
     if (len) vec->CopyElemsShallow(TopPtr(sp) - len, len);
     PopN(sp, len);
     Push(sp, Value(vec));
 }
 
-VM_INLINE void U_POP(VM &, StackPtr) {
-    // Popping only moves where the stack top is, which the code generator tracks statically,
-    // so it emits no code for IL_POP at all and this is never called.
-    assert(false);
-}
-VM_INLINE void U_POPREF(VM &, StackPtr) { assert(false); }
-VM_INLINE void U_POPV(VM &, StackPtr sp, int len) { PopN(sp, len); }
+VM_INLINE void RtPopV(StackPtr sp, int len) { PopN(sp, len); }
 
-VM_INLINE void U_DUP(VM &, StackPtr) { assert(false); }
-
-VM_INLINE void U_SADDN(VM &vm, StackPtr sp, int len) {
+VM_INLINE void RtStrConcatN(VM &vm, StackPtr sp, int len) {
     iint blen = 0;
     // Find total len.
     for (int i = 0; i < len; i++) blen += TopM(sp, i).sval()->len;
@@ -425,118 +334,118 @@ static_assert(std::numeric_limits<double>::is_iec559, "IEEE754 floats required")
 // U-    I F Vif
 // U!    A
 
-VM_INLINE void U_IVVADD(VM &vm, StackPtr sp, int len) { IVVOP(+,  0); }
-VM_INLINE void U_IVVSUB(VM &vm, StackPtr sp, int len) { IVVOP(-,  0); }
-VM_INLINE void U_IVVMUL(VM &vm, StackPtr sp, int len) { IVVOP(*,  0); }
-VM_INLINE void U_IVVDIV(VM &vm, StackPtr sp, int len) { IVVOP(/,  1); }
-VM_INLINE void U_IVVMOD(VM &vm, StackPtr sp, int len) { IVVOP(%,  1); }
-VM_INLINE void U_IVVLT(VM &vm, StackPtr sp, int len)  { IVVOP(<,  0); }
-VM_INLINE void U_IVVGT(VM &vm, StackPtr sp, int len)  { IVVOP(>,  0); }
-VM_INLINE void U_IVVLE(VM &vm, StackPtr sp, int len)  { IVVOP(<=, 0); }
-VM_INLINE void U_IVVGE(VM &vm, StackPtr sp, int len)  { IVVOP(>=, 0); }
-VM_INLINE void U_FVVADD(VM &vm, StackPtr sp, int len) { FVVOP(+,  0); }
-VM_INLINE void U_FVVSUB(VM &vm, StackPtr sp, int len) { FVVOP(-,  0); }
-VM_INLINE void U_FVVMUL(VM &vm, StackPtr sp, int len) { FVVOP(*,  0); }
-VM_INLINE void U_FVVDIV(VM &vm, StackPtr sp, int len) { FVVOP(/,  0); }
-VM_INLINE void U_FVVMOD(VM &vm, StackPtr sp, int len) { FVVOP(/,  2); }
-VM_INLINE void U_FVVLT(VM &vm, StackPtr sp, int len)  { FVVOP(<,  0); }
-VM_INLINE void U_FVVGT(VM &vm, StackPtr sp, int len)  { FVVOP(>,  0); }
-VM_INLINE void U_FVVLE(VM &vm, StackPtr sp, int len)  { FVVOP(<=, 0); }
-VM_INLINE void U_FVVGE(VM &vm, StackPtr sp, int len)  { FVVOP(>=, 0); }
+VM_INLINE void RtIvvAdd(VM &vm, StackPtr sp, int len) { IVVOP(+,  0); }
+VM_INLINE void RtIvvSub(VM &vm, StackPtr sp, int len) { IVVOP(-,  0); }
+VM_INLINE void RtIvvMul(VM &vm, StackPtr sp, int len) { IVVOP(*,  0); }
+VM_INLINE void RtIvvDiv(VM &vm, StackPtr sp, int len) { IVVOP(/,  1); }
+VM_INLINE void RtIvvMod(VM &vm, StackPtr sp, int len) { IVVOP(%,  1); }
+VM_INLINE void RtIvvLt(VM &vm, StackPtr sp, int len)  { IVVOP(<,  0); }
+VM_INLINE void RtIvvGt(VM &vm, StackPtr sp, int len)  { IVVOP(>,  0); }
+VM_INLINE void RtIvvLe(VM &vm, StackPtr sp, int len)  { IVVOP(<=, 0); }
+VM_INLINE void RtIvvGe(VM &vm, StackPtr sp, int len)  { IVVOP(>=, 0); }
+VM_INLINE void RtFvvAdd(VM &vm, StackPtr sp, int len) { FVVOP(+,  0); }
+VM_INLINE void RtFvvSub(VM &vm, StackPtr sp, int len) { FVVOP(-,  0); }
+VM_INLINE void RtFvvMul(VM &vm, StackPtr sp, int len) { FVVOP(*,  0); }
+VM_INLINE void RtFvvDiv(VM &vm, StackPtr sp, int len) { FVVOP(/,  0); }
+VM_INLINE void RtFvvMod(VM &vm, StackPtr sp, int len) { FVVOP(/,  2); }
+VM_INLINE void RtFvvLt(VM &vm, StackPtr sp, int len)  { FVVOP(<,  0); }
+VM_INLINE void RtFvvGt(VM &vm, StackPtr sp, int len)  { FVVOP(>,  0); }
+VM_INLINE void RtFvvLe(VM &vm, StackPtr sp, int len)  { FVVOP(<=, 0); }
+VM_INLINE void RtFvvGe(VM &vm, StackPtr sp, int len)  { FVVOP(>=, 0); }
 
-VM_INLINE void U_IVSADD(VM &vm, StackPtr sp, int len) { IVSOP(+,  0); }
-VM_INLINE void U_IVSSUB(VM &vm, StackPtr sp, int len) { IVSOP(-,  0); }
-VM_INLINE void U_IVSMUL(VM &vm, StackPtr sp, int len) { IVSOP(*,  0); }
-VM_INLINE void U_IVSDIV(VM &vm, StackPtr sp, int len) { IVSOP(/,  1); }
-VM_INLINE void U_IVSMOD(VM &vm, StackPtr sp, int len) { IVSOP(%,  1); }
-VM_INLINE void U_IVSLT(VM &vm, StackPtr sp, int len)  { IVSOP(<,  0); }
-VM_INLINE void U_IVSGT(VM &vm, StackPtr sp, int len)  { IVSOP(>,  0); }
-VM_INLINE void U_IVSLE(VM &vm, StackPtr sp, int len)  { IVSOP(<=, 0); }
-VM_INLINE void U_IVSGE(VM &vm, StackPtr sp, int len)  { IVSOP(>=, 0); }
-VM_INLINE void U_FVSADD(VM &vm, StackPtr sp, int len) { FVSOP(+,  0); }
-VM_INLINE void U_FVSSUB(VM &vm, StackPtr sp, int len) { FVSOP(-,  0); }
-VM_INLINE void U_FVSMUL(VM &vm, StackPtr sp, int len) { FVSOP(*,  0); }
-VM_INLINE void U_FVSDIV(VM &vm, StackPtr sp, int len) { FVSOP(/,  0); }
-VM_INLINE void U_FVSMOD(VM &vm, StackPtr sp, int len) { FVSOP(/,  2); }
-VM_INLINE void U_FVSLT(VM &vm, StackPtr sp, int len)  { FVSOP(<,  0); }
-VM_INLINE void U_FVSGT(VM &vm, StackPtr sp, int len)  { FVSOP(>,  0); }
-VM_INLINE void U_FVSLE(VM &vm, StackPtr sp, int len)  { FVSOP(<=, 0); }
-VM_INLINE void U_FVSGE(VM &vm, StackPtr sp, int len)  { FVSOP(>=, 0); }
+VM_INLINE void RtIvsAdd(VM &vm, StackPtr sp, int len) { IVSOP(+,  0); }
+VM_INLINE void RtIvsSub(VM &vm, StackPtr sp, int len) { IVSOP(-,  0); }
+VM_INLINE void RtIvsMul(VM &vm, StackPtr sp, int len) { IVSOP(*,  0); }
+VM_INLINE void RtIvsDiv(VM &vm, StackPtr sp, int len) { IVSOP(/,  1); }
+VM_INLINE void RtIvsMod(VM &vm, StackPtr sp, int len) { IVSOP(%,  1); }
+VM_INLINE void RtIvsLt(VM &vm, StackPtr sp, int len)  { IVSOP(<,  0); }
+VM_INLINE void RtIvsGt(VM &vm, StackPtr sp, int len)  { IVSOP(>,  0); }
+VM_INLINE void RtIvsLe(VM &vm, StackPtr sp, int len)  { IVSOP(<=, 0); }
+VM_INLINE void RtIvsGe(VM &vm, StackPtr sp, int len)  { IVSOP(>=, 0); }
+VM_INLINE void RtFvsAdd(VM &vm, StackPtr sp, int len) { FVSOP(+,  0); }
+VM_INLINE void RtFvsSub(VM &vm, StackPtr sp, int len) { FVSOP(-,  0); }
+VM_INLINE void RtFvsMul(VM &vm, StackPtr sp, int len) { FVSOP(*,  0); }
+VM_INLINE void RtFvsDiv(VM &vm, StackPtr sp, int len) { FVSOP(/,  0); }
+VM_INLINE void RtFvsMod(VM &vm, StackPtr sp, int len) { FVSOP(/,  2); }
+VM_INLINE void RtFvsLt(VM &vm, StackPtr sp, int len)  { FVSOP(<,  0); }
+VM_INLINE void RtFvsGt(VM &vm, StackPtr sp, int len)  { FVSOP(>,  0); }
+VM_INLINE void RtFvsLe(VM &vm, StackPtr sp, int len)  { FVSOP(<=, 0); }
+VM_INLINE void RtFvsGe(VM &vm, StackPtr sp, int len)  { FVSOP(>=, 0); }
 
-VM_INLINE void U_SIVADD(VM &vm, StackPtr sp, int len) { SIVOP(+,  0); }
-VM_INLINE void U_SIVSUB(VM &vm, StackPtr sp, int len) { SIVOP(-,  0); }
-VM_INLINE void U_SIVMUL(VM &vm, StackPtr sp, int len) { SIVOP(*,  0); }
-VM_INLINE void U_SIVDIV(VM &vm, StackPtr sp, int len) { SIVOP(/,  1); }
-VM_INLINE void U_SIVMOD(VM &vm, StackPtr sp, int len) { SIVOP(%,  1); }
-VM_INLINE void U_SIVLT(VM &vm, StackPtr sp, int len)  { SIVOP(<,  0); }
-VM_INLINE void U_SIVGT(VM &vm, StackPtr sp, int len)  { SIVOP(>,  0); }
-VM_INLINE void U_SIVLE(VM &vm, StackPtr sp, int len)  { SIVOP(<=, 0); }
-VM_INLINE void U_SIVGE(VM &vm, StackPtr sp, int len)  { SIVOP(>=, 0); }
-VM_INLINE void U_SFVADD(VM &vm, StackPtr sp, int len) { SFVOP(+,  0); }
-VM_INLINE void U_SFVSUB(VM &vm, StackPtr sp, int len) { SFVOP(-,  0); }
-VM_INLINE void U_SFVMUL(VM &vm, StackPtr sp, int len) { SFVOP(*,  0); }
-VM_INLINE void U_SFVDIV(VM &vm, StackPtr sp, int len) { SFVOP(/,  0); }
-VM_INLINE void U_SFVMOD(VM &vm, StackPtr sp, int len) { SFVOP(/,  2); }
-VM_INLINE void U_SFVLT(VM &vm, StackPtr sp, int len)  { SFVOP(<,  0); }
-VM_INLINE void U_SFVGT(VM &vm, StackPtr sp, int len)  { SFVOP(>,  0); }
-VM_INLINE void U_SFVLE(VM &vm, StackPtr sp, int len)  { SFVOP(<=, 0); }
-VM_INLINE void U_SFVGE(VM &vm, StackPtr sp, int len)  { SFVOP(>=, 0); }
+VM_INLINE void RtSivAdd(VM &vm, StackPtr sp, int len) { SIVOP(+,  0); }
+VM_INLINE void RtSivSub(VM &vm, StackPtr sp, int len) { SIVOP(-,  0); }
+VM_INLINE void RtSivMul(VM &vm, StackPtr sp, int len) { SIVOP(*,  0); }
+VM_INLINE void RtSivDiv(VM &vm, StackPtr sp, int len) { SIVOP(/,  1); }
+VM_INLINE void RtSivMod(VM &vm, StackPtr sp, int len) { SIVOP(%,  1); }
+VM_INLINE void RtSivLt(VM &vm, StackPtr sp, int len)  { SIVOP(<,  0); }
+VM_INLINE void RtSivGt(VM &vm, StackPtr sp, int len)  { SIVOP(>,  0); }
+VM_INLINE void RtSivLe(VM &vm, StackPtr sp, int len)  { SIVOP(<=, 0); }
+VM_INLINE void RtSivGe(VM &vm, StackPtr sp, int len)  { SIVOP(>=, 0); }
+VM_INLINE void RtSfvAdd(VM &vm, StackPtr sp, int len) { SFVOP(+,  0); }
+VM_INLINE void RtSfvSub(VM &vm, StackPtr sp, int len) { SFVOP(-,  0); }
+VM_INLINE void RtSfvMul(VM &vm, StackPtr sp, int len) { SFVOP(*,  0); }
+VM_INLINE void RtSfvDiv(VM &vm, StackPtr sp, int len) { SFVOP(/,  0); }
+VM_INLINE void RtSfvMod(VM &vm, StackPtr sp, int len) { SFVOP(/,  2); }
+VM_INLINE void RtSfvLt(VM &vm, StackPtr sp, int len)  { SFVOP(<,  0); }
+VM_INLINE void RtSfvGt(VM &vm, StackPtr sp, int len)  { SFVOP(>,  0); }
+VM_INLINE void RtSfvLe(VM &vm, StackPtr sp, int len)  { SFVOP(<=, 0); }
+VM_INLINE void RtSfvGe(VM &vm, StackPtr sp, int len)  { SFVOP(>=, 0); }
 
-VM_INLINE void U_AEQ(VM &, StackPtr sp)  { ACOMPEN(==); }
-VM_INLINE void U_ANE(VM &, StackPtr sp)  { ACOMPEN(!=); }
+VM_INLINE void RtAEq(StackPtr sp)  { ACOMPEN(==); }
+VM_INLINE void RtANe(StackPtr sp)  { ACOMPEN(!=); }
 
-VM_INLINE void U_SNEQ(VM &, StackPtr sp)  { SNCOMPEN(==); }
-VM_INLINE void U_SNNE(VM &, StackPtr sp)  { SNCOMPEN(!=); }
+VM_INLINE void RtSnEq(StackPtr sp)  { SNCOMPEN(==); }
+VM_INLINE void RtSnNe(StackPtr sp)  { SNCOMPEN(!=); }
 
-VM_INLINE void U_STEQ(VM &, StackPtr sp, int len) { STCOMPEN(==, true,  &&); }
-VM_INLINE void U_STNE(VM &, StackPtr sp, int len) { STCOMPEN(!=, false, ||); }
+VM_INLINE void RtStEq(StackPtr sp, int len) { STCOMPEN(==, true,  &&); }
+VM_INLINE void RtStNe(StackPtr sp, int len) { STCOMPEN(!=, false, ||); }
 
-VM_INLINE void U_LEQ(VM &, StackPtr sp) { LOP(==); }
-VM_INLINE void U_LNE(VM &, StackPtr sp) { LOP(!=); }
+VM_INLINE void RtLEq(StackPtr sp) { LOP(==); }
+VM_INLINE void RtLNe(StackPtr sp) { LOP(!=); }
 
 // The arithmetic and comparison ops below are emitted as the C operator they are, see
 // GenSimpleBinOp, so only a C backend build that has a runtime type field to keep correct still
 // calls them. Division and modulo are always called, for their division by zero check.
-VM_INLINE void U_IADD(VM &vm, StackPtr sp) { IOP(+,  0); }
-VM_INLINE void U_ISUB(VM &vm, StackPtr sp) { IOP(-,  0); }
-VM_INLINE void U_IMUL(VM &vm, StackPtr sp) { IOP(*,  0); }
-VM_INLINE void U_IDIV(VM &vm, StackPtr sp) { IOP(/,  1); }
-VM_INLINE void U_IMOD(VM &vm, StackPtr sp) { IOP(%,  1); }
-VM_INLINE void U_ILT(VM &vm, StackPtr sp)  { IOP(<,  0); }
-VM_INLINE void U_IGT(VM &vm, StackPtr sp)  { IOP(>,  0); }
-VM_INLINE void U_ILE(VM &vm, StackPtr sp)  { IOP(<=, 0); }
-VM_INLINE void U_IGE(VM &vm, StackPtr sp)  { IOP(>=, 0); }
-VM_INLINE void U_IEQ(VM &vm, StackPtr sp)  { IOP(==, 0); }
-VM_INLINE void U_INE(VM &vm, StackPtr sp)  { IOP(!=, 0); }
+VM_INLINE void RtIAdd(VM &vm, StackPtr sp) { IOP(+,  0); }
+VM_INLINE void RtISub(VM &vm, StackPtr sp) { IOP(-,  0); }
+VM_INLINE void RtIMul(VM &vm, StackPtr sp) { IOP(*,  0); }
+VM_INLINE void RtIDiv(VM &vm, StackPtr sp) { IOP(/,  1); }
+VM_INLINE void RtIMod(VM &vm, StackPtr sp) { IOP(%,  1); }
+VM_INLINE void RtILt(VM &vm, StackPtr sp)  { IOP(<,  0); }
+VM_INLINE void RtIGt(VM &vm, StackPtr sp)  { IOP(>,  0); }
+VM_INLINE void RtILe(VM &vm, StackPtr sp)  { IOP(<=, 0); }
+VM_INLINE void RtIGe(VM &vm, StackPtr sp)  { IOP(>=, 0); }
+VM_INLINE void RtIEq(VM &vm, StackPtr sp)  { IOP(==, 0); }
+VM_INLINE void RtINe(VM &vm, StackPtr sp)  { IOP(!=, 0); }
 
-VM_INLINE void U_FADD(VM &vm, StackPtr sp) { FOP(+,  0); }
-VM_INLINE void U_FSUB(VM &vm, StackPtr sp) { FOP(-,  0); }
-VM_INLINE void U_FMUL(VM &vm, StackPtr sp) { FOP(*,  0); }
-VM_INLINE void U_FDIV(VM &vm, StackPtr sp) { FOP(/,  0); }
-VM_INLINE void U_FMOD(VM &vm, StackPtr sp) { FOP(/,  2); }
-VM_INLINE void U_FLT(VM &vm, StackPtr sp)  { FOP(<,  0); }
-VM_INLINE void U_FGT(VM &vm, StackPtr sp)  { FOP(>,  0); }
-VM_INLINE void U_FLE(VM &vm, StackPtr sp)  { FOP(<=, 0); }
-VM_INLINE void U_FGE(VM &vm, StackPtr sp)  { FOP(>=, 0); }
-VM_INLINE void U_FEQ(VM &vm, StackPtr sp)  { FOP(==, 0); }
-VM_INLINE void U_FNE(VM &vm, StackPtr sp)  { FOP(!=, 0); }
+VM_INLINE void RtFAdd(VM &vm, StackPtr sp) { FOP(+,  0); }
+VM_INLINE void RtFSub(VM &vm, StackPtr sp) { FOP(-,  0); }
+VM_INLINE void RtFMul(VM &vm, StackPtr sp) { FOP(*,  0); }
+VM_INLINE void RtFDiv(VM &vm, StackPtr sp) { FOP(/,  0); }
+VM_INLINE void RtFMod(VM &vm, StackPtr sp) { FOP(/,  2); }
+VM_INLINE void RtFLt(VM &vm, StackPtr sp)  { FOP(<,  0); }
+VM_INLINE void RtFGt(VM &vm, StackPtr sp)  { FOP(>,  0); }
+VM_INLINE void RtFLe(VM &vm, StackPtr sp)  { FOP(<=, 0); }
+VM_INLINE void RtFGe(VM &vm, StackPtr sp)  { FOP(>=, 0); }
+VM_INLINE void RtFEq(VM &vm, StackPtr sp)  { FOP(==, 0); }
+VM_INLINE void RtFNe(VM &vm, StackPtr sp)  { FOP(!=, 0); }
 
-VM_INLINE void U_SADD(VM &vm, StackPtr sp) { SCAT(); }
-VM_INLINE void U_SSUB(VM &vm, StackPtr)    { VMASSERT(vm, 0); }
-VM_INLINE void U_SMUL(VM &vm, StackPtr)    { VMASSERT(vm, 0); }
-VM_INLINE void U_SDIV(VM &vm, StackPtr)    { VMASSERT(vm, 0); }
-VM_INLINE void U_SMOD(VM &vm, StackPtr)    { VMASSERT(vm, 0); }
-VM_INLINE void U_SLT(VM &, StackPtr sp)    { SOP(<);  }
-VM_INLINE void U_SGT(VM &, StackPtr sp)    { SOP(>);  }
-VM_INLINE void U_SLE(VM &, StackPtr sp)    { SOP(<=); }
-VM_INLINE void U_SGE(VM &, StackPtr sp)    { SOP(>=); }
-VM_INLINE void U_SEQ(VM &, StackPtr sp)    { SOP(==); }
-VM_INLINE void U_SNE(VM &, StackPtr sp)    { SOP(!=); }
+VM_INLINE void RtSAdd(VM &vm, StackPtr sp) { SCAT(); }
+VM_INLINE void RtSSub(VM &vm, StackPtr)             { VMASSERT(vm, 0); }
+VM_INLINE void RtSMul(VM &vm, StackPtr)             { VMASSERT(vm, 0); }
+VM_INLINE void RtSDiv(VM &vm, StackPtr)             { VMASSERT(vm, 0); }
+VM_INLINE void RtSMod(VM &vm, StackPtr)             { VMASSERT(vm, 0); }
+VM_INLINE void RtSLt(VM &, StackPtr sp)    { SOP(<);  }
+VM_INLINE void RtSGt(VM &, StackPtr sp)    { SOP(>);  }
+VM_INLINE void RtSLe(VM &, StackPtr sp)    { SOP(<=); }
+VM_INLINE void RtSGe(VM &, StackPtr sp)    { SOP(>=); }
+VM_INLINE void RtSEq(VM &, StackPtr sp)    { SOP(==); }
+VM_INLINE void RtSNe(VM &, StackPtr sp)    { SOP(!=); }
 
-VM_INLINE void U_IUMINUS(VM &, StackPtr sp) { Value a = Pop(sp); Push(sp, Value(-a.ival())); }
-VM_INLINE void U_FUMINUS(VM &, StackPtr sp) { Value a = Pop(sp); Push(sp, Value(-a.fval())); }
+VM_INLINE void RtIUMinus(StackPtr sp) { Value a = Pop(sp); Push(sp, Value(-a.ival())); }
+VM_INLINE void RtFUMinus(StackPtr sp) { Value a = Pop(sp); Push(sp, Value(-a.fval())); }
 
-VM_INLINE void U_IVUMINUS(VM &vm, StackPtr sp, int len) {
+VM_INLINE void RtIvUMinus(VM &vm, StackPtr sp, int len) {
     auto vec = TopPtr(sp) - len;
     for (int i = 0; i < len; i++) {
         auto &a = vec[i];
@@ -545,7 +454,7 @@ VM_INLINE void U_IVUMINUS(VM &vm, StackPtr sp, int len) {
     }
 }
 
-VM_INLINE void U_FVUMINUS(VM &vm, StackPtr sp, int len) {
+VM_INLINE void RtFvUMinus(VM &vm, StackPtr sp, int len) {
     auto vec = TopPtr(sp) - len;
     for (int i = 0; i < len; i++) {
         auto &a = vec[i];
@@ -554,58 +463,28 @@ VM_INLINE void U_FVUMINUS(VM &vm, StackPtr sp, int len) {
     }
 }
 
-// Works for ref types too: those are only ever tested against nil here, and whoever owns the
-// value is responsible for its lifetime, not this.
-VM_INLINE void U_LOGNOT(VM &, StackPtr) { assert(false); }
-
 #define BITOP(op) { GETARGS(); Push(sp, a.ival() op b.ival()); }
 #define SHIFTOP(f) { GETARGS(); Push(sp, f(a.ival(), b.ival())); }
-VM_INLINE void U_BINAND(VM &, StackPtr sp) { BITOP(&);  }
-VM_INLINE void U_BINOR(VM &, StackPtr sp)  { BITOP(|);  }
-VM_INLINE void U_XOR(VM &, StackPtr sp)    { BITOP(^);  }
-VM_INLINE void U_ASL(VM &, StackPtr sp)    { SHIFTOP(MaskedShiftLeft);  }
-VM_INLINE void U_ASR(VM &, StackPtr sp)    { SHIFTOP(MaskedShiftRight); }
-VM_INLINE void U_NEG(VM &, StackPtr sp)    { auto a = Pop(sp); Push(sp, ~a.ival()); }
+VM_INLINE void RtBinAnd(StackPtr sp) { BITOP(&);  }
+VM_INLINE void RtBinOr(StackPtr sp)  { BITOP(|);  }
+VM_INLINE void RtXor(StackPtr sp)    { BITOP(^);  }
+VM_INLINE void RtAsl(StackPtr sp)    { SHIFTOP(MaskedShiftLeft);  }
+VM_INLINE void RtAsr(StackPtr sp)    { SHIFTOP(MaskedShiftRight); }
+VM_INLINE void RtNeg(StackPtr sp)    { auto a = Pop(sp); Push(sp, ~a.ival()); }
 
-VM_INLINE void U_I2F(VM &, StackPtr) { assert(false); }
-
-VM_INLINE void U_A2S(VM &vm, StackPtr sp, int ty) {
+VM_INLINE void RtToString(VM &vm, StackPtr sp, type_elem_t ti) {
     Value a = Pop(sp);
-    Push(sp, vm.ToString(a, vm.GetTypeInfo((type_elem_t)ty)));
+    Push(sp, vm.ToString(a, vm.GetTypeInfo(ti)));
 }
 
-VM_INLINE void U_ST2S(VM &vm, StackPtr sp, int ty) {
-    auto &ti = vm.GetTypeInfo((type_elem_t)ty);
-    PopN(sp, ti.len);
+VM_INLINE void RtStructToString(VM &vm, StackPtr sp, type_elem_t ti) {
+    auto &info = vm.GetTypeInfo(ti);
+    PopN(sp, info.len);
     auto top = TopPtr(sp);
-    Push(sp, vm.StructToString(top, ti));
+    Push(sp, vm.StructToString(top, info));
 }
 
-VM_INLINE void U_E2B(VM &, StackPtr) { assert(false); }
-
-VM_INLINE void U_E2BREF(VM &, StackPtr) { assert(false); }
-
-VM_INLINE void U_PUSHVARL(VM &, StackPtr, int) {
-    assert(false);
-}
-
-// The code generator emits the loads for these itself, see GenPushVar.
-VM_INLINE void U_PUSHVARF(VM &, StackPtr, int) {
-    assert(false);
-}
-
-VM_INLINE void U_PUSHVARVL(VM &, StackPtr, int, int) {
-    assert(false);
-}
-
-VM_INLINE void U_PUSHVARVF(VM &, StackPtr, int, int) {
-    assert(false);
-}
-
-// The code generator emits the load itself, see GenPushField. That does lose the two debug
-// only checks that were here, on the reference being non-null and the index being in range.
-VM_INLINE void U_PUSHFLD(VM &, StackPtr, int) { assert(false); }
-VM_INLINE void U_PUSHFLDMREF(VM &vm, StackPtr sp, int i) {
+VM_INLINE void RtPushFieldMRef(VM &vm, StackPtr sp, int i) {
     Value r = Pop(sp);
     if (!r.ref()) {
         Push(sp, r);
@@ -615,99 +494,45 @@ VM_INLINE void U_PUSHFLDMREF(VM &vm, StackPtr sp, int i) {
         Push(sp, r.oval()->At(i));
     }
 }
-// The code generator emits a load per slot of the struct instead, see GenPushFieldStruct.
-VM_INLINE void U_PUSHFLD2V(VM &, StackPtr, int, int) { assert(false); }
-VM_INLINE void U_PUSHFLDV(VM &, StackPtr sp, int i, int l) {
+VM_INLINE void RtPushFieldV(StackPtr sp, int i, int l) {
     PopN(sp, l);
     auto val = *(TopPtr(sp) + i);
     Push(sp, val);
 }
-VM_INLINE void U_PUSHFLDV2V(VM &, StackPtr sp, int i, int rl, int l) {
+VM_INLINE void RtPushFieldV2V(StackPtr sp, int i, int rl, int l) {
     PopN(sp, l);
     t_memmove(TopPtr(sp), TopPtr(sp) + i, rl);
     PushN(sp, rl);
 }
 
-// The code generator emits the range check and the loads itself, see GenPushIdx.
-VM_INLINE void U_VPUSHIDXI(VM &, StackPtr) { assert(false); }
-
-VM_INLINE void U_VPUSHIDXI2V(VM &, StackPtr) { assert(false); }
-
-// The code generator emits the range checks and the loads itself, see GenPushIdxNested.
-VM_INLINE void U_VPUSHIDXV(VM &, StackPtr, int) { assert(false); }
-
-VM_INLINE void U_VPUSHIDXIS(VM &vm, StackPtr sp, int o) {
+VM_INLINE void RtIndexVecSub(VM &vm, StackPtr sp, int o) {
     auto x = Pop(sp).ival();
     PushDerefIdxVectorSub1(vm, sp, x, o);
 }
 
-VM_INLINE void U_VPUSHIDXIS2V(VM &vm, StackPtr sp, int w, int o) {
+VM_INLINE void RtIndexVecSubV(VM &vm, StackPtr sp, int w, int o) {
     auto x = Pop(sp).ival();
     PushDerefIdxVectorSub2V(vm, sp, x, w, o);
 }
 
-VM_INLINE void U_VPUSHIDXVS(VM &vm, StackPtr sp, int l, int w, int o) {
+VM_INLINE void RtIndexVecNestSubV(VM &vm, StackPtr sp, int l, int w, int o) {
     auto x = vm.GrabIndex(sp, l);
     PushDerefIdxVectorSub2V(vm, sp, x, w, o);
 }
 
-VM_INLINE void U_NPUSHIDXI(VM &vm, StackPtr sp, int l) {
+VM_INLINE void RtIndexStruct(VM &vm, StackPtr sp, int l) {
     auto x = Pop(sp).ival();
     PushDerefIdxStruct(vm, sp, x, l);
 }
 
-VM_INLINE void U_SPUSHIDXI(VM &, StackPtr) { assert(false); }
-
-VM_INLINE void U_LABEL(VM &, StackPtr, int) {
-    assert(false);
-}
-
-VM_INLINE void U_JUMP_TABLE_END(VM &, StackPtr) {
-    assert(false);
-}
-
-VM_INLINE void U_JUMP_TABLE_CASE_START(VM &, StackPtr, int) {
-    assert(false);
-}
-
-VM_INLINE bool U_JUMP(VM &, StackPtr) {
-    assert(false);
-    return false;
-}
-
-VM_INLINE bool U_JUMPFAIL(VM &, StackPtr) {
-    assert(false);
-    return false;
-}
-
-VM_INLINE bool U_JUMPFAILR(VM &, StackPtr) {
-    assert(false);
-    return false;
-}
-
-VM_INLINE bool U_JUMPNOFAIL(VM &, StackPtr) {
-    assert(false);
-    return false;
-}
-
-VM_INLINE bool U_JUMPNOFAILR(VM &, StackPtr) {
-    assert(false);
-    return false;
-}
-
-VM_INLINE bool U_JUMPIFUNWOUND(VM &, StackPtr, int) {
-    assert(false);
-    return false;
-}
-
-VM_INLINE bool U_JUMPIFSTATICLF(VM &vm, StackPtr, int vidx) {
+VM_INLINE bool RtStaticSetThisFrame(VM &vm, int vidx) {
     auto &v = vm.fvars[vidx];
     auto jump = v.ival() < vm.frame_count;
     v = vm.frame_count + 1;
     return jump;
 }
 
-VM_INLINE bool U_JUMPIFMEMBERLF(VM &vm, StackPtr sp, int slot) {
+VM_INLINE bool RtMemberSetThisFrame(VM &vm, StackPtr sp, int slot) {
     auto self = Pop(sp).oval();
     auto &v = self->AtR(slot);
     auto jump = v.ival() < vm.frame_count;
@@ -715,25 +540,16 @@ VM_INLINE bool U_JUMPIFMEMBERLF(VM &vm, StackPtr sp, int slot) {
     return jump;
 }
 
-VM_INLINE void U_JUMP_TABLE(VM &, StackPtr, const int *) {
-    assert(false);
-}
-
-VM_INLINE void U_JUMP_TABLE_DISPATCH(VM &, StackPtr, const int *) {
-    assert(false);
-}
-
-VM_INLINE void U_ISTYPE(VM &, StackPtr sp, int ty, int nilres) {
-    auto to = (type_elem_t)ty;
+VM_INLINE void RtIsType(StackPtr sp, type_elem_t ti, int nilres) {
     auto v = Pop(sp);
     // Optimizer guarantees we don't have to deal with scalars.
-    if (v.refnil()) Push(sp, v.ref()->tti == to);
+    if (v.refnil()) Push(sp, v.ref()->tti == ti);
     else Push(sp, nilres);
 }
 
 // Only emitted when the tested type is a class with subclasses, otherwise the
-// cheaper U_ISTYPE is used.
-VM_INLINE void U_ISSUBTYPE(VM &vm, StackPtr sp, int start, int end, int nilres) {
+// cheaper RtIsType is used.
+VM_INLINE void RtIsSubType(VM &vm, StackPtr sp, int start, int end, int nilres) {
     auto v = Pop(sp);
     // The typechecker guarantees the value is statically a class (or nil), so
     // its type info always has a subtype_dfs.
@@ -745,147 +561,83 @@ VM_INLINE void U_ISSUBTYPE(VM &vm, StackPtr sp, int start, int end, int nilres) 
     }
 }
 
-VM_INLINE void U_ABORT(VM &vm, StackPtr) {
+VM_INLINE void RtAbort(VM &vm) {
     vm.SeriousError("VM internal error: abort");
 }
 
-VM_INLINE void U_ENUM_RANGE_ERR(VM &vm, StackPtr) {
+VM_INLINE void RtEnumRangeErr(VM &vm) {
     vm.Error("Enum out of range of possible values in switch");
 }
 
-// The code generator emits the address itself, see EmitLVAL_VARL.
-VM_INLINE Value *U_LVAL_VARL(VM &, StackPtr, Value *, int) {
-    assert(false);
-    return nullptr;
-}
-
-// The code generator emits the address itself, see EmitLVAL_VARF.
-VM_INLINE Value *U_LVAL_VARF(VM &, StackPtr, Value *, int) {
-    assert(false);
-    return nullptr;
-}
-
-// The code generator emits the address itself, see EmitLvalCall.
-VM_INLINE Value *U_LVAL_FLD(VM &, StackPtr, Value *, int) {
-    assert(false);
-    return nullptr;
-}
-
-// The code generator emits the range check and the address itself, see EmitLVAL_IDXVI.
-VM_INLINE Value *U_LVAL_IDXVI(VM &, StackPtr, Value *, int) {
-    assert(false);
-    return nullptr;
-}
-
-VM_INLINE Value *U_LVAL_IDXVV(VM &vm, StackPtr sp, Value *, int offset, int l) {
+VM_INLINE Value *RtLvalIndexVecV(VM &vm, StackPtr sp, int offset, int l) {
     auto x = vm.GrabIndex(sp, l);
     return &GetVecLVal(vm, sp, x) + offset;
 }
 
 // Class accessed by index.
-VM_INLINE Value *U_LVAL_IDXNI(VM &vm, StackPtr sp, Value *, int offset) {
+VM_INLINE Value *RtLvalIndexClass(VM &vm, StackPtr sp, int offset) {
     auto x = Pop(sp).ival();
     return &GetFieldILVal(vm, sp, x) + offset;
 }
 
 // Struct accessed by index, the one case that indexes an lvalue it was handed.
-VM_INLINE Value *U_LVAL_IDXSI(VM &vm, StackPtr sp, Value *lv, int offset, int maxfields) {
+VM_INLINE Value *RtLvalIndexStruct(VM &vm, StackPtr sp, Value *lv, int offset, int maxfields) {
     auto x = Pop(sp).ival();
     return &GetFieldISLVal(vm, lv, x, maxfields) + offset;
 }
 
-VM_INLINE void U_LV_DUP(VM &, StackPtr, Value *) { assert(false); }
-
-VM_INLINE void U_LV_DUPV(VM &, StackPtr sp, Value *lv, int l) {
+VM_INLINE void RtLvDupV(StackPtr sp, Value *lv, int l) {
     tsnz_memcpy(TopPtr(sp), lv, l);
     PushN(sp, l);
 }
 
-#define LVALCASES(N, B) VM_INLINE void U_LV_##N(VM &vm, StackPtr sp, Value *lv) { \
+#define LVALCASES(N, B) VM_INLINE void RtLv##N(VM &vm, StackPtr sp, Value *lv) { \
     auto &a = *lv; Value b = Pop(sp); B; }
 
-#define LVALCASER(N, B) VM_INLINE void U_LV_##N(VM &vm, StackPtr sp, Value *lv, int len) { \
+#define LVALCASER(N, B) VM_INLINE void RtLv##N(VM &vm, StackPtr sp, Value *lv, int len) { \
     auto &fa = *lv; B; }
 
-LVALCASER(IVVADD, _IVOPV(+, 0, &fa))
-LVALCASER(IVVSUB, _IVOPV(-, 0, &fa))
-LVALCASER(IVVMUL, _IVOPV(*, 0, &fa))
-LVALCASER(IVVDIV, _IVOPV(/, 1, &fa))
-LVALCASER(IVVMOD, _IVOPV(%, 1, &fa))
+LVALCASER(IvvAdd, _IVOPV(+, 0, &fa))
+LVALCASER(IvvSub, _IVOPV(-, 0, &fa))
+LVALCASER(IvvMul, _IVOPV(*, 0, &fa))
+LVALCASER(IvvDiv, _IVOPV(/, 1, &fa))
+LVALCASER(IvvMod, _IVOPV(%, 1, &fa))
 
-LVALCASER(FVVADD, _FVOPV(+, 0, &fa))
-LVALCASER(FVVSUB, _FVOPV(-, 0, &fa))
-LVALCASER(FVVMUL, _FVOPV(*, 0, &fa))
-LVALCASER(FVVDIV, _FVOPV(/, 0, &fa))
-LVALCASER(FVVMOD, _FVOPV(/, 2, &fa))
+LVALCASER(FvvAdd, _FVOPV(+, 0, &fa))
+LVALCASER(FvvSub, _FVOPV(-, 0, &fa))
+LVALCASER(FvvMul, _FVOPV(*, 0, &fa))
+LVALCASER(FvvDiv, _FVOPV(/, 0, &fa))
+LVALCASER(FvvMod, _FVOPV(/, 2, &fa))
 
-LVALCASER(IVSADD, _IVOPS(+, 0, &fa))
-LVALCASER(IVSSUB, _IVOPS(-, 0, &fa))
-LVALCASER(IVSMUL, _IVOPS(*, 0, &fa))
-LVALCASER(IVSDIV, _IVOPS(/, 1, &fa))
-LVALCASER(IVSMOD, _IVOPS(%, 1, &fa))
+LVALCASER(IvsAdd, _IVOPS(+, 0, &fa))
+LVALCASER(IvsSub, _IVOPS(-, 0, &fa))
+LVALCASER(IvsMul, _IVOPS(*, 0, &fa))
+LVALCASER(IvsDiv, _IVOPS(/, 1, &fa))
+LVALCASER(IvsMod, _IVOPS(%, 1, &fa))
 
-LVALCASER(FVSADD, _FVOPS(+, 0, &fa))
-LVALCASER(FVSSUB, _FVOPS(-, 0, &fa))
-LVALCASER(FVSMUL, _FVOPS(*, 0, &fa))
-LVALCASER(FVSDIV, _FVOPS(/, 0, &fa))
-LVALCASER(FVSMOD, _FVOPS(/, 2, &fa))
+LVALCASER(FvsAdd, _FVOPS(+, 0, &fa))
+LVALCASER(FvsSub, _FVOPS(-, 0, &fa))
+LVALCASER(FvsMul, _FVOPS(*, 0, &fa))
+LVALCASER(FvsDiv, _FVOPS(/, 0, &fa))
+LVALCASER(FvsMod, _FVOPS(/, 2, &fa))
 
-// The code generator emits the ones that are a single operator itself, see
-// GenLvalModifierOpWithStructInfo. What is left on the macro either checks for division by zero
-// or masks a shift count, so it is still called.
-#define LVALDONEINLINE(N) VM_INLINE void U_LV_##N(VM &, StackPtr, Value *) { assert(false); }
+// What is left here either checks for division by zero or masks a shift count; the ones that
+// are a single operator the code generator emits itself, see GenLvalModifierOpWithStructInfo.
 
-LVALDONEINLINE(IADD)
-LVALDONEINLINE(ISUB)
-LVALDONEINLINE(IMUL)
-LVALCASES(IDIV  , _IOP(/, 1); a = res;)
-LVALCASES(IMOD  , _IOP(%, 1); a = res;)
+LVALCASES(IDiv  , _IOP(/, 1); a = res;)
+LVALCASES(IMod  , _IOP(%, 1); a = res;)
 
-LVALDONEINLINE(BINAND)
-LVALDONEINLINE(BINOR)
-LVALDONEINLINE(XOR)
-LVALCASES(ASL   , _ISHIFTOP(MaskedShiftLeft);  a = res;)
-LVALCASES(ASR   , _ISHIFTOP(MaskedShiftRight); a = res;)
+LVALCASES(Asl   , _ISHIFTOP(MaskedShiftLeft);  a = res;)
+LVALCASES(Asr   , _ISHIFTOP(MaskedShiftRight); a = res;)
 
-LVALDONEINLINE(FADD)
-LVALDONEINLINE(FSUB)
-LVALDONEINLINE(FMUL)
-LVALDONEINLINE(FDIV)
-LVALCASES(FMOD  , _FOP(/, 2); a = res;)
+LVALCASES(FMod  , _FOP(/, 2); a = res;)
 
-VM_INLINE void U_LV_SADD(VM &vm, StackPtr sp, Value *lv) {
+VM_INLINE void RtLvSAdd(VM &vm, StackPtr sp, Value *lv) {
     auto &a = *lv;
     Value b = Pop(sp);
     _SCAT();
     a.LTDECRTNIL(vm);
     a = res;
-}
-
-VM_INLINE void U_LV_WRITE(VM &, StackPtr, Value *) {
-    assert(false);
-}
-
-// The code generator emits the decrement and the copy, see GenLvalModifierOpWithStructInfo.
-VM_INLINE void U_LV_WRITEREF(VM &, StackPtr, Value *) { assert(false); }
-
-// Emitted as a copy per slot of the struct, see GenLvalModifierOpWithStructInfo.
-VM_INLINE void U_LV_WRITEV(VM &, StackPtr, Value *, int) { assert(false); }
-
-// Emitted as a decrement and a copy per slot of the struct, the bitmask deciding which slots
-// get the decrement at code generation time, see GenLvalModifierOpWithStructInfo.
-VM_INLINE void U_LV_WRITEREFV(VM &, StackPtr, Value *, int, int) { assert(false); }
-
-VM_INLINE void U_LV_IPP(VM &, StackPtr, Value *) { assert(false); }
-
-VM_INLINE void U_LV_IMM(VM &, StackPtr, Value *) { assert(false); }
-
-VM_INLINE void U_LV_FPP(VM &, StackPtr, Value *) { assert(false); }
-
-VM_INLINE void U_LV_FMM(VM &, StackPtr, Value *) { assert(false); }
-
-VM_INLINE void U_PROFILE(VM &, StackPtr, int) {
-    assert(false);
 }
 
 }  // namespace lobster
