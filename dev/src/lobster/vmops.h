@@ -290,13 +290,10 @@ BCALLOP(5, auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(s
 BCALLOP(6, auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2, a3, a4, a5));
 BCALLOP(7, auto a6 = Pop(sp);auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2, a3, a4, a5, a6));
 
+// All that is left of this in the common case is the test, with the reporting out of line, so
+// that emitting it as a branch to a call is a faithful translation of it.
 VM_INLINE void U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int stringidx) {
-    if (Top(sp).False()) {
-        vm.last.line = line;
-        vm.last.fileidx = fileidx;
-        auto assert_exp = vm.vma.meta->stringtable[stringidx];
-        vm.Error(cat("assertion failed: ", assert_exp));
-    }
+    if (Top(sp).False()) vm.AssertFailed(line, fileidx, stringidx);
 }
 
 VM_INLINE void U_ASSERT(VM &vm, StackPtr sp, int line, int fileidx, int stringidx) {

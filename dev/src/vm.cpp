@@ -738,6 +738,12 @@ iint VM::GrabIndex(StackPtr &sp, int len) {
     }
 }
 
+void VM::AssertFailed(int line, int fileidx, int stringidx) {
+    last.line = line;
+    last.fileidx = fileidx;
+    Error(cat("assertion failed: ", vma.meta->stringtable[stringidx]));
+}
+
 void VM::IDXErr(iint i, iint n, const RefObj *v) {
     string sd;
     append(sd, "index ", i, " out of range ", n, " of: ");

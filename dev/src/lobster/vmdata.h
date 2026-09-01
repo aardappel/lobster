@@ -1253,6 +1253,7 @@ struct VM : VMBase {
 
     void DivErr(iint divisor) { Error(divisor ? "integer overflow" : "division by zero"); }
     void DivErr(double) { assert(false); }
+    void AssertFailed(int line, int fileidx, int stringidx);
     void IDXErr(iint i, iint n, const RefObj *v);
     void IDXErrS(iint i, iint n);
     void BCallRetCheck(StackPtr sp, int nfi);
