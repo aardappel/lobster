@@ -786,6 +786,8 @@ struct LObject : RefObj {
     // This may only be called from a context where i < len has already been ensured/asserted.
     const TypeInfo &ElemTypeS(VM &vm, iint i) const;
     const TypeInfo &ElemTypeSP(VM &vm, iint i) const;
+    // Same, for loops that already have our own TypeInfo in hand and shouldn't fetch it per elem.
+    static const TypeInfo &ElemTypeSOf(VM &vm, const TypeInfo &oti, iint i);
 
     void ToString(VM &vm, string &sd, PrintPrefs &pp);
     void ToFlexBuffer(ToFlexBufferContext &fbc);
@@ -793,10 +795,10 @@ struct LObject : RefObj {
 
     bool Equal(VM &vm, const LObject &o) const {
         // RefObj::Equal has already guaranteed the typeoff's are the same.
-        auto len = Len(vm);
-        assert(len == o.Len(vm));
-        for (iint i = 0; i < len; i++) {
-            auto et = ElemTypeS(vm, i).t;
+        auto &oti = ti(vm);
+        assert(oti.len == o.Len(vm));
+        for (iint i = 0; i < oti.len; i++) {
+            auto et = ElemTypeSOf(vm, oti, i).t;
             if (!At(i).Equal(vm, et, o.At(i), et, true))
                 return false;
         }
@@ -808,14 +810,16 @@ struct LObject : RefObj {
     }
 
     void IncRefElems(VM &vm, iint len) {
+        auto &oti = ti(vm);
         for (iint i = 0; i < len; i++) {
-            At(i).LTINCTYPE(ElemTypeS(vm, i).t);
+            At(i).LTINCTYPE(ElemTypeSOf(vm, oti, i).t);
         }
     }
 
     void CopyRefElemsDeep(VM &vm, iint len, iint depth) {
+        auto &oti = ti(vm);
         for (iint i = 0; i < len; i++) {
-            if (RTIsRefNil(ElemTypeS(vm, i).t)) AtR(i) = At(i).CopyRef(vm, depth);
+            if (RTIsRefNil(ElemTypeSOf(vm, oti, i).t)) AtR(i) = At(i).CopyRef(vm, depth);
         }
     }
 

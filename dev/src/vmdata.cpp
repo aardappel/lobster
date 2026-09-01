@@ -211,9 +211,10 @@ void LVector::DeleteSelf(VM &vm) {
 }
 
 void LObject::DeleteSelf(VM &vm) {
-    auto len = Len(vm);
+    auto &oti = ti(vm);
+    auto len = oti.len;
     for (iint i = 0; i < len; i++) {
-        At(i).LTDECTYPE(vm, ElemTypeS(vm, i).t);
+        At(i).LTDECTYPE(vm, ElemTypeSOf(vm, oti, i).t);
     }
     vm.pool.dealloc(this, ssizeof<LObject>() + ssizeof<Value>() * len);
 }
@@ -528,9 +529,12 @@ void TypeInfo::Print(VM &vm, string &sd, void *ref) const {
 #define ELEMTYPE(acc, ass) \
 
 const TypeInfo &LObject::ElemTypeS(VM &vm, iint i) const {
-    auto &_ti = ti(vm);
-    assert(i < _ti.len);
-    return vm.GetTypeInfo(_ti.elemtypes[i].type);
+    return ElemTypeSOf(vm, ti(vm), i);
+}
+
+const TypeInfo &LObject::ElemTypeSOf(VM &vm, const TypeInfo &oti, iint i) {
+    assert(i < oti.len);
+    return vm.GetTypeInfo(oti.elemtypes[i].type);
 }
 
 const TypeInfo &LObject::ElemTypeSP(VM &vm, iint i) const {
