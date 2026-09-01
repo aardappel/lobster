@@ -1190,10 +1190,14 @@ struct VM : VMBase {
     bool error_has_occured = false;  // Don't error again.
     string errmsg;
     #if VM_USE_LONGJMP
-        #pragma warning(push)
-        #pragma warning(disable : 4324)
+        #ifdef _MSC_VER
+            #pragma warning(push)
+            #pragma warning(disable : 4324)
+                jmp_buf jump_buffer;
+            #pragma warning(pop)
+        #else
         jmp_buf jump_buffer;
-        #pragma warning(pop)
+        #endif
     #endif
 
     struct FunStack {
