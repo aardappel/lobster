@@ -676,6 +676,7 @@ struct CodeGen  {
                   "extern void BackupVar(VMRef, int);\n"
                   "extern void DecOwned(VMRef, int);\n"
                   "extern void DecDelete(VMRef, RefObj *);\n"
+                  "extern void AssertFailed(VMRef, int, int, int);\n"
                   "extern void DecVal(VMRef, Value);\n"
                   "extern void RestoreBackup(VMRef, int);\n"
                   "extern StackPtr PopArg(VMRef, int, StackPtr);\n"
@@ -800,6 +801,18 @@ struct CodeGen  {
     // the rest ignore that argument.
     void EmitLvalCall(ILOP op, std::initializer_list<int> args) {
         f_uses_lval = true;
+        if (op == IL_LVAL_FLD) {
+            // A field is at a constant offset from the object, whose fields sit right behind its
+            // header, same as reading one. That does lose a debug only range check.
+            if (cpp) {
+                append(cb, "    lv = &(", sp(1), ")->oval()->AtR(", *args.begin(), ");");
+            } else {
+                append(cb, "    lv = (Value *)((RefObj *)(", sp(1), ")->ref + 1) + ",
+                       *args.begin(), ";");
+            }
+            f_lval = "lv";
+            return;
+        }
         append(cb, "    lv = U_", ILNames()[op], "(vm, ", sp(), ", ",
                op == IL_LVAL_IDXSI ? f_lval : "0");
         for (auto a : args) append(cb, ", ", a);
@@ -1051,8 +1064,7 @@ struct CodeGen  {
             }
         } else {
             int2float64 i2f(f);
-            EmitOp(IL_PUSHFLT64);
-            append(cb, "    U_PUSHFLT64(vm, ", sp(), ", ", (int)i2f.i, ", ", (int)(i2f.i >> 32), ");");
+            EmitPUSHCONST64(IL_PUSHFLT64, i2f.i);
             comment(to_string_float(f));
         }
     }
@@ -1093,8 +1105,84 @@ struct CodeGen  {
         GenIncRef(sp(off + 1));
     }
 
+    // Ops that are a move or a test on the stack and nothing else. Going thru a call for one of
+    // these costs more than the op itself, and pushes its operand and result thru memory where
+    // the compiler could otherwise keep them in a register.
+    bool GenSimpleOp(ILOP op) {
+        switch (op) {
+            case IL_PUSHNIL:
+                SetToNil(cb, sp(0));
+                return true;
+            case IL_DUP:
+                GenValueCopy(cb, sp(0), sp(1));
+                return true;
+            case IL_POPREF:
+                GenDecRef(sp(1));
+                return true;
+            case IL_E2BREF:
+                // The value is only tested against nil after this, which does not need it alive.
+                GenDecRef(sp(1));
+                [[fallthrough]];
+            case IL_E2B:
+            case IL_LOGNOT: {
+                // These write an int over what may have been a reference, so in C, where we have
+                // to keep any runtime type field correct ourselves, say so.
+                auto test = op == IL_LOGNOT ? "== 0" : "!= 0";
+                if (cpp) {
+                    append(cb, "    *(", sp(1), ") = Value((", sp(1), ")->ival() ", test, ");\n");
+                } else {
+                    append(cb, "    { StackPtr _sp = ", sp(1), "; _sp->ival = _sp->ival ", test,
+                           ";", SetType(RTT_INT), " }\n");
+                }
+                return true;
+            }
+            case IL_I2F:
+                if (cpp) {
+                    append(cb, "    *(", sp(1), ") = Value((double)(", sp(1), ")->ival());\n");
+                } else {
+                    append(cb, "    { StackPtr _sp = ", sp(1), "; double _d = (double)_sp->ival;"
+                               " _sp->fval = _d;", SetType(RTT_FLOAT), " }\n");
+                }
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    // A 64 bit constant, which only reaches us split in two because that is all an op argument
+    // holds. For a float we write the bit pattern rather than a literal, since a decimal one
+    // would not round trip exactly and not every C compiler we feed this to takes a hex float.
+    void EmitPUSHCONST64(ILOP op, int64_t bits) {
+        EmitOp(op);
+        string hex;
+        to_string_hex(hex, (uint64_t)bits);
+        if (cpp && op == IL_PUSHFLT64) {
+            // Nothing is gained by inlining here, the op is already inline in C++.
+            append(cb, "    U_PUSHFLT64(vm, ", sp(), ", ", (int)bits, ", ", (int)(bits >> 32),
+                   ");");
+        } else if (cpp) {
+            append(cb, "    *(", sp(), ") = Value((iint)", hex, "ULL);");
+        } else {
+            append(cb, "    { StackPtr _sp = ", sp(), "; _sp->ival = (long long)", hex, "ULL;",
+                   SetType(op == IL_PUSHFLT64 ? RTT_FLOAT : RTT_INT), " }");
+        }
+    }
+
+    // All that is left of an assert in the common case is the test; the reporting is a call.
+    void EmitASSERT(ILOP op, int line, int fileidx, int stringidx) {
+        EmitOp(op);
+        if (cpp) {
+            append(cb, "    if (!(", sp(1), ")->True()) vm.AssertFailed(", line, ", ", fileidx,
+                   ", ", stringidx, ");\n");
+        } else {
+            append(cb, "    if (!(", sp(1), ")->ival) AssertFailed(vm, ", line, ", ", fileidx,
+                   ", ", stringidx, ");\n");
+        }
+    }
+
     void EmitOp0(ILOP op, int useslots = ILUNKNOWN, int defslots = ILUNKNOWN) {
         EmitOp(op, useslots, defslots);
+        if (GenSimpleOp(op)) return;
         append(cb, "    U_", ILNames()[op], "(vm, ", sp(), ");\n");
     }
 
@@ -1896,7 +1984,7 @@ struct CodeGen  {
                 append(cb, "    U_LV_DUPV(vm, ", sp(), ", ", f_lval, ", ", width, ");\n");
             } else {
                 EmitOp(IL_LV_DUP, 0, 1);
-                append(cb, "    U_LV_DUP(vm, ", sp(), ", ", f_lval, ");\n");
+                GenValueCopy(cb, sp(0), f_lval);
             }
         }
         if (post) {
@@ -2147,7 +2235,7 @@ void IntConstant::Generate(CodeGen &cg, size_t retval) const {
     if (integer == (int)integer) {
         cg.EmitPUSHINT((int)integer);
     } else {
-        cg.EmitOp2(IL_PUSHINT64, (int)integer, (int)(integer >> 32));
+        cg.EmitPUSHCONST64(IL_PUSHINT64, integer);
     }
 }
 
@@ -2469,8 +2557,8 @@ void Assert::Generate(CodeGen &cg, size_t retval) const {
         cg.Gen(child, 1);
         cg.TakeTemp(1, false);
         if (cg.runtime_checks >= RUNTIME_ASSERT) {
-            cg.EmitOp3(GENOP(IL_ASSERT + (!!retval)), child->line.line,
-                       child->line.fileidx, (int)cg.stringtable.size());
+            cg.EmitASSERT(GENOP(IL_ASSERT + (!!retval)), child->line.line,
+                          child->line.fileidx, (int)cg.stringtable.size());
             // FIXME: would be better to use the original source code here.
             cg.stringtable.push_back(cg.st.StoreName(DumpNode(*child, 0, true)));
         }

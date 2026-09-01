@@ -116,13 +116,13 @@ VM_INLINE void U_PUSHFLT(VM &, StackPtr, int) {
     assert(false);
 }
 
-VM_INLINE void U_PUSHNIL(VM &, StackPtr sp) {
-    Push(sp, NilVal());
+// The code generator emits these itself, see GenSimpleOp and EmitPUSHCONST64.
+VM_INLINE void U_PUSHNIL(VM &, StackPtr) {
+    assert(false);
 }
 
-VM_INLINE void U_PUSHINT64(VM &, StackPtr sp, int a, int b) {
-    auto v = Int64FromInts(a, b);
-    Push(sp, Value(v));
+VM_INLINE void U_PUSHINT64(VM &, StackPtr, int, int) {
+    assert(false);
 }
 
 VM_INLINE void U_PUSHFLT64(VM &, StackPtr sp, int a, int b) {
@@ -294,14 +294,9 @@ BCALLOP(7, auto a6 = Pop(sp);auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(s
 
 // All that is left of this in the common case is the test, with the reporting out of line, so
 // that emitting it as a branch to a call is a faithful translation of it.
-VM_INLINE void U_ASSERTR(VM &vm, StackPtr sp, int line, int fileidx, int stringidx) {
-    if (Top(sp).False()) vm.AssertFailed(line, fileidx, stringidx);
-}
+VM_INLINE void U_ASSERTR(VM &, StackPtr, int, int, int) { assert(false); }
 
-VM_INLINE void U_ASSERT(VM &vm, StackPtr sp, int line, int fileidx, int stringidx) {
-    U_ASSERTR(vm, sp, line, fileidx, stringidx);
-    Pop(sp);
-}
+VM_INLINE void U_ASSERT(VM &, StackPtr, int, int, int) { assert(false); }
 
 VM_INLINE void U_NEWVEC(VM &vm, StackPtr sp, int ty, int len) {
     auto type = (type_elem_t)ty;
@@ -325,10 +320,10 @@ VM_INLINE void U_POP(VM &, StackPtr) {
     // so it emits no code for IL_POP at all and this is never called.
     assert(false);
 }
-VM_INLINE void U_POPREF(VM &vm, StackPtr sp) { auto x = Pop(sp); x.LTDECRTNIL(vm); }
+VM_INLINE void U_POPREF(VM &, StackPtr) { assert(false); }
 VM_INLINE void U_POPV(VM &, StackPtr sp, int len) { PopN(sp, len); }
 
-VM_INLINE void U_DUP(VM &, StackPtr sp) { auto x = Top(sp); Push(sp, x); }
+VM_INLINE void U_DUP(VM &, StackPtr) { assert(false); }
 
 VM_INLINE void U_SADDN(VM &vm, StackPtr sp, int len) {
     iint blen = 0;
@@ -597,10 +592,7 @@ VM_INLINE void U_FVUMINUS(VM &vm, StackPtr sp, int len) {
 
 // Works for ref types too: those are only ever tested against nil here, and whoever owns the
 // value is responsible for its lifetime, not this.
-VM_INLINE void U_LOGNOT(VM &, StackPtr sp) {
-    Value a = Pop(sp);
-    Push(sp, a.False());
-}
+VM_INLINE void U_LOGNOT(VM &, StackPtr) { assert(false); }
 
 #define BITOP(op) { GETARGS(); Push(sp, a.ival() op b.ival()); }
 #define SHIFTOP(f) { GETARGS(); Push(sp, f(a.ival(), b.ival())); }
@@ -611,11 +603,7 @@ VM_INLINE void U_ASL(VM &, StackPtr sp)    { SHIFTOP(MaskedShiftLeft);  }
 VM_INLINE void U_ASR(VM &, StackPtr sp)    { SHIFTOP(MaskedShiftRight); }
 VM_INLINE void U_NEG(VM &, StackPtr sp)    { auto a = Pop(sp); Push(sp, ~a.ival()); }
 
-VM_INLINE void U_I2F(VM &vm, StackPtr sp) {
-    Value a = Pop(sp);
-    VMTYPEEQ(a, RTT_INT);
-    Push(sp, (double)a.ival());
-}
+VM_INLINE void U_I2F(VM &, StackPtr) { assert(false); }
 
 VM_INLINE void U_A2S(VM &vm, StackPtr sp, int ty) {
     Value a = Pop(sp);
@@ -629,16 +617,9 @@ VM_INLINE void U_ST2S(VM &vm, StackPtr sp, int ty) {
     Push(sp, vm.StructToString(top, ti));
 }
 
-VM_INLINE void U_E2B(VM &, StackPtr sp) {
-    Value a = Pop(sp);
-    Push(sp, a.True());
-}
+VM_INLINE void U_E2B(VM &, StackPtr) { assert(false); }
 
-VM_INLINE void U_E2BREF(VM &vm, StackPtr sp) {
-    Value a = Pop(sp);
-    a.LTDECRTNIL(vm);
-    Push(sp, a.True());
-}
+VM_INLINE void U_E2BREF(VM &, StackPtr) { assert(false); }
 
 VM_INLINE void U_PUSHVARL(VM &, StackPtr, int) {
     assert(false);
@@ -830,8 +811,10 @@ VM_INLINE Value *U_LVAL_VARF(VM &, StackPtr, Value *, int) {
     return nullptr;
 }
 
-VM_INLINE Value *U_LVAL_FLD(VM &vm, StackPtr sp, Value *, int i) {
-    return &GetFieldLVal(vm, sp, i);
+// The code generator emits the address itself, see EmitLvalCall.
+VM_INLINE Value *U_LVAL_FLD(VM &, StackPtr, Value *, int) {
+    assert(false);
+    return nullptr;
 }
 
 VM_INLINE Value *U_LVAL_IDXVI(VM &vm, StackPtr sp, Value *, int offset) {
@@ -856,9 +839,7 @@ VM_INLINE Value *U_LVAL_IDXSI(VM &vm, StackPtr sp, Value *lv, int offset, int ma
     return &GetFieldISLVal(vm, lv, x, maxfields) + offset;
 }
 
-VM_INLINE void U_LV_DUP(VM &, StackPtr sp, Value *lv) {
-    Push(sp, *lv);
-}
+VM_INLINE void U_LV_DUP(VM &, StackPtr, Value *) { assert(false); }
 
 VM_INLINE void U_LV_DUPV(VM &, StackPtr sp, Value *lv, int l) {
     tsnz_memcpy(TopPtr(sp), lv, l);

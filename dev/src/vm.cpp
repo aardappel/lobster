@@ -1046,6 +1046,9 @@ void CVM_SwapVars(VM *vm, int i, StackPtr psp, int off) { SwapVars(*vm, i, psp, 
 void CVM_BackupVar(VM *vm, int i) { BackupVar(*vm, i); }
 void CVM_DecOwned(VM *vm, int i) { DecOwned(*vm, i); }
 void CVM_DecDelete(VM *vm, RefObj *ro) { ro->DECDELETE(*vm); }
+void CVM_AssertFailed(VM *vm, int line, int fileidx, int stringidx) {
+    vm->AssertFailed(line, fileidx, stringidx);
+}
 void CVM_DecVal(VM *vm, Value v) { DecVal(*vm, v); }
 void CVM_RestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
 StackPtr CVM_PopArg(VM *vm, int i, StackPtr psp) { return PopArg(*vm, i, psp); }
@@ -1122,6 +1125,7 @@ const void *vm_ops_jit_table[] = {
     "BackupVar", (void *)CVM_BackupVar,
     "DecOwned", (void *)CVM_DecOwned,
     "DecDelete", (void *)CVM_DecDelete,
+    "AssertFailed", (void *)CVM_AssertFailed,
     "DecVal", (void *)CVM_DecVal,
     "RestoreBackup", (void *)CVM_RestoreBackup,
     "PopArg", (void *)CVM_PopArg,
