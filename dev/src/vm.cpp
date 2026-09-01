@@ -800,33 +800,44 @@ int VM::LookupFieldByName(int stidx, string_view fname) const {
     return -1;
 }
 
-bool VM::EnumName(string &sd, iint enum_val, int enumidx) {
+// Appends the name(s) the value is made up of to sd, or with sd null merely reports whether it
+// has any, which is what a caller that only wants to range check a value needs (and it then
+// allocates nothing).
+bool VM::EnumLookup(string *sd, iint enum_val, int enumidx) {
     auto &enum_def = vma.meta->enums[enumidx];
     auto &vals = enum_def.vals;
     auto lookup = [&](iint val) -> bool {
         // FIXME: can store a bool that says whether this enum is contiguous, so we just index instead.
         for (auto &ev : vals)
             if (ev.val == val) {
-                sd += ev.name;
+                if (sd) *sd += ev.name;
                 return true;
             }
         return false;
     };
     if (!enum_def.flags || !enum_val) return lookup(enum_val);
-    auto start = sd.size();
+    auto start = sd ? sd->size() : 0;
     auto upto = 64 - HighZeroBits(enum_val);
     for (int i = 0; i < upto; i++) {
         auto bit = enum_val & (1LL << i);
         if (bit) {
-            if (sd.size() != start) sd += "|";
+            if (sd && sd->size() != start) *sd += "|";
             if (!lookup(bit)) {
                 // enum contains unknown bits, so can't display this properly.
-                sd.resize(start);
+                if (sd) sd->resize(start);
                 return false;
             }
         }
     }
     return true;
+}
+
+bool VM::EnumName(string &sd, iint enum_val, int enumidx) {
+    return EnumLookup(&sd, enum_val, enumidx);
+}
+
+bool VM::EnumValueValid(iint enum_val, int enumidx) {
+    return EnumLookup(nullptr, enum_val, enumidx);
 }
 
 string_view VM::EnumName(int enumidx) {

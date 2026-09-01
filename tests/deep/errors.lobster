@@ -66,6 +66,12 @@ def errors_tests():
     // A switch without default on an enum value outside the enum's cases.
     expect_error("enum e:\n    e_a\nlet v = e(9)\nlet r = switch v:\n    case e_a: 1\nreturn r",
                  "out of range of possible values in switch")
+    // An `out_of_range` case takes the place of that error and handles the value instead.
+    let oret, oerr = compile_run_code(
+        "enum e:\n    e_a\nlet v = e(9)\nreturn switch v:\n    case e_a: \"a\"\n" +
+        "    out_of_range: \"o\{v\}\"\n", [])
+    test_eq(oerr, nil)
+    test_eq(oret, "o9")
 
     // Compile-time errors also come back as the error return value.
     expect_error("let x:string = 1\nreturn x", "error")
@@ -97,6 +103,28 @@ def errors_tests():
     expect_error("def f(s:string?) -> int: return s.length\nreturn f(nil)", "error")
     // Exhaustive switch on enums enforced at compile time.
     expect_error("enum e:\n    e_a\n    e_b\nlet v = e_a\nlet r = switch v:\n    case e_a: 1\nreturn r", "not tested in switch")
+    // `out_of_range` handles values the enum doesn't declare, so unlike `default` it does not
+    // make the switch exhaustive: a missing case is still an error.
+    expect_error("enum e:\n    e_a\n    e_b\nlet v = e_a\nlet r = switch v:\n    case e_a: 1\n" +
+                 "    out_of_range: 2\nreturn r", "not tested in switch")
+    // `default` already runs for out of range values, so the two can't be combined.
+    expect_error("enum e:\n    e_a\nlet v = e_a\nlet r = switch v:\n    case e_a: 1\n" +
+                 "    default: 2\n    out_of_range: 3\nreturn r",
+                 "cannot have both `default` and `out_of_range`")
+    expect_error("enum e:\n    e_a\nlet v = e_a\nlet r = switch v:\n    case e_a: 1\n" +
+                 "    out_of_range: 2\n    default: 3\nreturn r",
+                 "cannot have both `default` and `out_of_range`")
+    expect_error("enum e:\n    e_a\nlet v = e_a\nlet r = switch v:\n    case e_a: 1\n" +
+                 "    out_of_range: 2\n    out_of_range: 3\nreturn r",
+                 "cannot have more than one `out_of_range`")
+    // Only an enum has values outside of the ones it declares.
+    expect_error("let v = 1\nlet r = switch v:\n    case 1: 1\n    out_of_range: 2\nreturn r",
+                 "`out_of_range` can only be used in a switch on an enum value")
+    expect_error("let v = \"a\"\nlet r = switch v:\n    case \"a\": 1\n    out_of_range: 2\nreturn r",
+                 "`out_of_range` can only be used in a switch on an enum value")
+    expect_error("class a:\n    x:int = 1\nclass b : a\nlet v = b \{\}\nlet r = switch v:\n" +
+                 "    case b: 1\n    out_of_range: 2\nreturn r",
+                 "`out_of_range` can only be used in a switch on an enum value")
     // A program whose last statement produces no value is also an error.
     expect_error("print(1)", "returns 0 values")
 

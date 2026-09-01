@@ -1321,7 +1321,9 @@ struct VM : VMBase {
     bool StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, const Value *elems,
                             bool omit_if_empty);
     void StructToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &ti, const Value *elems);
+    bool EnumLookup(string *sd, iint val, int enumidx);
     bool EnumName(string &sd, iint val, int enumidx);
+    bool EnumValueValid(iint val, int enumidx);
     string_view EnumName(int enumidx);
     optional<int64_t> LookupEnum(string_view name, int enumidx);
 

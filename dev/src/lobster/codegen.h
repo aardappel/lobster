@@ -3199,8 +3199,9 @@ void Case::Generate(CodeGen &cg, size_t retval) const {
         cg.Gen(cbody, retval);
         if (retval) cg.TakeTemp(1, true);
     } else {
-        // An empty default case signals runtime error for enums.
-        assert(pattern->children.empty());
+        // An empty default case signals runtime error for enums. An `out_of_range` case takes
+        // the exact same slot, but has a user block to run instead, so it is never empty.
+        assert(pattern->children.empty() && !out_of_range);
         // FIXME: would be great to ensure the offending value is still on the stack for
         // this instruction to have access to.
         cg.EmitOp0(IL_ENUM_RANGE_ERR);

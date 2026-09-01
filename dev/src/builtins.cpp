@@ -1514,6 +1514,19 @@ nfr("type_enum_value_name", "enum_type_id,idx", "TI", "S",
         Push(sp, vm.NewString(sd));
     });
 
+nfr("type_enum_value_valid", "enum_type_id,idx", "TI", "B",
+    "whether an integer is a value of the given enum (use typeof), i.e. whether"
+    " type_enum_value_name would give it a name, but without allocating a string. Cheap enough"
+    " to range check a value that may come from elsewhere (such as a file written by a newer"
+    " version of the program) before switching on it. For an enum_flags, any combination of"
+    " declared bits is a value, so this is true for more values than a switch on it has cases",
+    [](StackPtr &sp, VM &vm) {
+        auto i = Pop(sp).ival();
+        auto id = Pop(sp).ival();
+        auto &ti = vm.GetTypeInfo((type_elem_t)id);
+        Push(sp, Value(ti.t == RTT_INT && ti.enumidx >= 0 && vm.EnumValueValid(i, ti.enumidx)));
+    });
+
 nfr("program_name", "", "", "S",
     "returns the name of the main program (e.g. \"foo.lobster\"), \"\" if running from lpak.",
     [](StackPtr &, VM &vm) {

@@ -58,7 +58,7 @@ constant (e.g. <code>123</code>) or hex digits with a leading
 <li><p>Identifiers made from alpha-numeric characters and the
 <code>_</code> (except no digits for the first character).</p></li>
 <li><p>Keywords:
-<code>nil return class struct import int float string any void def fn is from program private resource enum enum_flags typeof var let pakfile switch case default namespace not and or attribute if for while super constructor guard abstract member member_frame static static_frame attribute operator</code></p></li>
+<code>nil return class struct import int float string any void def fn is from program private resource enum enum_flags typeof var let pakfile switch case default out_of_range namespace not and or attribute if for while super constructor guard abstract member member_frame static static_frame attribute operator</code></p></li>
 <li><p>Linefeed is whitespace if it follows a token that indicates an
 incomplete expression (such as <code>+</code> or <code>,</code>) and an
 actual token otherwise (used to separate lists of expressions inside a
@@ -1060,6 +1060,26 @@ Enums are also required to be tested exhaustively. An enum value that
 doesn't correspond to a value in the current enum definition (such as
 one read from a file) will produce a runtime error if the switch does
 not have a default case.</p>
+<p>That runtime error can't be caught (<code>try</code> in
+<code>exception.lobster</code> is built on ordinary control flow), so to
+handle such a value instead of dying on it, give the switch an
+<code>out_of_range</code> case:</p>
+<pre><code>var name = switch c:
+        case red: &quot;red&quot;
+        case green: &quot;green&quot;
+        out_of_range: &quot;unknown color {c}&quot;</code></pre>
+<p>It takes the exact place of that error, so it costs nothing, and it
+runs only for values that aren't in the enum definition. Unlike
+<code>default</code> it doesn't make the switch exhaustive: leaving out
+a case for a value the enum does define is still an error. Inside the
+block the value is a plain <code>int</code> rather than the enum, since
+it is by definition not one of the enum's values (as with a
+<code>case</code> on a class type, this only applies if the value is a
+variable or a field, which is what the compiler can track).
+<code>out_of_range</code> can only be used in a switch on an enum, and
+not together with a <code>default</code>, which already runs for out of
+range values. To range check a value before switching on it, rather than
+in the switch, use <code>type_enum_value_valid</code>.</p>
 <h3 id="guard">guard</h3>
 <p><code>guard</code> is a special variant of <code>if</code> for
 writing code in "early-out" style:</p>

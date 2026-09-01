@@ -1702,14 +1702,24 @@ struct Parser {
                 Expect(T_COLON);
                 Expect(T_INDENT);
                 bool have_default = false;
+                bool have_out_of_range = false;
                 auto cases = new List(lex);
                 for (;;) {
                     List *pattern = new List(lex);
                     Line cline = lex;
-                    if (lex.token == T_DEFAULT) {
-                        if (have_default) Error("cannot have more than one default in a switch");
+                    bool out_of_range = false;
+                    if (lex.token == T_DEFAULT || lex.token == T_OUT_OF_RANGE) {
+                        out_of_range = lex.token == T_OUT_OF_RANGE;
+                        if (out_of_range ? have_out_of_range : have_default)
+                            Error("cannot have more than one ", Q(TName(lex.token)), " in a switch");
+                        // They occupy the same slot in the generated code, and `default` already
+                        // runs for out of range values, so only one of the two is allowed.
+                        if (have_default || have_out_of_range)
+                            Error("cannot have both ", Q(TName(T_DEFAULT)), " and ",
+                                  Q(TName(T_OUT_OF_RANGE)), " in a switch");
                         lex.Next();
-                        have_default = true;
+                        have_default = !out_of_range;
+                        have_out_of_range = out_of_range;
                     } else {
                         Expect(T_CASE);
                         for (;;) {
@@ -1741,7 +1751,9 @@ struct Parser {
                             Expect(T_COMMA);
                         }
                     }
-                    cases->Add(new Case(cline, pattern, ParseBlock()));
+                    auto cas = new Case(cline, pattern, ParseBlock());
+                    cas->out_of_range = out_of_range;
+                    cases->Add(cas);
                     if (!IsNext(T_LINEFEED)) break;
                     if (lex.token == T_DEDENT) break;
                 }

@@ -111,6 +111,7 @@ namespace lobster {
     TOK(T_SWITCH, "switch") \
     TOK(T_CASE, "case") \
     TOK(T_DEFAULT, "default") \
+    TOK(T_OUT_OF_RANGE, "out_of_range") \
     TOK(T_NAMESPACE, "namespace") \
     TOK(T_BREAK, "break") \
     TOK(T_CONTINUE, "continue") \

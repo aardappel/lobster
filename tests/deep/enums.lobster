@@ -118,10 +118,96 @@ def enums_tests():
     test_eq(colrange(de_green), "low")
     test_eq(colrange(de_blue), "high")
 
+    // `out_of_range` runs for values that aren't the enum's, and only those. Unlike `default`
+    // it doesn't switch off exhaustiveness checking (see errors.lobster), so all four cases
+    // below are still required. de_color is dense enough for the jump table version.
+    def coloor(c:de_color): return switch c:
+        case de_red: "r"
+        case de_green: "g"
+        case de_blue: "b"
+        case de_cyan: "c"
+        out_of_range: "?"
+    test_eq(coloor(de_red), "r")
+    test_eq(coloor(de_green), "g")
+    test_eq(coloor(de_blue), "b")
+    test_eq(coloor(de_cyan), "c")
+    test_eq(coloor(de_color(0)), "?")     // Below the range of the values.
+    test_eq(coloor(de_color(5)), "?")     // A hole between two of them.
+    test_eq(coloor(de_color(999)), "?")   // Above the range.
+    // de_zero has too few values for a jump table, so this is the linear compare version.
+    def zerooor(z:de_zero): return switch z:
+        case de_a: "a"
+        case de_b: "b"
+        out_of_range: "?"
+    test_eq(zerooor(de_a), "a")
+    test_eq(zerooor(de_b), "b")
+    test_eq(zerooor(de_zero(2)), "?")
+    // The value decays to a plain int inside the block, since it is by definition not one of
+    // the enum's values. Overload selection on its static type observes this, and string
+    // conversion gives the number rather than a name.
+    def oor_type(x:de_color): return "de_color"
+    def oor_type(x:int): return "int"
+    def coltype(c:de_color): return switch c:
+        case de_red, de_green, de_blue, de_cyan: "{oor_type(c)} {c}"
+        out_of_range: "{oor_type(c)} {c} {c + 1}"
+    test_eq(coltype(de_blue), "de_color de_blue")
+    test_eq(coltype(de_color(42)), "int 42 43")
+    // Only the block sees the int: after a switch every case can fall out of, the value is
+    // an enum again.
+    def coltype_after(c:de_color) -> string:
+        var s = ""
+        switch c:
+            case de_red, de_green, de_blue, de_cyan: s = "in"
+            out_of_range: s = "out"
+        return "{s} {oor_type(c)}"
+    test_eq(coltype_after(de_red), "in de_color")
+    test_eq(coltype_after(de_color(42)), "out de_color")
+    // Statements rather than a value, and `out_of_range` written before the cases.
+    var oor_seen = -1
+    def colstmt(c:de_color):
+        switch c:
+            out_of_range: oor_seen = c
+            case de_red, de_green, de_blue, de_cyan: oor_seen = -1
+    colstmt(de_cyan)
+    test_eq(oor_seen, -1)
+    colstmt(de_color(7))
+    test_eq(oor_seen, 7)
+
     // Reflection on enum value names; forged values have no name.
     test_eq(type_enum_value_name(typeof bool, 1), "true")
     test_eq(type_enum_value_name(typeof de_color, 10), "de_blue")
     test_eq(type_enum_value_name(typeof de_color, 999), "")
+    // type_enum_value_valid is the same test without the string allocation: true for exactly
+    // those values type_enum_value_name gives a name to.
+    test_true(type_enum_value_valid(typeof de_color, de_red))
+    test_true(type_enum_value_valid(typeof de_color, de_green))
+    test_true(type_enum_value_valid(typeof de_color, de_blue))
+    test_true(type_enum_value_valid(typeof de_color, de_cyan))
+    test_true(not type_enum_value_valid(typeof de_color, 0))
+    test_true(not type_enum_value_valid(typeof de_color, 5))
+    test_true(not type_enum_value_valid(typeof de_color, 999))
+    test_true(type_enum_value_valid(typeof de_zero, de_a))    // A value of 0 that is declared.
+    test_true(not type_enum_value_valid(typeof de_zero, 2))
+    test_true(type_enum_value_valid(typeof de_neg, de_n))     // Negative values.
+    test_true(not type_enum_value_valid(typeof de_neg, -1))
+    test_true(type_enum_value_valid(typeof bool, false))
+    test_true(not type_enum_value_valid(typeof bool, 2))
+    // For an enum_flags, any combination of declared bits is a value, as for the name.
+    test_true(type_enum_value_valid(typeof de_bits, de_f1))
+    test_true(type_enum_value_valid(typeof de_bits, de_f1 | de_f4))
+    test_true(type_enum_value_valid(typeof de_bits, de_f1 | de_f2 | de_f4 | de_f16 | de_f32))
+    test_true(not type_enum_value_valid(typeof de_bits, 8))            // Undeclared bit.
+    test_true(not type_enum_value_valid(typeof de_bits, de_f1 | 8))    // Declared and not.
+    test_true(not type_enum_value_valid(typeof de_bits, 0))            // No bits set at all.
+    // Nothing has a name in a type that isn't an enum.
+    test_true(not type_enum_value_valid(typeof int, 1))
+    test_true(not type_enum_value_valid(typeof string, 1))
+    for(20) i:
+        let v = i - 5
+        test_eq(type_enum_value_valid(typeof de_color, v),
+                type_enum_value_name(typeof de_color, v).length != 0)
+        test_eq(type_enum_value_valid(typeof de_bits, v),
+                type_enum_value_name(typeof de_bits, v).length != 0)
 
     // Enums in data: parse_data round trips names, unknown names error.
     let pv, perr = parse_data(typeof [bool], "[true, false]")

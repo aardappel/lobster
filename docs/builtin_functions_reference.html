@@ -502,6 +502,9 @@
 <tr class="a" valign=top><td class="a"><tt><b>type_enum_value_name</b>(enum_type_id<font color="#666666">: typeid(any)</font>, idx<font color="#666666">: int</font>) -> <font color="#666666">string</font></tt></td><td class="a">string representing the name of an enum value, belonging to the enum (use typeof)</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>type_enum_value_valid</b>(enum_type_id<font color="#666666">: typeid(any)</font>, idx<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">whether an integer is a value of the given enum (use typeof), i.e. whether type_enum_value_name would give it a name, but without allocating a string. Cheap enough to range check a value that may come from elsewhere (such as a file written by a newer version of the program) before switching on it. For an enum_flags, any combination of declared bits is a value, so this is true for more values than a switch on it has cases</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>program_name</b>() -> <font color="#666666">string</font></tt></td><td class="a">returns the name of the main program (e.g. "foo.lobster"), "" if running from lpak.</td>
 
 </tr>

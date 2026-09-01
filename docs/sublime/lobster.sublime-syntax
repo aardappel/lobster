@@ -21,7 +21,7 @@ contexts:
         - match: (?i)\b(and|or|not)\b
           scope: keyword.operator.word.lobster
 
-        - match: (?i)\b(switch|case|default)\b
+        - match: (?i)\b(switch|case|default|out_of_range)\b
           scope: keyword.control.conditional.lobster
 
         # ProgramFlow -- Loops:

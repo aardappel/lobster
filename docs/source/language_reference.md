@@ -37,7 +37,7 @@ Lexical definition
 
 -   Keywords: `nil return class struct import int float string any void
     def fn is from program private resource enum enum_flags typeof
-    var let pakfile switch case default namespace not and or attribute
+    var let pakfile switch case default out_of_range namespace not and or attribute
     if for while super constructor guard abstract member member_frame
     static static_frame attribute operator`
 
@@ -1260,6 +1260,25 @@ types which must exhaustively cover all non-abstract sub-classes of the class ty
 Enums are also required to be tested exhaustively. An enum value that doesn't correspond
 to a value in the current enum definition (such as one read from a file) will produce a runtime
 error if the switch does not have a default case.
+
+That runtime error can't be caught (`try` in `exception.lobster` is built on ordinary control
+flow), so to handle such a value instead of dying on it, give the switch an `out_of_range` case:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+var name = switch c:
+        case red: "red"
+        case green: "green"
+        out_of_range: "unknown color {c}"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It takes the exact place of that error, so it costs nothing, and it runs only for values that
+aren't in the enum definition. Unlike `default` it doesn't make the switch exhaustive: leaving
+out a case for a value the enum does define is still an error. Inside the block the value is a
+plain `int` rather than the enum, since it is by definition not one of the enum's values (as
+with a `case` on a class type, this only applies if the value is a variable or a field, which is
+what the compiler can track). `out_of_range` can only be used in a switch on an enum, and not
+together with a `default`, which already runs for out of range values. To range check a value
+before switching on it, rather than in the switch, use `type_enum_value_valid`.
 
 ### guard
 

@@ -477,6 +477,7 @@ struct Lex : LoadedFile {
                         case 'o':
                             if (sattr == TName(T_OR)) { cont = true; return T_OR; }
                             if (sattr == TName(T_OPERATOR)) { cont = true; return T_OPERATOR; }
+                            if (sattr == TName(T_OUT_OF_RANGE)) return T_OUT_OF_RANGE;
                             break;
                         case 'p':
                             if (sattr == TName(T_PROGRAM)) return T_PROGRAM;

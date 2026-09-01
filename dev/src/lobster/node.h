@@ -310,7 +310,11 @@ BINARY_NODE_T(Switch, "switch", false, Node, value, List, cases, \
     bool GenerateJumpTable(CodeGen &cg, size_t retval) const; \
     void GenerateTypeDispatch(CodeGen &cg, size_t retval) const; \
     void GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mini, int maxi) const;)
-BINARY_NODE_T(Case, "case", false, List, pattern, Node, cbody, )
+// An `out_of_range` case has an empty pattern like `default` does (so it lands in the same
+// jump table slot), but unlike `default` it doesn't switch off enum exhaustiveness checking.
+BINARY_NODE_T(Case, "case", false, List, pattern, Node, cbody, \
+    bool out_of_range = false; \
+    bool EqAttr(const Node *o) const { return out_of_range == ((Case *)o)->out_of_range; })
 BINARY_NODE(Range, "range", false, start, end, )
 ZERO_NODE(Break, "break", false, RETURNSMETHOD STATEMENTMETHOD)
 ZERO_NODE(Continue, "continue", false, RETURNSMETHOD STATEMENTMETHOD)

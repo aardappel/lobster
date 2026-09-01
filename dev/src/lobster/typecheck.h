@@ -2430,7 +2430,8 @@ struct TypeChecker {
         return type;
     }
     TypeRef UseFlow(const FlowItem &left, size_t max_flowstack_size) {
-        if (left.now->Numeric()) return left.now;  // Early out, same as above.
+        // Early out, same as above, except for enums, which an `out_of_range` case decays to int.
+        if (left.now->Numeric() && !left.now->IsEnum()) return left.now;
         for (size_t i = max_flowstack_size; i > 0; i--) {
             auto &flow = flowstack[i - 1];
             if (flow.sid == left.sid &&	flow.DerefsEqual(left)) {
@@ -3283,6 +3284,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
         tc.Error(*this, "switch value must be int / float / string / class");
     exptype = nullptr;
     ssize_t default_loc = -1;
+    ssize_t out_of_range_loc = -1;
     vector<bool> enum_cases;
     vector<iint> ints_seen;
     if (ptype->IsEnum()) enum_cases.resize(ptype->e->vals.size());
@@ -3296,7 +3298,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
         tc.TT(n, reqret, LT_KEEP);
         auto cflow = std::move(tc.case_flow);
         auto cas = AssertIs<Case>(n);
-        if (!cas->pattern->Arity()) default_loc = i;
+        if (!cas->pattern->Arity()) (cas->out_of_range ? out_of_range_loc : default_loc) = i;
         cas->pattern->exptype = type_void;
         cas->pattern->lt = LT_ANY;
         for (auto c : cas->pattern->children) {
@@ -3347,10 +3349,14 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
             any_fallthrough = true;
         }
     }
-    if (default_loc >= 0) {
+    if (out_of_range_loc >= 0 && !ptype->IsEnum())
+        tc.Error(*this, Q(TName(T_OUT_OF_RANGE)), " can only be used in a switch on an enum value");
+    // The parser guarantees at most one of the two, and both take the same slot in codegen.
+    auto empty_pattern_loc = default_loc >= 0 ? default_loc : out_of_range_loc;
+    if (empty_pattern_loc >= 0) {
         // Stick the default at the end, simplifies codegen.
-        auto d = cases->children[default_loc];
-        cases->children.erase(default_loc);
+        auto d = cases->children[empty_pattern_loc];
+        cases->children.erase(empty_pattern_loc);
         cases->children.push_back(d);
     }
     for (auto n : cases->children) {
@@ -3416,18 +3422,21 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
                 if (!enum_cases[i])
                     tc.Error(*value, "enum value ", Q(ev->name), " not tested in switch");
             }
-            // Add a runtime error for when the value is out of range.
-            auto pat = new List(cases->line);
-            pat->exptype = type_void;
-            pat->lt = LT_ANY;
-            // Blocks always have minimum of 1 statement in them, so an empty one signals runtime error here.
-            auto blk = new Block(cases->line);
-            blk->exptype = type_void;
-            blk->lt = LT_ANY;
-            auto cas = new Case(cases->line, pat, blk);
-            cas->exptype = type_void;
-            cas->lt = LT_ANY;
-            cases->Add(cas);
+            if (out_of_range_loc < 0) {
+                // Add a runtime error for when the value is out of range. An `out_of_range` case
+                // already occupies this slot with code of its own.
+                auto pat = new List(cases->line);
+                pat->exptype = type_void;
+                pat->lt = LT_ANY;
+                // Blocks always have minimum of 1 statement in them, so an empty one signals runtime error here.
+                auto blk = new Block(cases->line);
+                blk->exptype = type_void;
+                blk->lt = LT_ANY;
+                auto cas = new Case(cases->line, pat, blk);
+                cas->exptype = type_void;
+                cas->lt = LT_ANY;
+                cases->Add(cas);
+            }
         } else {
             if (reqret) tc.Error(*this, "non-exhaustive switch that returns a value must have a default case");
         }
@@ -3457,6 +3466,11 @@ Node *Case::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) 
         } else {
             tc.TypeCheckList(pattern, LT_BORROW);
         }
+    } else if (out_of_range) {
+        // This block only runs for a value that is not one of the enum's values, so reading it
+        // here gives a plain int. Like the type narrowing a `case` on a class does, this only
+        // applies if the value is something flow typing can name, i.e. a variable or a field.
+        tc.CheckFlowTypeIdOrDot(*sw->value, type_int);
     }
     tc.TT(cbody, reqret, LT_KEEP);
     // Cases are alternatives like the branches of an if, so the same applies:
