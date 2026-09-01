@@ -1482,6 +1482,19 @@ struct CodeGen  {
         }
     }
 
+    // Same, once per slot the struct field occupies. The object is only needed to find them, so
+    // it is read out of the stack slot the first one lands in before that gets overwritten.
+    void GenPushFieldStruct(int offset, int fwidth) {
+        EmitOp(IL_PUSHFLD2V, 1, fwidth);
+        append(cb, "    {\n    ", cpp ? "auto " : "RefObj *", "_o = (", sp(1), ")->",
+               cpp ? "oval()" : "ref", ";\n");
+        for (int i = 0; i < fwidth; i++) {
+            GenValueCopy(cb, sp(1 - i), cpp ? cat("_o->Elems() + ", offset + i)
+                                            : cat("((Value *)(_o + 1)) + ", offset + i));
+        }
+        cb += "    }\n";
+    }
+
     // U_POP only decrements its own copy of the stack pointer, and where the stack top is is
     // something we track statically, so all that is left of it is the bookkeeping.
     void GenPopSlot() { EmitOp(IL_POP); }
@@ -1926,7 +1939,7 @@ struct CodeGen  {
             }
         } else {
             if (IsStruct(ftype->t)) {
-                EmitOp2(IL_PUSHFLD2V, offset, fwidth, 1, fwidth);
+                GenPushFieldStruct(offset, fwidth);
             } else {
                 GenPushField(offset);
             }

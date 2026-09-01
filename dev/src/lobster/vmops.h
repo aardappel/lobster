@@ -668,13 +668,8 @@ VM_INLINE void U_PUSHFLDMREF(VM &vm, StackPtr sp, int i) {
         Push(sp, r.oval()->At(i));
     }
 }
-VM_INLINE void U_PUSHFLD2V(VM &vm, StackPtr sp, int i, int l) {
-    Value r = Pop(sp);
-    VMASSERT(vm, r.ref());
-    assert(i + l <= r.oval()->Len(vm));
-    tsnz_memcpy(TopPtr(sp), &r.oval()->AtR(i), l);
-    PushN(sp, l);
-}
+// The code generator emits a load per slot of the struct instead, see GenPushFieldStruct.
+VM_INLINE void U_PUSHFLD2V(VM &, StackPtr, int, int) { assert(false); }
 VM_INLINE void U_PUSHFLDV(VM &, StackPtr sp, int i, int l) {
     PopN(sp, l);
     auto val = *(TopPtr(sp) + i);
