@@ -134,14 +134,10 @@ VM_INLINE void U_PUSHFUN(VM &, StackPtr sp, int start, fun_base_t fcont) {
     Push(sp, Value(FunPtr(fcont)));
 }
 
+// FIXME: have a way that constant strings can stay in the bytecode, so this doesn't need the
+// indirection thru the VM at all.
 VM_INLINE void U_PUSHSTR(VM &vm, StackPtr sp, int i) {
-    // FIXME: have a way that constant strings can stay in the bytecode,
-    // or at least preallocate them all
-    auto &s = vm.constant_strings[i];
-    if (!s) {
-        auto fb_s = vm.vma.meta->stringtable[i];
-        s = vm.NewString(fb_s);
-    }
+    auto s = vm.constant_strings[i];
     #if STRING_CONSTANTS_KEEP
         s->Inc();
     #endif
