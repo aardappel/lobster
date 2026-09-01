@@ -77,32 +77,200 @@ string ToWASM(NativeRegistry &natreg, vector<uint8_t> &dest, string_view bytecod
     bw.EndSection(WASM::Section::Type);
 
     bw.BeginSection(WASM::Section::Import);
-    #define S_ARGS0 TI_I_II
-    #define S_ARGS1 TI_I_III
-    #define S_ARGS2 TI_I_IIII
-    #define S_ARGS3 TI_I_IIIII
-    #define S_ARGSN(N) S_ARGS##N
-    #define C_ARGS0 TI_I_III
-    #define C_ARGS1 TI_I_IIII
-    #define C_ARGS2 TI_I_IIIII
-    #define C_ARGS3 TI_I_IIIIII
-    #define C_ARGSN(N) C_ARGS##N
-    #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, S_ARGSN(A));
-        VM_OPS_BASE
-    #undef F
-    #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, C_ARGSN(A));
-        VM_OPS_CALL
-    #undef F
-    // These take a pointer to their list of cases rather than a count of int arguments.
-    #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_III);
-        VM_OPS_VARARG
-    #undef F
-    #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_II);
-        VM_OPS_JUMP1
-    #undef F
-    #define F(N, A) bw.AddImportLinkFunction("CVM_" #N, TI_I_III);
-        VM_OPS_JUMP2
-    #undef F
+    bw.AddImportLinkFunction("CVM_UNUSED", TI_I_II);
+    bw.AddImportLinkFunction("CVM_PUSHINT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_PUSHINT64", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_PUSHFLT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_PUSHFLT64", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_PUSHSTR", TI_I_III);
+    bw.AddImportLinkFunction("CVM_PUSHNIL", TI_I_II);
+    bw.AddImportLinkFunction("CVM_PUSHVARF", TI_I_III);
+    bw.AddImportLinkFunction("CVM_PUSHVARL", TI_I_III);
+    bw.AddImportLinkFunction("CVM_PUSHVARVF", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_PUSHVARVL", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_VPUSHIDXI", TI_I_II);
+    bw.AddImportLinkFunction("CVM_VPUSHIDXI2V", TI_I_II);
+    bw.AddImportLinkFunction("CVM_VPUSHIDXV", TI_I_III);
+    bw.AddImportLinkFunction("CVM_VPUSHIDXIS", TI_I_III);
+    bw.AddImportLinkFunction("CVM_VPUSHIDXIS2V", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_VPUSHIDXVS", TI_I_IIIII);
+    bw.AddImportLinkFunction("CVM_NPUSHIDXI", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SPUSHIDXI", TI_I_II);
+    bw.AddImportLinkFunction("CVM_PUSHFLD", TI_I_III);
+    bw.AddImportLinkFunction("CVM_PUSHFLDMREF", TI_I_III);
+    bw.AddImportLinkFunction("CVM_PUSHFLDV", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_PUSHFLD2V", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_PUSHFLDV2V", TI_I_IIIII);
+    bw.AddImportLinkFunction("CVM_BCALLRETV", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_BCALLRET0", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_BCALLRET1", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_BCALLRET2", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_BCALLRET3", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_BCALLRET4", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_BCALLRET5", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_BCALLRET6", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_BCALLRET7", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_ASSERT", TI_I_IIIII);
+    bw.AddImportLinkFunction("CVM_ASSERTR", TI_I_IIIII);
+    bw.AddImportLinkFunction("CVM_STATEMENT", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_PROFILE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_NEWVEC", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_NEWOBJECT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_POP", TI_I_II);
+    bw.AddImportLinkFunction("CVM_POPREF", TI_I_II);
+    bw.AddImportLinkFunction("CVM_POPV", TI_I_III);
+    bw.AddImportLinkFunction("CVM_DUP", TI_I_II);
+    bw.AddImportLinkFunction("CVM_EXIT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_ABORT", TI_I_II);
+    bw.AddImportLinkFunction("CVM_IADD", TI_I_II);
+    bw.AddImportLinkFunction("CVM_ISUB", TI_I_II);
+    bw.AddImportLinkFunction("CVM_IMUL", TI_I_II);
+    bw.AddImportLinkFunction("CVM_IDIV", TI_I_II);
+    bw.AddImportLinkFunction("CVM_IMOD", TI_I_II);
+    bw.AddImportLinkFunction("CVM_ILT", TI_I_II);
+    bw.AddImportLinkFunction("CVM_IGT", TI_I_II);
+    bw.AddImportLinkFunction("CVM_ILE", TI_I_II);
+    bw.AddImportLinkFunction("CVM_IGE", TI_I_II);
+    bw.AddImportLinkFunction("CVM_IEQ", TI_I_II);
+    bw.AddImportLinkFunction("CVM_INE", TI_I_II);
+    bw.AddImportLinkFunction("CVM_FADD", TI_I_II);
+    bw.AddImportLinkFunction("CVM_FSUB", TI_I_II);
+    bw.AddImportLinkFunction("CVM_FMUL", TI_I_II);
+    bw.AddImportLinkFunction("CVM_FDIV", TI_I_II);
+    bw.AddImportLinkFunction("CVM_FMOD", TI_I_II);
+    bw.AddImportLinkFunction("CVM_FLT", TI_I_II);
+    bw.AddImportLinkFunction("CVM_FGT", TI_I_II);
+    bw.AddImportLinkFunction("CVM_FLE", TI_I_II);
+    bw.AddImportLinkFunction("CVM_FGE", TI_I_II);
+    bw.AddImportLinkFunction("CVM_FEQ", TI_I_II);
+    bw.AddImportLinkFunction("CVM_FNE", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SADD", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SSUB", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SMUL", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SDIV", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SMOD", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SLT", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SGT", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SLE", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SGE", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SEQ", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SNE", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SADDN", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVVADD", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVVSUB", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVVMUL", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVVDIV", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVVMOD", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVVLT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVVGT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVVLE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVVGE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVVADD", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVVSUB", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVVMUL", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVVDIV", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVVMOD", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVVLT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVVGT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVVLE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVVGE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVSADD", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVSSUB", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVSMUL", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVSDIV", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVSMOD", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVSLT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVSGT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVSLE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_IVSGE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVSADD", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVSSUB", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVSMUL", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVSDIV", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVSMOD", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVSLT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVSGT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVSLE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVSGE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SIVADD", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SIVSUB", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SIVMUL", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SIVDIV", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SIVMOD", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SIVLT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SIVGT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SIVLE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SIVGE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SFVADD", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SFVSUB", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SFVMUL", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SFVDIV", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SFVMOD", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SFVLT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SFVGT", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SFVLE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_SFVGE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_AEQ", TI_I_II);
+    bw.AddImportLinkFunction("CVM_ANE", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SNEQ", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SNNE", TI_I_II);
+    bw.AddImportLinkFunction("CVM_STEQ", TI_I_III);
+    bw.AddImportLinkFunction("CVM_STNE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_LEQ", TI_I_II);
+    bw.AddImportLinkFunction("CVM_LNE", TI_I_II);
+    bw.AddImportLinkFunction("CVM_IUMINUS", TI_I_II);
+    bw.AddImportLinkFunction("CVM_FUMINUS", TI_I_II);
+    bw.AddImportLinkFunction("CVM_IVUMINUS", TI_I_III);
+    bw.AddImportLinkFunction("CVM_FVUMINUS", TI_I_III);
+    bw.AddImportLinkFunction("CVM_LOGNOT", TI_I_II);
+    bw.AddImportLinkFunction("CVM_BINAND", TI_I_II);
+    bw.AddImportLinkFunction("CVM_BINOR", TI_I_II);
+    bw.AddImportLinkFunction("CVM_XOR", TI_I_II);
+    bw.AddImportLinkFunction("CVM_ASL", TI_I_II);
+    bw.AddImportLinkFunction("CVM_ASR", TI_I_II);
+    bw.AddImportLinkFunction("CVM_NEG", TI_I_II);
+    bw.AddImportLinkFunction("CVM_I2F", TI_I_II);
+    bw.AddImportLinkFunction("CVM_A2S", TI_I_III);
+    bw.AddImportLinkFunction("CVM_E2B", TI_I_II);
+    bw.AddImportLinkFunction("CVM_E2BREF", TI_I_II);
+    bw.AddImportLinkFunction("CVM_ST2S", TI_I_III);
+    bw.AddImportLinkFunction("CVM_RETURNLOCAL", TI_I_III);
+    bw.AddImportLinkFunction("CVM_RETURNNONLOCAL", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_RETURNANY", TI_I_III);
+    bw.AddImportLinkFunction("CVM_ISTYPE", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_ISSUBTYPE", TI_I_IIIII);
+    bw.AddImportLinkFunction("CVM_FORLOOPI", TI_I_II);
+    bw.AddImportLinkFunction("CVM_IFORELEM", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SFORELEM", TI_I_II);
+    bw.AddImportLinkFunction("CVM_VFORELEM", TI_I_II);
+    bw.AddImportLinkFunction("CVM_VFORELEMREF", TI_I_II);
+    bw.AddImportLinkFunction("CVM_VFORELEM2S", TI_I_II);
+    bw.AddImportLinkFunction("CVM_VFORELEMREF2S", TI_I_III);
+    bw.AddImportLinkFunction("CVM_INCREF", TI_I_III);
+    bw.AddImportLinkFunction("CVM_KEEPREF", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_KEEPREFLOOP", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_GOTOFUNEXIT", TI_I_II);
+    bw.AddImportLinkFunction("CVM_CALL", TI_I_III);
+    bw.AddImportLinkFunction("CVM_CALLV", TI_I_II);
+    bw.AddImportLinkFunction("CVM_DDCALL", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_LABEL", TI_I_III);
+    bw.AddImportLinkFunction("CVM_JUMP_TABLE_END", TI_I_II);
+    bw.AddImportLinkFunction("CVM_JUMP_TABLE_CASE_START", TI_I_III);
+    bw.AddImportLinkFunction("CVM_ENUM_RANGE_ERR", TI_I_II);
+    bw.AddImportLinkFunction("CVM_PUSHFUN", TI_I_IIII);
+    bw.AddImportLinkFunction("CVM_JUMP_TABLE", TI_I_III);
+    bw.AddImportLinkFunction("CVM_JUMP_TABLE_DISPATCH", TI_I_III);
+    bw.AddImportLinkFunction("CVM_JUMP", TI_I_II);
+    bw.AddImportLinkFunction("CVM_JUMPFAIL", TI_I_II);
+    bw.AddImportLinkFunction("CVM_JUMPFAILR", TI_I_II);
+    bw.AddImportLinkFunction("CVM_JUMPNOFAIL", TI_I_II);
+    bw.AddImportLinkFunction("CVM_JUMPNOFAILR", TI_I_II);
+    bw.AddImportLinkFunction("CVM_IFOR", TI_I_II);
+    bw.AddImportLinkFunction("CVM_SFOR", TI_I_II);
+    bw.AddImportLinkFunction("CVM_VFOR", TI_I_II);
+    bw.AddImportLinkFunction("CVM_JUMPIFUNWOUND", TI_I_III);
+    bw.AddImportLinkFunction("CVM_JUMPIFSTATICLF", TI_I_III);
+    bw.AddImportLinkFunction("CVM_JUMPIFMEMBERLF", TI_I_III);
     size_t import_erccm = bw.AddImportLinkFunction("RunCompiledCodeMain", TI_I_IIIII);
     size_t import_gnct = bw.AddImportLinkFunction("CVM_GetNextCallTarget", TI_I_I);
     size_t import_drop = bw.AddImportLinkFunction("CVM_Drop", TI_I_I);

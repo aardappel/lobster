@@ -33,9 +33,19 @@ enum MathOp {
 // both the operator and the type it works on, see GenAssign, and most of them we emit inline
 // rather than call. The name of each is the name of its op.
 enum LvalOp {
-    #define F(N, A) N,
-        VM_OPS_LV
-    #undef F
+    LV_DUP, LV_DUPV,
+    LV_WRITE, LV_WRITEREF, LV_WRITEV, LV_WRITEREFV,
+    // The arithmetic ones come in MathOp order per family, which is what lets GenAssign
+    // retarget an operator at the type it is used on by adding a family offset.
+    LV_IADD, LV_ISUB, LV_IMUL, LV_IDIV, LV_IMOD,
+    LV_BINAND, LV_BINOR, LV_XOR, LV_ASL, LV_ASR,
+    LV_FADD, LV_FSUB, LV_FMUL, LV_FDIV, LV_FMOD,
+    LV_IVVADD, LV_IVVSUB, LV_IVVMUL, LV_IVVDIV, LV_IVVMOD,
+    LV_FVVADD, LV_FVVSUB, LV_FVVMUL, LV_FVVDIV, LV_FVVMOD,
+    LV_IVSADD, LV_IVSSUB, LV_IVSMUL, LV_IVSDIV, LV_IVSMOD,
+    LV_FVSADD, LV_FVSSUB, LV_FVSMUL, LV_FVSDIV, LV_FVSMOD,
+    LV_SADD,
+    LV_IPP, LV_IMM, LV_FPP, LV_FMM,
 };
 
 // A return either ends the function it is in, returns past it to a specific function further up,
@@ -637,38 +647,257 @@ struct CodeGen  {
                 "\n"
                 ;
 
-            auto args = [&](int A) {
-                for (int i = 0; i < A; i++) sd += ", int";
-            };
-
-            #define F(N, A) \
-                sd += "void U_" #N "(VMRef, StackPtr"; args(A); sd += ");\n";
-                VM_OPS_BASE
-            #undef F
-            #define F(N, A) \
-                sd += "Value *U_" #N "(VMRef, StackPtr, Value *"; args(A); sd += ");\n";
-                VM_OPS_LVAL
-            #undef F
-            #define F(N, A) \
-                sd += "void U_" #N "(VMRef, StackPtr, Value *"; args(A); sd += ");\n";
-                VM_OPS_LV
-            #undef F
-            #define F(N, A) \
-                sd += "void U_" #N "(VMRef, StackPtr"; args(A); sd += ", fun_base_t);\n";
-                VM_OPS_CALL
-            #undef F
-            #define F(N, A) \
-                sd += "void U_" #N "(VMRef, StackPtr, const int *);\n";
-                VM_OPS_VARARG
-            #undef F
-            #define F(N, A) \
-                sd += "int U_" #N "(VMRef, StackPtr);\n";
-                VM_OPS_JUMP1
-            #undef F
-            #define F(N, A) \
-                sd += "int U_" #N "(VMRef, StackPtr, int);\n";
-                VM_OPS_JUMP2
-            #undef F
+            // Every op the generated code can call. These mirror the U_ functions in vmops.h,
+            // which is what the JIT links them to, see vm_ops_jit_table.
+            sd +=
+                "void U_UNUSED(VMRef, StackPtr);\n"
+                "void U_PUSHINT(VMRef, StackPtr, int);\n"
+                "void U_PUSHINT64(VMRef, StackPtr, int, int);\n"
+                "void U_PUSHFLT(VMRef, StackPtr, int);\n"
+                "void U_PUSHFLT64(VMRef, StackPtr, int, int);\n"
+                "void U_PUSHSTR(VMRef, StackPtr, int);\n"
+                "void U_PUSHNIL(VMRef, StackPtr);\n"
+                "void U_PUSHVARF(VMRef, StackPtr, int);\n"
+                "void U_PUSHVARL(VMRef, StackPtr, int);\n"
+                "void U_PUSHVARVF(VMRef, StackPtr, int, int);\n"
+                "void U_PUSHVARVL(VMRef, StackPtr, int, int);\n"
+                "void U_VPUSHIDXI(VMRef, StackPtr);\n"
+                "void U_VPUSHIDXI2V(VMRef, StackPtr);\n"
+                "void U_VPUSHIDXV(VMRef, StackPtr, int);\n"
+                "void U_VPUSHIDXIS(VMRef, StackPtr, int);\n"
+                "void U_VPUSHIDXIS2V(VMRef, StackPtr, int, int);\n"
+                "void U_VPUSHIDXVS(VMRef, StackPtr, int, int, int);\n"
+                "void U_NPUSHIDXI(VMRef, StackPtr, int);\n"
+                "void U_SPUSHIDXI(VMRef, StackPtr);\n"
+                "void U_PUSHFLD(VMRef, StackPtr, int);\n"
+                "void U_PUSHFLDMREF(VMRef, StackPtr, int);\n"
+                "void U_PUSHFLDV(VMRef, StackPtr, int, int);\n"
+                "void U_PUSHFLD2V(VMRef, StackPtr, int, int);\n"
+                "void U_PUSHFLDV2V(VMRef, StackPtr, int, int, int);\n"
+                "void U_BCALLRETV(VMRef, StackPtr, int, int);\n"
+                "void U_BCALLRET0(VMRef, StackPtr, int, int);\n"
+                "void U_BCALLRET1(VMRef, StackPtr, int, int);\n"
+                "void U_BCALLRET2(VMRef, StackPtr, int, int);\n"
+                "void U_BCALLRET3(VMRef, StackPtr, int, int);\n"
+                "void U_BCALLRET4(VMRef, StackPtr, int, int);\n"
+                "void U_BCALLRET5(VMRef, StackPtr, int, int);\n"
+                "void U_BCALLRET6(VMRef, StackPtr, int, int);\n"
+                "void U_BCALLRET7(VMRef, StackPtr, int, int);\n"
+                "void U_ASSERT(VMRef, StackPtr, int, int, int);\n"
+                "void U_ASSERTR(VMRef, StackPtr, int, int, int);\n"
+                "void U_STATEMENT(VMRef, StackPtr, int, int);\n"
+                "void U_PROFILE(VMRef, StackPtr, int);\n"
+                "void U_NEWVEC(VMRef, StackPtr, int, int);\n"
+                "void U_NEWOBJECT(VMRef, StackPtr, int);\n"
+                "void U_POP(VMRef, StackPtr);\n"
+                "void U_POPREF(VMRef, StackPtr);\n"
+                "void U_POPV(VMRef, StackPtr, int);\n"
+                "void U_DUP(VMRef, StackPtr);\n"
+                "void U_EXIT(VMRef, StackPtr, int);\n"
+                "void U_ABORT(VMRef, StackPtr);\n"
+                "void U_IADD(VMRef, StackPtr);\n"
+                "void U_ISUB(VMRef, StackPtr);\n"
+                "void U_IMUL(VMRef, StackPtr);\n"
+                "void U_IDIV(VMRef, StackPtr);\n"
+                "void U_IMOD(VMRef, StackPtr);\n"
+                "void U_ILT(VMRef, StackPtr);\n"
+                "void U_IGT(VMRef, StackPtr);\n"
+                "void U_ILE(VMRef, StackPtr);\n"
+                "void U_IGE(VMRef, StackPtr);\n"
+                "void U_IEQ(VMRef, StackPtr);\n"
+                "void U_INE(VMRef, StackPtr);\n"
+                "void U_FADD(VMRef, StackPtr);\n"
+                "void U_FSUB(VMRef, StackPtr);\n"
+                "void U_FMUL(VMRef, StackPtr);\n"
+                "void U_FDIV(VMRef, StackPtr);\n"
+                "void U_FMOD(VMRef, StackPtr);\n"
+                "void U_FLT(VMRef, StackPtr);\n"
+                "void U_FGT(VMRef, StackPtr);\n"
+                "void U_FLE(VMRef, StackPtr);\n"
+                "void U_FGE(VMRef, StackPtr);\n"
+                "void U_FEQ(VMRef, StackPtr);\n"
+                "void U_FNE(VMRef, StackPtr);\n"
+                "void U_SADD(VMRef, StackPtr);\n"
+                "void U_SSUB(VMRef, StackPtr);\n"
+                "void U_SMUL(VMRef, StackPtr);\n"
+                "void U_SDIV(VMRef, StackPtr);\n"
+                "void U_SMOD(VMRef, StackPtr);\n"
+                "void U_SLT(VMRef, StackPtr);\n"
+                "void U_SGT(VMRef, StackPtr);\n"
+                "void U_SLE(VMRef, StackPtr);\n"
+                "void U_SGE(VMRef, StackPtr);\n"
+                "void U_SEQ(VMRef, StackPtr);\n"
+                "void U_SNE(VMRef, StackPtr);\n"
+                "void U_SADDN(VMRef, StackPtr, int);\n"
+                "void U_IVVADD(VMRef, StackPtr, int);\n"
+                "void U_IVVSUB(VMRef, StackPtr, int);\n"
+                "void U_IVVMUL(VMRef, StackPtr, int);\n"
+                "void U_IVVDIV(VMRef, StackPtr, int);\n"
+                "void U_IVVMOD(VMRef, StackPtr, int);\n"
+                "void U_IVVLT(VMRef, StackPtr, int);\n"
+                "void U_IVVGT(VMRef, StackPtr, int);\n"
+                "void U_IVVLE(VMRef, StackPtr, int);\n"
+                "void U_IVVGE(VMRef, StackPtr, int);\n"
+                "void U_FVVADD(VMRef, StackPtr, int);\n"
+                "void U_FVVSUB(VMRef, StackPtr, int);\n"
+                "void U_FVVMUL(VMRef, StackPtr, int);\n"
+                "void U_FVVDIV(VMRef, StackPtr, int);\n"
+                "void U_FVVMOD(VMRef, StackPtr, int);\n"
+                "void U_FVVLT(VMRef, StackPtr, int);\n"
+                "void U_FVVGT(VMRef, StackPtr, int);\n"
+                "void U_FVVLE(VMRef, StackPtr, int);\n"
+                "void U_FVVGE(VMRef, StackPtr, int);\n"
+                "void U_IVSADD(VMRef, StackPtr, int);\n"
+                "void U_IVSSUB(VMRef, StackPtr, int);\n"
+                "void U_IVSMUL(VMRef, StackPtr, int);\n"
+                "void U_IVSDIV(VMRef, StackPtr, int);\n"
+                "void U_IVSMOD(VMRef, StackPtr, int);\n"
+                "void U_IVSLT(VMRef, StackPtr, int);\n"
+                "void U_IVSGT(VMRef, StackPtr, int);\n"
+                "void U_IVSLE(VMRef, StackPtr, int);\n"
+                "void U_IVSGE(VMRef, StackPtr, int);\n"
+                "void U_FVSADD(VMRef, StackPtr, int);\n"
+                "void U_FVSSUB(VMRef, StackPtr, int);\n"
+                "void U_FVSMUL(VMRef, StackPtr, int);\n"
+                "void U_FVSDIV(VMRef, StackPtr, int);\n"
+                "void U_FVSMOD(VMRef, StackPtr, int);\n"
+                "void U_FVSLT(VMRef, StackPtr, int);\n"
+                "void U_FVSGT(VMRef, StackPtr, int);\n"
+                "void U_FVSLE(VMRef, StackPtr, int);\n"
+                "void U_FVSGE(VMRef, StackPtr, int);\n"
+                "void U_SIVADD(VMRef, StackPtr, int);\n"
+                "void U_SIVSUB(VMRef, StackPtr, int);\n"
+                "void U_SIVMUL(VMRef, StackPtr, int);\n"
+                "void U_SIVDIV(VMRef, StackPtr, int);\n"
+                "void U_SIVMOD(VMRef, StackPtr, int);\n"
+                "void U_SIVLT(VMRef, StackPtr, int);\n"
+                "void U_SIVGT(VMRef, StackPtr, int);\n"
+                "void U_SIVLE(VMRef, StackPtr, int);\n"
+                "void U_SIVGE(VMRef, StackPtr, int);\n"
+                "void U_SFVADD(VMRef, StackPtr, int);\n"
+                "void U_SFVSUB(VMRef, StackPtr, int);\n"
+                "void U_SFVMUL(VMRef, StackPtr, int);\n"
+                "void U_SFVDIV(VMRef, StackPtr, int);\n"
+                "void U_SFVMOD(VMRef, StackPtr, int);\n"
+                "void U_SFVLT(VMRef, StackPtr, int);\n"
+                "void U_SFVGT(VMRef, StackPtr, int);\n"
+                "void U_SFVLE(VMRef, StackPtr, int);\n"
+                "void U_SFVGE(VMRef, StackPtr, int);\n"
+                "void U_AEQ(VMRef, StackPtr);\n"
+                "void U_ANE(VMRef, StackPtr);\n"
+                "void U_SNEQ(VMRef, StackPtr);\n"
+                "void U_SNNE(VMRef, StackPtr);\n"
+                "void U_STEQ(VMRef, StackPtr, int);\n"
+                "void U_STNE(VMRef, StackPtr, int);\n"
+                "void U_LEQ(VMRef, StackPtr);\n"
+                "void U_LNE(VMRef, StackPtr);\n"
+                "void U_IUMINUS(VMRef, StackPtr);\n"
+                "void U_FUMINUS(VMRef, StackPtr);\n"
+                "void U_IVUMINUS(VMRef, StackPtr, int);\n"
+                "void U_FVUMINUS(VMRef, StackPtr, int);\n"
+                "void U_LOGNOT(VMRef, StackPtr);\n"
+                "void U_BINAND(VMRef, StackPtr);\n"
+                "void U_BINOR(VMRef, StackPtr);\n"
+                "void U_XOR(VMRef, StackPtr);\n"
+                "void U_ASL(VMRef, StackPtr);\n"
+                "void U_ASR(VMRef, StackPtr);\n"
+                "void U_NEG(VMRef, StackPtr);\n"
+                "void U_I2F(VMRef, StackPtr);\n"
+                "void U_A2S(VMRef, StackPtr, int);\n"
+                "void U_E2B(VMRef, StackPtr);\n"
+                "void U_E2BREF(VMRef, StackPtr);\n"
+                "void U_ST2S(VMRef, StackPtr, int);\n"
+                "void U_RETURNLOCAL(VMRef, StackPtr, int);\n"
+                "void U_RETURNNONLOCAL(VMRef, StackPtr, int, int);\n"
+                "void U_RETURNANY(VMRef, StackPtr, int);\n"
+                "void U_ISTYPE(VMRef, StackPtr, int, int);\n"
+                "void U_ISSUBTYPE(VMRef, StackPtr, int, int, int);\n"
+                "void U_FORLOOPI(VMRef, StackPtr);\n"
+                "void U_IFORELEM(VMRef, StackPtr);\n"
+                "void U_SFORELEM(VMRef, StackPtr);\n"
+                "void U_VFORELEM(VMRef, StackPtr);\n"
+                "void U_VFORELEMREF(VMRef, StackPtr);\n"
+                "void U_VFORELEM2S(VMRef, StackPtr);\n"
+                "void U_VFORELEMREF2S(VMRef, StackPtr, int);\n"
+                "void U_INCREF(VMRef, StackPtr, int);\n"
+                "void U_KEEPREF(VMRef, StackPtr, int, int);\n"
+                "void U_KEEPREFLOOP(VMRef, StackPtr, int, int);\n"
+                "void U_GOTOFUNEXIT(VMRef, StackPtr);\n"
+                "void U_CALL(VMRef, StackPtr, int);\n"
+                "void U_CALLV(VMRef, StackPtr);\n"
+                "void U_DDCALL(VMRef, StackPtr, int, int);\n"
+                "void U_LABEL(VMRef, StackPtr, int);\n"
+                "void U_JUMP_TABLE_END(VMRef, StackPtr);\n"
+                "void U_JUMP_TABLE_CASE_START(VMRef, StackPtr, int);\n"
+                "void U_ENUM_RANGE_ERR(VMRef, StackPtr);\n"
+                "Value *U_LVAL_VARF(VMRef, StackPtr, Value *, int);\n"
+                "Value *U_LVAL_VARL(VMRef, StackPtr, Value *, int);\n"
+                "Value *U_LVAL_FLD(VMRef, StackPtr, Value *, int);\n"
+                "Value *U_LVAL_IDXVI(VMRef, StackPtr, Value *, int);\n"
+                "Value *U_LVAL_IDXVV(VMRef, StackPtr, Value *, int, int);\n"
+                "Value *U_LVAL_IDXNI(VMRef, StackPtr, Value *, int);\n"
+                "Value *U_LVAL_IDXSI(VMRef, StackPtr, Value *, int, int);\n"
+                "void U_LV_DUP(VMRef, StackPtr, Value *);\n"
+                "void U_LV_DUPV(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_WRITE(VMRef, StackPtr, Value *);\n"
+                "void U_LV_WRITEREF(VMRef, StackPtr, Value *);\n"
+                "void U_LV_WRITEV(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_WRITEREFV(VMRef, StackPtr, Value *, int, int);\n"
+                "void U_LV_IADD(VMRef, StackPtr, Value *);\n"
+                "void U_LV_ISUB(VMRef, StackPtr, Value *);\n"
+                "void U_LV_IMUL(VMRef, StackPtr, Value *);\n"
+                "void U_LV_IDIV(VMRef, StackPtr, Value *);\n"
+                "void U_LV_IMOD(VMRef, StackPtr, Value *);\n"
+                "void U_LV_BINAND(VMRef, StackPtr, Value *);\n"
+                "void U_LV_BINOR(VMRef, StackPtr, Value *);\n"
+                "void U_LV_XOR(VMRef, StackPtr, Value *);\n"
+                "void U_LV_ASL(VMRef, StackPtr, Value *);\n"
+                "void U_LV_ASR(VMRef, StackPtr, Value *);\n"
+                "void U_LV_FADD(VMRef, StackPtr, Value *);\n"
+                "void U_LV_FSUB(VMRef, StackPtr, Value *);\n"
+                "void U_LV_FMUL(VMRef, StackPtr, Value *);\n"
+                "void U_LV_FDIV(VMRef, StackPtr, Value *);\n"
+                "void U_LV_FMOD(VMRef, StackPtr, Value *);\n"
+                "void U_LV_IVVADD(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_IVVSUB(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_IVVMUL(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_IVVDIV(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_IVVMOD(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_FVVADD(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_FVVSUB(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_FVVMUL(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_FVVDIV(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_FVVMOD(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_IVSADD(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_IVSSUB(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_IVSMUL(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_IVSDIV(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_IVSMOD(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_FVSADD(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_FVSSUB(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_FVSMUL(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_FVSDIV(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_FVSMOD(VMRef, StackPtr, Value *, int);\n"
+                "void U_LV_SADD(VMRef, StackPtr, Value *);\n"
+                "void U_LV_IPP(VMRef, StackPtr, Value *);\n"
+                "void U_LV_IMM(VMRef, StackPtr, Value *);\n"
+                "void U_LV_FPP(VMRef, StackPtr, Value *);\n"
+                "void U_LV_FMM(VMRef, StackPtr, Value *);\n"
+                "void U_PUSHFUN(VMRef, StackPtr, int, fun_base_t);\n"
+                "void U_JUMP_TABLE(VMRef, StackPtr, const int *);\n"
+                "void U_JUMP_TABLE_DISPATCH(VMRef, StackPtr, const int *);\n"
+                "int U_JUMP(VMRef, StackPtr);\n"
+                "int U_JUMPFAIL(VMRef, StackPtr);\n"
+                "int U_JUMPFAILR(VMRef, StackPtr);\n"
+                "int U_JUMPNOFAIL(VMRef, StackPtr);\n"
+                "int U_JUMPNOFAILR(VMRef, StackPtr);\n"
+                "int U_IFOR(VMRef, StackPtr);\n"
+                "int U_SFOR(VMRef, StackPtr);\n"
+                "int U_VFOR(VMRef, StackPtr);\n"
+                "int U_JUMPIFUNWOUND(VMRef, StackPtr, int);\n"
+                "int U_JUMPIFSTATICLF(VMRef, StackPtr, int);\n"
+                "int U_JUMPIFMEMBERLF(VMRef, StackPtr, int);\n"
+                ;
 
             sd += "extern fun_base_t GetNextCallTarget(VMRef);\n"
                   "extern void Entry(int, int, int, int, int, int);\n"
@@ -1973,12 +2202,20 @@ struct CodeGen  {
                        " 1;\n");
             }
         } else {
-            // What is left is one op per operator per type, too many to name individually here,
-            // and the op we get is computed from the operator anyway.
+            // What is left is one op per operator per type, too many to name individually
+            // here, and the op we get is computed from the operator anyway.
             static const char *lvnames[] = {
-                #define F(N, A) #N,
-                    VM_OPS_LV
-                #undef F
+                "LV_DUP", "LV_DUPV",
+                "LV_WRITE", "LV_WRITEREF", "LV_WRITEV", "LV_WRITEREFV",
+                "LV_IADD", "LV_ISUB", "LV_IMUL", "LV_IDIV", "LV_IMOD",
+                "LV_BINAND", "LV_BINOR", "LV_XOR", "LV_ASL", "LV_ASR",
+                "LV_FADD", "LV_FSUB", "LV_FMUL", "LV_FDIV", "LV_FMOD",
+                "LV_IVVADD", "LV_IVVSUB", "LV_IVVMUL", "LV_IVVDIV", "LV_IVVMOD",
+                "LV_FVVADD", "LV_FVVSUB", "LV_FVVMUL", "LV_FVVDIV", "LV_FVVMOD",
+                "LV_IVSADD", "LV_IVSSUB", "LV_IVSMUL", "LV_IVSDIV", "LV_IVSMOD",
+                "LV_FVSADD", "LV_FVSSUB", "LV_FVSMUL", "LV_FVSDIV", "LV_FVSMOD",
+                "LV_SADD",
+                "LV_IPP", "LV_IMM", "LV_FPP", "LV_FMM",
             };
             append(cb, "    U_", lvnames[op], "(vm, ", sp(), ", ", lval);
             if (IsStruct(type->t)) append(cb, ", ", ValWidth(type));
