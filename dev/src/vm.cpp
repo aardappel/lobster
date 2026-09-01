@@ -1018,23 +1018,26 @@ fun_base_t CVM_GetNextCallTarget(VM *vm) {
     return vm->next_call_target;
 }
 
+// The generated code calls this before anything else with what its mirrors of our types came out
+// as, see CodeGen::Prologue, which catches the C compiler laying one out differently than the C++
+// one did. That the C++ types are still what those mirrors were written against is a static_assert
+// next to each of them instead.
 void CVM_Entry(int value_size, int vmbase_size, int refobj_size, int lvector_size,
                int lvector_elems_off, int lstring_size) {
-    if (value_size != sizeof(Value)) {
-        THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ Value size mismatch! (Debug vs Release?)");
-    }
-    if (vmbase_size != sizeof(VMBase)) {
-        THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ VMBase size mismatch!");
-    }
-    if (refobj_size != sizeof(RefObj)) {
-        THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ RefObj size mismatch!");
-    }
-    if (lvector_size != sizeof(LVector) || lvector_elems_off != lvector_elems_offset) {
-        THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ LVector layout mismatch!");
-    }
-    if (lstring_size != sizeof(LString)) {
-        THROW_OR_ABORT("INTERNAL ERROR: C <-> C++ LString size mismatch!");
-    }
+    auto check = [](bool ok, const char *what) {
+        if (ok) return;
+        auto err = cat("INTERNAL ERROR: C <-> C++ ", what, " mismatch!");
+        // Also printed, since an exception cannot unwind out of jitted code, which is where this
+        // is called from, so the message would otherwise not make it out.
+        fprintf(stderr, "%s\n", err.c_str());
+        THROW_OR_ABORT(err);
+    };
+    check(value_size == ssizeof<Value>(), "Value size (Debug vs Release?)");
+    check(vmbase_size == ssizeof<VMBase>(), "VMBase size");
+    check(refobj_size == ssizeof<RefObj>(), "RefObj size");
+    check(lvector_size == ssizeof<LVector>() && lvector_elems_off == lvector_elems_offset,
+          "LVector layout");
+    check(lstring_size == ssizeof<LString>(), "LString size");
 }
 
 void CVM_IDXErr(VM *vm, iint i, iint n, RefObj *v) { vm->IDXErr(i, n, v); }
