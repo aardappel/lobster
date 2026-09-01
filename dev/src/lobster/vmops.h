@@ -602,15 +602,11 @@ VM_INLINE void U_FVUMINUS(VM &vm, StackPtr sp, int len) {
     }
 }
 
+// Works for ref types too: those are only ever tested against nil here, and whoever owns the
+// value is responsible for its lifetime, not this.
 VM_INLINE void U_LOGNOT(VM &, StackPtr sp) {
     Value a = Pop(sp);
     Push(sp, a.False());
-}
-
-VM_INLINE void U_LOGNOTREF(VM &, StackPtr sp) {
-    Value a = Pop(sp);
-    bool b = a.True();
-    Push(sp, !b);
 }
 
 #define BITOP(op) { GETARGS(); Push(sp, a.ival() op b.ival()); }

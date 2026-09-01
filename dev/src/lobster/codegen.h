@@ -2460,7 +2460,7 @@ void Not::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     if (retval) {
         cg.TakeTemp(1, false);
-        cg.EmitOp0(IsRefNil(child->exptype->t) ? IL_LOGNOTREF : IL_LOGNOT);
+        cg.EmitOp0(IL_LOGNOT);
     }
 }
 
