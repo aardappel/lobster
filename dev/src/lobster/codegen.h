@@ -109,6 +109,15 @@ struct CodeGen  {
     vector<int> ownedvars;
     vector<int> funstarttables;
     vector<int> var_to_local;
+    // The C variable each local (by var_to_local index) lives in, and every name the function
+    // has handed out, to keep them apart.
+    vector<string> local_names;
+    set<string> f_names_used;
+    // A struct local staged in the stack array to be indexed at runtime, which goes back into
+    // its variables once the modifier has written it, see EmitLvalStructIndex.
+    struct { int idx = 0, width = 0, base = 0; } f_writeback;
+    // How far up the stack array such staging reaches, beyond what the stack itself needs.
+    int f_vals_max = 0;
     bool has_profile = false;
     string sdt;
     int numlocals = 0;
@@ -524,6 +533,8 @@ struct CodeGen  {
             var_to_local.clear();
             var_to_local.resize(sids.size(), -1);
         #endif
+        local_names.clear();
+        f_names_used.clear();
         auto emitvars = [&](const vector<Arg> &v, vector<int> &f_ad) {
             f_ad.clear();
             for (auto &arg : v) {
@@ -542,6 +553,7 @@ struct CodeGen  {
                     }
                     if (!sids[varidx].used_as_freevar()) {
                         var_to_local[varidx] = numlocals++;
+                        local_names.push_back(LocalName(*arg.sid, i));
                     }
                 }
             }
@@ -748,6 +760,16 @@ struct CodeGen  {
         append(sd, "static void fun_", sf.idx, "(VMRef, StackPtr);\n");
     }
 
+    // A declaration of Values, a line per 12 of them to keep it readable.
+    void GenValueDecls(string &sd, const vector<string> &names) {
+        for (size_t i = 0; i < names.size(); i++) {
+            if (i % 12 == 0) sd += i ? ";\n    Value " : "    Value ";
+            else sd += ", ";
+            sd += names[i];
+        }
+        if (!names.empty()) sd += ";\n";
+    }
+
     string IdName(int i, bool is_whole_struct, TypeRef type) {
         auto ididx = sids[i].ididx();
         auto idx = sids[i].idx();
@@ -761,6 +783,86 @@ struct CodeGen  {
         }
     };
 
+    // The name of slot `slot` of a struct: the field it is in, and for a nested struct that
+    // field's own slot name behind it.
+    string SlotName(const UDT &udt, int slot) {
+        for (auto [k, sfield] : enumerate(udt.sfields)) {
+            if (slot >= sfield.slot && slot < sfield.slot + ValWidth(sfield.type)) {
+                string name = udt.g.fields[k].id->name;
+                if (IsStruct(sfield.type->t)) {
+                    append(name, "_", SlotName(*sfield.type->udt, slot - sfield.slot));
+                }
+                return name;
+            }
+        }
+        assert(false);
+        return cat("slot", slot);
+    }
+
+    // Whether the generated code uses a name for something of its own, which a local may then
+    // not be called: the keywords of C and C++, what the prologues declare, the helpers, and the
+    // names the emitters make up, which all end in a number or start with an underscore.
+    static bool IsReservedName(string_view name) {
+        static const set<string_view> reserved = {
+            "auto", "break", "case", "char", "const", "continue", "default", "do", "double",
+            "else", "enum", "extern", "float", "for", "goto", "if", "inline", "int", "long",
+            "register", "restrict", "return", "short", "signed", "sizeof", "static", "struct",
+            "switch", "typedef", "union", "unsigned", "void", "volatile", "while",
+            "alignas", "alignof", "and", "and_eq", "asm", "bitand", "bitor", "bool", "catch",
+            "char8_t", "char16_t", "char32_t", "class", "compl", "concept", "consteval",
+            "constexpr", "constinit", "const_cast", "co_await", "co_return", "co_yield",
+            "decltype", "delete", "dynamic_cast", "explicit", "export", "false", "friend",
+            "import", "module", "mutable", "namespace", "new", "noexcept", "not", "not_eq",
+            "nullptr", "operator", "or", "or_eq", "private", "protected", "public",
+            "reinterpret_cast", "requires", "static_assert", "static_cast", "template", "this",
+            "thread_local", "throw", "true", "try", "typeid", "typename", "using", "virtual",
+            "wchar_t", "xor", "xor_eq", "override", "final", "NULL",
+            "vm", "psp", "lv", "vals", "locals", "keepvar", "regs", "ctx", "tsld", "top", "rs",
+            "ret", "epilogue", "main", "argc", "argv", "vmmeta", "Value", "VMRef", "StackPtr",
+            "RefObj", "LVector", "LString", "VMBase", "fun_base_t", "type_elem_t", "vtables",
+            "funinfo_table", "compiled_entry_point", "type_table", "stringtable", "file_names",
+            "function_names", "udts", "specidents", "enums", "ser_ids",
+            "subfunctions_to_function", "iint", "int2float64", "lobster", "std", "string_view",
+            "span", "uint64_t", "int64_t", "memcpy", "memmove", "GLFrame", "Entry", "IDXErr",
+            "IDXErrS", "SwapVars", "BackupVar", "DecOwned", "DecDelete", "AssertFailed",
+            "DecVal", "RestoreBackup", "PopArg", "RetSlots", "GetTypeSwitchID", "PushFunId",
+            "PopFunId", "GetNextCallTarget", "StartProfile", "EndProfile", "LSTRING_DATA",
+        };
+        if (reserved.count(name)) return true;
+        if (name[0] == '_' || name.substr(0, 2) == "Rt") return true;
+        auto numbered = [&](string_view prefix) {
+            if (name.size() <= prefix.size() || name.substr(0, prefix.size()) != prefix) return false;
+            for (auto c : name.substr(prefix.size())) if (!isdigit((uint8_t)c)) return false;
+            return true;
+        };
+        return numbered("r") || numbered("keep") || numbered("block") || numbered("fun_");
+    }
+
+    // A C name for a local that is unique within the function: the name it has in the program,
+    // made a C identifier if it is not one, with a number behind it if that is taken. A prefix
+    // the generated code claims for itself gets a letter in front instead, since a number
+    // behind it would not lose it.
+    string UniqueName(string name) {
+        for (auto &c : name) if (!isalnum((uint8_t)c) && c != '_') c = '_';
+        if (name.empty() || isdigit((uint8_t)name[0]) || name[0] == '_' ||
+            name.substr(0, 2) == "Rt" || name == "fun" || name.substr(0, 4) == "fun_") {
+            name = "v" + name;
+        }
+        auto base = name;
+        for (int n = 2; IsReservedName(name) || f_names_used.count(name); n++) {
+            name = cat(base, "_", n);
+        }
+        f_names_used.insert(name);
+        return name;
+    }
+
+    // Slot `slot` of the variable sid, which for a struct is one of its fields.
+    string LocalName(const SpecIdent &sid, int slot) {
+        string name = sid.id->name;
+        if (IsStruct(sid.type->t)) append(name, "_", SlotName(*sid.type->udt, slot));
+        return UniqueName(name);
+    }
+
     // The stack slots, counted the way the emitters do: Slot(1) is the top of the stack before
     // the current op, Slot(0) the first one above it, Slot(-1) the one after that. Each is a
     // variable of its own, which is what lets the C compiler keep them in registers: nothing
@@ -773,15 +875,24 @@ struct CodeGen  {
     // The stack as memory, for the helpers that take a pointer to it, see GenStackCall.
     string StackArray() { return "vals"; }
     string StackSlot(int k) { return cat(StackArray(), "[", k, "]"); }
-    // A local variable, a global, and the temporaries a function keeps references alive in.
-    string Local(int i) { return cat("locals[", i, "]"); }
+    // A local variable, a global, and the temporaries a function keeps references alive in. The
+    // locals are variables of their own like the stack slots are, see LocalName.
+    string Local(int i) { return local_names[i]; }
+    // With stack traces on, every write to a local also lands in an array, since that is where
+    // a trace dumps them from, see PushFunId.
+    bool ShadowLocals() { return runtime_checks >= RUNTIME_STACK_TRACE; }
+    string Shadow(int i) { return cat("locals[", i, "]"); }
+    void LocalWritten(int idx, int width) {
+        if (!ShadowLocals()) return;
+        for (int i = 0; i < width; i++) CopyValue(cb, Shadow(idx + i), Local(idx + i));
+    }
     // The C++ backend addresses the VM's own array of globals at a constant offset, which is why
     // that array sits at the end of the VM; the C one has no way to know where that is, so it
     // goes thru the pointer to it that VMBase carries for that purpose.
     string Global(int offset) {
         return cpp ? cat("vm.fvars[", offset, "]") : cat("vm->fvars_ptr[", offset, "]");
     }
-    string KeepVar(int i) { return cat("keepvar[", i, "]"); }
+    string KeepVar(int i) { return cat("keep", i); }
     // The fields of a Value, which the C++ backend reads thru accessors.
     string IVal(string_view v) { return cat(v, cpp ? ".ival()" : ".ival"); }
     string FVal(string_view v) { return cat(v, cpp ? ".fval()" : ".fval"); }
@@ -935,20 +1046,16 @@ struct CodeGen  {
 
     void GenPushVar(size_t retval, TypeRef type, int offset, bool used_as_freevar) {
         if (!retval) return;
-        auto var = [&](int i) {
-            return used_as_freevar ? Global(offset + i) : Local(var_to_local[offset + i]);
-        };
-        if (IsStruct(type->t)) {
-            auto width = ValWidth(type);
-            TrackUseDef(0, width);
-            for (int i = 0; i < width; i++) {
-                CopyValue(cb, Slot(-i), var(i), "");
-                comment(cat(IdName(offset, true, type), ".", i));
+        auto width = ValWidth(type);
+        TrackUseDef(0, width);
+        for (int i = 0; i < width; i++) {
+            if (used_as_freevar) {
+                // A global is addressed by number, so say which it is.
+                CopyValue(cb, Slot(-i), Global(offset + i), "");
+                comment(IdName(offset + i, false, type));
+            } else {
+                CopyValue(cb, Slot(-i), Local(var_to_local[offset + i]));
             }
-        } else {
-            TrackUseDef(0, 1);
-            CopyValue(cb, Slot(0), var(0), "");
-            comment(IdName(offset, false, type));
         }
     }
 
@@ -961,23 +1068,23 @@ struct CodeGen  {
         }
     }
 
-    // The same as an address, for the helpers that take one.
+    // The same as an address, for the helpers that take one, which a local never has since it
+    // is a variable.
     string LvalPtr() {
         switch (f_lval_kind) {
-            case LVK_LOCAL: return cat("locals + ", f_lval_idx);
             case LVK_GLOBAL: return cpp ? cat("vm.fvars + ", f_lval_idx)
                                         : cat("vm->fvars_ptr + ", f_lval_idx);
-            default: return "lv";
+            case LVK_PTR: return "lv";
+            default: assert(false); return {};
         }
     }
 
-    // A local is at a known address, so this needs no code at all, just a note of where the
+    // A local is a variable, so this needs no code at all, just a note of which one the
     // assignment that follows writes to.
-    void EmitLvalLocal(int offset, TypeRef type) {
+    void EmitLvalLocal(int offset) {
         TrackUseDef(0, 0);
         f_lval_kind = LVK_LOCAL;
         f_lval_idx = var_to_local[offset];
-        append(cb, "    // lval: ", IdName(offset, false, type), "\n");
     }
 
     // A global is at a known address too, once the generated code can get at the array.
@@ -1058,6 +1165,21 @@ struct CodeGen  {
     void EmitLvalStructIndex(int offset, int numslots) {
         TrackUseDef(1, 0);
         f_uses_lval = true;
+        string base;
+        if (f_lval_kind == LVK_LOCAL) {
+            // A struct in variables has to be in memory to be indexed at runtime, so it goes
+            // thru the stack array above what is in use, and comes back out once the modifier
+            // has written it, see GenLvalWriteBack.
+            f_writeback = { f_lval_idx, numslots, regso };
+            f_uses_vals = true;
+            f_vals_max = std::max(f_vals_max, regso + numslots);
+            for (int j = 0; j < numslots; j++) {
+                CopyValue(cb, StackSlot(regso + j), Local(f_lval_idx + j));
+            }
+            base = cat(StackArray(), " + ", regso);
+        } else {
+            base = LvalPtr();
+        }
         append(cb, "    {\n    long long _i = ", IVal(Slot(1)), ";\n");
         if (cpp) {
             append(cb, "    if ((uint64_t)_i >= ", numslots, ") vm.IDXErrS(_i, ", numslots,
@@ -1066,9 +1188,23 @@ struct CodeGen  {
             append(cb, "    if ((unsigned long long)_i >= ", numslots, ") IDXErrS(vm, _i, ",
                    numslots, ");\n");
         }
-        append(cb, "    lv = ", LvalPtr(), " + _i", offset ? cat(" + ", offset) : string(),
+        append(cb, "    lv = ", base, " + _i", offset ? cat(" + ", offset) : string(),
                ";\n    }\n");
         f_lval_kind = LVK_PTR;
+    }
+
+    // What a modifier wrote thru the lvalue lands where it belongs: a struct staged in the
+    // stack array back in its variables, and any local in its shadow, see LocalWritten.
+    void GenLvalWriteBack(TypeRef type) {
+        if (f_writeback.width) {
+            for (int j = 0; j < f_writeback.width; j++) {
+                CopyValue(cb, Local(f_writeback.idx + j), StackSlot(f_writeback.base + j));
+            }
+            LocalWritten(f_writeback.idx, f_writeback.width);
+            f_writeback.width = 0;
+        } else if (f_lval_kind == LVK_LOCAL) {
+            LocalWritten(f_lval_idx, IsStruct(type->t) ? ValWidth(type) : 1);
+        }
     }
 
     void EmitPushStr(int stringtableindex) {
@@ -1193,7 +1329,7 @@ struct CodeGen  {
             if (sids[varidx].used_as_freevar()) {
                 append(cb, "    DecOwned(vm, ", varidx, ");\n");
             } else {
-                append(cb, "    DecVal(vm, locals[", var_to_local[varidx], "]);\n");
+                append(cb, "    DecVal(vm, ", Local(var_to_local[varidx]), ");\n");
             }
         }
         // The arguments come off the caller's stack, and any that live in a global go back to
@@ -1439,26 +1575,28 @@ struct CodeGen  {
         if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START)
             append(sd, "// ", Signature(*st.subfunctiontable[sf_idx]), "\n");
         append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
-        // NOTE: f_keepvars, f_slot_max, f_uses_vals and f_regs_max are not known until the end
-        // of codegen of the function!
-        for (int i = 0; i < f_slot_max; i++) {
-            // A line per 12 of them keeps the declaration readable.
-            if (i % 12 == 0) sd += i ? ";\n    Value " : "    Value ";
-            else sd += ", ";
-            append(sd, "r", i);
+        // NOTE: f_keepvars, f_slot_max, f_uses_vals, f_vals_max and f_regs_max are not known
+        // until the end of codegen of the function!
+        vector<string> slots, keeps;
+        for (int i = 0; i < f_slot_max; i++) slots.push_back(SlotVar(i));
+        for (int i = 0; i < f_keepvars; i++) keeps.push_back(KeepVar(i));
+        GenValueDecls(sd, slots);
+        if (f_uses_vals) {
+            append(sd, "    Value vals[", std::max({ 1, f_regs_max, f_vals_max }), "];\n");
         }
-        if (f_slot_max) sd += ";\n";
-        if (f_uses_vals) append(sd, "    Value vals[", std::max(1, f_regs_max), "];\n");
-        if (f_keepvars) append(sd, "    Value keepvar[", f_keepvars, "];\n");
-        if (numlocals) append(sd, "    Value locals[", numlocals, "];\n");
+        GenValueDecls(sd, keeps);
+        assert((int)local_names.size() == numlocals);
+        GenValueDecls(sd, local_names);
+        if (ShadowLocals() && numlocals) append(sd, "    Value locals[", numlocals, "];\n");
         if (f_uses_lval) append(sd, "    Value *lv = 0;\n");
         for (int i = 0; i < (int)f_args.size(); i++) {
             auto varidx = f_args[i];
             if (sids[varidx].used_as_freevar()) {
                 append(sd, "    SwapVars(vm, ", varidx, ", psp, ", (int)f_args.size() - i, ");\n");
             } else {
-                CopyValue(sd, Local(var_to_local[varidx]),
-                          cat("psp[-", (int)f_args.size() - i, "]"));
+                auto k = var_to_local[varidx];
+                CopyValue(sd, Local(k), cat("psp[-", (int)f_args.size() - i, "]"));
+                if (ShadowLocals()) CopyValue(sd, Shadow(k), Local(k));
             }
         }
         for (int i = 0; i < (int)f_defs.size(); i++) {
@@ -1471,7 +1609,9 @@ struct CodeGen  {
                 // FIXME: it should even be unnecessary to initialize them, but its possible
                 // there is a return before they're fully initialized, and then the decr of
                 // owned vars may cause these to be accessed.
-                SetNil(sd, Local(var_to_local[varidx]));
+                auto k = var_to_local[varidx];
+                SetNil(sd, Local(k));
+                if (ShadowLocals()) SetNil(sd, Shadow(k));
             }
         }
         if (runtime_checks >= RUNTIME_STACK_TRACE && sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
@@ -1511,8 +1651,11 @@ struct CodeGen  {
         f_keepvars = -1;
         f_slot_max = 0;
         f_uses_vals = false;
+        f_vals_max = 0;
         f_uses_lval = false;
         f_lval_kind = LVK_NONE;
+        local_names.clear();
+        f_names_used.clear();
         numlocals = 0;
         nlabel = 0;
         has_profile = false;
@@ -2080,8 +2223,19 @@ struct CodeGen  {
             for (int i = 0; i < width; i++)
                 CopyValue(cb, Lval(i), Slot(width - i));
         } else if (op == LV_SADD) {
-            // Appending to a string can free the old one, so it stays a call.
-            append(cb, "    RtLvSAdd(vm, ", LvalPtr(), ", ", Slot(1), ");\n");
+            if (f_lval_kind == LVK_LOCAL) {
+                // The old string is an operand, so it loses its reference only once the new
+                // one exists.
+                auto v = Lval(0);
+                append(cb, "    {\n    ", cpp ? "auto" : "LString *", " _s = RtSAdd(vm, ", v,
+                       ", ", Slot(1), ");\n");
+                GenDecRef(v);
+                SetRef(cb, v, "_s", RTT_STRING);
+                cb += "    }\n";
+            } else {
+                // Appending to a string in memory can free the old one, so it stays a call.
+                append(cb, "    RtLvSAdd(vm, ", LvalPtr(), ", ", Slot(1), ");\n");
+            }
         } else if (op >= LV_IPP) {
             auto isfloat = op >= LV_FPP;
             auto c = op == LV_IPP || op == LV_FPP ? " + 1" : " - 1";
@@ -2113,6 +2267,7 @@ struct CodeGen  {
                 SetBinOp(isfloat, mop, Lval(i), Val(isfloat, Lval(i)), Val(isfloat, rhs));
             }
         }
+        GenLvalWriteBack(type);
     }
 
     void GenAssignBasic(const SpecIdent &sid) {
@@ -2382,7 +2537,7 @@ struct CodeGen  {
         if (sid.used_as_freevar)
             EmitLvalGlobal(sid.Idx() + offset, sid.type);
         else
-            EmitLvalLocal(sid.Idx() + offset, sid.type);
+            EmitLvalLocal(sid.Idx() + offset);
     }
 
     void GenPushField(size_t retval, Node *object, TypeRef stype, TypeRef ftype, int offset) {
