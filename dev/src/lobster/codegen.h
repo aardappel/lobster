@@ -1862,7 +1862,7 @@ struct CodeGen  {
         auto width = defslots - 2;
         auto idx = cat("(", sp(2), ")->", cpp ? "ival()" : "ival");
         if (isstring) {
-            auto data = cpp ? cat("(unsigned char *)(", sp(1), ")->sval()->data()")
+            auto data = cpp ? cat("((unsigned char *)(", sp(1), ")->sval()->data())")
                             : cat("LSTRING_DATA((LString *)(", sp(1), ")->ref)");
             if (cpp) {
                 append(cb, "    *(", sp(0), ") = Value((iint)", data, "[", idx, "]);\n");

@@ -991,9 +991,11 @@ static_assert(offsetof(LString, len) == sizeof(RefObj));
     #pragma GCC diagnostic pop
 #endif
 // The element pointer is the only member left, so pinning the three above and the total size
-// leaves it nowhere else to be.
+// leaves it nowhere else to be. That size includes the tail padding a 32-bit target adds to keep
+// the 64-bit fields aligned, hence the round up.
 constexpr int lvector_elems_offset = (int)(sizeof(RefObj) + sizeof(iint) * 3);
-static_assert(sizeof(LVector) == lvector_elems_offset + sizeof(Value *));
+static_assert(sizeof(LVector) == (lvector_elems_offset + sizeof(Value *) + alignof(LVector) - 1)
+                                     / alignof(LVector) * alignof(LVector));
 // The characters of a string sit directly behind its header, which is all the mirror needs.
 static_assert(sizeof(LString) == sizeof(RefObj) + sizeof(iint));
 
