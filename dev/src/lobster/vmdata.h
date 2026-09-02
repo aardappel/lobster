@@ -552,6 +552,8 @@ struct Value {
     // The whole payload without regard for what it holds, for comparing two structs slot by
     // slot: a struct can mix field types, so there is nothing to assert per slot.
     VM_INLINEM iint        bits   () const {                                                       return ival_;        }
+    // The reference whatever the tag says, for generated code, which knows the static type.
+    VM_INLINEM RefObj     *refany () const {                                                       return ref_;         }
     VM_INLINEM TypeInfo   *tival  () const { TYPE_ASSERT(type == RTT_STRUCT_S);                    return ti_;          }
 
     template<typename T> T ifval() const {
@@ -592,6 +594,9 @@ struct Value {
     VM_INLINEM Value(LObject *s)         : oval_(s)         TYPE_INIT(RTT_CLASS)      {}
     VM_INLINEM Value(LResource *r)       : xval_(r)         TYPE_INIT(RTT_RESOURCE)   {}
     VM_INLINEM Value(RefObj *r)          : ref_(r)          TYPE_INIT(RTT_NIL)        { assert(false); }
+    // A reference of a known static type, tagged for it, or nil when it is null, which is how
+    // generated code writes one to memory.
+    VM_INLINEM Value(RefObj *r, RTType t) : ref_(r)         TYPE_INIT(r ? t : RTT_NIL) { (void)t; }
 
     VM_INLINEM Value(TypeInfo *ti) : ti_(ti) TYPE_INIT(RTT_STRUCT_S) {}
 
@@ -632,6 +637,8 @@ struct Value {
     uint64_t Hash(VM &vm, RTType vtype);
     Value CopyRef(VM &vm, iint depth);
 };
+
+inline Value RefVal(RefObj *r, RTType t) { return Value(r, t); }
 
 template<typename T> T get_T(Value) {
     assert(false);
@@ -1380,17 +1387,13 @@ VM_INLINE void DecOwned(VM &vm, int i) {
     vm.fvars[i].LTDECRTNIL(vm);
 }
 
-VM_INLINE void DecVal(VM &vm, Value v) {
-    v.LTDECRTNIL(vm);
-}
-
 VM_INLINE void RestoreBackup(VM &vm, int i) {
     vm.fvars[i] = vm.fvar_def_backup.back();
     vm.fvar_def_backup.pop_back();
 }
 
-VM_INLINE int GetTypeSwitchID(VM &vm, Value self, int vtable_idx) {
-    auto start = self.oval()->ti(vm).vtable_start_or_bitmask;
+VM_INLINE int GetTypeSwitchID(VM &vm, RefObj *self, int vtable_idx) {
+    auto start = static_cast<LObject *>(self)->ti(vm).vtable_start_or_bitmask;
     auto id = (int)(size_t)vm.vma.native_vtables[start + vtable_idx];
     assert(id >= 0);
     return id;

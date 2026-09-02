@@ -1059,9 +1059,8 @@ void CRtDecDelete(VM *vm, RefObj *ro) { ro->DECDELETE(*vm); }
 void CRtAssertFailed(VM *vm, int line, int fileidx, int stringidx) {
     vm->AssertFailed(line, fileidx, stringidx);
 }
-void CRtDecVal(VM *vm, Value v) { DecVal(*vm, v); }
 void CRtRestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
-int CRtGetTypeSwitchID(VM *vm, Value self, int vtable_idx) { return GetTypeSwitchID(*vm, self, vtable_idx); }
+int CRtGetTypeSwitchID(VM *vm, RefObj *self, int vtable_idx) { return GetTypeSwitchID(*vm, self, vtable_idx); }
 void CRtPushFunId(VM *vm, const int *id, StackPtr locals) { PushFunId(*vm, id, locals); }
 void CRtPopFunId(VM *vm) { PopFunId(*vm); }
 #if LOBSTER_FRAME_PROFILER
@@ -1116,26 +1115,26 @@ void CRtAbort(VM *vm) { RtAbort(*vm); }
 iint CRtIDiv(VM *vm, iint a, iint b) { return RtIDiv(*vm, a, b); }
 iint CRtIMod(VM *vm, iint a, iint b) { return RtIMod(*vm, a, b); }
 double CRtFMod(double a, double b) { return RtFMod(a, b); }
-LString *CRtSAdd(VM *vm, Value a, Value b) { return RtSAdd(*vm, a, b); }
-iint CRtSLt(Value a, Value b) { return RtSLt(a, b); }
-iint CRtSGt(Value a, Value b) { return RtSGt(a, b); }
-iint CRtSLe(Value a, Value b) { return RtSLe(a, b); }
-iint CRtSGe(Value a, Value b) { return RtSGe(a, b); }
-iint CRtSEq(Value a, Value b) { return RtSEq(a, b); }
-iint CRtSNe(Value a, Value b) { return RtSNe(a, b); }
-iint CRtSnEq(Value a, Value b) { return RtSnEq(a, b); }
-iint CRtSnNe(Value a, Value b) { return RtSnNe(a, b); }
+LString *CRtSAdd(VM *vm, RefObj *a, RefObj *b) { return RtSAdd(*vm, a, b); }
+iint CRtSLt(RefObj *a, RefObj *b) { return RtSLt(a, b); }
+iint CRtSGt(RefObj *a, RefObj *b) { return RtSGt(a, b); }
+iint CRtSLe(RefObj *a, RefObj *b) { return RtSLe(a, b); }
+iint CRtSGe(RefObj *a, RefObj *b) { return RtSGe(a, b); }
+iint CRtSEq(RefObj *a, RefObj *b) { return RtSEq(a, b); }
+iint CRtSNe(RefObj *a, RefObj *b) { return RtSNe(a, b); }
+iint CRtSnEq(RefObj *a, RefObj *b) { return RtSnEq(a, b); }
+iint CRtSnNe(RefObj *a, RefObj *b) { return RtSnNe(a, b); }
 LString *CRtStrConcatN(VM *vm, Value *strs, int len) { return RtStrConcatN(*vm, strs, len); }
 LString *CRtToString(VM *vm, Value a, type_elem_t ti) { return RtToString(*vm, a, ti); }
 LString *CRtStructToString(VM *vm, Value *vals, type_elem_t ti) { return RtStructToString(*vm, vals, ti); }
 CValue CRtIndexStruct(VM *vm, Value *vals, iint i, int l) { return ToC(RtIndexStruct(*vm, vals, i, l)); }
-iint CRtIsSubType(VM *vm, Value v, int start, int end, int nilres) { return RtIsSubType(*vm, v, start, end, nilres); }
-fun_base_t CRtDynDispatch(VM *vm, Value self, int vtable_idx) { return RtDynDispatch(*vm, self, vtable_idx); }
+iint CRtIsSubType(VM *vm, RefObj *v, int start, int end, int nilres) { return RtIsSubType(*vm, v, start, end, nilres); }
+fun_base_t CRtDynDispatch(VM *vm, RefObj *self, int vtable_idx) { return RtDynDispatch(*vm, self, vtable_idx); }
 void CRtEnumRangeErr(VM *vm) { RtEnumRangeErr(*vm); }
-Value *CRtLvalIndexClass(VM *vm, Value obj, iint i, int offset) { return RtLvalIndexClass(*vm, obj, i, offset); }
-void CRtLvSAdd(VM *vm, Value *lv, Value b) { RtLvSAdd(*vm, lv, b); }
+Value *CRtLvalIndexClass(VM *vm, RefObj *obj, iint i, int offset) { return RtLvalIndexClass(*vm, obj, i, offset); }
+void CRtLvSAdd(VM *vm, Value *lv, RefObj *b) { RtLvSAdd(*vm, lv, b); }
 int CRtStaticSetThisFrame(VM *vm, int vidx) { return RtStaticSetThisFrame(*vm, vidx); }
-int CRtMemberSetThisFrame(VM *vm, Value self, int slot) { return RtMemberSetThisFrame(*vm, self, slot); }
+int CRtMemberSetThisFrame(VM *vm, RefObj *self, int slot) { return RtMemberSetThisFrame(*vm, self, slot); }
 void CRtIDXErrS(VM *vm, iint i, iint n) { vm->IDXErrS(i, n); }
 
 #if VM_JIT_MODE
@@ -1198,7 +1197,6 @@ const void *vm_ops_jit_table[] = {
     "DecOwned", (void *)CRtDecOwned,
     "DecDelete", (void *)CRtDecDelete,
     "AssertFailed", (void *)CRtAssertFailed,
-    "DecVal", (void *)CRtDecVal,
     "RestoreBackup", (void *)CRtRestoreBackup,
     "GetTypeSwitchID", (void *)CRtGetTypeSwitchID,
     "PushFunId", (void *)CRtPushFunId,
