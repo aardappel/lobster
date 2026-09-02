@@ -31,18 +31,14 @@ VM_INLINE LString *RtPushStr(VM &vm, int i) {
     return s.sval();
 }
 
-VM_INLINE void RtCallValue(VM &vm, StackPtr sp) {
-    Value fun = Pop(sp);
-    VMTYPEEQ(fun, RTT_FUNCTION);
-    vm.next_call_target = fun.ip();
-}
-
-VM_INLINE void RtDynDispatch(VM &vm, StackPtr sp, int vtable_idx, int stack_idx) {
-    auto self = TopM(sp, stack_idx);
+// The function a dynamic dispatch on the class of `self` lands in, which the generated code
+// then calls with the signature it knows the dispatch has.
+VM_INLINE fun_base_t RtDynDispatch(VM &vm, Value self, int vtable_idx) {
     VMTYPEEQ(self, RTT_CLASS);
     auto start = self.oval()->ti(vm).vtable_start_or_bitmask;
-    vm.next_call_target = vm.vma.native_vtables[start + vtable_idx];
-    assert(vm.next_call_target);
+    auto target = vm.vma.native_vtables[start + vtable_idx];
+    assert(target);
+    return target;
 }
 
 VM_INLINE void RtExit(VM &vm, Value ret, type_elem_t ti) {

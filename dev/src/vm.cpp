@@ -677,15 +677,16 @@ void VM::EvalProgram() {
     }
     #endif
     #if VM_JIT_MODE
-        vma.jit_entry(*this, nullptr);
+        vma.jit_entry(*this);
     #else
-        compiled_entry_point(*this, nullptr);
+        compiled_entry_point(*this);
     #endif
 }
 
+// Only for a function value that takes nothing and returns nothing, see fun_base_t.
 void VM::CallFunctionValue(Value f) {
     auto fv = f.ip();
-    fv(*this, nullptr);
+    fv(*this);
 }
 
 string VM::ProperTypeName(const TypeInfo &ti) {
@@ -1028,10 +1029,6 @@ extern "C" {
 
 using namespace lobster;
 
-fun_base_t CRtGetNextCallTarget(VM *vm) {
-    return vm->next_call_target;
-}
-
 // The generated code calls this before anything else with what its mirrors of our types came out
 // as, see CodeGen::Prologue, which catches the C compiler laying one out differently than the C++
 // one did. That the C++ types are still what those mirrors were written against is a static_assert
@@ -1056,7 +1053,6 @@ void CRtEntry(int value_size, int vmbase_size, int refobj_size, int lvector_size
 
 void CRtIDXErr(VM *vm, iint i, iint n, RefObj *v) { vm->IDXErr(i, n, v); }
 
-void CRtSwapVars(VM *vm, int i, StackPtr psp, int off) { SwapVars(*vm, i, psp, off); }
 void CRtBackupVar(VM *vm, int i) { BackupVar(*vm, i); }
 void CRtDecOwned(VM *vm, int i) { DecOwned(*vm, i); }
 void CRtDecDelete(VM *vm, RefObj *ro) { ro->DECDELETE(*vm); }
@@ -1065,8 +1061,6 @@ void CRtAssertFailed(VM *vm, int line, int fileidx, int stringidx) {
 }
 void CRtDecVal(VM *vm, Value v) { DecVal(*vm, v); }
 void CRtRestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
-StackPtr CRtPopArg(VM *vm, int i, StackPtr psp) { return PopArg(*vm, i, psp); }
-int CRtRetSlots(VM *vm) { return RetSlots(*vm); }
 int CRtGetTypeSwitchID(VM *vm, Value self, int vtable_idx) { return GetTypeSwitchID(*vm, self, vtable_idx); }
 void CRtPushFunId(VM *vm, const int *id, StackPtr locals) { PushFunId(*vm, id, locals); }
 void CRtPopFunId(VM *vm) { PopFunId(*vm); }
@@ -1136,8 +1130,7 @@ LString *CRtToString(VM *vm, Value a, type_elem_t ti) { return RtToString(*vm, a
 LString *CRtStructToString(VM *vm, Value *vals, type_elem_t ti) { return RtStructToString(*vm, vals, ti); }
 CValue CRtIndexStruct(VM *vm, Value *vals, iint i, int l) { return ToC(RtIndexStruct(*vm, vals, i, l)); }
 iint CRtIsSubType(VM *vm, Value v, int start, int end, int nilres) { return RtIsSubType(*vm, v, start, end, nilres); }
-void CRtCallValue(VM *vm, StackPtr sp) { RtCallValue(*vm, sp); }
-void CRtDynDispatch(VM *vm, StackPtr sp, int vtable_idx, int stack_idx) { RtDynDispatch(*vm, sp, vtable_idx, stack_idx); }
+fun_base_t CRtDynDispatch(VM *vm, Value self, int vtable_idx) { return RtDynDispatch(*vm, self, vtable_idx); }
 void CRtEnumRangeErr(VM *vm) { RtEnumRangeErr(*vm); }
 Value *CRtLvalIndexClass(VM *vm, Value obj, iint i, int offset) { return RtLvalIndexClass(*vm, obj, i, offset); }
 void CRtLvSAdd(VM *vm, Value *lv, Value b) { RtLvSAdd(*vm, lv, b); }
@@ -1192,26 +1185,21 @@ const void *vm_ops_jit_table[] = {
     "RtStructToString", (void *)&CRtStructToString,
     "RtIndexStruct", (void *)&CRtIndexStruct,
     "RtIsSubType", (void *)&CRtIsSubType,
-    "RtCallValue", (void *)&CRtCallValue,
     "RtDynDispatch", (void *)&CRtDynDispatch,
     "RtEnumRangeErr", (void *)&CRtEnumRangeErr,
     "RtLvalIndexClass", (void *)&CRtLvalIndexClass,
     "RtLvSAdd", (void *)&CRtLvSAdd,
     "RtStaticSetThisFrame", (void *)&CRtStaticSetThisFrame,
     "RtMemberSetThisFrame", (void *)&CRtMemberSetThisFrame,
-    "GetNextCallTarget", (void *)CRtGetNextCallTarget,
     "Entry", (void *)CRtEntry,
     "IDXErr", (void *)CRtIDXErr,
     "IDXErrS", (void *)CRtIDXErrS,
-    "SwapVars", (void *)CRtSwapVars,
     "BackupVar", (void *)CRtBackupVar,
     "DecOwned", (void *)CRtDecOwned,
     "DecDelete", (void *)CRtDecDelete,
     "AssertFailed", (void *)CRtAssertFailed,
     "DecVal", (void *)CRtDecVal,
     "RestoreBackup", (void *)CRtRestoreBackup,
-    "PopArg", (void *)CRtPopArg,
-    "RetSlots", (void *)CRtRetSlots,
     "GetTypeSwitchID", (void *)CRtGetTypeSwitchID,
     "PushFunId", (void *)CRtPushFunId,
     "PopFunId", (void *)CRtPopFunId,

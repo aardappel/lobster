@@ -419,12 +419,19 @@ public:
 
 typedef Value *StackPtr;
 
-typedef void(*fun_base_t)(VM &, StackPtr);
+// A generated function takes its arguments and returns its result the way its signature says,
+// see CodeGen::FunSignature. This is the type they are all stored as, and the actual type of
+// the ones that take nothing and return nothing, which is what a function value called from
+// native code is.
+typedef void (*fun_base_t)(VM &);
 #if VM_JIT_MODE
     extern "C" const void *vm_ops_jit_table[];
 #else
-    extern "C" void compiled_entry_point(VM & vm, StackPtr sp);
+    extern "C" void compiled_entry_point(VM &vm);
 #endif
+
+// The most values a non-local return can pass to the function it returns from, see VMBase.
+const int MAX_RETURN_SLOTS = 64;
 
 // Exceptions cannot always be thrown past jitted code, see VM::JitNeedsLongJmp for which cases.
 // This only compiles in the setjmp/longjmp machinery for those; whether it gets used is a runtime
@@ -1121,28 +1128,34 @@ struct Line {
 // This is the part of the VM we share with the C code.
 struct VMBase {
     Line last{ -1, -1 };
+    // The function a non-local return in flight returns from, or -1 when there is none, and
+    // the values it passes to that function's caller, see CodeGen::GenUnwind.
     int ret_unwind_to = -1;
-    int ret_slots = -1;
     // The generated code reads globals and string constants thru these rather than thru a call,
     // so they live here where its mirror of this type can see them, see CodeGen::Prologue. Both
     // are set up once by the VM constructor and never move after.
     Value *fvars_ptr = nullptr;
     Value *constant_strings_ptr = nullptr;
+    // A union so that it need not be constructed, Value having no default constructor.
+    union RetBuf {
+        RetBuf() {}
+        Value v[MAX_RETURN_SLOTS];
+    } ret_buf;
 };
 
 // The generated code reads globals and string constants out of these directly, so its mirror of
 // this type has to find them in the same place, see CodeGen::Prologue.
 static_assert(offsetof(VMBase, fvars_ptr) == sizeof(int) * 4);
 static_assert(offsetof(VMBase, constant_strings_ptr) == sizeof(int) * 4 + sizeof(Value *));
-static_assert(sizeof(VMBase) == sizeof(int) * 4 + sizeof(Value *) * 2);
+static_assert(offsetof(VMBase, ret_buf) == sizeof(int) * 4 + sizeof(Value *) * 2);
+static_assert(sizeof(VMBase) ==
+              sizeof(int) * 4 + sizeof(Value *) * 2 + sizeof(Value) * MAX_RETURN_SLOTS);
 
 typedef void (*EngineShutdownFunctionPtr)();
 
 struct VM : VMBase {
     VMArgs vma;
     SlabAlloc pool;
-
-    fun_base_t next_call_target = 0;
 
     vector<type_elem_t> typetablebigendian;
     uint64_t *byteprofilecounts = nullptr;
@@ -1354,10 +1367,6 @@ VM_INLINE void PopN(StackPtr &sp, iint n) { sp -= n; }
 
 // Codegen helpers.
 
-VM_INLINE void SwapVars(VM &vm, int i, StackPtr psp, int off) {
-    swap(vm.fvars[i], *(psp - off));
-}
-
 VM_INLINE Value NilVal() {
     return Value(0, RTT_NIL);
 }
@@ -1378,15 +1387,6 @@ VM_INLINE void DecVal(VM &vm, Value v) {
 VM_INLINE void RestoreBackup(VM &vm, int i) {
     vm.fvars[i] = vm.fvar_def_backup.back();
     vm.fvar_def_backup.pop_back();
-}
-
-VM_INLINE StackPtr PopArg(VM &vm, int i, StackPtr psp) {
-    vm.fvars[i] = Pop(psp);
-    return psp;
-}
-
-VM_INLINE int RetSlots(VM &vm) {
-    return vm.ret_slots;
 }
 
 VM_INLINE int GetTypeSwitchID(VM &vm, Value self, int vtable_idx) {

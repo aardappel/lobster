@@ -91,6 +91,11 @@ struct CodeGen  {
     int regso = 0;
     int f_function_idx = -1;
     int f_regs_max = -1;
+    // The parameter each slot of the arguments comes in as, in f_args order, and what the
+    // function returns, see FunSignature.
+    vector<string> f_arg_names;
+    int f_outw = 0;
+    int f_ret_kind = 0;
     // How many slot variables the function spells, and whether any helper needed the stack as
     // memory, both only known at the end of its codegen like f_regs_max.
     int f_slot_max = 0;
@@ -432,6 +437,9 @@ struct CodeGen  {
         f_regs_max = 0;
         f_args.clear();
         f_defs.clear();
+        f_arg_names.clear();
+        f_outw = 0;
+        f_ret_kind = RK_VOID;
         f_keepvars = 0;
         TrackUseDef(0, 0);
         append(cb, "    RtAbort(vm);\n");
@@ -460,6 +468,9 @@ struct CodeGen  {
         tstack_max = 0;
         f_args.clear();
         f_defs.clear();
+        f_arg_names.clear();
+        f_outw = 0;
+        f_ret_kind = RK_VOID;
         f_keepvars = 0;
         Gen(parser.root, return_value);
         auto type = parser.root->exptype;
@@ -535,6 +546,9 @@ struct CodeGen  {
         #endif
         local_names.clear();
         f_names_used.clear();
+        f_arg_names.clear();
+        f_outw = ReturnSlots(sf);
+        f_ret_kind = RetKindOf(f_outw);
         auto emitvars = [&](const vector<Arg> &v, vector<int> &f_ad) {
             f_ad.clear();
             for (auto &arg : v) {
@@ -554,6 +568,11 @@ struct CodeGen  {
                     if (!sids[varidx].used_as_freevar()) {
                         var_to_local[varidx] = numlocals++;
                         local_names.push_back(LocalName(*arg.sid, i));
+                        if (&f_ad == &f_args) f_arg_names.push_back(local_names.back());
+                    } else if (&f_ad == &f_args) {
+                        // Lives in a global while the function runs, so the parameter only
+                        // holds the old value of that meanwhile, see DefineFunction.
+                        f_arg_names.push_back(LocalName(*arg.sid, i));
                     }
                 }
             }
@@ -646,19 +665,21 @@ struct CodeGen  {
                 "    long long len;\n"
                 "} LString;\n"
                 // The characters of a string follow directly behind its header.
-                "#define LSTRING_DATA(S) ((unsigned char *)((S) + 1))\n"
-                // This needs to correspond to the C++ VMBase, enforced in Entry().
+                "#define LSTRING_DATA(S) ((unsigned char *)((S) + 1))\n";
+            // This needs to correspond to the C++ VMBase, enforced in Entry().
+            append(sd,
                 "typedef struct {\n"
                 "    int last_line;\n"
                 "    int last_fileidx;\n"
                 "    int ret_unwind_to;\n"
-                "    int ret_slots;\n"
                 "    Value *fvars_ptr;\n"
                 "    Value *constant_strings_ptr;\n"
-                "} VMBase;\n"
+                "    Value ret_buf[", MAX_RETURN_SLOTS, "];\n"
+                "} VMBase;\n");
+            sd +=
                 "typedef Value *StackPtr;\n"
                 "typedef VMBase *VMRef;\n"
-                "typedef void(*fun_base_t)(VMRef, StackPtr);\n"
+                "typedef void (*fun_base_t)(VMRef);\n"
                 // An offset into the type table, which is what the helpers take one as.
                 "typedef int type_elem_t;\n"
                 "struct ___tracy_source_location_data {\n"
@@ -718,8 +739,7 @@ struct CodeGen  {
                 "LString *RtStructToString(VMRef, Value *, type_elem_t);\n"
                 "Value RtIndexStruct(VMRef, Value *, long long, int);\n"
                 "long long RtIsSubType(VMRef, Value, int, int, int);\n"
-                "void RtCallValue(VMRef, StackPtr);\n"
-                "void RtDynDispatch(VMRef, StackPtr, int, int);\n"
+                "fun_base_t RtDynDispatch(VMRef, Value, int);\n"
                 "void RtEnumRangeErr(VMRef);\n"
                 "Value *RtLvalIndexClass(VMRef, Value, long long, int);\n"
                 "void RtLvSAdd(VMRef, Value *, Value);\n"
@@ -727,20 +747,16 @@ struct CodeGen  {
                 "int RtMemberSetThisFrame(VMRef, Value, int);\n"
                 ;
 
-            sd += "extern fun_base_t GetNextCallTarget(VMRef);\n"
-                  "extern void Entry(int, int, int, int, int, int);\n"
+            sd += "extern void Entry(int, int, int, int, int, int);\n"
                   "extern void IDXErr(VMRef, long long, long long, RefObj *);\n"
                   "extern void IDXErrS(VMRef, long long, long long);\n"
                   "extern long long GLFrame(VMRef);\n"
-                  "extern void SwapVars(VMRef, int, StackPtr, int);\n"
                   "extern void BackupVar(VMRef, int);\n"
                   "extern void DecOwned(VMRef, int);\n"
                   "extern void DecDelete(VMRef, RefObj *);\n"
                   "extern void AssertFailed(VMRef, int, int, int);\n"
                   "extern void DecVal(VMRef, Value);\n"
                   "extern void RestoreBackup(VMRef, int);\n"
-                  "extern StackPtr PopArg(VMRef, int, StackPtr);\n"
-                  "extern int RetSlots(VMRef);\n"
                   "extern int GetTypeSwitchID(VMRef, Value, int);\n"
                   "extern void PushFunId(VMRef, const int *, StackPtr);\n"
                   "extern void PopFunId(VMRef);\n"
@@ -756,8 +772,50 @@ struct CodeGen  {
         }
     }
 
+    // What a function returns: nothing, a Value, or several values thru an array it is given.
+    enum RetKind { RK_VOID, RK_VALUE, RK_MULTI };
+    static RetKind RetKindOf(int outw) {
+        return outw == 0 ? RK_VOID : outw == 1 ? RK_VALUE : RK_MULTI;
+    }
+
+    // The C signature of a function: its return value if it has one, the array several land in
+    // otherwise, then an argument per slot of its arguments. With names for the definition,
+    // without for a declaration.
+    string FunSignature(string_view name, RetKind rk, int nargslots,
+                        const vector<string> *names) {
+        string s = cat("static ", rk == RK_VALUE ? "Value " : "void ", name, "(VMRef");
+        if (names) s += " vm";
+        if (rk == RK_MULTI) append(s, ", Value *", names ? "rets" : "");
+        for (int i = 0; i < nargslots; i++) {
+            s += ", Value";
+            if (names) append(s, " ", (*names)[i]);
+        }
+        return s + ")";
+    }
+
+    // The same as the type of a pointer to one, for calling a function value or the function
+    // a dynamic dispatch lands in.
+    string FunPtrType(RetKind rk, int nargslots) {
+        string s = cat(rk == RK_VALUE ? "Value" : "void", " (*)(VMRef");
+        if (rk == RK_MULTI) s += ", Value *";
+        for (int i = 0; i < nargslots; i++) s += ", Value";
+        return s + ")";
+    }
+
+    // How many slots the arguments of a function take, and its return values.
+    int ArgSlots(const SubFunction &sf) {
+        int n = 0;
+        for (auto &arg : sf.args) if (!arg.sid->constprop) n += ValWidth(arg.sid->type);
+        return n;
+    }
+
+    int ReturnSlots(const SubFunction &sf) {
+        return ValWidthMulti(sf.returntype, sf.returntype->NumValues());
+    }
+
     void DeclareFunction(SubFunction &sf, string &sd) {
-        append(sd, "static void fun_", sf.idx, "(VMRef, StackPtr);\n");
+        append(sd, FunSignature(cat("fun_", sf.idx), RetKindOf(ReturnSlots(sf)), ArgSlots(sf),
+                                nullptr), ";\n");
     }
 
     // A declaration of Values, a line per 12 of them to keep it readable.
@@ -817,16 +875,16 @@ struct CodeGen  {
             "reinterpret_cast", "requires", "static_assert", "static_cast", "template", "this",
             "thread_local", "throw", "true", "try", "typeid", "typename", "using", "virtual",
             "wchar_t", "xor", "xor_eq", "override", "final", "NULL",
-            "vm", "psp", "lv", "vals", "locals", "keepvar", "regs", "ctx", "tsld", "top", "rs",
-            "ret", "epilogue", "main", "argc", "argv", "vmmeta", "Value", "VMRef", "StackPtr",
+            "vm", "lv", "vals", "locals", "ctx", "tsld", "top", "rs", "ret", "rets",
+            "epilogue", "main", "argc", "argv", "vmmeta", "Value", "VMRef", "StackPtr",
             "RefObj", "LVector", "LString", "VMBase", "fun_base_t", "type_elem_t", "vtables",
             "funinfo_table", "compiled_entry_point", "type_table", "stringtable", "file_names",
             "function_names", "udts", "specidents", "enums", "ser_ids",
             "subfunctions_to_function", "iint", "int2float64", "lobster", "std", "string_view",
             "span", "uint64_t", "int64_t", "memcpy", "memmove", "GLFrame", "Entry", "IDXErr",
-            "IDXErrS", "SwapVars", "BackupVar", "DecOwned", "DecDelete", "AssertFailed",
-            "DecVal", "RestoreBackup", "PopArg", "RetSlots", "GetTypeSwitchID", "PushFunId",
-            "PopFunId", "GetNextCallTarget", "StartProfile", "EndProfile", "LSTRING_DATA",
+            "IDXErrS", "BackupVar", "DecOwned", "DecDelete", "AssertFailed", "DecVal",
+            "RestoreBackup", "GetTypeSwitchID", "PushFunId", "PopFunId", "StartProfile",
+            "EndProfile", "LSTRING_DATA",
         };
         if (reserved.count(name)) return true;
         if (name[0] == '_' || name.substr(0, 2) == "Rt") return true;
@@ -1252,16 +1310,6 @@ struct CodeGen  {
     int EmitJumpFail(int defslots) { return EmitJumpCond(true, defslots); }
     int EmitJumpNoFail(int defslots) { return EmitJumpCond(false, defslots); }
 
-    // Jump over the code that copies return values when the function we called returned past us
-    // to somewhere further up instead.
-    int EmitJumpIfUnwound(int parent_idx) {
-        TrackUseDef(0, 0);
-        auto lab = Label();
-        append(cb, "    if (", vmref(), "ret_unwind_to == ", parent_idx, ") goto block", lab,
-               ";\n");
-        return lab;
-    }
-
     // Jump over the initializer of a member or static that has already run this frame. The
     // member version reads the object it belongs to off the stack, the static one needs nothing.
     int EmitJumpIfSetThisFrame(bool member, int varidx) {
@@ -1313,54 +1361,46 @@ struct CodeGen  {
         CopyValue(cb, KeepVar(offset), Slot(stack_offset + 1));
     }
 
+    // Slot i of the values a non-local return passes to the function it returns from.
+    string RetBufSlot(int i) {
+        return cpp ? cat("vm.ret_buf.v[", i, "]") : cat("vm->ret_buf[", i, "]");
+    }
+
+    // The function's return values, from wherever `src` says slot i of them is.
+    template<typename F> void GenReturnValues(F src) {
+        if (f_ret_kind == RK_VALUE) {
+            CopyValue(cb, "ret", src(0));
+        } else {
+            for (int i = 0; i < f_outw; i++) CopyValue(cb, cat("rets[", i, "]"), src(i));
+        }
+    }
+
+    // A return. The values come off the stack into the function's own return channel, or for
+    // a non-local return into the VM's buffer, marked for the function they return from,
+    // parent_idx, whose caller picks them up, see GenUnwind. RET_ANY passes such a return on
+    // to the caller, which has nothing to copy.
     void EmitReturn(ReturnKind kind, int nretslots, int parent_idx, int useslots) {
         TrackUseDef(useslots, 0);
         // FIXME: emit epilogue stuff only once at end of function.
         if (kind == RET_LOCAL) {
-            #if VM_EXTRA_CHECKING
-                append(cb, "    ", vmref(), "ret_slots = -9;\n");
-                append(cb, "    ", vmref(), "ret_unwind_to = -9;\n");
-            #endif
+            GenReturnValues([&](int i) { return Slot(nretslots - i); });
         } else if (kind == RET_NONLOCAL) {
-            append(cb, "    ", vmref(), "ret_slots = ", nretslots, ";\n");
+            if (nretslots > MAX_RETURN_SLOTS) {
+                parser.ErrorAt(node_context.back(),
+                               "too many values returned thru a non-local return");
+            }
+            for (int i = 0; i < nretslots; i++) {
+                CopyValue(cb, RetBufSlot(i), Slot(nretslots - i));
+            }
             append(cb, "    ", vmref(), "ret_unwind_to = ", parent_idx, ";\n");
+            // Nothing of its own to return, but the caller expects a value all the same.
+            if (f_ret_kind == RK_VALUE) SetNil(cb, "ret");
         }
         for (auto varidx : ownedvars) {
             if (sids[varidx].used_as_freevar()) {
                 append(cb, "    DecOwned(vm, ", varidx, ");\n");
             } else {
                 append(cb, "    DecVal(vm, ", Local(var_to_local[varidx]), ");\n");
-            }
-        }
-        // The arguments come off the caller's stack, and any that live in a global go back to
-        // it, which is a helper each; the rest are one pointer adjustment per run of them.
-        auto nargs = (int)f_args.size();
-        auto freevars = f_args.data() + nargs;
-        int npop = 0;
-        auto flush = [&]() {
-            if (npop) append(cb, "    psp -= ", npop, ";\n");
-            npop = 0;
-        };
-        while (nargs--) {
-            auto varidx = *--freevars;
-            if (sids[varidx].used_as_freevar()) {
-                flush();
-                append(cb, "    psp = PopArg(vm, ", varidx, ", psp);\n");
-            } else {
-                npop++;
-            }
-        }
-        flush();
-        if (kind == RET_ANY) {
-            // Passing thru however many values the function that returned past us left, which is
-            // only known at runtime. They are still where the call left them, in the stack array.
-            f_uses_vals = true;
-            append(cb, "    { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) { ",
-                   CopyValueText("psp[i]", cat(StackArray(), "[i + ", regso - nretslots, "]")),
-                   " } }\n");
-        } else {
-            for (int i = 0; i < nretslots; i++) {
-                CopyValue(cb, cat("psp[", i, "]"), Slot(nretslots - i));
             }
         }
         sdt.clear();  // FIXME: remove
@@ -1371,8 +1411,7 @@ struct CodeGen  {
             }
         }
         if (kind == RET_ANY) {
-            // The above has taken care of falling thru retvals, but the normal retvals are
-            // still on the tstack.
+            // What the call we are passing thru from left is still on the tstack.
             for (int i = 0; i < nretslots; i++)
                 PopTemp();
             for (auto &tse : reverse(temptypestack)) {
@@ -1392,26 +1431,49 @@ struct CodeGen  {
         }
     }
 
+    // A call to `callee`, an expression for the function, with the arguments on the stack and
+    // the result landing where they were. `nargslots` says how many of the top `uses` slots
+    // are arguments, since a function value sits above its own.
+    void EmitCallTo(string_view callee, int nargslots, int uses, int defs,
+                    string_view cmt = {}) {
+        TrackUseDef(uses, defs);
+        auto rk = RetKindOf(defs);
+        auto base = regso - uses;
+        string call = cat(callee, "(vm");
+        if (rk == RK_MULTI) {
+            // Several results come back thru the stack array.
+            f_uses_vals = true;
+            append(call, ", ", StackArray(), " + ", base);
+        }
+        for (int i = 0; i < nargslots; i++) append(call, ", ", Slot(uses - i));
+        call += ")";
+        if (rk == RK_VALUE) SetValue(cb, Slot(uses), call, "");
+        else append(cb, "    ", call, ";");
+        if (cmt.empty()) cb += "\n"; else comment(cmt);
+        if (rk == RK_MULTI) {
+            for (int i = 0; i < defs; i++) CopyValue(cb, SlotVar(base + i), StackSlot(base + i));
+        }
+    }
+
     void EmitCall(int fidx, int uses, int defs) {
-        GenStackCall(uses, defs, [&](string_view sp) {
-            return cat("fun_", fidx, "(vm, ", sp, ")");
-        }, "call: " + Signature(*st.subfunctiontable[fidx]));
+        EmitCallTo(cat("fun_", fidx), uses, uses, defs,
+                   "call: " + Signature(*st.subfunctiontable[fidx]));
     }
 
-    // The function value on top of the stack is called with what sits below it.
+    // The function value on top of the stack is called with what sits below it, cast to the
+    // signature the type checker gave it.
     void EmitCallValue(int uses, int defs) {
-        GenStackCall(uses, defs, [&](string_view sp) {
-            return cat("RtCallValue(vm, ", sp, "); ",
-                       cpp ? "vm.next_call_target" : "GetNextCallTarget(vm)", "(vm, ", sp,
-                       " - 1)");
-        });
+        TrackUseDef(0, 0);
+        auto ptr = cat("((", FunPtrType(RetKindOf(defs), uses - 1), ")", IpOf(Slot(1)), ")");
+        EmitCallTo(ptr, uses - 1, uses, defs);
     }
 
-    void EmitDynDispatch(int vtable_idx, int nargs, int uses, int defs) {
-        GenStackCall(uses, defs, [&](string_view sp) {
-            return cat("RtDynDispatch(vm, ", sp, ", ", vtable_idx, ", ", nargs, "); ",
-                       cpp ? "vm.next_call_target" : "GetNextCallTarget(vm)", "(vm, ", sp, ")");
-        });
+    // Same, for the function a dispatch on the class of the first argument lands in.
+    void EmitDynDispatch(int vtable_idx, int uses, int defs) {
+        TrackUseDef(0, 0);
+        auto ptr = cat("((", FunPtrType(RetKindOf(defs), uses), ")RtDynDispatch(vm, ",
+                       Slot(uses), ", ", vtable_idx, "))");
+        EmitCallTo(ptr, uses, uses, defs);
     }
 
     void EmitProfile(int stringtable_idx) {
@@ -1574,29 +1636,39 @@ struct CodeGen  {
         auto sf_idx = f_function_idx;
         if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START)
             append(sd, "// ", Signature(*st.subfunctiontable[sf_idx]), "\n");
-        append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
+        assert(f_arg_names.size() == f_args.size());
+        append(sd, FunSignature(cat("fun_", sf_idx), RetKind(f_ret_kind), (int)f_args.size(),
+                                &f_arg_names), " {\n");
         // NOTE: f_keepvars, f_slot_max, f_uses_vals, f_vals_max and f_regs_max are not known
         // until the end of codegen of the function!
-        vector<string> slots, keeps;
+        vector<string> slots, keeps, locals;
         for (int i = 0; i < f_slot_max; i++) slots.push_back(SlotVar(i));
         for (int i = 0; i < f_keepvars; i++) keeps.push_back(KeepVar(i));
+        // The arguments are the parameters, so only the locals after them are declared here.
+        int nargs_local = 0;
+        for (auto varidx : f_args) if (!sids[varidx].used_as_freevar()) nargs_local++;
+        assert((int)local_names.size() == numlocals);
+        for (int i = nargs_local; i < numlocals; i++) locals.push_back(local_names[i]);
         GenValueDecls(sd, slots);
         if (f_uses_vals) {
             append(sd, "    Value vals[", std::max({ 1, f_regs_max, f_vals_max }), "];\n");
         }
         GenValueDecls(sd, keeps);
-        assert((int)local_names.size() == numlocals);
-        GenValueDecls(sd, local_names);
+        GenValueDecls(sd, locals);
         if (ShadowLocals() && numlocals) append(sd, "    Value locals[", numlocals, "];\n");
         if (f_uses_lval) append(sd, "    Value *lv = 0;\n");
+        if (f_ret_kind == RK_VALUE) sd += "    Value ret;\n";
         for (int i = 0; i < (int)f_args.size(); i++) {
             auto varidx = f_args[i];
+            auto &name = f_arg_names[i];
             if (sids[varidx].used_as_freevar()) {
-                append(sd, "    SwapVars(vm, ", varidx, ", psp, ", (int)f_args.size() - i, ");\n");
-            } else {
-                auto k = var_to_local[varidx];
-                CopyValue(sd, Local(k), cat("psp[-", (int)f_args.size() - i, "]"));
-                if (ShadowLocals()) CopyValue(sd, Shadow(k), Local(k));
+                // The argument is the global for the duration of the call, whose old value the
+                // parameter holds meanwhile, to go back at the end.
+                append(sd, "    { Value _t; ", CopyValueText("_t", name), " ",
+                       CopyValueText(name, Global(varidx)), " ",
+                       CopyValueText(Global(varidx), "_t"), " }\n");
+            } else if (ShadowLocals()) {
+                CopyValue(sd, Shadow(var_to_local[varidx]), name);
             }
         }
         for (int i = 0; i < (int)f_defs.size(); i++) {
@@ -1643,9 +1715,14 @@ struct CodeGen  {
         for (int i = 0; i < f_keepvars; i++) {
             append(sd, "    DecVal(vm, ", KeepVar(i), ");\n");
         }
+        for (int i = 0; i < (int)f_args.size(); i++) {
+            auto varidx = f_args[i];
+            if (sids[varidx].used_as_freevar()) CopyValue(sd, Global(varidx), f_arg_names[i]);
+        }
         if (runtime_checks >= RUNTIME_STACK_TRACE && f_function_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
             append(sd, "    PopFunId(vm);\n");
         }
+        if (f_ret_kind == RK_VALUE) sd += "    return ret;\n";
         sd += "}\n";
         ownedvars.clear();
         f_keepvars = -1;
@@ -1672,7 +1749,7 @@ struct CodeGen  {
         for (auto id : vtables) {
             sd += "    ";
             if (id >= 0) {
-                append(sd, "fun_", id);
+                append(sd, "(fun_base_t)fun_", id);
             } else if (id <= -2) {
                 append(sd, "(fun_base_t)", -id - 2);  // Bit of a hack, would be nice to separate.
             } else {
@@ -1797,7 +1874,7 @@ struct CodeGen  {
             sd += "\n};\n\n";
         }
         if (cpp) sd += "extern \"C\" ";
-        sd += "void compiled_entry_point(VMRef vm, StackPtr sp) {\n";
+        sd += "void compiled_entry_point(VMRef vm) {\n";
         if (cpp) {
             append(sd, "    if (vm.vma.nfr.HashAll() != ", parser.natreg.HashAll(),
                    "ULL) vm.BuiltinError(\"code compiled with mismatching builtin function library\");\n");
@@ -1807,7 +1884,7 @@ struct CodeGen  {
             sd += "    Entry(sizeof(Value), sizeof(VMBase), sizeof(RefObj), sizeof(LVector),\n"
                   "          (int)(long long)&((LVector *)0)->elems, sizeof(LString));\n";
         }
-        append(sd, "    fun_", CODEGEN_SPECIAL_FUNCTION_ID_ENTRY, "(vm, sp);\n}\n\n");
+        append(sd, "    fun_", CODEGEN_SPECIAL_FUNCTION_ID_ENTRY, "(vm);\n}\n\n");
         if (cpp) {
             string build_info;
             auto time = std::time(nullptr);
@@ -1857,24 +1934,32 @@ struct CodeGen  {
         }
     }
 
-    void GenUnwind(const SubFunction &sf, int nretslots_unwind_max, int nretslots_norm) {
-        // We're in an odd position here, because what is on the stack can either be from
-        // the function we're calling (if we're not falling thru) or from any function above it
-        // with different number of return values (and there can be multiple such paths, with
-        // different retvals, hence "max").
-        // Then, below it, may be temps.
-        // If we're falling thru, we actually want to 1) unwind, 2) copy rets, 3) pop temps
-        // We manage the tstack as if we're not falling thru.
-        // Need to ensure there's enough space for either path.
-        for (int i = nretslots_norm; i < nretslots_unwind_max; i++)
-            PushTemp();
-        auto lab = EmitJumpIfUnwound(sf.parent->idx);
-        for (int i = nretslots_norm; i < nretslots_unwind_max; i++)
-            PopTemp();
-        // Here we are emitting code executed only if we're falling thru,
-        // so temp modify the tstack to match that.
+    // After a call to a function a non-local return can come out of. If one is in flight this
+    // function is done too: either it is the one being returned from, in which case what it
+    // returns is in the VM's buffer and goes out thru its own return channel, or it passes the
+    // return on to its caller, see EmitReturn.
+    void GenUnwind(int outw) {
+        auto lab = Label();
+        TrackUseDef(0, 0);
+        append(cb, "    if (", vmref(), "ret_unwind_to < 0) goto block", lab, ";\n");
+        // Here we are emitting code executed only if we're unwinding, so temp modify the
+        // tstack to match that.
         auto tstackbackup = tstack_size;
-        EmitReturn(RET_ANY, nretslots_norm, -1, 0);
+        // Only a Lobster function can be returned from, the entry function is never the target.
+        if (cursf) {
+            append(cb, "    if (", vmref(), "ret_unwind_to == ", cursf->parent->idx, ") {\n");
+            append(cb, "    ", vmref(), "ret_unwind_to = -1;\n");
+            GenReturnValues([&](int i) { return RetBufSlot(i); });
+            if (f_ret_kind == RK_VALUE) {
+                // Passing it on, with nothing of its own to return.
+                cb += "    } else {\n";
+                SetNil(cb, "ret");
+            }
+            cb += "    }\n";
+        } else if (f_ret_kind == RK_VALUE) {
+            SetNil(cb, "ret");
+        }
+        EmitReturn(RET_ANY, outw, -1, 0);
         EmitLabelDef(lab);
         tstack_size = tstackbackup;
     }
@@ -1894,13 +1979,17 @@ struct CodeGen  {
                            "call to function ", Q(f.name), " needs ", f.nargs(),
                            " arguments, ", nargs, " given");
         TakeTemp(nargs, true);
+        if (inw != ArgSlots(sf)) {
+            parser.ErrorAt(node_context.back(), "internal error: call to ", Q(f.name),
+                           " passes ", inw, " slots where it takes ", ArgSlots(sf));
+        }
         if (call.vtable_idx < 0) {
             EmitCall(sf.idx, inw, outw);
             if (sf.returned_thru_to_max >= 0) {
-                GenUnwind(sf, sf.returned_thru_to_max, outw);
+                GenUnwind(outw);
             }
         } else {
-            EmitDynDispatch(call.vtable_idx, inw - 1, inw, outw);
+            EmitDynDispatch(call.vtable_idx, inw, outw);
             // We get the dispatch from arg 0, since sf is an arbitrary overloads and
             // doesn't necessarily point to the dispatch root (which may not even have an sf).
             auto dispatch_type = call.children[0]->exptype;
@@ -1909,7 +1998,7 @@ struct CodeGen  {
             assert(de->dispatch_root && !de->returntype.Null() && de->subudts_size);
             if (de->returned_thru_to_max >= 0) {
                 // This works because all overloads of a DD sit under a single Function.
-                GenUnwind(sf, de->returned_thru_to_max, outw);
+                GenUnwind(outw);
             }
         }
         auto nretvals = sf.returntype->NumValues();
@@ -3611,11 +3700,9 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     // of the functions in between here and the function returned to.
     // Actually, doesn't work with DDCALL and RETURN_THRU.
     // FIXME: shouldn't need any type here if V_VOID, but nretvals is at least 1 ?
-    if (sf == cg.cursf && sf->returned_thru_to_max < 0) {
+    if (sf == cg.cursf) {
         cg.EmitReturn(RET_LOCAL, nretslots, -1, nretslots);
     } else {
-        // This is for both if the return itself is non-local, or if the destination has
-        // an unwind check.
         cg.EmitReturn(RET_NONLOCAL, nretslots, sf->parent->idx, nretslots);
     }
 
