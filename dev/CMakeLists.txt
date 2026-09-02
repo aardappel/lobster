@@ -257,6 +257,12 @@ if(LOBSTER_TOCPP)
   removecpp(tccbind)
   removecpp(mirbind)
   list(APPEND LOBSTER_SRCS "compiled_lobster/src/compiled_lobster.cpp")
+  if(NOT MSVC)
+    # The generated code emits a function for every Lobster function, including ones that end
+    # up not being called from anywhere.
+    set_source_files_properties(compiled_lobster/src/compiled_lobster.cpp
+                                PROPERTIES COMPILE_OPTIONS -Wno-unused-function)
+  endif()
   add_definitions(-flto)
   set(EXE_NAME compiled_lobster)
   if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
