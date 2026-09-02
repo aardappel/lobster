@@ -1893,8 +1893,9 @@ struct CodeGen  {
     // Indexing a vector with a struct: every component of it but the first steps into a nested
     // vector, and the first one lands on the element. They sit above the vector on the stack and
     // are used back to front, see VM::GrabIndex, with one range check per level.
-    void GenPushIdxNested(int levels, int width, int useslots) {
-        TrackUseDef(useslots, width);
+    void GenPushIdxNested(int levels, int width) {
+        // The vector plus one index per level it steps thru, replaced by the element.
+        TrackUseDef(levels + 1, width);
         auto vec = sp(levels + 1);
         if (cpp) {
             append(cb, "    {\n    auto _o = (", vec, ")->vval();\n    iint _i;\n");
@@ -1921,9 +1922,9 @@ struct CodeGen  {
         cb += "    }\n";
     }
 
-    void GenPushIdx(bool str, int width, int defslots) {
-        // The object and the index it is subscripted with.
-        TrackUseDef(2, defslots);
+    void GenPushIdx(bool str, int width) {
+        // The object and the index it is subscripted with, replaced by the element.
+        TrackUseDef(2, width);
         // A string index may read the terminating 0-byte, one past its length.
         auto bound = str ? "_o->len + 1" : "_o->len";
         if (cpp) {
@@ -2078,7 +2079,8 @@ struct CodeGen  {
     }
 
     void GenLvalModifier(LvalOp op, TypeRef type) {
-        TrackUseDef(LvalModifierUses(op, ValWidth(type)), 0);
+        auto width = ValWidth(type);
+        TrackUseDef(LvalModifierUses(op, width), 0);
         auto &lval = f_lval;
         string_view fld, cop;
         if (op == LV_WRITE) {
@@ -2090,7 +2092,6 @@ struct CodeGen  {
         } else if (op == LV_WRITEV || op == LV_WRITEREFV) {
             // Same copy, one per slot of the struct being written, preceded by a decrement for
             // each of those slots that holds a reference, which the bitmask says which are.
-            auto width = ValWidth(type);
             if (op == LV_WRITEREFV) {
                 auto bitmask = BitMaskForRefStuct(type);
                 for (int i = 0; i < width; i++)
@@ -2135,7 +2136,7 @@ struct CodeGen  {
                 "RtLvIPp", "RtLvIMm", "RtLvFPp", "RtLvFMm",
             };
             append(cb, "    ", lvnames[op], "(vm, ", sp(), ", ", lval);
-            if (IsStruct(type->t)) append(cb, ", ", ValWidth(type));
+            if (IsStruct(type->t)) append(cb, ", ", width);
             cb += ");\n";
         }
     }
@@ -2467,11 +2468,10 @@ struct CodeGen  {
                 auto elemwidth = ValWidth(etype);
                 if (struct_elem_sub_width < 0) {
                     if (index->exptype->t == V_INT) {
-                        if (elemwidth == 1) GenPushIdx(false, 1, 1);
-                        else GenPushIdx(false, elemwidth, elemwidth);
+                        GenPushIdx(false, elemwidth);
                     } else {
                         assert(IsStruct(index->exptype->t));
-                        GenPushIdxNested(ValWidth(index->exptype), elemwidth, inw);
+                        GenPushIdxNested(ValWidth(index->exptype), elemwidth);
                     }
                 } else {
                     // We're indexing a sub-part of the element.
@@ -2504,7 +2504,7 @@ struct CodeGen  {
             }
             case V_STRING:
                 assert(index->exptype->t == V_INT);
-                GenPushIdx(true, 1, 1);
+                GenPushIdx(true, 1);
                 break;
             default:
                 assert(false);
