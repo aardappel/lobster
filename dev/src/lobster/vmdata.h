@@ -934,9 +934,6 @@ struct LVector : RefObj {
         return v[i];
     }
 
-    void AtVW(StackPtr &sp, iint i) const;
-    void AtVWInc(StackPtr &sp, iint i, int bitmask) const;
-    void AtVWSub(StackPtr &sp, iint i, int w, int off) const;
 
     void Append(VM &vm, LVector *from, iint start, iint amount);
 
@@ -1290,7 +1287,7 @@ struct VM : VMBase {
     Value WorkerCheck(type_elem_t tti);
     void WorkerWake(type_elem_t tti);
 
-    void EndEval(StackPtr &sp, Value ret, const TypeInfo &ti);
+    void EndEval(Value ret, const TypeInfo &ti);
 
     void EvalProgram();
 
@@ -1306,7 +1303,7 @@ struct VM : VMBase {
     void IDXErr(iint i, iint n, const RefObj *v);
     void IDXErrS(iint i, iint n);
     void BCallRetCheck(StackPtr sp, int nfi);
-    iint GrabIndex(StackPtr &sp, int len);
+    void BCallRetCheck(Value v, int nfi);
 
     string_view StructName(const TypeInfo &ti);
     string_view ReverseLookupType(int v);

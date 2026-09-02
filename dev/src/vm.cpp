@@ -594,7 +594,7 @@ void VM::VMAssert(const char *what)  {
     SeriousError(string("VM internal assertion failure: ") + what);
 }
 
-void VM::EndEval(StackPtr &, Value ret, const TypeInfo &ti) {
+void VM::EndEval(Value ret, const TypeInfo &ti) {
     TerminateWorkers();
     ret.ToString(*this, evalret.first, ti, programprintprefs);
     ret.LTDECTYPE(*this, ti.t);
@@ -728,14 +728,19 @@ void VM::BCallRetCheck(StackPtr sp, int nfi) {
     #endif
 }
 
-iint VM::GrabIndex(StackPtr &sp, int len) {
-    auto &v = TopMR(sp, len);
-    for (len--; ; len--) {
-        auto sidx = Pop(sp).ival();
-        if (!len) return sidx;
-        RANGECHECK((*this), sidx, v.vval()->len, v.vval());
-        v = v.vval()->AtS(sidx);
-    }
+void VM::BCallRetCheck(Value v, int nfi) {
+    #if RTT_ENABLED
+        auto nf = vma.nfr.nfuns[nfi];
+        if (!nf->retvals.empty()) {
+            auto u = nf->retvals[0].rttype;
+            assert(v.type == u || u == RTT_INVALID || u == RTT_NIL ||
+                   (u == RTT_VECTOR && RTIsUDT(v.type)));
+            (void)u;
+        }
+    #else
+        (void)nfi;
+        (void)v;
+    #endif
 }
 
 void VM::AssertFailed(int line, int fileidx, int stringidx) {
@@ -1074,191 +1079,80 @@ void CRtEndProfile(___tracy_c_zone_context ctx) {
 }
 #endif
 
-void CRtPushFloat(StackPtr sp, int64_t bits) { RtPushFloat(sp, bits); }
-void CRtPushStr(VM *vm, StackPtr sp, int i) { RtPushStr(*vm, sp, i); }
-void CRtIndexVecSub(VM *vm, StackPtr sp, int o) { RtIndexVecSub(*vm, sp, o); }
-void CRtIndexVecSubV(VM *vm, StackPtr sp, int w, int o) { RtIndexVecSubV(*vm, sp, w, o); }
-void CRtIndexVecNestSubV(VM *vm, StackPtr sp, int l, int w, int o) { RtIndexVecNestSubV(*vm, sp, l, w, o); }
-void CRtIndexStruct(VM *vm, StackPtr sp, int l) { RtIndexStruct(*vm, sp, l); }
-void CRtPushFieldMRef(VM *vm, StackPtr sp, int i) { RtPushFieldMRef(*vm, sp, i); }
-void CRtPushFieldV(StackPtr sp, int i, int l) { RtPushFieldV(sp, i, l); }
-void CRtPushFieldV2V(StackPtr sp, int i, int rl, int l) { RtPushFieldV2V(sp, i, rl, l); }
-void CRtNativeCallV(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCallV(*vm, sp, nfi, has_ret); }
-void CRtNativeCall0(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall0(*vm, sp, nfi, has_ret); }
-void CRtNativeCall1(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall1(*vm, sp, nfi, has_ret); }
-void CRtNativeCall2(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall2(*vm, sp, nfi, has_ret); }
-void CRtNativeCall3(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall3(*vm, sp, nfi, has_ret); }
-void CRtNativeCall4(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall4(*vm, sp, nfi, has_ret); }
-void CRtNativeCall5(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall5(*vm, sp, nfi, has_ret); }
-void CRtNativeCall6(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall6(*vm, sp, nfi, has_ret); }
-void CRtNativeCall7(VM *vm, StackPtr sp, int nfi, int has_ret) { RtNativeCall7(*vm, sp, nfi, has_ret); }
-void CRtNewVec(VM *vm, StackPtr sp, type_elem_t ti, int len) { RtNewVec(*vm, sp, ti, len); }
-void CRtNewObject(VM *vm, StackPtr sp, type_elem_t ti) { RtNewObject(*vm, sp, ti); }
-void CRtPopV(StackPtr sp, int len) { RtPopV(sp, len); }
-void CRtExit(VM *vm, StackPtr sp, type_elem_t ti) { RtExit(*vm, sp, ti); }
+// A Value as the C side sees it: the same bits as a plain struct, which is what makes a function
+// return one the way the C compiler expects. MSVC returns a class with constructors thru a
+// hidden pointer instead, while passing one in by value works the same for both.
+struct CValue {
+    int64_t bits;
+    #if RTT_ENABLED
+        int type;
+    #endif
+};
+static_assert(sizeof(CValue) == sizeof(Value), "CValue must mirror Value");
+
+static CValue ToC(Value v) {
+    CValue c;
+    memcpy(&c, &v, sizeof(c));
+    return c;
+}
+
+LString *CRtPushStr(VM *vm, int i) { return RtPushStr(*vm, i); }
+void CRtNativeCallV(VM *vm, StackPtr sp, int nfi) { RtNativeCallV(*vm, sp, nfi); }
+CValue CRtNativeCall0(VM *vm, int nfi) { return ToC(RtNativeCall0(*vm, nfi)); }
+CValue CRtNativeCall1(VM *vm, int nfi, Value a0) { return ToC(RtNativeCall1(*vm, nfi, a0)); }
+CValue CRtNativeCall2(VM *vm, int nfi, Value a0, Value a1) { return ToC(RtNativeCall2(*vm, nfi, a0, a1)); }
+CValue CRtNativeCall3(VM *vm, int nfi, Value a0, Value a1, Value a2) { return ToC(RtNativeCall3(*vm, nfi, a0, a1, a2)); }
+CValue CRtNativeCall4(VM *vm, int nfi, Value a0, Value a1, Value a2, Value a3) { return ToC(RtNativeCall4(*vm, nfi, a0, a1, a2, a3)); }
+CValue CRtNativeCall5(VM *vm, int nfi, Value a0, Value a1, Value a2, Value a3, Value a4) { return ToC(RtNativeCall5(*vm, nfi, a0, a1, a2, a3, a4)); }
+CValue CRtNativeCall6(VM *vm, int nfi, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5) { return ToC(RtNativeCall6(*vm, nfi, a0, a1, a2, a3, a4, a5)); }
+CValue CRtNativeCall7(VM *vm, int nfi, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5, Value a6) { return ToC(RtNativeCall7(*vm, nfi, a0, a1, a2, a3, a4, a5, a6)); }
+void CRtNativeCall0Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall0Rets(*vm, sp, nfi); }
+void CRtNativeCall1Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall1Rets(*vm, sp, nfi); }
+void CRtNativeCall2Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall2Rets(*vm, sp, nfi); }
+void CRtNativeCall3Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall3Rets(*vm, sp, nfi); }
+void CRtNativeCall4Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall4Rets(*vm, sp, nfi); }
+void CRtNativeCall5Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall5Rets(*vm, sp, nfi); }
+void CRtNativeCall6Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall6Rets(*vm, sp, nfi); }
+void CRtNativeCall7Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall7Rets(*vm, sp, nfi); }
+LVector *CRtNewVec(VM *vm, Value *elems, type_elem_t ti, int len) { return RtNewVec(*vm, elems, ti, len); }
+LObject *CRtNewObject(VM *vm, Value *fields, type_elem_t ti) { return RtNewObject(*vm, fields, ti); }
+void CRtExit(VM *vm, Value ret, type_elem_t ti) { RtExit(*vm, ret, ti); }
+void CRtExitVoid(VM *vm) { RtExitVoid(*vm); }
 void CRtAbort(VM *vm) { RtAbort(*vm); }
-void CRtIAdd(VM *vm, StackPtr sp) { RtIAdd(*vm, sp); }
-void CRtISub(VM *vm, StackPtr sp) { RtISub(*vm, sp); }
-void CRtIMul(VM *vm, StackPtr sp) { RtIMul(*vm, sp); }
-void CRtIDiv(VM *vm, StackPtr sp) { RtIDiv(*vm, sp); }
-void CRtIMod(VM *vm, StackPtr sp) { RtIMod(*vm, sp); }
-void CRtILt(VM *vm, StackPtr sp) { RtILt(*vm, sp); }
-void CRtIGt(VM *vm, StackPtr sp) { RtIGt(*vm, sp); }
-void CRtILe(VM *vm, StackPtr sp) { RtILe(*vm, sp); }
-void CRtIGe(VM *vm, StackPtr sp) { RtIGe(*vm, sp); }
-void CRtIEq(VM *vm, StackPtr sp) { RtIEq(*vm, sp); }
-void CRtINe(VM *vm, StackPtr sp) { RtINe(*vm, sp); }
-void CRtFAdd(VM *vm, StackPtr sp) { RtFAdd(*vm, sp); }
-void CRtFSub(VM *vm, StackPtr sp) { RtFSub(*vm, sp); }
-void CRtFMul(VM *vm, StackPtr sp) { RtFMul(*vm, sp); }
-void CRtFDiv(VM *vm, StackPtr sp) { RtFDiv(*vm, sp); }
-void CRtFMod(VM *vm, StackPtr sp) { RtFMod(*vm, sp); }
-void CRtFLt(VM *vm, StackPtr sp) { RtFLt(*vm, sp); }
-void CRtFGt(VM *vm, StackPtr sp) { RtFGt(*vm, sp); }
-void CRtFLe(VM *vm, StackPtr sp) { RtFLe(*vm, sp); }
-void CRtFGe(VM *vm, StackPtr sp) { RtFGe(*vm, sp); }
-void CRtFEq(VM *vm, StackPtr sp) { RtFEq(*vm, sp); }
-void CRtFNe(VM *vm, StackPtr sp) { RtFNe(*vm, sp); }
-void CRtSAdd(VM *vm, StackPtr sp) { RtSAdd(*vm, sp); }
-void CRtSSub(VM *vm, StackPtr sp) { RtSSub(*vm, sp); }
-void CRtSMul(VM *vm, StackPtr sp) { RtSMul(*vm, sp); }
-void CRtSDiv(VM *vm, StackPtr sp) { RtSDiv(*vm, sp); }
-void CRtSMod(VM *vm, StackPtr sp) { RtSMod(*vm, sp); }
-void CRtSLt(VM *vm, StackPtr sp) { RtSLt(*vm, sp); }
-void CRtSGt(VM *vm, StackPtr sp) { RtSGt(*vm, sp); }
-void CRtSLe(VM *vm, StackPtr sp) { RtSLe(*vm, sp); }
-void CRtSGe(VM *vm, StackPtr sp) { RtSGe(*vm, sp); }
-void CRtSEq(VM *vm, StackPtr sp) { RtSEq(*vm, sp); }
-void CRtSNe(VM *vm, StackPtr sp) { RtSNe(*vm, sp); }
-void CRtStrConcatN(VM *vm, StackPtr sp, int len) { RtStrConcatN(*vm, sp, len); }
-void CRtIvvAdd(VM *vm, StackPtr sp, int len) { RtIvvAdd(*vm, sp, len); }
-void CRtIvvSub(VM *vm, StackPtr sp, int len) { RtIvvSub(*vm, sp, len); }
-void CRtIvvMul(VM *vm, StackPtr sp, int len) { RtIvvMul(*vm, sp, len); }
-void CRtIvvDiv(VM *vm, StackPtr sp, int len) { RtIvvDiv(*vm, sp, len); }
-void CRtIvvMod(VM *vm, StackPtr sp, int len) { RtIvvMod(*vm, sp, len); }
-void CRtIvvLt(VM *vm, StackPtr sp, int len) { RtIvvLt(*vm, sp, len); }
-void CRtIvvGt(VM *vm, StackPtr sp, int len) { RtIvvGt(*vm, sp, len); }
-void CRtIvvLe(VM *vm, StackPtr sp, int len) { RtIvvLe(*vm, sp, len); }
-void CRtIvvGe(VM *vm, StackPtr sp, int len) { RtIvvGe(*vm, sp, len); }
-void CRtFvvAdd(VM *vm, StackPtr sp, int len) { RtFvvAdd(*vm, sp, len); }
-void CRtFvvSub(VM *vm, StackPtr sp, int len) { RtFvvSub(*vm, sp, len); }
-void CRtFvvMul(VM *vm, StackPtr sp, int len) { RtFvvMul(*vm, sp, len); }
-void CRtFvvDiv(VM *vm, StackPtr sp, int len) { RtFvvDiv(*vm, sp, len); }
-void CRtFvvMod(VM *vm, StackPtr sp, int len) { RtFvvMod(*vm, sp, len); }
-void CRtFvvLt(VM *vm, StackPtr sp, int len) { RtFvvLt(*vm, sp, len); }
-void CRtFvvGt(VM *vm, StackPtr sp, int len) { RtFvvGt(*vm, sp, len); }
-void CRtFvvLe(VM *vm, StackPtr sp, int len) { RtFvvLe(*vm, sp, len); }
-void CRtFvvGe(VM *vm, StackPtr sp, int len) { RtFvvGe(*vm, sp, len); }
-void CRtIvsAdd(VM *vm, StackPtr sp, int len) { RtIvsAdd(*vm, sp, len); }
-void CRtIvsSub(VM *vm, StackPtr sp, int len) { RtIvsSub(*vm, sp, len); }
-void CRtIvsMul(VM *vm, StackPtr sp, int len) { RtIvsMul(*vm, sp, len); }
-void CRtIvsDiv(VM *vm, StackPtr sp, int len) { RtIvsDiv(*vm, sp, len); }
-void CRtIvsMod(VM *vm, StackPtr sp, int len) { RtIvsMod(*vm, sp, len); }
-void CRtIvsLt(VM *vm, StackPtr sp, int len) { RtIvsLt(*vm, sp, len); }
-void CRtIvsGt(VM *vm, StackPtr sp, int len) { RtIvsGt(*vm, sp, len); }
-void CRtIvsLe(VM *vm, StackPtr sp, int len) { RtIvsLe(*vm, sp, len); }
-void CRtIvsGe(VM *vm, StackPtr sp, int len) { RtIvsGe(*vm, sp, len); }
-void CRtFvsAdd(VM *vm, StackPtr sp, int len) { RtFvsAdd(*vm, sp, len); }
-void CRtFvsSub(VM *vm, StackPtr sp, int len) { RtFvsSub(*vm, sp, len); }
-void CRtFvsMul(VM *vm, StackPtr sp, int len) { RtFvsMul(*vm, sp, len); }
-void CRtFvsDiv(VM *vm, StackPtr sp, int len) { RtFvsDiv(*vm, sp, len); }
-void CRtFvsMod(VM *vm, StackPtr sp, int len) { RtFvsMod(*vm, sp, len); }
-void CRtFvsLt(VM *vm, StackPtr sp, int len) { RtFvsLt(*vm, sp, len); }
-void CRtFvsGt(VM *vm, StackPtr sp, int len) { RtFvsGt(*vm, sp, len); }
-void CRtFvsLe(VM *vm, StackPtr sp, int len) { RtFvsLe(*vm, sp, len); }
-void CRtFvsGe(VM *vm, StackPtr sp, int len) { RtFvsGe(*vm, sp, len); }
-void CRtSivAdd(VM *vm, StackPtr sp, int len) { RtSivAdd(*vm, sp, len); }
-void CRtSivSub(VM *vm, StackPtr sp, int len) { RtSivSub(*vm, sp, len); }
-void CRtSivMul(VM *vm, StackPtr sp, int len) { RtSivMul(*vm, sp, len); }
-void CRtSivDiv(VM *vm, StackPtr sp, int len) { RtSivDiv(*vm, sp, len); }
-void CRtSivMod(VM *vm, StackPtr sp, int len) { RtSivMod(*vm, sp, len); }
-void CRtSivLt(VM *vm, StackPtr sp, int len) { RtSivLt(*vm, sp, len); }
-void CRtSivGt(VM *vm, StackPtr sp, int len) { RtSivGt(*vm, sp, len); }
-void CRtSivLe(VM *vm, StackPtr sp, int len) { RtSivLe(*vm, sp, len); }
-void CRtSivGe(VM *vm, StackPtr sp, int len) { RtSivGe(*vm, sp, len); }
-void CRtSfvAdd(VM *vm, StackPtr sp, int len) { RtSfvAdd(*vm, sp, len); }
-void CRtSfvSub(VM *vm, StackPtr sp, int len) { RtSfvSub(*vm, sp, len); }
-void CRtSfvMul(VM *vm, StackPtr sp, int len) { RtSfvMul(*vm, sp, len); }
-void CRtSfvDiv(VM *vm, StackPtr sp, int len) { RtSfvDiv(*vm, sp, len); }
-void CRtSfvMod(VM *vm, StackPtr sp, int len) { RtSfvMod(*vm, sp, len); }
-void CRtSfvLt(VM *vm, StackPtr sp, int len) { RtSfvLt(*vm, sp, len); }
-void CRtSfvGt(VM *vm, StackPtr sp, int len) { RtSfvGt(*vm, sp, len); }
-void CRtSfvLe(VM *vm, StackPtr sp, int len) { RtSfvLe(*vm, sp, len); }
-void CRtSfvGe(VM *vm, StackPtr sp, int len) { RtSfvGe(*vm, sp, len); }
-void CRtAEq(StackPtr sp) { RtAEq(sp); }
-void CRtANe(StackPtr sp) { RtANe(sp); }
-void CRtSnEq(StackPtr sp) { RtSnEq(sp); }
-void CRtSnNe(StackPtr sp) { RtSnNe(sp); }
-void CRtStEq(StackPtr sp, int len) { RtStEq(sp, len); }
-void CRtStNe(StackPtr sp, int len) { RtStNe(sp, len); }
-void CRtLEq(StackPtr sp) { RtLEq(sp); }
-void CRtLNe(StackPtr sp) { RtLNe(sp); }
-void CRtIUMinus(StackPtr sp) { RtIUMinus(sp); }
-void CRtFUMinus(StackPtr sp) { RtFUMinus(sp); }
-void CRtIvUMinus(VM *vm, StackPtr sp, int len) { RtIvUMinus(*vm, sp, len); }
-void CRtFvUMinus(VM *vm, StackPtr sp, int len) { RtFvUMinus(*vm, sp, len); }
-void CRtBinAnd(StackPtr sp) { RtBinAnd(sp); }
-void CRtBinOr(StackPtr sp) { RtBinOr(sp); }
-void CRtXor(StackPtr sp) { RtXor(sp); }
-void CRtAsl(StackPtr sp) { RtAsl(sp); }
-void CRtAsr(StackPtr sp) { RtAsr(sp); }
-void CRtNeg(StackPtr sp) { RtNeg(sp); }
-void CRtToString(VM *vm, StackPtr sp, type_elem_t ti) { RtToString(*vm, sp, ti); }
-void CRtStructToString(VM *vm, StackPtr sp, type_elem_t ti) { RtStructToString(*vm, sp, ti); }
-void CRtIsType(StackPtr sp, type_elem_t ti, int nilres) { RtIsType(sp, ti, nilres); }
-void CRtIsSubType(VM *vm, StackPtr sp, int start, int end, int nilres) { RtIsSubType(*vm, sp, start, end, nilres); }
+iint CRtIDiv(VM *vm, iint a, iint b) { return RtIDiv(*vm, a, b); }
+iint CRtIMod(VM *vm, iint a, iint b) { return RtIMod(*vm, a, b); }
+double CRtFMod(double a, double b) { return RtFMod(a, b); }
+LString *CRtSAdd(VM *vm, Value a, Value b) { return RtSAdd(*vm, a, b); }
+iint CRtSLt(Value a, Value b) { return RtSLt(a, b); }
+iint CRtSGt(Value a, Value b) { return RtSGt(a, b); }
+iint CRtSLe(Value a, Value b) { return RtSLe(a, b); }
+iint CRtSGe(Value a, Value b) { return RtSGe(a, b); }
+iint CRtSEq(Value a, Value b) { return RtSEq(a, b); }
+iint CRtSNe(Value a, Value b) { return RtSNe(a, b); }
+iint CRtSnEq(Value a, Value b) { return RtSnEq(a, b); }
+iint CRtSnNe(Value a, Value b) { return RtSnNe(a, b); }
+LString *CRtStrConcatN(VM *vm, Value *strs, int len) { return RtStrConcatN(*vm, strs, len); }
+LString *CRtToString(VM *vm, Value a, type_elem_t ti) { return RtToString(*vm, a, ti); }
+LString *CRtStructToString(VM *vm, Value *vals, type_elem_t ti) { return RtStructToString(*vm, vals, ti); }
+CValue CRtIndexStruct(VM *vm, Value *vals, iint i, int l) { return ToC(RtIndexStruct(*vm, vals, i, l)); }
+iint CRtIsSubType(VM *vm, Value v, int start, int end, int nilres) { return RtIsSubType(*vm, v, start, end, nilres); }
 void CRtCallValue(VM *vm, StackPtr sp) { RtCallValue(*vm, sp); }
 void CRtDynDispatch(VM *vm, StackPtr sp, int vtable_idx, int stack_idx) { RtDynDispatch(*vm, sp, vtable_idx, stack_idx); }
 void CRtEnumRangeErr(VM *vm) { RtEnumRangeErr(*vm); }
-Value *CRtLvalIndexVecV(VM *vm, StackPtr sp, int offset, int l) { return RtLvalIndexVecV(*vm, sp, offset, l); }
-Value *CRtLvalIndexClass(VM *vm, StackPtr sp, int offset) { return RtLvalIndexClass(*vm, sp, offset); }
-Value *CRtLvalIndexStruct(VM *vm, StackPtr sp, Value *lv, int offset, int maxfields) { return RtLvalIndexStruct(*vm, sp, lv, offset, maxfields); }
-void CRtLvDupV(StackPtr sp, Value *lv, int len) { RtLvDupV(sp, lv, len); }
-void CRtLvIDiv(VM *vm, StackPtr sp, Value *lv) { RtLvIDiv(*vm, sp, lv); }
-void CRtLvIMod(VM *vm, StackPtr sp, Value *lv) { RtLvIMod(*vm, sp, lv); }
-void CRtLvAsl(VM *vm, StackPtr sp, Value *lv) { RtLvAsl(*vm, sp, lv); }
-void CRtLvAsr(VM *vm, StackPtr sp, Value *lv) { RtLvAsr(*vm, sp, lv); }
-void CRtLvFMod(VM *vm, StackPtr sp, Value *lv) { RtLvFMod(*vm, sp, lv); }
-void CRtLvIvvAdd(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvvAdd(*vm, sp, lv, len); }
-void CRtLvIvvSub(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvvSub(*vm, sp, lv, len); }
-void CRtLvIvvMul(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvvMul(*vm, sp, lv, len); }
-void CRtLvIvvDiv(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvvDiv(*vm, sp, lv, len); }
-void CRtLvIvvMod(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvvMod(*vm, sp, lv, len); }
-void CRtLvFvvAdd(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvvAdd(*vm, sp, lv, len); }
-void CRtLvFvvSub(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvvSub(*vm, sp, lv, len); }
-void CRtLvFvvMul(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvvMul(*vm, sp, lv, len); }
-void CRtLvFvvDiv(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvvDiv(*vm, sp, lv, len); }
-void CRtLvFvvMod(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvvMod(*vm, sp, lv, len); }
-void CRtLvIvsAdd(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvsAdd(*vm, sp, lv, len); }
-void CRtLvIvsSub(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvsSub(*vm, sp, lv, len); }
-void CRtLvIvsMul(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvsMul(*vm, sp, lv, len); }
-void CRtLvIvsDiv(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvsDiv(*vm, sp, lv, len); }
-void CRtLvIvsMod(VM *vm, StackPtr sp, Value *lv, int len) { RtLvIvsMod(*vm, sp, lv, len); }
-void CRtLvFvsAdd(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvsAdd(*vm, sp, lv, len); }
-void CRtLvFvsSub(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvsSub(*vm, sp, lv, len); }
-void CRtLvFvsMul(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvsMul(*vm, sp, lv, len); }
-void CRtLvFvsDiv(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvsDiv(*vm, sp, lv, len); }
-void CRtLvFvsMod(VM *vm, StackPtr sp, Value *lv, int len) { RtLvFvsMod(*vm, sp, lv, len); }
-void CRtLvSAdd(VM *vm, StackPtr sp, Value *lv) { RtLvSAdd(*vm, sp, lv); }
+Value *CRtLvalIndexClass(VM *vm, Value obj, iint i, int offset) { return RtLvalIndexClass(*vm, obj, i, offset); }
+void CRtLvSAdd(VM *vm, Value *lv, Value b) { RtLvSAdd(*vm, lv, b); }
 int CRtStaticSetThisFrame(VM *vm, int vidx) { return RtStaticSetThisFrame(*vm, vidx); }
-int CRtMemberSetThisFrame(VM *vm, StackPtr sp, int slot) { return RtMemberSetThisFrame(*vm, sp, slot); }
+int CRtMemberSetThisFrame(VM *vm, Value self, int slot) { return RtMemberSetThisFrame(*vm, self, slot); }
+void CRtIDXErrS(VM *vm, iint i, iint n) { vm->IDXErrS(i, n); }
 
 #if VM_JIT_MODE
 
 #if LOBSTER_ENGINE
-extern "C" void GLFrame(StackPtr sp, VM & vm);
+extern "C" iint GLFrame(VM &vm);
 #endif
 
 const void *vm_ops_jit_table[] = {
-    "RtPushFloat", (void *)&CRtPushFloat,
     "RtPushStr", (void *)&CRtPushStr,
-    "RtIndexVecSub", (void *)&CRtIndexVecSub,
-    "RtIndexVecSubV", (void *)&CRtIndexVecSubV,
-    "RtIndexVecNestSubV", (void *)&CRtIndexVecNestSubV,
-    "RtIndexStruct", (void *)&CRtIndexStruct,
-    "RtPushFieldMRef", (void *)&CRtPushFieldMRef,
-    "RtPushFieldV", (void *)&CRtPushFieldV,
-    "RtPushFieldV2V", (void *)&CRtPushFieldV2V,
     "RtNativeCallV", (void *)&CRtNativeCallV,
     "RtNativeCall0", (void *)&CRtNativeCall0,
     "RtNativeCall1", (void *)&CRtNativeCall1,
@@ -1268,159 +1162,47 @@ const void *vm_ops_jit_table[] = {
     "RtNativeCall5", (void *)&CRtNativeCall5,
     "RtNativeCall6", (void *)&CRtNativeCall6,
     "RtNativeCall7", (void *)&CRtNativeCall7,
+    "RtNativeCall0Rets", (void *)&CRtNativeCall0Rets,
+    "RtNativeCall1Rets", (void *)&CRtNativeCall1Rets,
+    "RtNativeCall2Rets", (void *)&CRtNativeCall2Rets,
+    "RtNativeCall3Rets", (void *)&CRtNativeCall3Rets,
+    "RtNativeCall4Rets", (void *)&CRtNativeCall4Rets,
+    "RtNativeCall5Rets", (void *)&CRtNativeCall5Rets,
+    "RtNativeCall6Rets", (void *)&CRtNativeCall6Rets,
+    "RtNativeCall7Rets", (void *)&CRtNativeCall7Rets,
     "RtNewVec", (void *)&CRtNewVec,
     "RtNewObject", (void *)&CRtNewObject,
-    "RtPopV", (void *)&CRtPopV,
     "RtExit", (void *)&CRtExit,
+    "RtExitVoid", (void *)&CRtExitVoid,
     "RtAbort", (void *)&CRtAbort,
-    "RtIAdd", (void *)&CRtIAdd,
-    "RtISub", (void *)&CRtISub,
-    "RtIMul", (void *)&CRtIMul,
     "RtIDiv", (void *)&CRtIDiv,
     "RtIMod", (void *)&CRtIMod,
-    "RtILt", (void *)&CRtILt,
-    "RtIGt", (void *)&CRtIGt,
-    "RtILe", (void *)&CRtILe,
-    "RtIGe", (void *)&CRtIGe,
-    "RtIEq", (void *)&CRtIEq,
-    "RtINe", (void *)&CRtINe,
-    "RtFAdd", (void *)&CRtFAdd,
-    "RtFSub", (void *)&CRtFSub,
-    "RtFMul", (void *)&CRtFMul,
-    "RtFDiv", (void *)&CRtFDiv,
     "RtFMod", (void *)&CRtFMod,
-    "RtFLt", (void *)&CRtFLt,
-    "RtFGt", (void *)&CRtFGt,
-    "RtFLe", (void *)&CRtFLe,
-    "RtFGe", (void *)&CRtFGe,
-    "RtFEq", (void *)&CRtFEq,
-    "RtFNe", (void *)&CRtFNe,
     "RtSAdd", (void *)&CRtSAdd,
-    "RtSSub", (void *)&CRtSSub,
-    "RtSMul", (void *)&CRtSMul,
-    "RtSDiv", (void *)&CRtSDiv,
-    "RtSMod", (void *)&CRtSMod,
     "RtSLt", (void *)&CRtSLt,
     "RtSGt", (void *)&CRtSGt,
     "RtSLe", (void *)&CRtSLe,
     "RtSGe", (void *)&CRtSGe,
     "RtSEq", (void *)&CRtSEq,
     "RtSNe", (void *)&CRtSNe,
-    "RtStrConcatN", (void *)&CRtStrConcatN,
-    "RtIvvAdd", (void *)&CRtIvvAdd,
-    "RtIvvSub", (void *)&CRtIvvSub,
-    "RtIvvMul", (void *)&CRtIvvMul,
-    "RtIvvDiv", (void *)&CRtIvvDiv,
-    "RtIvvMod", (void *)&CRtIvvMod,
-    "RtIvvLt", (void *)&CRtIvvLt,
-    "RtIvvGt", (void *)&CRtIvvGt,
-    "RtIvvLe", (void *)&CRtIvvLe,
-    "RtIvvGe", (void *)&CRtIvvGe,
-    "RtFvvAdd", (void *)&CRtFvvAdd,
-    "RtFvvSub", (void *)&CRtFvvSub,
-    "RtFvvMul", (void *)&CRtFvvMul,
-    "RtFvvDiv", (void *)&CRtFvvDiv,
-    "RtFvvMod", (void *)&CRtFvvMod,
-    "RtFvvLt", (void *)&CRtFvvLt,
-    "RtFvvGt", (void *)&CRtFvvGt,
-    "RtFvvLe", (void *)&CRtFvvLe,
-    "RtFvvGe", (void *)&CRtFvvGe,
-    "RtIvsAdd", (void *)&CRtIvsAdd,
-    "RtIvsSub", (void *)&CRtIvsSub,
-    "RtIvsMul", (void *)&CRtIvsMul,
-    "RtIvsDiv", (void *)&CRtIvsDiv,
-    "RtIvsMod", (void *)&CRtIvsMod,
-    "RtIvsLt", (void *)&CRtIvsLt,
-    "RtIvsGt", (void *)&CRtIvsGt,
-    "RtIvsLe", (void *)&CRtIvsLe,
-    "RtIvsGe", (void *)&CRtIvsGe,
-    "RtFvsAdd", (void *)&CRtFvsAdd,
-    "RtFvsSub", (void *)&CRtFvsSub,
-    "RtFvsMul", (void *)&CRtFvsMul,
-    "RtFvsDiv", (void *)&CRtFvsDiv,
-    "RtFvsMod", (void *)&CRtFvsMod,
-    "RtFvsLt", (void *)&CRtFvsLt,
-    "RtFvsGt", (void *)&CRtFvsGt,
-    "RtFvsLe", (void *)&CRtFvsLe,
-    "RtFvsGe", (void *)&CRtFvsGe,
-    "RtSivAdd", (void *)&CRtSivAdd,
-    "RtSivSub", (void *)&CRtSivSub,
-    "RtSivMul", (void *)&CRtSivMul,
-    "RtSivDiv", (void *)&CRtSivDiv,
-    "RtSivMod", (void *)&CRtSivMod,
-    "RtSivLt", (void *)&CRtSivLt,
-    "RtSivGt", (void *)&CRtSivGt,
-    "RtSivLe", (void *)&CRtSivLe,
-    "RtSivGe", (void *)&CRtSivGe,
-    "RtSfvAdd", (void *)&CRtSfvAdd,
-    "RtSfvSub", (void *)&CRtSfvSub,
-    "RtSfvMul", (void *)&CRtSfvMul,
-    "RtSfvDiv", (void *)&CRtSfvDiv,
-    "RtSfvMod", (void *)&CRtSfvMod,
-    "RtSfvLt", (void *)&CRtSfvLt,
-    "RtSfvGt", (void *)&CRtSfvGt,
-    "RtSfvLe", (void *)&CRtSfvLe,
-    "RtSfvGe", (void *)&CRtSfvGe,
-    "RtAEq", (void *)&CRtAEq,
-    "RtANe", (void *)&CRtANe,
     "RtSnEq", (void *)&CRtSnEq,
     "RtSnNe", (void *)&CRtSnNe,
-    "RtStEq", (void *)&CRtStEq,
-    "RtStNe", (void *)&CRtStNe,
-    "RtLEq", (void *)&CRtLEq,
-    "RtLNe", (void *)&CRtLNe,
-    "RtIUMinus", (void *)&CRtIUMinus,
-    "RtFUMinus", (void *)&CRtFUMinus,
-    "RtIvUMinus", (void *)&CRtIvUMinus,
-    "RtFvUMinus", (void *)&CRtFvUMinus,
-    "RtBinAnd", (void *)&CRtBinAnd,
-    "RtBinOr", (void *)&CRtBinOr,
-    "RtXor", (void *)&CRtXor,
-    "RtAsl", (void *)&CRtAsl,
-    "RtAsr", (void *)&CRtAsr,
-    "RtNeg", (void *)&CRtNeg,
+    "RtStrConcatN", (void *)&CRtStrConcatN,
     "RtToString", (void *)&CRtToString,
     "RtStructToString", (void *)&CRtStructToString,
-    "RtIsType", (void *)&CRtIsType,
+    "RtIndexStruct", (void *)&CRtIndexStruct,
     "RtIsSubType", (void *)&CRtIsSubType,
     "RtCallValue", (void *)&CRtCallValue,
     "RtDynDispatch", (void *)&CRtDynDispatch,
     "RtEnumRangeErr", (void *)&CRtEnumRangeErr,
-    "RtLvalIndexVecV", (void *)&CRtLvalIndexVecV,
     "RtLvalIndexClass", (void *)&CRtLvalIndexClass,
-    "RtLvalIndexStruct", (void *)&CRtLvalIndexStruct,
-    "RtLvDupV", (void *)&CRtLvDupV,
-    "RtLvIDiv", (void *)&CRtLvIDiv,
-    "RtLvIMod", (void *)&CRtLvIMod,
-    "RtLvAsl", (void *)&CRtLvAsl,
-    "RtLvAsr", (void *)&CRtLvAsr,
-    "RtLvFMod", (void *)&CRtLvFMod,
-    "RtLvIvvAdd", (void *)&CRtLvIvvAdd,
-    "RtLvIvvSub", (void *)&CRtLvIvvSub,
-    "RtLvIvvMul", (void *)&CRtLvIvvMul,
-    "RtLvIvvDiv", (void *)&CRtLvIvvDiv,
-    "RtLvIvvMod", (void *)&CRtLvIvvMod,
-    "RtLvFvvAdd", (void *)&CRtLvFvvAdd,
-    "RtLvFvvSub", (void *)&CRtLvFvvSub,
-    "RtLvFvvMul", (void *)&CRtLvFvvMul,
-    "RtLvFvvDiv", (void *)&CRtLvFvvDiv,
-    "RtLvFvvMod", (void *)&CRtLvFvvMod,
-    "RtLvIvsAdd", (void *)&CRtLvIvsAdd,
-    "RtLvIvsSub", (void *)&CRtLvIvsSub,
-    "RtLvIvsMul", (void *)&CRtLvIvsMul,
-    "RtLvIvsDiv", (void *)&CRtLvIvsDiv,
-    "RtLvIvsMod", (void *)&CRtLvIvsMod,
-    "RtLvFvsAdd", (void *)&CRtLvFvsAdd,
-    "RtLvFvsSub", (void *)&CRtLvFvsSub,
-    "RtLvFvsMul", (void *)&CRtLvFvsMul,
-    "RtLvFvsDiv", (void *)&CRtLvFvsDiv,
-    "RtLvFvsMod", (void *)&CRtLvFvsMod,
     "RtLvSAdd", (void *)&CRtLvSAdd,
     "RtStaticSetThisFrame", (void *)&CRtStaticSetThisFrame,
     "RtMemberSetThisFrame", (void *)&CRtMemberSetThisFrame,
     "GetNextCallTarget", (void *)CRtGetNextCallTarget,
     "Entry", (void *)CRtEntry,
     "IDXErr", (void *)CRtIDXErr,
+    "IDXErrS", (void *)CRtIDXErrS,
     "SwapVars", (void *)CRtSwapVars,
     "BackupVar", (void *)CRtBackupVar,
     "DecOwned", (void *)CRtDecOwned,
@@ -1443,6 +1225,5 @@ const void *vm_ops_jit_table[] = {
     0, 0
 };
 #endif
-
 }  // extern "C"
 

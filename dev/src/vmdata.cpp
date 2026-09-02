@@ -124,27 +124,6 @@ void LVector::Truncate(VM &vm, iint n) {
     len = n;
 }
 
-void LVector::AtVW(StackPtr &sp, iint i) const {
-    auto src = AtSt(i);
-    tsnz_memcpy(TopPtr(sp), src, width);
-    PushN(sp, width);
-}
-
-void LVector::AtVWInc(StackPtr &sp, iint i, int bitmask) const {
-    auto src = AtSt(i);
-    for (int j = 0; j < width; j++) {
-        auto e = src[j];
-        if ((1 << j) & bitmask) e.LTINCRTNIL();
-        lobster::Push(sp, e);
-    }
-}
-
-void LVector::AtVWSub(StackPtr &sp, iint i, int w, int off) const {
-    auto src = AtSt(i);
-    tsnz_memcpy(TopPtr(sp), src + off, w);
-    PushN(sp,  w);
-}
-
 void LVector::DestructElementRange(VM& vm, iint from, iint to) {
     auto &eti = ElemType(vm);
     if (!RTIsRefNil(eti.t)) return;
