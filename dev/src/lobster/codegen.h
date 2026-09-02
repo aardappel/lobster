@@ -1299,13 +1299,14 @@ struct CodeGen  {
     }
 
     // These write an int over what may have been a reference, so in C, where we have to keep any
-    // runtime type field correct ourselves, say so. Turning a reference into a bool can drop it
-    // first: what is left only gets tested against nil, which does not need the value alive.
+    // runtime type field correct ourselves, say so, and read the operand for what it is
+    // rather than as an int: all the test asks is whether it is nil. Turning a reference into a
+    // bool can drop it first, since the test does not need the value alive.
     void EmitBoolTest(string_view test, bool decref) {
         TrackUseDef(1, 1);
         if (decref) GenDecRef(sp(1));
         if (cpp) {
-            append(cb, "    *(", sp(1), ") = Value((", sp(1), ")->ival() ", test, ");\n");
+            append(cb, "    *(", sp(1), ") = Value((", sp(1), ")->bits() ", test, ");\n");
         } else {
             append(cb, "    { StackPtr _sp = ", sp(1), "; _sp->ival = _sp->ival ", test, ";",
                    SetType(RTT_INT), " }\n");
@@ -1764,8 +1765,9 @@ struct CodeGen  {
     }
 
     // Comparing two structs is a compare per slot, on the raw bits the same way a helper would.
+    // Which is what it has to be: the slots of a struct do not all hold the same type.
     void GenStructCompare(bool eq, int len) {
-        auto field = cpp ? "ival()" : "ival";
+        auto field = cpp ? "bits()" : "ival";
         append(cb, "    { long long _c = ", eq ? "1" : "0", ";\n");
         for (int j = 0; j < len; j++) {
             append(cb, "    _c = _c ", eq ? "&&" : "||", " (", sp(len * 2 - j), ")->", field, " ",

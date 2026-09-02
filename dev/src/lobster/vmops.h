@@ -284,7 +284,7 @@ static_assert(std::numeric_limits<double>::is_iec559, "IEEE754 floats required")
     auto veca = TopPtr(sp); \
     auto all = init; \
     for (int j = 0; j < len; j++) { \
-        all = all andor veca[j].any() op vecb[j].any(); \
+        all = all andor veca[j].bits() op vecb[j].bits(); \
     } \
     Push(sp, all); \
 }

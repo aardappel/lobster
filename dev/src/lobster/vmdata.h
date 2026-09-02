@@ -542,6 +542,9 @@ struct Value {
     VM_INLINEM RefObj     *refnil () const { TYPE_ASSERT(RTIsRefNil(type));                        return ref_;         }
     VM_INLINEM FunPtr      ip     () const { TYPE_ASSERT(type >= RTT_FUNCTION);                    return ip_;          }
     VM_INLINEM void       *any    () const {                                                       return ref_;         }
+    // The whole payload without regard for what it holds, for comparing two structs slot by
+    // slot: a struct can mix field types, so there is nothing to assert per slot.
+    VM_INLINEM iint        bits   () const {                                                       return ival_;        }
     VM_INLINEM TypeInfo   *tival  () const { TYPE_ASSERT(type == RTT_STRUCT_S);                    return ti_;          }
 
     template<typename T> T ifval() const {
