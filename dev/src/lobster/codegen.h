@@ -88,6 +88,10 @@ struct CodeGen  {
     int regso = 0;
     int f_function_idx = -1;
     int f_regs_max = -1;
+    // How many slot variables the function spells, and whether any helper needed the stack as
+    // memory, both only known at the end of its codegen like f_regs_max.
+    int f_slot_max = 0;
+    bool f_uses_vals = false;
     vector<int> f_args;
     vector<int> f_defs;
     int f_keepvars = -1;
@@ -441,7 +445,7 @@ struct CodeGen  {
 
         // Emit the root function.
         f_function_idx = CODEGEN_SPECIAL_FUNCTION_ID_ENTRY;
-        f_regs_max = 1;
+        tstack_max = 0;
         f_args.clear();
         f_defs.clear();
         f_keepvars = 0;
@@ -452,6 +456,7 @@ struct CodeGen  {
         GenStackCall(int(return_value), 0, [&](string_view sp) {
             return cat("RtExit(vm, ", sp, ", (type_elem_t)", ti, ")");
         });
+        f_regs_max = (int)tstack_max;
         linenumbernodes.pop_back();
         DefineFunction(c_codegen, false);
 
@@ -869,12 +874,18 @@ struct CodeGen  {
         }
     };
 
-    // The stack slots as C lvalues, counted the way the emitters do: Slot(1) is the top of the
-    // stack before the current op, Slot(0) the first one above it, Slot(-1) the one after that.
+    // The stack slots, counted the way the emitters do: Slot(1) is the top of the stack before
+    // the current op, Slot(0) the first one above it, Slot(-1) the one after that. Each is a
+    // variable of its own, which is what lets the C compiler keep them in registers: nothing
+    // ever takes their address.
     string Slot(int off) { return SlotVar(regso - off); }
-    string SlotVar(int k) { return cat(StackArray(), "[", k, "]"); }
-    // The array the stack lives in, for the code that has to address it at runtime.
-    string StackArray() { return "regs"; }
+    string SlotVar(int k) {
+        f_slot_max = std::max(f_slot_max, k + 1);
+        return cat("r", k);
+    }
+    // The stack as memory, for the helpers that take a pointer to it, see GenStackCall.
+    string StackArray() { return "vals"; }
+    string StackSlot(int k) { return cat(StackArray(), "[", k, "]"); }
     // A local variable, a global, and the temporaries a function keeps references alive in.
     string Local(int i) { return cat("locals[", i, "]"); }
     // The C++ backend addresses the VM's own array of globals at a constant offset, which is why
@@ -890,11 +901,17 @@ struct CodeGen  {
     string_view vmref() { return string_view(cpp ? "vm." : "vm->"); };
 
     // A call to a helper that works on the stack: it takes `uses` values off the top and leaves
-    // `defs` behind. `call` renders the statement given the stack pointer to hand it.
+    // `defs` behind. Since the slots are variables, the operands are copied into the array kept
+    // for this purpose and the results back out of it around the call, which `call` renders
+    // given the pointer into that array to hand the helper.
     template<typename F> void GenStackCall(int uses, int defs, F call, string_view cmt = {}) {
         TrackUseDef(uses, defs);
+        f_uses_vals = true;
+        for (int i = regso - uses; i < regso; i++) CopyValue(cb, StackSlot(i), SlotVar(i));
         append(cb, "    ", call(string_view(cat(StackArray(), " + ", regso))), ";");
         if (cmt.empty()) cb += "\n"; else comment(cmt);
+        for (int i = regso - uses; i < regso - uses + defs; i++)
+            CopyValue(cb, SlotVar(i), StackSlot(i));
     }
 
     int Label() { return nlabel++; }
@@ -1197,7 +1214,8 @@ struct CodeGen  {
         flush();
         if (kind == RET_ANY) {
             // Passing thru however many values the function that returned past us left, which is
-            // only known at runtime.
+            // only known at runtime. They are still where the call left them, in the stack array.
+            f_uses_vals = true;
             append(cb, "    { int rs = RetSlots(vm); for (int i = 0; i < rs; i++) { ",
                    CopyValueText("psp[i]", cat(StackArray(), "[i + ", regso - nretslots, "]")),
                    " } }\n");
@@ -1403,11 +1421,16 @@ struct CodeGen  {
         if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START)
             append(sd, "// ", Signature(*st.subfunctiontable[sf_idx]), "\n");
         append(sd, "static void fun_", sf_idx, "(VMRef vm, StackPtr psp) {\n");
-        // NOTE: f_keepvars and f_regs_max are not known until end of codegen of function!
-        // FIXME: don't emit array.
-        // (there may be functions that don't use regs yet still refer to sp?)
-        append(sd, "    Value regs[", std::max(1, f_regs_max), "];\n");
-        if (!f_regs_max) append(sd, "    (void)regs;\n");
+        // NOTE: f_keepvars, f_slot_max, f_uses_vals and f_regs_max are not known until the end
+        // of codegen of the function!
+        for (int i = 0; i < f_slot_max; i++) {
+            // A line per 12 of them keeps the declaration readable.
+            if (i % 12 == 0) sd += i ? ";\n    Value " : "    Value ";
+            else sd += ", ";
+            append(sd, "r", i);
+        }
+        if (f_slot_max) sd += ";\n";
+        if (f_uses_vals) append(sd, "    Value vals[", std::max(1, f_regs_max), "];\n");
         if (f_keepvars) append(sd, "    Value keepvar[", f_keepvars, "];\n");
         if (numlocals) append(sd, "    Value locals[", numlocals, "];\n");
         if (f_uses_lval) append(sd, "    Value *lv = 0;\n");
@@ -1468,6 +1491,8 @@ struct CodeGen  {
         sd += "}\n";
         ownedvars.clear();
         f_keepvars = -1;
+        f_slot_max = 0;
+        f_uses_vals = false;
         f_uses_lval = false;
         f_lval_kind = LVK_NONE;
         numlocals = 0;
