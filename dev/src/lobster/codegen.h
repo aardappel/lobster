@@ -104,8 +104,20 @@ struct CodeGen  {
         string s;
         RTType rtt;
         bool typed;
+        int slot = -1;
         VKind k() const { return Kind(rtt); }
     };
+    // A local or a constant pushed onto the stack is not copied into its slot: the slot
+    // remembers the expression instead, and whatever reads the slot uses that in its place,
+    // see Defer. The copy is emitted after all where the expression may stop holding: before
+    // a write to the variable it reads, and at control flow, see Flush.
+    struct Pending {
+        Place slot;
+        string expr;
+        // The variable `expr` reads, which for a constant is none.
+        string var;
+    };
+    vector<Pending> pending;
     // The parameter each slot of the arguments comes in as, in f_args order, and what the
     // function returns, see FunSignature.
     vector<Place> f_arg_places;
@@ -178,6 +190,8 @@ struct CodeGen  {
     // about to emit reads and how many it leaves behind.
     void TrackUseDef(int useslots, int defslots) {
         regso = TempStackSize();
+        // What the previous op consumed is gone, whether or not it ever got written.
+        for (int i = regso; i < (int)pending.size(); i++) pending[i].expr.clear();
         for (int i = 0; i < useslots; i++) PopTemp();
         for (int i = 0; i < defslots; i++) PushTemp();
         //LOG_DEBUG("cg: ", useslots, "/", defslots, " -> ", tstack_size);
@@ -898,8 +912,43 @@ struct CodeGen  {
     static Place Mem(string s, RTType rtt) { return { std::move(s), rtt, false }; }
     static Place Mem(string s, TypeRef type) { return Mem(std::move(s), RtTypeOf(type)); }
 
+    bool HasPending(int slot) {
+        return slot >= 0 && slot < (int)pending.size() && !pending[slot].expr.empty();
+    }
+
+    // Remembers `expr` as what slot `d` holds in place of copying it there, where `var` is the
+    // variable it reads, if any.
+    void Defer(const Place &d, string expr, string var) {
+        assert(d.slot >= 0);
+        if ((int)pending.size() <= d.slot) pending.resize(d.slot + 1);
+        pending[d.slot] = { d, std::move(expr), std::move(var) };
+    }
+
+    // Emits the copy a pending slot stands for, since from here on its expression may not
+    // hold any more.
+    void Materialize(Pending &p) {
+        append(cb, "    ", WriteText(p.slot, p.expr), "\n");
+        p.expr.clear();
+    }
+
+    // Every slot still on the stack gets its value, for control flow: whatever reads it past a
+    // label can come from either path. The ones above the stack were consumed already.
+    void Flush() {
+        for (auto [i, p] : enumerate(pending)) {
+            if (p.expr.empty()) continue;
+            if ((int)i < (int)tstack_size) Materialize(p); else p.expr.clear();
+        }
+    }
+
+    // The same for the slots that read the variable about to be written, whether it is a
+    // local or another slot.
+    void FlushVar(string_view var) {
+        for (auto &p : pending) if (!p.expr.empty() && p.var == var) Materialize(p);
+    }
+
     // A place, as the C expression of its kind.
     string Read(const Place &p) {
+        if (HasPending(p.slot)) return pending[p.slot].expr;
         if (p.typed) return p.s;
         switch (p.k()) {
             case VK_INT: return cat(p.s, cpp ? ".ival()" : ".ival");
@@ -933,6 +982,11 @@ struct CodeGen  {
     // Writing an expression of the place's kind to it. The C++ backend goes thru Value's
     // constructor for memory, which sets the tag from the type, the C one writes the field.
     string WriteText(const Place &d, string_view expr) {
+        if (d.slot >= 0) {
+            // Only the slots that get written need a variable.
+            if ((int)f_slot_kinds.size() <= d.slot) f_slot_kinds.resize(d.slot + 1, 0);
+            f_slot_kinds[d.slot] |= 1 << d.k();
+        }
         if (d.typed) return cat(d.s, " = ", expr, ";");
         if (cpp) {
             if (d.k() == VK_REF) {
@@ -951,6 +1005,8 @@ struct CodeGen  {
     }
 
     void Write(string &sd, const Place &d, string_view expr, string_view lf = "\n") {
+        if (HasPending(d.slot)) pending[d.slot].expr.clear();
+        if (d.typed) FlushVar(d.s);
         append(sd, "    ", WriteText(d, expr), lf);
     }
 
@@ -969,11 +1025,20 @@ struct CodeGen  {
     }
 
     void CopyValue(string &sd, const Place &d, const Place &s, string_view lf = "\n") {
-        append(sd, "    ", CopyValueText(d, s), lf);
+        if (d.slot >= 0 && s.typed && &sd == &cb) {
+            // A push of a variable, or of a slot that is itself pending, is only remembered.
+            if (HasPending(s.slot)) Defer(d, pending[s.slot].expr, pending[s.slot].var);
+            else Defer(d, s.s, s.s);
+        } else if (d.typed || s.typed) {
+            Write(sd, d, Read(s), lf);
+        } else {
+            append(sd, "    ", CopyValueText(d, s), lf);
+        }
     }
 
     void SetNil(string &sd, const Place &d) {
-        if (d.typed) Write(sd, d, d.k() == VK_FLOAT ? "0.0" : "0");
+        if (d.slot >= 0 && &sd == &cb) Defer(d, d.k() == VK_FLOAT ? "0.0" : "0", "");
+        else if (d.typed) Write(sd, d, d.k() == VK_FLOAT ? "0.0" : "0");
         else if (cpp) append(sd, "    ", d.s, " = Value(0, lobster::RTT_NIL);\n");
         else append(sd, "    ", d.s, ".ival = 0;", SetTypeText(d.s, RTT_NIL), "\n");
     }
@@ -1165,10 +1230,9 @@ struct CodeGen  {
     // the C compiler keep them in registers: nothing ever takes their address.
     Place SlotVar(int idx, RTType rtt) {
         static const char *prefix[] = { "i", "f", "p", "fn" };
-        auto k = Kind(rtt);
-        if ((int)f_slot_kinds.size() <= idx) f_slot_kinds.resize(idx + 1, 0);
-        f_slot_kinds[idx] |= 1 << k;
-        return Var(cat(prefix[k], idx), rtt);
+        auto p = Var(cat(prefix[Kind(rtt)], idx), rtt);
+        p.slot = idx;
+        return p;
     }
     Place SlotVar(int idx, VKind k) { return SlotVar(idx, Rtt(k)); }
     Place Slot(int off, RTType rtt) { return SlotVar(regso - off, rtt); }
@@ -1258,6 +1322,7 @@ struct CodeGen  {
 
     void EmitLabelDef(int lab) {
         TrackUseDef(0, 0);
+        Flush();
         append(cb, "    block", lab, ":;\n");
     }
 
@@ -1300,8 +1365,9 @@ struct CodeGen  {
             case BIT_AND: return cat(a, " & ", b);
             case BIT_OR:  return cat(a, " | ", b);
             case BIT_XOR: return cat(a, " ^ ", b);
+            // Both shift what they are given as 64 bits, which a constant is not by itself.
             case BIT_ASL: return cat("(long long)((unsigned long long)", a, " << (", b, " & 63))");
-            default:      return cat(a, " >> (", b, " & 63)");
+            default:      return cat("(long long)", a, " >> (", b, " & 63)");
         }
     }
 
@@ -1488,6 +1554,7 @@ struct CodeGen  {
 
     int EmitJump() {
         TrackUseDef(0, 0);
+        Flush();
         auto lab = Label();
         append(cb, "    goto block", lab, ";\n");
         return lab;
@@ -1495,6 +1562,7 @@ struct CodeGen  {
 
     int EmitJumpBack(int lab) {
         TrackUseDef(0, 0);
+        Flush();
         append(cb, "    goto block", lab, ";\n");
         return lab;
     }
@@ -1509,18 +1577,20 @@ struct CodeGen  {
         TrackUseDef(1, defslots);
         auto lab = Label();
         auto v = Slot(1, k);
+        auto cond = Read(v);
+        Flush();
         if (k == resk || !defslots) {
-            append(cb, "    if (", onfail ? "!" : "", Read(v), ") goto block", lab, ";\n");
+            append(cb, "    if (", onfail ? "!" : "", cond, ") goto block", lab, ";\n");
             return lab;
         }
         string conv;
         switch (resk) {
-            case VK_FLOAT: conv = cat("(double)", Read(v)); break;
-            case VK_INT: conv = k == VK_FLOAT ? cat("(long long)", Read(v))
-                                              : cat("(long long)(", Read(v), " != 0)"); break;
+            case VK_FLOAT: conv = cat("(double)", cond); break;
+            case VK_INT: conv = k == VK_FLOAT ? cat("(long long)", cond)
+                                              : cat("(long long)(", cond, " != 0)"); break;
             default: assert(onfail); conv = "0"; break;
         }
-        append(cb, "    if (", onfail ? "!" : "", Read(v), ") { ", WriteText(Slot(1, resk), conv),
+        append(cb, "    if (", onfail ? "!" : "", cond, ") { ", WriteText(Slot(1, resk), conv),
                " goto block", lab, "; }\n");
         return lab;
     }
@@ -1539,10 +1609,13 @@ struct CodeGen  {
         auto lab = Label();
         if (member) {
             TrackUseDef(1, 0);
-            append(cb, "    if (!RtMemberSetThisFrame(vm, ", Read(Slot(1, VK_REF)), ", ",
-                   varidx, ")) goto block", lab, ";\n");
+            auto self = Read(Slot(1, VK_REF));
+            Flush();
+            append(cb, "    if (!RtMemberSetThisFrame(vm, ", self, ", ", varidx, ")) goto block",
+                   lab, ";\n");
         } else {
             TrackUseDef(0, 0);
+            Flush();
             append(cb, "    if (!RtStaticSetThisFrame(vm, ", varidx, ")) goto block", lab, ";\n");
         }
         return lab;
@@ -1650,12 +1723,13 @@ struct CodeGen  {
                 GenPop(tse);
             }
         }
+        Flush();
         append(cb, "    goto epilogue;\n");
     }
 
     void EmitPushFun(int fidx) {
         TrackUseDef(0, 1);
-        Write(cb, Slot(0, VK_FUN), cat("(fun_base_t)fun_", fidx));
+        Defer(Slot(0, VK_FUN), cat("(fun_base_t)fun_", fidx), "");
     }
 
     // A call to `callee`, an expression for the function, with the arguments on the stack and
@@ -1754,47 +1828,80 @@ struct CodeGen  {
         TypeComment(type);
     }
 
-    void EmitPushInt(int val) {
+    // A constant is an expression like any other, so it goes in parentheses when it starts
+    // with a sign, which would otherwise pair up with an operator in front of it.
+    static string Parenthesized(string lit) {
+        return lit[0] == '-' ? cat("(", lit, ")") : lit;
+    }
+
+    void EmitPushInt(int64_t val) {
         TrackUseDef(0, 1);
-        Write(cb, Slot(0, VK_INT), to_string(val));
+        // The most negative value has no literal of its own, since its negation does not fit.
+        auto lit = val == INT64_MIN ? string("(-9223372036854775807LL - 1)")
+                 : val == (int)val  ? to_string(val)
+                                    : cat(val, "LL");
+        Defer(Slot(0, VK_INT), Parenthesized(lit), "");
+    }
+
+    // A double as a C literal: its decimal form when that reads back to the same value, the
+    // hex float with the decimal alongside otherwise.
+    static string FloatLiteral(double f) {
+        auto dec = to_string_float(f);
+        if (dec.find_first_of(".eE") == string::npos) dec += ".0";
+        if (strtod(dec.c_str(), nullptr) == f) return Parenthesized(dec);
+        char hex[64];
+        snprintf(hex, sizeof hex, "%a", f);
+        return Parenthesized(cat(hex, " /* ", dec, " */"));
     }
 
     void GenFloat(double f) {
-        if ((float)f == f && isfinite(f)) {
-            TrackUseDef(0, 1);
-            // We're printing the float as text which seems dangerous, but this path is only
-            // taken where double and float are identical, meaning typically whole numbers and
-            // other precisely representable ones.
-            Write(cb, Slot(0, VK_FLOAT), to_string_hexfloat((float)f));
+        TrackUseDef(0, 1);
+        if (isfinite(f)) {
+            Defer(Slot(0, VK_FLOAT), FloatLiteral(f), "");
+            return;
+        }
+        // An infinity or a nan has no literal, so this goes thru its bits.
+        string hex;
+        to_string_hex(hex, (uint64_t)int2float64(f).i);
+        if (cpp) {
+            Defer(Slot(0, VK_FLOAT), cat("int2float64((int64_t)", hex, "ULL).f"), "");
         } else {
-            int2float64 i2f(f);
-            EmitPushConst64(true, i2f.i, to_string_float(f));
+            append(cb, "    { Value _v; _v.ival = (long long)", hex, "ULL; ",
+                   WriteText(Slot(0, VK_FLOAT), "_v.fval"), " }\n");
         }
     }
 
     // Only the decrement itself is worth emitting: what happens when it reaches zero is a good
     // deal more code, and stays a call.
+    // A pending reference that is a constant can only be nil, which has no count.
+    bool IsNilConstant(const Place &p) {
+        return HasPending(p.slot) && pending[p.slot].var.empty();
+    }
+
     void GenDecRef(string &sd, const Place &p) {
+        if (IsNilConstant(p)) return;
+        auto r = Read(p);
         if (cpp) {
-            if (p.typed) append(sd, "    if (", p.s, ") ", p.s, "->Dec(vm);\n");
+            if (p.typed) append(sd, "    if (", r, ") ", r, "->Dec(vm);\n");
             else append(sd, "    ", p.s, ".LTDECRTNIL(vm);\n");
         } else if (p.typed) {
-            append(sd, "    if (", p.s, " && --", p.s, "->refc <= 0) DecDelete(vm, ", p.s,
-                   ");\n");
+            append(sd, "    if (", r, " && --", r, "->refc <= 0) DecDelete(vm, ", r, ");\n");
         } else {
-            append(sd, "    { RefObj *_r = ", p.s, ".ref;"
+            append(sd, "    { RefObj *_r = ", r, ";"
                        " if (_r && --_r->refc <= 0) DecDelete(vm, _r); }\n");
         }
     }
 
     void GenIncRef(const Place &p) {
+        if (IsNilConstant(p)) return;
+        auto r = Read(p);
         if (cpp) {
-            if (p.typed) append(cb, "    if (", p.s, ") ", p.s, "->Inc();\n");
+            if (p.typed) append(cb, "    if (", r, ") ", r, "->Inc();\n");
             else append(cb, "    ", p.s, ".LTINCRTNIL();\n");
         } else if (p.typed) {
-            append(cb, "    if (", p.s, ") ", p.s, "->refc++;\n");
+            append(cb, "    if (", r, ") ", r, "->refc++;\n");
         } else {
-            append(cb, "    { RefObj *_r = ", p.s, ".ref; if (_r) _r->refc++; }\n");
+            append(cb, "    { RefObj *_r = ", r, "; if (_r) _r->refc++; }\n");
         }
     }
 
@@ -1835,24 +1942,6 @@ struct CodeGen  {
     void EmitIntToFloat() {
         TrackUseDef(1, 1);
         Write(cb, Slot(1, VK_FLOAT), cat("(double)", Read(Slot(1, VK_INT))));
-    }
-
-    // A 64 bit constant, which only reaches us split in two because that is all an op argument
-    // holds. For a float we write the bit pattern rather than a literal, since a decimal one
-    // would not round trip exactly and not every C compiler we feed this to takes a hex float.
-    void EmitPushConst64(bool isfloat, int64_t bits, string_view cmt = {}) {
-        TrackUseDef(0, 1);
-        string hex;
-        to_string_hex(hex, (uint64_t)bits);
-        if (!isfloat) {
-            Write(cb, Slot(0, VK_INT), cat("(long long)", hex, "ULL"), "");
-        } else if (cpp) {
-            Write(cb, Slot(0, VK_FLOAT), cat("int2float64((int64_t)", hex, "ULL).f"), "");
-        } else {
-            append(cb, "    { Value _v; _v.ival = (long long)", hex, "ULL; ",
-                   WriteText(Slot(0, VK_FLOAT), "_v.fval"), " }");
-        }
-        if (cmt.empty()) cb += "\n"; else comment(cmt);
     }
 
     // All that is left of an assert in the common case is the test; the reporting is a call.
@@ -1963,6 +2052,7 @@ struct CodeGen  {
         sd += "}\n";
         ownedvars.clear();
         f_keepvars = -1;
+        pending.clear();
         f_slot_kinds.clear();
         f_uses_vals = false;
         f_vals_max = 0;
@@ -2179,6 +2269,7 @@ struct CodeGen  {
     void GenUnwind(const Types &rets) {
         auto lab = Label();
         TrackUseDef(0, 0);
+        Flush();
         append(cb, "    if (", vmref(), "ret_unwind_to < 0) goto block", lab, ";\n");
         // Here we are emitting code executed only if we're unwinding, so temp modify the
         // tstack to match that.
@@ -2758,11 +2849,13 @@ struct CodeGen  {
     }
 
     // The type specialized helpers below come one per MathOp, in that order, so the name of each
-    // is the prefix for the types it works on followed by the name of the operator.
-    static string MathOpName(string_view prefix, MathOp op) {
+    // is the prefix for the types it works on followed by the name of the operator. The C++
+    // backend spells out the namespace, since two nil constants give it no argument to find
+    // the helper thru.
+    string MathOpName(string_view prefix, MathOp op) {
         static const char *ops[] = { "Add", "Sub", "Mul", "Div", "Mod",
                                      "Lt", "Gt", "Le", "Ge", "Eq", "Ne" };
-        return cat("Rt", prefix, ops[op]);
+        return cat(cpp ? "lobster::" : "", "Rt", prefix, ops[op]);
     }
 
     void GenMathOp(TypeRef ltype, TypeRef rtype, TypeRef ptype, MathOp op) {
@@ -2987,11 +3080,7 @@ void Nil::Generate(CodeGen &cg, size_t retval) const {
 
 void IntConstant::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return;
-    if (integer == (int)integer) {
-        cg.EmitPushInt((int)integer);
-    } else {
-        cg.EmitPushConst64(false, integer);
-    }
+    cg.EmitPushInt(integer);
 }
 
 void FloatConstant::Generate(CodeGen &cg, size_t retval) const {
@@ -3772,21 +3861,20 @@ void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mi
             }
         }
     }
+    // The cases are jump targets, so what is on the stack has to be in its slots.
+    string on;
     if (vtable_idx >= 0) {
-        if (cg.cpp) {
-            append(cg.cb, "    switch (GetTypeSwitchID(vm, ", cg.Read(cg.Slot(1, CodeGen::VK_REF)),
-                   ", ", vtable_idx, ")) {\n");
-        } else {
-            append(cg.cb, "    { int top = GetTypeSwitchID(vm, ", cg.Read(cg.Slot(1, CodeGen::VK_REF)),
-                   ", ", vtable_idx, "); switch (top) {\n");
-        }
+        on = cat("GetTypeSwitchID(vm, ", cg.Read(cg.Slot(1, CodeGen::VK_REF)), ", ", vtable_idx,
+                 ")");
     } else {
-        if (cg.cpp) {
-            append(cg.cb, "    switch (", cg.Read(cg.Slot(1, CodeGen::VK_INT)), ") {\n");
-        } else {
-            append(cg.cb, "    { long long top = ", cg.Read(cg.Slot(1, CodeGen::VK_INT)),
-                   "; switch (top) {\n");
-        }
+        on = cg.Read(cg.Slot(1, CodeGen::VK_INT));
+    }
+    cg.Flush();
+    if (cg.cpp) {
+        append(cg.cb, "    switch (", on, ") {\n");
+    } else {
+        append(cg.cb, "    { ", vtable_idx >= 0 ? "int" : "long long", " top = ", on,
+               "; switch (top) {\n");
     }
     vector<int> exitswitch;
     CodeGen::BlockStack bs(cg.tstack_size);
@@ -3799,6 +3887,7 @@ void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mi
             lab = deflab;
         }
         cg.TrackUseDef(0, 0);
+        cg.Flush();
         auto t = ilab.data();
         append(cg.cb, "    ");
         for (auto i = mini; i <= maxi; i++) {
@@ -3926,6 +4015,8 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     assert(!cg.rettypes.size());
     small_vector<TypeLT, 8> typestackbackup = cg.temptypestack;
     auto tstackbackup = cg.tstack_size;
+    // The code after the return, reached some other way, still has the pending slots.
+    auto pendingbackup = cg.pending;
     if (cg.temptypestack.size()) {
         // We have temps on the stack, these can be from:
         // * an enclosing for.
@@ -3965,6 +4056,7 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
 
     reset_from_small_vector(cg.temptypestack, typestackbackup);
     cg.tstack_size = tstackbackup;
+    cg.pending = pendingbackup;
     // We can promise to be providing whatever retvals the caller wants.
     for (size_t i = 0; i < retval; i++) {
         cg.rettypes.push_back({ type_undefined, LT_ANY });
