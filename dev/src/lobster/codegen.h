@@ -95,21 +95,21 @@ struct CodeGen  {
     // every reference as a pointer to its header, and a function value as a pointer to it. Only
     // memory, i.e. objects, globals and the stack array, holds Values.
     enum VKind { VK_INT, VK_FLOAT, VK_REF, VK_FUN };
-    // The kind of each slot of a run of values, with the runtime type a reference among them is
-    // tagged with in memory.
-    typedef vector<pair<VKind, RTType>> Kinds;
+    // The runtime type of each slot of a run of values, which says both the kind of variable it
+    // is kept in and the tag it carries when it is written to memory, see RtTypeOf.
+    typedef vector<RTType> Types;
     // Where a value lives: a variable of its kind, or a Value in memory, which is read thru the
-    // field for the kind and written along with the tag a reference of its static type carries.
+    // field for the kind and written along with the tag its static type says it carries.
     struct Place {
         string s;
-        VKind k;
-        bool typed;
         RTType rtt;
+        bool typed;
+        VKind k() const { return Kind(rtt); }
     };
     // The parameter each slot of the arguments comes in as, in f_args order, and what the
     // function returns, see FunSignature.
     vector<Place> f_arg_places;
-    Kinds f_ret_kinds;
+    Types f_ret_types;
     // Which kinds of value each stack slot holds, a bit per VKind, which decides the variables
     // the function declares for it, and whether any helper needed the stack as memory, both
     // only known at the end of its codegen like f_regs_max.
@@ -132,7 +132,7 @@ struct CodeGen  {
     // The C variable each local (by var_to_local index) lives in and its kind, and every name
     // the function has handed out, to keep them apart.
     vector<string> local_names;
-    Kinds local_kinds;
+    Types local_types;
     set<string> f_names_used;
     // The static type of each slot of every variable, by its index in sids.
     vector<TypeRef> var_types;
@@ -458,7 +458,7 @@ struct CodeGen  {
         f_args.clear();
         f_defs.clear();
         f_arg_places.clear();
-        f_ret_kinds.clear();
+        f_ret_types.clear();
         f_keepvars = 0;
         TrackUseDef(0, 0);
         append(cb, "    RtAbort(vm);\n");
@@ -488,7 +488,7 @@ struct CodeGen  {
         f_args.clear();
         f_defs.clear();
         f_arg_places.clear();
-        f_ret_kinds.clear();
+        f_ret_types.clear();
         f_keepvars = 0;
         Gen(parser.root, return_value);
         auto type = parser.root->exptype;
@@ -563,10 +563,10 @@ struct CodeGen  {
             var_to_local.resize(sids.size(), -1);
         #endif
         local_names.clear();
-        local_kinds.clear();
+        local_types.clear();
         f_names_used.clear();
         f_arg_places.clear();
-        f_ret_kinds = ReturnKinds(sf);
+        f_ret_types = ReturnTypes(sf);
         auto emitvars = [&](const vector<Arg> &v, vector<int> &f_ad) {
             f_ad.clear();
             for (auto &arg : v) {
@@ -587,13 +587,12 @@ struct CodeGen  {
                     if (!sids[varidx].used_as_freevar()) {
                         var_to_local[varidx] = numlocals++;
                         local_names.push_back(LocalName(*arg.sid, i));
-                        local_kinds.push_back({ KindOf(vtype), RttOf(vtype) });
+                        local_types.push_back(RtTypeOf(vtype));
                         if (&f_ad == &f_args) f_arg_places.push_back(Local(numlocals - 1));
                     } else if (&f_ad == &f_args) {
                         // Lives in a global while the function runs, so the parameter only
                         // holds the old value of that meanwhile, see DefineFunction.
-                        f_arg_places.push_back(Var(LocalName(*arg.sid, i), KindOf(vtype),
-                                                   RttOf(vtype)));
+                        f_arg_places.push_back(Var(LocalName(*arg.sid, i), RtTypeOf(vtype)));
                     }
                 }
             }
@@ -698,6 +697,15 @@ struct CodeGen  {
                 "} LString;\n"
                 // The characters of a string follow directly behind its header.
                 "#define LSTRING_DATA(S) ((unsigned char *)((S) + 1))\n";
+            #if RTT_ENABLED
+                // The tags the runtime type field takes, see RTType.
+                sd += "enum {";
+                for (int t = RTT_MINVMTYPES + 1; t < RTT_MAXVMTYPES; t++) {
+                    if (t == RTT_VALUEBUF) continue;
+                    append(sd, t == RTT_MINVMTYPES + 1 ? " " : ", ", RttName((RTType)t), " = ", t);
+                }
+                sd += " };\n";
+            #endif
             // This needs to correspond to the C++ VMBase, enforced in Entry().
             append(sd,
                 "typedef struct {\n"
@@ -810,14 +818,58 @@ struct CodeGen  {
         return outw == 0 ? RK_VOID : outw == 1 ? RK_VALUE : RK_MULTI;
     }
 
-    static VKind KindOf(TypeRef type) {
+    // The runtime type of a value of this type, for a nilable one that of what it holds. The
+    // types that only exist at compile time have no variable to live in, but a nil of one is
+    // still pushed here and there.
+    static RTType RtTypeOf(TypeRef type) {
         switch (type->t) {
             case V_INT:
-            case V_TYPEID: return VK_INT;
-            case V_FLOAT: return VK_FLOAT;
-            case V_FUNCTION: return VK_FUN;
-            case V_NIL: return type->sub ? KindOf(type->sub) : VK_REF;
+            case V_TYPEID: return RTT_INT;
+            case V_FLOAT: return RTT_FLOAT;
+            case V_FUNCTION: return RTT_FUNCTION;
+            case V_STRING: return RTT_STRING;
+            case V_VECTOR: return RTT_VECTOR;
+            case V_CLASS: return RTT_CLASS;
+            case V_RESOURCE: return RTT_RESOURCE;
+            case V_STRUCT_R: return RTT_STRUCT_R;
+            case V_STRUCT_S: return RTT_STRUCT_S;
+            case V_NIL: return type->sub ? RtTypeOf(type->sub) : RTT_NIL;
+            default: return RTT_INVALID;
+        }
+    }
+
+    static VKind Kind(RTType t) {
+        switch (t) {
+            case RTT_INT: return VK_INT;
+            case RTT_FLOAT: return VK_FLOAT;
+            case RTT_FUNCTION: return VK_FUN;
             default: return VK_REF;
+        }
+    }
+
+    static VKind KindOf(TypeRef type) { return Kind(RtTypeOf(type)); }
+
+    // The runtime type of a kind, for the places whose exact type nothing needs: a reference
+    // that is only ever read, or passed on.
+    static RTType Rtt(VKind k) {
+        static const RTType types[] = { RTT_INT, RTT_FLOAT, RTT_INVALID, RTT_FUNCTION };
+        return types[k];
+    }
+
+    // The name of one in the generated code, for the tag a Value in memory carries.
+    static const char *RttName(RTType t) {
+        switch (t) {
+            case RTT_STRUCT_R: return "RTT_STRUCT_R";
+            case RTT_RESOURCE: return "RTT_RESOURCE";
+            case RTT_STRING: return "RTT_STRING";
+            case RTT_CLASS: return "RTT_CLASS";
+            case RTT_VECTOR: return "RTT_VECTOR";
+            case RTT_NIL: return "RTT_NIL";
+            case RTT_INT: return "RTT_INT";
+            case RTT_FLOAT: return "RTT_FLOAT";
+            case RTT_FUNCTION: return "RTT_FUNCTION";
+            case RTT_STRUCT_S: return "RTT_STRUCT_S";
+            default: return "RTT_INVALID";
         }
     }
 
@@ -826,22 +878,14 @@ struct CodeGen  {
         return IsStruct(type->t) ? FindSlot(*type->udt, i)->type : type;
     }
 
-    // The runtime type a Value in memory is tagged with when it holds a reference of this type.
-    static RTType RttOf(TypeRef type) {
-        return VT2RT(type->ElementIfNil()->t);
+    // The runtime type of each slot of a value of this type, or of that many of them.
+    static void AddTypes(Types &ts, TypeRef type) {
+        for (int i = 0; i < ValWidth(type); i++) ts.push_back(RtTypeOf(SlotType(type, i)));
     }
-
-    // The kind and tag of each slot of a value of this type, or of that many of them.
-    static void AddKinds(Kinds &ks, TypeRef type) {
-        for (int i = 0; i < ValWidth(type); i++) {
-            auto t = SlotType(type, i);
-            ks.push_back({ KindOf(t), RttOf(t) });
-        }
-    }
-    static Kinds KindsOf(TypeRef type, size_t nvals) {
-        Kinds ks;
-        for (size_t v = 0; v < nvals; v++) AddKinds(ks, type->Get(v));
-        return ks;
+    static Types TypesOf(TypeRef type, size_t nvals) {
+        Types ts;
+        for (size_t v = 0; v < nvals; v++) AddTypes(ts, type->Get(v));
+        return ts;
     }
 
     string CType(VKind k) {
@@ -849,18 +893,15 @@ struct CodeGen  {
         return k == VK_INT && cpp ? "iint" : names[k];
     }
 
-    static Place Var(string s, VKind k, RTType rtt = RTT_NIL) {
-        return { std::move(s), k, true, rtt };
-    }
-    static Place Var(string s, pair<VKind, RTType> kr) { return Var(std::move(s), kr.first, kr.second); }
-    static Place Mem(string s, VKind k, RTType rtt) { return { std::move(s), k, false, rtt }; }
-    static Place Mem(string s, TypeRef type) { return Mem(std::move(s), KindOf(type), RttOf(type)); }
-    static Place Mem(string s, pair<VKind, RTType> kr) { return Mem(std::move(s), kr.first, kr.second); }
+    static Place Var(string s, RTType rtt) { return { std::move(s), rtt, true }; }
+    static Place Var(string s, VKind k) { return Var(std::move(s), Rtt(k)); }
+    static Place Mem(string s, RTType rtt) { return { std::move(s), rtt, false }; }
+    static Place Mem(string s, TypeRef type) { return Mem(std::move(s), RtTypeOf(type)); }
 
     // A place, as the C expression of its kind.
     string Read(const Place &p) {
         if (p.typed) return p.s;
-        switch (p.k) {
+        switch (p.k()) {
             case VK_INT: return cat(p.s, cpp ? ".ival()" : ".ival");
             case VK_FLOAT: return cat(p.s, cpp ? ".fval()" : ".fval");
             case VK_REF: return cat(p.s, cpp ? ".refany()" : ".ref");
@@ -872,7 +913,7 @@ struct CodeGen  {
     // memory, and a reference is only one when it is not nil.
     string SetTypeText(string_view s, RTType t) {
         #if RTT_ENABLED
-            return cat(" ", s, ".type = ", (int)t, ";");
+            return cat(" ", s, ".type = ", RttName(t), ";");
         #else
             (void)s;
             (void)t;
@@ -881,7 +922,7 @@ struct CodeGen  {
     }
     string RefTypeText(string_view s, RTType t) {
         #if RTT_ENABLED
-            return cat(" ", s, ".type = ", s, ".ref ? ", (int)t, " : ", (int)RTT_NIL, ";");
+            return cat(" ", s, ".type = ", s, ".ref ? ", RttName(t), " : RTT_NIL;");
         #else
             (void)s;
             (void)t;
@@ -894,12 +935,12 @@ struct CodeGen  {
     string WriteText(const Place &d, string_view expr) {
         if (d.typed) return cat(d.s, " = ", expr, ";");
         if (cpp) {
-            if (d.k == VK_REF) {
-                return cat(d.s, " = RefVal(", expr, ", (lobster::RTType)", (int)d.rtt, ");");
+            if (d.k() == VK_REF) {
+                return cat(d.s, " = RefVal(", expr, ", lobster::", RttName(d.rtt), ");");
             }
             return cat(d.s, " = Value(", expr, ");");
         }
-        switch (d.k) {
+        switch (d.k()) {
             case VK_INT: return cat(d.s, ".ival = ", expr, ";", SetTypeText(d.s, RTT_INT));
             case VK_FLOAT: return cat(d.s, ".fval = ", expr, ";", SetTypeText(d.s, RTT_FLOAT));
             case VK_REF: return cat(d.s, ".ref = ", expr, ";", RefTypeText(d.s, d.rtt));
@@ -916,10 +957,10 @@ struct CodeGen  {
     // A copy of one place to another. Between two in memory the C backend copies the field and
     // the tag rather than the struct, since libtcc turns a struct assignment into a memcpy call.
     string CopyValueText(const Place &d, const Place &s) {
-        assert(d.k == s.k);
+        assert(d.k() == s.k());
         if (d.typed || s.typed) return WriteText(d, Read(s));
         if (cpp) return cat(d.s, " = ", s.s, ";");
-        auto fld = s.k == VK_FLOAT ? ".fval" : s.k == VK_REF ? ".ref" : ".ival";
+        auto fld = s.k() == VK_FLOAT ? ".fval" : s.k() == VK_REF ? ".ref" : ".ival";
         auto t = cat(d.s, fld, " = ", s.s, fld, ";");
         #if RTT_ENABLED
             append(t, " ", d.s, ".type = ", s.s, ".type;");
@@ -932,7 +973,7 @@ struct CodeGen  {
     }
 
     void SetNil(string &sd, const Place &d) {
-        if (d.typed) Write(sd, d, d.k == VK_FLOAT ? "0.0" : "0");
+        if (d.typed) Write(sd, d, d.k() == VK_FLOAT ? "0.0" : "0");
         else if (cpp) append(sd, "    ", d.s, " = Value(0, lobster::RTT_NIL);\n");
         else append(sd, "    ", d.s, ".ival = 0;", SetTypeText(d.s, RTT_NIL), "\n");
     }
@@ -947,33 +988,24 @@ struct CodeGen  {
         }
     }
 
-    // Writing a Value a helper returned to a place. In C a field comes out of the call's result
-    // directly, unless there is more than one to copy, which would call it twice.
+    // Writing a Value a helper returned to a variable, as the field for its kind.
     void SetValue(string &sd, const Place &d, string_view expr, string_view lf = "\n") {
-        if (d.typed || cpp) {
-            Write(sd, d, d.typed ? Unbox(expr, d.k) : string(expr), lf);
-        } else {
-            #if RTT_ENABLED
-                append(sd, "    { Value _v = ", expr, "; ", CopyValueText(d, Mem("_v", d.k, d.rtt)),
-                       " }", lf);
-            #else
-                append(sd, "    ", d.s, ".ival = ", expr, ".ival;", lf);
-            #endif
-        }
+        assert(d.typed);
+        Write(sd, d, Unbox(expr, d.k()), lf);
     }
 
     // The C signature of a function: its return value if it has one, the array several land in
     // otherwise, then an argument per slot of its arguments. With names for the definition,
     // without for a declaration.
-    string FunSignature(string_view name, const Kinds &args, const Kinds &rets,
+    string FunSignature(string_view name, const Types &args, const Types &rets,
                         const vector<Place> *params) {
         auto rk = RetKindOf((int)rets.size());
-        string s = cat("static ", rk == RK_VALUE ? CType(rets[0].first) : "void", " ", name,
+        string s = cat("static ", rk == RK_VALUE ? CType(Kind(rets[0])) : "void", " ", name,
                        "(VMRef");
         if (params) s += " vm";
         if (rk == RK_MULTI) append(s, ", Value *", params ? "rets" : "");
         for (auto [i, a] : enumerate(args)) {
-            auto type = CType(a.first);
+            auto type = CType(Kind(a));
             append(s, ", ", type);
             if (params) append(s, type.back() == '*' ? "" : " ", (*params)[i].s);
         }
@@ -982,27 +1014,27 @@ struct CodeGen  {
 
     // The same as the type of a pointer to one, for calling a function value or the function
     // a dynamic dispatch lands in.
-    string FunPtrType(const Kinds &args, const Kinds &rets) {
+    string FunPtrType(const Types &args, const Types &rets) {
         auto rk = RetKindOf((int)rets.size());
-        string s = cat(rk == RK_VALUE ? CType(rets[0].first) : "void", " (*)(VMRef");
+        string s = cat(rk == RK_VALUE ? CType(Kind(rets[0])) : "void", " (*)(VMRef");
         if (rk == RK_MULTI) s += ", Value *";
-        for (auto &a : args) append(s, ", ", CType(a.first));
+        for (auto &a : args) append(s, ", ", CType(Kind(a)));
         return s + ")";
     }
 
     // The slots the arguments of a function take, and its return values.
-    static Kinds ArgKinds(const SubFunction &sf) {
-        Kinds ks;
-        for (auto &arg : sf.args) if (!arg.sid->constprop) AddKinds(ks, arg.sid->type);
+    static Types ArgTypes(const SubFunction &sf) {
+        Types ks;
+        for (auto &arg : sf.args) if (!arg.sid->constprop) AddTypes(ks, arg.sid->type);
         return ks;
     }
 
-    static Kinds ReturnKinds(const SubFunction &sf) {
-        return KindsOf(sf.returntype, sf.returntype->NumValues());
+    static Types ReturnTypes(const SubFunction &sf) {
+        return TypesOf(sf.returntype, sf.returntype->NumValues());
     }
 
     void DeclareFunction(SubFunction &sf, string &sd) {
-        append(sd, FunSignature(cat("fun_", sf.idx), ArgKinds(sf), ReturnKinds(sf), nullptr),
+        append(sd, FunSignature(cat("fun_", sf.idx), ArgTypes(sf), ReturnTypes(sf), nullptr),
                ";\n");
     }
 
@@ -1028,7 +1060,7 @@ struct CodeGen  {
     void GenPlaceDecls(string &sd, const vector<Place> &places) {
         for (int k = 0; k < 4; k++) {
             vector<string> names;
-            for (auto &p : places) if (p.k == k) names.push_back(p.s);
+            for (auto &p : places) if (p.k() == k) names.push_back(p.s);
             GenDecls(sd, VKind(k), names);
         }
     }
@@ -1131,32 +1163,30 @@ struct CodeGen  {
     // the current op, Slot(0) the first one above it, Slot(-1) the one after that. Each is a
     // variable per kind of value it holds, i5, f5, p5 and fn5 for slot 5, which is what lets
     // the C compiler keep them in registers: nothing ever takes their address.
-    Place SlotVar(int idx, VKind k, RTType rtt = RTT_NIL) {
+    Place SlotVar(int idx, RTType rtt) {
         static const char *prefix[] = { "i", "f", "p", "fn" };
+        auto k = Kind(rtt);
         if ((int)f_slot_kinds.size() <= idx) f_slot_kinds.resize(idx + 1, 0);
         f_slot_kinds[idx] |= 1 << k;
-        return Var(cat(prefix[k], idx), k, rtt);
+        return Var(cat(prefix[k], idx), rtt);
     }
-    Place SlotVar(int idx, pair<VKind, RTType> kr) { return SlotVar(idx, kr.first, kr.second); }
+    Place SlotVar(int idx, VKind k) { return SlotVar(idx, Rtt(k)); }
+    Place Slot(int off, RTType rtt) { return SlotVar(regso - off, rtt); }
     Place Slot(int off, VKind k) { return SlotVar(regso - off, k); }
-    Place Slot(int off, pair<VKind, RTType> kr) { return SlotVar(regso - off, kr); }
     // The slot holding slot i of a value of this type.
     Place Slot(int off, TypeRef type, int i = 0) {
-        auto t = SlotType(type, i);
-        return SlotVar(regso - off, KindOf(t), RttOf(t));
+        return SlotVar(regso - off, RtTypeOf(SlotType(type, i)));
     }
     // The stack as memory, for the helpers that take a pointer to it, see GenStackCall.
     string StackArray() { return "vals"; }
-    Place StackSlot(int k, pair<VKind, RTType> kr) {
-        return Mem(cat(StackArray(), "[", k, "]"), kr);
-    }
+    Place StackSlot(int k, RTType rtt) { return Mem(cat(StackArray(), "[", k, "]"), rtt); }
     // A local variable, a global, and the temporaries a function keeps references alive in. The
     // locals are variables of their own like the stack slots are, see LocalName.
-    Place Local(int i) { return Var(local_names[i], local_kinds[i]); }
+    Place Local(int i) { return Var(local_names[i], local_types[i]); }
     // With stack traces on, every write to a local also lands in an array, since that is where
     // a trace dumps them from, see PushFunId.
     bool ShadowLocals() { return runtime_checks >= RUNTIME_STACK_TRACE; }
-    Place Shadow(int i) { return Mem(cat("locals[", i, "]"), local_kinds[i]); }
+    Place Shadow(int i) { return Mem(cat("locals[", i, "]"), local_types[i]); }
     void LocalWritten(int idx, int width) {
         if (!ShadowLocals()) return;
         for (int i = 0; i < width; i++) CopyValue(cb, Shadow(idx + i), Local(idx + i));
@@ -1170,37 +1200,37 @@ struct CodeGen  {
     }
     Place KeepVar(int i) { return Var(cat("keep", i), VK_REF); }
     // Slot i of the values a non-local return passes to the function it returns from.
-    Place RetBufSlot(int i, pair<VKind, RTType> kr) {
-        return Mem(cpp ? cat("vm.ret_buf.v[", i, "]") : cat("vm->ret_buf[", i, "]"), kr);
+    Place RetBufSlot(int i, RTType rtt) {
+        return Mem(cpp ? cat("vm.ret_buf.v[", i, "]") : cat("vm->ret_buf[", i, "]"), rtt);
     }
     // The function's own return value.
-    Place RetVar() { return Var("ret", f_ret_kinds[0]); }
+    Place RetVar() { return Var("ret", f_ret_types[0]); }
     void comment(string_view c) { append(cb, " // ", c, "\n"); };
     string_view vmref() { return string_view(cpp ? "vm." : "vm->"); };
 
     // The operands of a helper that works on a run of values, copied into the stack array,
     // which is where it gets its pointer to them. Returns that pointer.
-    string StageRange(int first, const Kinds &ks) {
+    string StageRange(int first, const Types &ts) {
         f_uses_vals = true;
-        for (auto [i, kr] : enumerate(ks)) {
-            CopyValue(cb, StackSlot(first + (int)i, kr), SlotVar(first + (int)i, kr));
+        for (auto [i, t] : enumerate(ts)) {
+            CopyValue(cb, StackSlot(first + (int)i, t), SlotVar(first + (int)i, t));
         }
         return cat(StackArray(), " + ", first);
     }
 
     // The same for the top values the current op consumes.
-    string StageArgs(const Kinds &ks) { return StageRange(regso - (int)ks.size(), ks); }
+    string StageArgs(const Types &ts) { return StageRange(regso - (int)ts.size(), ts); }
 
     // A typed value as a Value, for a helper that takes one: the C++ backend constructs it, the C
     // one goes thru the stack array, at the slot the value comes from.
     string Box(int slotidx, const Place &p) {
         if (cpp) {
-            if (p.k == VK_REF) {
-                return cat("RefVal(", Read(p), ", (lobster::RTType)", (int)p.rtt, ")");
+            if (p.k() == VK_REF) {
+                return cat("RefVal(", Read(p), ", lobster::", RttName(p.rtt), ")");
             }
             return cat("Value(", Read(p), ")");
         }
-        auto m = StackSlot(slotidx, { p.k, p.rtt });
+        auto m = StackSlot(slotidx, p.rtt);
         f_uses_vals = true;
         CopyValue(cb, m, p);
         return m.s;
@@ -1210,7 +1240,7 @@ struct CodeGen  {
     // leaves those of `outs` behind. Since the slots are variables, the operands are copied into
     // the array kept for this purpose and the results back out of it around the call, which
     // `call` renders given the pointer into that array to hand the helper.
-    template<typename F> void GenStackCall(const Kinds &ins, const Kinds &outs, F call,
+    template<typename F> void GenStackCall(const Types &ins, const Types &outs, F call,
                                            string_view cmt = {}) {
         auto uses = (int)ins.size();
         auto defs = (int)outs.size();
@@ -1404,7 +1434,7 @@ struct CodeGen  {
             f_vals_max = std::max(f_vals_max, regso + numslots);
             for (int j = 0; j < numslots; j++) {
                 auto l = Local(f_lval_idx + j);
-                CopyValue(cb, StackSlot(regso + j, { l.k, l.rtt }), l);
+                CopyValue(cb, StackSlot(regso + j, l.rtt), l);
             }
             base = cat(StackArray(), " + ", regso);
         } else {
@@ -1429,7 +1459,7 @@ struct CodeGen  {
         if (f_writeback.width) {
             for (int j = 0; j < f_writeback.width; j++) {
                 auto l = Local(f_writeback.idx + j);
-                CopyValue(cb, l, StackSlot(f_writeback.base + j, { l.k, l.rtt }));
+                CopyValue(cb, l, StackSlot(f_writeback.base + j, l.rtt));
             }
             LocalWritten(f_writeback.idx, f_writeback.width);
             f_writeback.width = 0;
@@ -1444,14 +1474,14 @@ struct CodeGen  {
         string q;
         EscapeAndQuote(sv, q, true);
         TrackUseDef(0, 1);
-        auto d = SlotVar(regso, VK_REF, RTT_STRING);
+        auto d = SlotVar(regso, RTT_STRING);
         if (STRING_CONSTANTS_KEEP) {
             // Still has a reference to take, so leave it to the helper.
             Write(cb, d, cat("RtPushStr(vm, ", stringtableindex, ")"), "");
         } else {
             // Borrowed, so all that is left is the copy out of the VM's table of them.
             CopyValue(cb, d, Mem(cat(vmref(), "constant_strings_ptr[", stringtableindex, "]"),
-                                 VK_REF, RTT_STRING), "");
+                                 RTT_STRING), "");
         }
         comment(q);
     }
@@ -1522,7 +1552,7 @@ struct CodeGen  {
     // return the result, plus one that leaves its results on the stack for the natives that
     // have several, and a V one for those that take a variable number, which is what a
     // negative count asks for.
-    void EmitNativeCall(int nargs, NativeFun *nf, const Kinds &args, const Kinds &rets) {
+    void EmitNativeCall(int nargs, NativeFun *nf, const Types &args, const Types &rets) {
         auto uses = (int)args.size();
         auto defs = (int)rets.size();
         if (nf->IsGLFrame()) {
@@ -1561,10 +1591,10 @@ struct CodeGen  {
 
     // The function's return values, from wherever `src` says slot i of them is.
     template<typename F> void GenReturnValues(F src) {
-        if (f_ret_kinds.size() == 1) {
+        if (f_ret_types.size() == 1) {
             CopyValue(cb, RetVar(), src(0));
         } else {
-            for (auto [i, kr] : enumerate(f_ret_kinds)) {
+            for (auto [i, kr] : enumerate(f_ret_types)) {
                 CopyValue(cb, Mem(cat("rets[", i, "]"), kr), src((int)i));
             }
         }
@@ -1575,14 +1605,14 @@ struct CodeGen  {
     // parent_idx, whose frame then sends them out thru its own channel, see GenUnwind. RET_ANY
     // passes such a return on to the caller, which has nothing to copy. `rets` says what the
     // values are, for the function they return from.
-    void EmitReturn(ReturnKind kind, const Kinds &rets, int parent_idx, int useslots) {
+    void EmitReturn(ReturnKind kind, const Types &rets, int parent_idx, int useslots) {
         auto nretslots = (int)rets.size();
         TrackUseDef(useslots, 0);
         // FIXME: emit epilogue stuff only once at end of function.
         if (kind == RET_LOCAL) {
             if (nretslots) {
                 GenReturnValues([&](int i) { return SlotVar(regso - nretslots + i, rets[i]); });
-            } else if (f_ret_kinds.size() == 1) {
+            } else if (f_ret_types.size() == 1) {
                 // A return without a value out of a function whose result is not used.
                 SetNil(cb, RetVar());
             }
@@ -1596,7 +1626,7 @@ struct CodeGen  {
             }
             append(cb, "    ", vmref(), "ret_unwind_to = ", parent_idx, ";\n");
             // Nothing of its own to return, but the caller expects a value all the same.
-            if (f_ret_kinds.size() == 1) SetNil(cb, RetVar());
+            if (f_ret_types.size() == 1) SetNil(cb, RetVar());
         }
         for (auto varidx : ownedvars) {
             if (sids[varidx].used_as_freevar()) {
@@ -1631,7 +1661,7 @@ struct CodeGen  {
     // A call to `callee`, an expression for the function, with the arguments on the stack and
     // the result landing where they were. `uses` is what the call consumes, which is the
     // arguments plus the function value above them when there is one.
-    void EmitCallTo(string_view callee, const Kinds &args, const Kinds &rets, int uses,
+    void EmitCallTo(string_view callee, const Types &args, const Types &rets, int uses,
                     string_view cmt = {}) {
         auto defs = (int)rets.size();
         TrackUseDef(uses, defs);
@@ -1656,20 +1686,20 @@ struct CodeGen  {
     }
 
     void EmitCall(const SubFunction &sf, int inw) {
-        EmitCallTo(cat("fun_", sf.idx), ArgKinds(sf), ReturnKinds(sf), inw,
+        EmitCallTo(cat("fun_", sf.idx), ArgTypes(sf), ReturnTypes(sf), inw,
                    "call: " + Signature(sf));
     }
 
     // The function value on top of the stack is called with what sits below it, cast to the
     // signature the type checker gave it.
-    void EmitCallValue(const Kinds &args, const Kinds &rets) {
+    void EmitCallValue(const Types &args, const Types &rets) {
         TrackUseDef(0, 0);
         auto ptr = cat("((", FunPtrType(args, rets), ")", Read(Slot(1, VK_FUN)), ")");
         EmitCallTo(ptr, args, rets, (int)args.size() + 1);
     }
 
     // Same, for the function a dispatch on the class of the first argument lands in.
-    void EmitDynDispatch(int vtable_idx, const Kinds &args, const Kinds &rets) {
+    void EmitDynDispatch(int vtable_idx, const Types &args, const Types &rets) {
         TrackUseDef(0, 0);
         auto ptr = cat("((", FunPtrType(args, rets), ")RtDynDispatch(vm, ",
                        Read(Slot((int)args.size(), VK_REF)), ", ", vtable_idx, "))");
@@ -1708,7 +1738,7 @@ struct CodeGen  {
         comment(type->udt->name);
     }
 
-    void EmitNewObject(int type_idx, const Kinds &args, TypeRef type) {
+    void EmitNewObject(int type_idx, const Types &args, TypeRef type) {
         TrackUseDef((int)args.size(), 1);
         auto fields = StageArgs(args);
         Write(cb, Slot((int)args.size(), type),
@@ -1716,10 +1746,10 @@ struct CodeGen  {
         TypeComment(type);
     }
 
-    void EmitStructToString(int type_idx, const Kinds &args, TypeRef type) {
+    void EmitStructToString(int type_idx, const Types &args, TypeRef type) {
         TrackUseDef((int)args.size(), 1);
         auto vals = StageArgs(args);
-        Write(cb, SlotVar(regso - (int)args.size(), VK_REF, RTT_STRING),
+        Write(cb, SlotVar(regso - (int)args.size(), RTT_STRING),
               cat("RtStructToString(vm, ", vals, ", (type_elem_t)", type_idx, ")"), "");
         TypeComment(type);
     }
@@ -1785,7 +1815,7 @@ struct CodeGen  {
     // look at the slots of a struct.
     void EmitPushNil(TypeRef type) {
         TrackUseDef(0, 1);
-        SetNil(cb, SlotVar(regso, KindOf(type), RttOf(type)));
+        SetNil(cb, SlotVar(regso, RtTypeOf(type)));
     }
 
     void EmitPopRef() {
@@ -1838,9 +1868,9 @@ struct CodeGen  {
         if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START)
             append(sd, "// ", Signature(*st.subfunctiontable[sf_idx]), "\n");
         assert(f_arg_places.size() == f_args.size());
-        Kinds argkinds;
-        for (auto &p : f_arg_places) argkinds.push_back({ p.k, p.rtt });
-        append(sd, FunSignature(cat("fun_", sf_idx), argkinds, f_ret_kinds, &f_arg_places),
+        Types argtypes;
+        for (auto &p : f_arg_places) argtypes.push_back(p.rtt);
+        append(sd, FunSignature(cat("fun_", sf_idx), argtypes, f_ret_types, &f_arg_places),
                " {\n");
         // NOTE: f_keepvars, f_slot_kinds, f_uses_vals, f_vals_max and f_regs_max are not known
         // until the end of codegen of the function!
@@ -1863,15 +1893,15 @@ struct CodeGen  {
         GenPlaceDecls(sd, locals);
         if (ShadowLocals() && numlocals) append(sd, "    Value locals[", numlocals, "];\n");
         if (f_uses_lval) append(sd, "    Value *lv = 0;\n");
-        if (f_ret_kinds.size() == 1) append(sd, "    ", CType(f_ret_kinds[0].first), " ret;\n");
+        if (f_ret_types.size() == 1) append(sd, "    ", CType(Kind(f_ret_types[0])), " ret;\n");
         for (int i = 0; i < (int)f_args.size(); i++) {
             auto varidx = f_args[i];
             auto &p = f_arg_places[i];
             if (sids[varidx].used_as_freevar()) {
                 // The argument is the global for the duration of the call, whose old value the
                 // parameter holds meanwhile, to go back at the end.
-                auto t = Var("_t", p.k, p.rtt);
-                append(sd, "    { ", CType(p.k), " _t; ", CopyValueText(t, p), " ",
+                auto t = Var("_t", p.rtt);
+                append(sd, "    { ", CType(p.k()), " _t; ", CopyValueText(t, p), " ",
                        CopyValueText(p, Global(varidx)), " ", CopyValueText(Global(varidx), t),
                        " }\n");
             } else if (ShadowLocals()) {
@@ -1929,7 +1959,7 @@ struct CodeGen  {
         if (runtime_checks >= RUNTIME_STACK_TRACE && f_function_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
             append(sd, "    PopFunId(vm);\n");
         }
-        if (f_ret_kinds.size() == 1) sd += "    return ret;\n";
+        if (f_ret_types.size() == 1) sd += "    return ret;\n";
         sd += "}\n";
         ownedvars.clear();
         f_keepvars = -1;
@@ -1939,7 +1969,7 @@ struct CodeGen  {
         f_uses_lval = false;
         f_lval_kind = LVK_NONE;
         local_names.clear();
-        local_kinds.clear();
+        local_types.clear();
         f_names_used.clear();
         numlocals = 0;
         nlabel = 0;
@@ -2146,7 +2176,7 @@ struct CodeGen  {
     // function is done too: either it is the one being returned from, in which case what it
     // returns is in the VM's buffer and goes out thru its own return channel, or it passes the
     // return on to its caller, see EmitReturn.
-    void GenUnwind(const Kinds &rets) {
+    void GenUnwind(const Types &rets) {
         auto lab = Label();
         TrackUseDef(0, 0);
         append(cb, "    if (", vmref(), "ret_unwind_to < 0) goto block", lab, ";\n");
@@ -2157,14 +2187,14 @@ struct CodeGen  {
         if (cursf) {
             append(cb, "    if (", vmref(), "ret_unwind_to == ", cursf->parent->idx, ") {\n");
             append(cb, "    ", vmref(), "ret_unwind_to = -1;\n");
-            GenReturnValues([&](int i) { return RetBufSlot(i, f_ret_kinds[i]); });
-            if (f_ret_kinds.size() == 1) {
+            GenReturnValues([&](int i) { return RetBufSlot(i, f_ret_types[i]); });
+            if (f_ret_types.size() == 1) {
                 // Passing it on, with nothing of its own to return.
                 cb += "    } else {\n";
                 SetNil(cb, RetVar());
             }
             cb += "    }\n";
-        } else if (f_ret_kinds.size() == 1) {
+        } else if (f_ret_types.size() == 1) {
             SetNil(cb, RetVar());
         }
         EmitReturn(RET_ANY, rets, -1, 0);
@@ -2186,8 +2216,8 @@ struct CodeGen  {
                            "call to function ", Q(f.name), " needs ", f.nargs(),
                            " arguments, ", nargs, " given");
         TakeTemp(nargs, true);
-        auto args = ArgKinds(sf);
-        auto rets = ReturnKinds(sf);
+        auto args = ArgTypes(sf);
+        auto rets = ReturnTypes(sf);
         if (inw != (int)args.size()) {
             parser.ErrorAt(node_context.back(), "internal error: call to ", Q(f.name),
                            " passes ", inw, " slots where it takes ", args.size());
@@ -2712,11 +2742,11 @@ struct CodeGen  {
         if (!retval) return;
         auto nstrs = (int)strs.size();
         TrackUseDef(nstrs, 1);
-        auto d = SlotVar(regso - nstrs, VK_REF, RTT_STRING);
+        auto d = SlotVar(regso - nstrs, RTT_STRING);
         if (nstrs == 2) {
             Write(cb, d, cat("RtSAdd(vm, ", Read(Slot(2, VK_REF)), ", ", Read(Slot(1, VK_REF)), ")"));
         } else {
-            auto strs = StageArgs(Kinds(nstrs, { VK_REF, RTT_STRING }));
+            auto strs = StageArgs(Types(nstrs, RTT_STRING));
             Write(cb, d, cat("RtStrConcatN(vm, ", strs, ", ", nstrs, ")"));
         }
     }
@@ -2876,9 +2906,8 @@ struct CodeGen  {
             auto base = regso - swidth;
             if (offset) {
                 for (int i = 0; i < fwidth; i++) {
-                    auto t = SlotType(stype, offset + i);
-                    CopyValue(cb, SlotVar(base + i, KindOf(t), RttOf(t)),
-                              SlotVar(base + offset + i, KindOf(t), RttOf(t)));
+                    auto t = RtTypeOf(SlotType(stype, offset + i));
+                    CopyValue(cb, SlotVar(base + i, t), SlotVar(base + offset + i, t));
                 }
             }
         } else {
@@ -2923,7 +2952,7 @@ struct CodeGen  {
                 auto width = ValWidth(stype);
                 assert(index->exptype->t == V_INT && stype->udt->sametype->Numeric());
                 TrackUseDef(width + 1, 1);
-                auto vals = StageRange(regso - width - 1, KindsOf(stype, 1));
+                auto vals = StageRange(regso - width - 1, TypesOf(stype, 1));
                 SetValue(cb, Slot(width + 1, stype->udt->sametype),
                          cat("RtIndexStruct(vm, ", vals, ", ", Read(Slot(1, VK_INT)), ", ", width,
                              ")"));
@@ -3174,14 +3203,14 @@ void ToString::Generate(CodeGen &cg, size_t retval) const {
         case V_STRUCT_S: {
             // TODO: can also roll these into A2S?
             cg.EmitStructToString(cg.GetTypeTableOffset(child->exptype),
-                                  CodeGen::KindsOf(child->exptype, 1), child->exptype);
+                                  CodeGen::TypesOf(child->exptype, 1), child->exptype);
             break;
         }
         default: {
             auto ti = (int)cg.GetTypeTableOffset(child->exptype->ElementIfNil());
             cg.TrackUseDef(1, 1);
             auto v = cg.Box(cg.regso - 1, cg.Slot(1, child->exptype));
-            cg.Write(cg.cb, cg.SlotVar(cg.regso - 1, CodeGen::VK_REF, RTT_STRING),
+            cg.Write(cg.cb, cg.SlotVar(cg.regso - 1, RTT_STRING),
                      cat("RtToString(vm, ", v, ", (type_elem_t)", ti, ")"));
             break;
         }
@@ -3312,17 +3341,17 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     // TODO: could pass arg types in here if most exps have types, cheaper than
     // doing it all in call instruction?
     size_t numstructs = 0;
-    CodeGen::Kinds args;
+    CodeGen::Types args;
     for (auto [i, c] : enumerate(children)) {
         auto before = cg.tstack_size;
         cg.Gen(c, 1);
         if (Is<DefaultVal>(c)) {
             // A single nil of the type, whatever it is.
             for (auto n = cg.tstack_size - before; n; n--) {
-                args.push_back({ CodeGen::KindOf(c->exptype), CodeGen::RttOf(c->exptype) });
+                args.push_back(CodeGen::RtTypeOf(c->exptype));
             }
         } else {
-            CodeGen::AddKinds(args, c->exptype);
+            CodeGen::AddTypes(args, c->exptype);
         }
         if ((IsStruct(c->exptype->t) ||
              nf->args[i].flags & NF_PUSHVALUEWIDTH) &&
@@ -3330,7 +3359,7 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
             // FIXME: struct variable size.
             cg.EmitPushInt(ValWidth(c->exptype));
             cg.temptypestack.push_back({ type_int, LT_ANY });
-            args.push_back({ CodeGen::VK_INT, RTT_INT });
+            args.push_back(RTT_INT);
             numstructs++;
         }
     }
@@ -3338,7 +3367,7 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     cg.TakeTemp(nargs + numstructs, true);
     assert(nargs == nf->args.size() && (nf->fun.fnargs < 0 || nargs <= 7));
     cg.EmitNativeCall(nf->fun.fnargs >= 0 ? (int)nargs : -1, nf, args,
-                      CodeGen::KindsOf(nattype, nattype->NumValues()));
+                      CodeGen::TypesOf(nattype, nattype->NumValues()));
     if (nf->retvals.size() > 0) {
         assert(nf->retvals.size() == nattype->NumValues());
         for (size_t i = 0; i < nattype->NumValues(); i++) {
@@ -3363,16 +3392,16 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
     assert(sf && sf == sid->type->sf && sf->parent->istype);
     // The function type has no variables for its arguments, so their kinds come from what
     // is passed.
-    CodeGen::Kinds args;
+    CodeGen::Types args;
     for (auto c : children) {
         cg.Gen(c, 1);
-        CodeGen::AddKinds(args, c->exptype);
+        CodeGen::AddTypes(args, c->exptype);
     }
     size_t nargs = children.size();
     assert(nargs == sf->args.size());
     cg.GenPushVar(1, type_function_null_void, sid->Idx(), sid->used_as_freevar);
     cg.TakeTemp(nargs, true);
-    cg.EmitCallValue(args, CodeGen::ReturnKinds(*sf));
+    cg.EmitCallValue(args, CodeGen::ReturnTypes(*sf));
     if (sf->reqret) {
         if (!retval) cg.GenPop({ exptype, lt });
     } else {
@@ -3832,11 +3861,11 @@ void VectorConstructor::Generate(CodeGen &cg, size_t retval) const {
     cg.TakeTemp(Arity(), true);
     auto offset = cg.GetTypeTableOffset(exptype);
     assert(exptype->t == V_VECTOR);
-    CodeGen::Kinds args;
-    for (auto c : children) CodeGen::AddKinds(args, c->exptype);
+    CodeGen::Types args;
+    for (auto c : children) CodeGen::AddTypes(args, c->exptype);
     cg.TrackUseDef(arg_width, 1);
     auto elems = cg.StageArgs(args);
-    cg.Write(cg.cb, cg.SlotVar(cg.regso - arg_width, CodeGen::VK_REF, RTT_VECTOR),
+    cg.Write(cg.cb, cg.SlotVar(cg.regso - arg_width, RTT_VECTOR),
              cat("RtNewVec(vm, ", elems, ", (type_elem_t)", (int)offset, ", ", (int)Arity(),
                  ")"));
 }
@@ -3855,8 +3884,8 @@ void ObjectConstructor::Generate(CodeGen &cg, size_t retval) const {
     if (IsStruct(exptype->t)) {
         // This is now a no-op! Struct elements sit inline on the stack.
     } else {
-        CodeGen::Kinds args;
-        for (auto c : children) CodeGen::AddKinds(args, c->exptype);
+        CodeGen::Types args;
+        for (auto c : children) CodeGen::AddTypes(args, c->exptype);
         assert((int)args.size() == arg_width); (void)arg_width;
         cg.EmitNewObject(offset, args, exptype);
     }
@@ -3908,7 +3937,7 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
             cg.temptypestack.pop_back();
         }
     }
-    CodeGen::Kinds rets;
+    CodeGen::Types rets;
     if (sf->reqret) {
         auto nretvals = make_void ? 0 : sf->returntype->NumValues();
         if (!Is<DefaultVal>(child)) {
@@ -3918,7 +3947,7 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
             cg.EmitPushNil(sf->returntype);
             assert(nretvals == 1);
         }
-        rets = CodeGen::KindsOf(sf->returntype, nretvals);
+        rets = CodeGen::TypesOf(sf->returntype, nretvals);
     } else {
         if (!Is<DefaultVal>(child)) cg.Gen(child, 0);
     }
