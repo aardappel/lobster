@@ -143,6 +143,8 @@ struct CodeGen  {
     bool f_uses_lval = false;
     vector<int> ownedvars;
     vector<int> funstarttables;
+    // The C name of each function, by its SubFunction index, see FunName.
+    vector<string> fun_names;
     vector<int> var_to_local;
     // The C variable each local (by var_to_local index) lives in and its kind, and every name
     // the function has handed out, to keep them apart.
@@ -483,11 +485,14 @@ struct CodeGen  {
 
         // Generate all used functions.
         vector<SubFunction *> sf_used;
+        fun_names.resize(st.subfunctiontable.size());
+        set<string> fun_names_used;
         for (auto f : parser.st.functiontable) {
             if (!f->istype) {
                 for (auto ov : f->overloads) for (auto sf = ov->sf; sf; sf = sf->next) {
                     if (sf->typechecked) {
                         sf_used.push_back(sf);
+                        fun_names[sf->idx] = UniqueFunName(*sf, fun_names_used);
                         DeclareFunction(*sf, c_codegen);
                     }
                 }
@@ -1140,9 +1145,34 @@ struct CodeGen  {
         return TypesOf(sf.returntype, sf.returntype->NumValues());
     }
 
+    // A function is named after what it is called in the program, made a C identifier and
+    // told apart from its other specializations and overloads by a number. The prefix keeps
+    // it clear of everything else in the file, since no local starts with it, see UniqueName.
+    string UniqueFunName(const SubFunction &sf, set<string> &used) {
+        string base;
+        for (auto c : sf.parent->name) {
+            if (isalnum((uint8_t)c)) base += c;
+            else if (base.empty() || base.back() != '_') base += '_';
+        }
+        if (!base.empty() && base.back() == '_') base.pop_back();
+        if (!base.empty() && base[0] == '_') base.erase(0, 1);
+        auto name = "fun_" + base;
+        auto unique = name;
+        for (int n = 2; used.count(unique); n++) unique = cat(name, "_", n);
+        used.insert(unique);
+        return unique;
+    }
+
+    string FunName(int idx) {
+        switch (idx) {
+            case CODEGEN_SPECIAL_FUNCTION_ID_DUMMY: return "fun_dummy";
+            case CODEGEN_SPECIAL_FUNCTION_ID_ENTRY: return "fun_entry";
+            default: assert(!fun_names[idx].empty()); return fun_names[idx];
+        }
+    }
+
     void DeclareFunction(SubFunction &sf, string &sd) {
-        append(sd, FunSignature(cat("fun_", sf.idx), ArgTypes(sf), ReturnTypes(sf), nullptr),
-               ";\n");
+        append(sd, FunSignature(FunName(sf.idx), ArgTypes(sf), ReturnTypes(sf), nullptr), ";\n");
     }
 
     // A declaration of the variables of one kind, a line per 12 of them to keep it readable.
@@ -1778,7 +1808,7 @@ struct CodeGen  {
 
     void EmitPushFun(int fidx) {
         TrackUseDef(0, 1);
-        Defer(Slot(0, VK_FUN), cat("(fun_base_t)fun_", fidx), "");
+        Defer(Slot(0, VK_FUN), cat("(fun_base_t)", FunName(fidx)), "");
     }
 
     // A call to `callee`, an expression for the function, with the arguments on the stack and
@@ -1809,7 +1839,7 @@ struct CodeGen  {
     }
 
     void EmitCall(const SubFunction &sf, int inw) {
-        EmitCallTo(cat("fun_", sf.idx), ArgTypes(sf), ReturnTypes(sf), inw,
+        EmitCallTo(FunName(sf.idx), ArgTypes(sf), ReturnTypes(sf), inw,
                    "call: " + Signature(sf));
     }
 
@@ -2008,8 +2038,7 @@ struct CodeGen  {
         assert(f_arg_places.size() == f_args.size());
         Types argtypes;
         for (auto &p : f_arg_places) argtypes.push_back(p.rtt);
-        append(sd, FunSignature(cat("fun_", sf_idx), argtypes, f_ret_types, &f_arg_places),
-               " {\n");
+        append(sd, FunSignature(FunName(sf_idx), argtypes, f_ret_types, &f_arg_places), " {\n");
         // NOTE: f_keeps, f_slot_kinds, f_uses_vals, f_vals_max and f_regs_max are not known
         // until the end of codegen of the function!
         vector<Place> slots, keeps, locals;
@@ -2127,7 +2156,7 @@ struct CodeGen  {
         for (auto id : vtables) {
             sd += "    ";
             if (id >= 0) {
-                append(sd, "(fun_base_t)fun_", id);
+                append(sd, "(fun_base_t)", FunName(id));
             } else if (id <= -2) {
                 append(sd, "(fun_base_t)", -id - 2);  // Bit of a hack, would be nice to separate.
             } else {
@@ -2262,7 +2291,7 @@ struct CodeGen  {
             sd += "    Entry(sizeof(Value), sizeof(VMBase), sizeof(RefObj), sizeof(LVector),\n"
                   "          (int)(long long)&((LVector *)0)->elems, sizeof(LString));\n";
         }
-        append(sd, "    fun_", CODEGEN_SPECIAL_FUNCTION_ID_ENTRY, "(vm);\n}\n\n");
+        append(sd, "    ", FunName(CODEGEN_SPECIAL_FUNCTION_ID_ENTRY), "(vm);\n}\n\n");
         if (cpp) {
             string build_info;
             auto time = std::time(nullptr);
