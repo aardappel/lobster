@@ -1107,8 +1107,8 @@ void CRtNativeCall4Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall4Rets(*vm, s
 void CRtNativeCall5Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall5Rets(*vm, sp, nfi); }
 void CRtNativeCall6Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall6Rets(*vm, sp, nfi); }
 void CRtNativeCall7Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall7Rets(*vm, sp, nfi); }
-LVector *CRtNewVec(VM *vm, Value *elems, type_elem_t ti, int len) { return RtNewVec(*vm, elems, ti, len); }
-LObject *CRtNewObject(VM *vm, Value *fields, type_elem_t ti) { return RtNewObject(*vm, fields, ti); }
+LVector *CRtNewVec(VM *vm, type_elem_t ti, int len) { return RtNewVec(*vm, ti, len); }
+LObject *CRtNewObject(VM *vm, type_elem_t ti) { return RtNewObject(*vm, ti); }
 void CRtExit(VM *vm, Value ret, type_elem_t ti) { RtExit(*vm, ret, ti); }
 void CRtExitVoid(VM *vm) { RtExitVoid(*vm); }
 void CRtAbort(VM *vm) { RtAbort(*vm); }

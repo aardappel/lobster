@@ -119,17 +119,13 @@ NATIVE_CALL_RETS(5, auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a
 NATIVE_CALL_RETS(6, auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2, a3, a4, a5));
 NATIVE_CALL_RETS(7, auto a6 = Pop(sp);auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2, a3, a4, a5, a6));
 
-VM_INLINE LVector *RtNewVec(VM &vm, Value *elems, type_elem_t ti, int len) {
-    auto vec = vm.NewVec(len, len, ti);
-    if (len) vec->CopyElemsShallow(elems);
-    return vec;
+// A vector or object with room for its elements, which the generated code writes itself.
+VM_INLINE LVector *RtNewVec(VM &vm, type_elem_t ti, int len) {
+    return vm.NewVec(len, len, ti);
 }
 
-VM_INLINE LObject *RtNewObject(VM &vm, Value *fields, type_elem_t ti) {
-    auto len = vm.GetTypeInfo(ti).len;
-    auto obj = vm.NewObject(len, ti);
-    if (len) obj->CopyElemsShallow(fields, len);
-    return obj;
+VM_INLINE LObject *RtNewObject(VM &vm, type_elem_t ti) {
+    return vm.NewObject(vm.GetTypeInfo(ti).len, ti);
 }
 
 VM_INLINE LString *RtStrConcatN(VM &vm, Value *strs, int len) {

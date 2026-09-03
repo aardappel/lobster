@@ -810,8 +810,8 @@ struct CodeGen  {
                 "void RtNativeCall5Rets(VMRef, StackPtr, int);\n"
                 "void RtNativeCall6Rets(VMRef, StackPtr, int);\n"
                 "void RtNativeCall7Rets(VMRef, StackPtr, int);\n"
-                "LVector *RtNewVec(VMRef, Value *, type_elem_t, int);\n"
-                "LObject *RtNewObject(VMRef, Value *, type_elem_t);\n"
+                "LVector *RtNewVec(VMRef, type_elem_t, int);\n"
+                "LObject *RtNewObject(VMRef, type_elem_t);\n"
                 "void RtExit(VMRef, Value, type_elem_t);\n"
                 "void RtExitVoid(VMRef);\n"
                 "void RtAbort(VMRef);\n"
@@ -1994,12 +1994,34 @@ struct CodeGen  {
         comment(type->udt->name);
     }
 
+    // A new object or vector gets its fields or elements written into it from wherever they
+    // are once it exists. It is held in a local until they all are, since the slot it ends up
+    // in is the first of theirs.
     void EmitNewObject(int type_idx, const Types &args, TypeRef type) {
-        TrackUseDef((int)args.size(), 1);
-        auto fields = StageArgs(args);
-        Write(cb, Slot((int)args.size(), type),
-              cat("RtNewObject(vm, ", fields, ", (type_elem_t)", type_idx, ")"), "");
+        auto n = (int)args.size();
+        TrackUseDef(n, 1);
+        auto base = regso - n;
+        append(cb, "    {\n    LObject *_o = RtNewObject(vm, (type_elem_t)", type_idx, ");");
         TypeComment(type);
+        for (int i = 0; i < n; i++) {
+            CopyValue(cb, Mem(cat(Fields("_o"), "[", i, "]"), args[i]), SlotVar(base + i, args[i]));
+        }
+        Write(cb, SlotVar(base, RtTypeOf(type)), "_o");
+        cb += "    }\n";
+    }
+
+    void EmitNewVec(int type_idx, const Types &args, int len) {
+        auto n = (int)args.size();
+        TrackUseDef(n, 1);
+        auto base = regso - n;
+        append(cb, "    {\n    LVector *_v = RtNewVec(vm, (type_elem_t)", type_idx, ", ", len,
+               ");\n");
+        for (int i = 0; i < n; i++) {
+            CopyValue(cb, Mem(cat("_v->", cpp ? "Elems()" : "elems", "[", i, "]"), args[i]),
+                      SlotVar(base + i, args[i]));
+        }
+        Write(cb, SlotVar(base, RTT_VECTOR), "_v");
+        cb += "    }\n";
     }
 
     void EmitStructToString(int type_idx, const Types &args, TypeRef type) {
@@ -4150,11 +4172,8 @@ void VectorConstructor::Generate(CodeGen &cg, size_t retval) const {
     assert(exptype->t == V_VECTOR);
     CodeGen::Types args;
     for (auto c : children) CodeGen::AddTypes(args, c->exptype);
-    cg.TrackUseDef(arg_width, 1);
-    auto elems = cg.StageArgs(args);
-    cg.Write(cg.cb, cg.SlotVar(cg.regso - arg_width, RTT_VECTOR),
-             cat("RtNewVec(vm, ", elems, ", (type_elem_t)", (int)offset, ", ", (int)Arity(),
-                 ")"));
+    assert((int)args.size() == arg_width); (void)arg_width;
+    cg.EmitNewVec((int)offset, args, (int)Arity());
 }
 
 void ObjectConstructor::Generate(CodeGen &cg, size_t retval) const {
