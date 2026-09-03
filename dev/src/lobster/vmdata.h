@@ -1392,8 +1392,8 @@ VM_INLINE void RestoreBackup(VM &vm, int i) {
     vm.fvar_def_backup.pop_back();
 }
 
-VM_INLINE int GetTypeSwitchID(VM &vm, RefObj *self, int vtable_idx) {
-    auto start = static_cast<LObject *>(self)->ti(vm).vtable_start_or_bitmask;
+VM_INLINE int GetTypeSwitchID(VM &vm, LObject *self, int vtable_idx) {
+    auto start = self->ti(vm).vtable_start_or_bitmask;
     auto id = (int)(size_t)vm.vma.native_vtables[start + vtable_idx];
     assert(id >= 0);
     return id;

@@ -33,8 +33,8 @@ VM_INLINE LString *RtPushStr(VM &vm, int i) {
 
 // The function a dynamic dispatch on the class of `self` lands in, which the generated code
 // then calls with the signature it knows the dispatch has.
-VM_INLINE fun_base_t RtDynDispatch(VM &vm, RefObj *self, int vtable_idx) {
-    auto start = static_cast<LObject *>(self)->ti(vm).vtable_start_or_bitmask;
+VM_INLINE fun_base_t RtDynDispatch(VM &vm, LObject *self, int vtable_idx) {
+    auto start = self->ti(vm).vtable_start_or_bitmask;
     auto target = vm.vma.native_vtables[start + vtable_idx];
     assert(target);
     return target;
@@ -175,29 +175,26 @@ VM_INLINE double RtFMod(double a, double b) {
     return fmod(a, b);
 }
 
-// The generated code holds a string by the pointer to it, which its static type says it is.
-VM_INLINE LString &Str(RefObj *r) { return *static_cast<LString *>(r); }
-
-VM_INLINE LString *RtSAdd(VM &vm, RefObj *a, RefObj *b) {
-    return vm.NewString(Str(a).strv(), Str(b).strv());
+VM_INLINE LString *RtSAdd(VM &vm, LString *a, LString *b) {
+    return vm.NewString(a->strv(), b->strv());
 }
 
-VM_INLINE iint RtSLt(RefObj *a, RefObj *b) { return Str(a) <  Str(b); }
-VM_INLINE iint RtSGt(RefObj *a, RefObj *b) { return Str(a) >  Str(b); }
-VM_INLINE iint RtSLe(RefObj *a, RefObj *b) { return Str(a) <= Str(b); }
-VM_INLINE iint RtSGe(RefObj *a, RefObj *b) { return Str(a) >= Str(b); }
-VM_INLINE iint RtSEq(RefObj *a, RefObj *b) { return Str(a) == Str(b); }
-VM_INLINE iint RtSNe(RefObj *a, RefObj *b) { return Str(a) != Str(b); }
+VM_INLINE iint RtSLt(LString *a, LString *b) { return *a <  *b; }
+VM_INLINE iint RtSGt(LString *a, LString *b) { return *a >  *b; }
+VM_INLINE iint RtSLe(LString *a, LString *b) { return *a <= *b; }
+VM_INLINE iint RtSGe(LString *a, LString *b) { return *a >= *b; }
+VM_INLINE iint RtSEq(LString *a, LString *b) { return *a == *b; }
+VM_INLINE iint RtSNe(LString *a, LString *b) { return *a != *b; }
 
 // The nillable string comparisons, where nil is equal to nil and to nothing else.
-VM_INLINE iint RtSnEq(RefObj *a, RefObj *b) {
+VM_INLINE iint RtSnEq(LString *a, LString *b) {
     if (!a || !b) return a == b;
-    return Str(a) == Str(b);
+    return *a == *b;
 }
 
-VM_INLINE iint RtSnNe(RefObj *a, RefObj *b) {
+VM_INLINE iint RtSnNe(LString *a, LString *b) {
     if (!a || !b) return a != b;
-    return Str(a) != Str(b);
+    return *a != *b;
 }
 
 VM_INLINE LString *RtToString(VM &vm, Value a, type_elem_t ti) {
@@ -221,8 +218,8 @@ VM_INLINE bool RtStaticSetThisFrame(VM &vm, int vidx) {
     return jump;
 }
 
-VM_INLINE bool RtMemberSetThisFrame(VM &vm, RefObj *self, int slot) {
-    auto &v = static_cast<LObject *>(self)->AtR(slot);
+VM_INLINE bool RtMemberSetThisFrame(VM &vm, LObject *self, int slot) {
+    auto &v = self->AtR(slot);
     auto jump = v.ival() < vm.frame_count;
     v = vm.frame_count + 1;
     return jump;
@@ -230,7 +227,7 @@ VM_INLINE bool RtMemberSetThisFrame(VM &vm, RefObj *self, int slot) {
 
 // Only emitted when the tested type is a class with subclasses, otherwise the test is against
 // a single type id, which the code generator emits inline, see EmitIsType.
-VM_INLINE iint RtIsSubType(VM &vm, RefObj *v, int start, int end, int nilres) {
+VM_INLINE iint RtIsSubType(VM &vm, LObject *v, int start, int end, int nilres) {
     // The typechecker guarantees the value is statically a class (or nil), so
     // its type info always has a subtype_dfs.
     if (!v) return nilres;
@@ -247,15 +244,14 @@ VM_INLINE void RtEnumRangeErr(VM &vm) {
 }
 
 // A class indexed at runtime as an lvalue, whose range check needs the type info.
-VM_INLINE Value *RtLvalIndexClass(VM &vm, RefObj *obj, iint i, int offset) {
-    auto o = static_cast<LObject *>(obj);
+VM_INLINE Value *RtLvalIndexClass(VM &vm, LObject *o, iint i, int offset) {
     RANGECHECK(vm, i, o->Len(vm), o);
     return &o->AtR(i) + offset;
 }
 
 // Appending to a string in place, which can free the old one.
-VM_INLINE void RtLvSAdd(VM &vm, Value *lv, RefObj *b) {
-    auto res = vm.NewString(lv->sval()->strv(), Str(b).strv());
+VM_INLINE void RtLvSAdd(VM &vm, Value *lv, LString *b) {
+    auto res = vm.NewString(lv->sval()->strv(), b->strv());
     lv->LTDECRTNIL(vm);
     *lv = Value(res);
 }

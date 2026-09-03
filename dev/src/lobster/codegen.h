@@ -94,7 +94,9 @@ struct CodeGen  {
     // The C type a value is kept in, which its static type decides: the scalars as themselves,
     // every reference as a pointer to its header, and a function value as a pointer to it. Only
     // memory, i.e. objects, globals and the stack array, holds Values.
-    enum VKind { VK_INT, VK_FLOAT, VK_REF, VK_FUN };
+    // The references split by what the static type says they are, so the generated code can
+    // use them as such; VK_REF is what is left: a resource, a nil of no type, or any.
+    enum VKind { VK_INT, VK_FLOAT, VK_REF, VK_FUN, VK_STRING, VK_VECTOR, VK_OBJECT, VK_COUNT };
     // The runtime type of each slot of a run of values, which says both the kind of variable it
     // is kept in and the tag it carries when it is written to memory, see RtTypeOf.
     typedef vector<RTType> Types;
@@ -129,7 +131,8 @@ struct CodeGen  {
     bool f_uses_vals = false;
     vector<int> f_args;
     vector<int> f_defs;
-    int f_keepvars = -1;
+    // What each temporary that keeps a reference alive holds, see EmitKeep.
+    Types f_keeps;
     // The lvalue the op chain currently being emitted produced: a local or global, which need no
     // code at all beyond a note of where the assignment that follows writes to, or an address
     // computed into the "lv" local, which f_uses_lval says the function then needs. A struct
@@ -473,7 +476,7 @@ struct CodeGen  {
         f_defs.clear();
         f_arg_places.clear();
         f_ret_types.clear();
-        f_keepvars = 0;
+        f_keeps.clear();
         TrackUseDef(0, 0);
         append(cb, "    RtAbort(vm);\n");
         DefineFunction(c_codegen, false);
@@ -503,7 +506,7 @@ struct CodeGen  {
         f_defs.clear();
         f_arg_places.clear();
         f_ret_types.clear();
-        f_keepvars = 0;
+        f_keeps.clear();
         Gen(parser.root, return_value);
         auto type = parser.root->exptype;
         assert(type->NumValues() == (size_t)return_value);
@@ -566,7 +569,7 @@ struct CodeGen  {
 
         f_function_idx = sf.idx;
         f_regs_max = 0;  // Not valid until end of codegen of this function.
-        f_keepvars = 0;  // Not valid until end of codegen of this function.
+        f_keeps.clear();  // Not valid until end of codegen of this function.
 
         linenumbernodes.push_back(sf.sbody);
         auto ret = AssertIs<Return>(sf.sbody->children.back());
@@ -684,33 +687,50 @@ struct CodeGen  {
                 "    int refc;\n"
                 "} RefObj;\n"
                 // This needs to correspond to the C++ Value, enforced in Entry().
+                "typedef struct LString LString;\n"
+                "typedef struct LVector LVector;\n"
+                "typedef struct LObject LObject;\n"
                 "typedef struct {\n"
                 "    union {\n"
                 "        long long ival;\n"
                 "        double fval;\n"
                 "        RefObj *ref;\n"
+                "        LString *sval;\n"
+                "        LVector *vval;\n"
+                "        LObject *oval;\n"
                 "    };\n"
                 #if RTT_ENABLED
                 "    int type;\n"
                 #endif
                 "} Value;\n"
-                // These need to correspond to the C++ LVector and LString, enforced in Entry().
-                // We mirror them so that reading a length or an element is a load rather than a
-                // call. Only the fields up to the last one we read have to be right, but keeping
-                // the whole type here means the size check covers the tail as well.
-                "typedef struct {\n"
-                "    RefObj ro;\n"
+                // These need to correspond to the C++ LVector, LString and LObject, enforced in
+                // Entry(). We mirror them so that reading a length, an element or a field is a
+                // load rather than a call, and they carry the header inline rather than as a
+                // RefObj so a reference count is at the same name whatever the type. Only the
+                // fields up to the last one we read have to be right, but keeping the whole type
+                // here means the size check covers the tail as well.
+                "struct LVector {\n"
+                "    int typeinfo;\n"
+                "    int refc;\n"
                 "    long long len;\n"
                 "    long long maxl;\n"
                 "    long long width;\n"
                 "    Value *elems;\n"
-                "} LVector;\n"
-                "typedef struct {\n"
-                "    RefObj ro;\n"
+                "};\n"
+                "struct LString {\n"
+                "    int typeinfo;\n"
+                "    int refc;\n"
                 "    long long len;\n"
-                "} LString;\n"
-                // The characters of a string follow directly behind its header.
-                "#define LSTRING_DATA(S) ((unsigned char *)((S) + 1))\n";
+                "};\n"
+                "struct LObject {\n"
+                "    int typeinfo;\n"
+                "    int refc;\n"
+                "};\n"
+                // The characters of a string and the fields of an object follow directly behind
+                // the header. Not a trailing array member, since the C compilers we feed this
+                // to do not agree on what those do to the size of the struct.
+                "#define STRING_DATA(S) ((unsigned char *)((S) + 1))\n"
+                "#define OBJECT_FIELDS(O) ((Value *)((O) + 1))\n";
             #if RTT_ENABLED
                 // The tags the runtime type field takes, see RTType.
                 sd += "enum {";
@@ -751,10 +771,11 @@ struct CodeGen  {
                 ;
 
             // Every runtime helper the generated code can call. These mirror the Rt functions in
-            // vmops.h, which is what the JIT links them to, see vm_ops_jit_table. A reference
-            // comes back as the RefObj it is held as here, whatever the C++ side returns it as.
+            // vmops.h, which is what the JIT links them to, see vm_ops_jit_table. Where the
+            // C++ side takes any reference, it is void here, since the generated code holds
+            // them as the type they are.
             sd +=
-                "RefObj *RtPushStr(VMRef, int);\n"
+                "LString *RtPushStr(VMRef, int);\n"
                 "void RtNativeCallV(VMRef, StackPtr, int);\n"
                 "Value RtNativeCall0(VMRef, int);\n"
                 "Value RtNativeCall1(VMRef, int, Value);\n"
@@ -772,46 +793,46 @@ struct CodeGen  {
                 "void RtNativeCall5Rets(VMRef, StackPtr, int);\n"
                 "void RtNativeCall6Rets(VMRef, StackPtr, int);\n"
                 "void RtNativeCall7Rets(VMRef, StackPtr, int);\n"
-                "RefObj *RtNewVec(VMRef, Value *, type_elem_t, int);\n"
-                "RefObj *RtNewObject(VMRef, Value *, type_elem_t);\n"
+                "LVector *RtNewVec(VMRef, Value *, type_elem_t, int);\n"
+                "LObject *RtNewObject(VMRef, Value *, type_elem_t);\n"
                 "void RtExit(VMRef, Value, type_elem_t);\n"
                 "void RtExitVoid(VMRef);\n"
                 "void RtAbort(VMRef);\n"
                 "long long RtIDiv(VMRef, long long, long long);\n"
                 "long long RtIMod(VMRef, long long, long long);\n"
                 "double RtFMod(double, double);\n"
-                "RefObj *RtSAdd(VMRef, RefObj *, RefObj *);\n"
-                "long long RtSLt(RefObj *, RefObj *);\n"
-                "long long RtSGt(RefObj *, RefObj *);\n"
-                "long long RtSLe(RefObj *, RefObj *);\n"
-                "long long RtSGe(RefObj *, RefObj *);\n"
-                "long long RtSEq(RefObj *, RefObj *);\n"
-                "long long RtSNe(RefObj *, RefObj *);\n"
-                "long long RtSnEq(RefObj *, RefObj *);\n"
-                "long long RtSnNe(RefObj *, RefObj *);\n"
-                "RefObj *RtStrConcatN(VMRef, Value *, int);\n"
-                "RefObj *RtToString(VMRef, Value, type_elem_t);\n"
-                "RefObj *RtStructToString(VMRef, Value *, type_elem_t);\n"
+                "LString *RtSAdd(VMRef, LString *, LString *);\n"
+                "long long RtSLt(LString *, LString *);\n"
+                "long long RtSGt(LString *, LString *);\n"
+                "long long RtSLe(LString *, LString *);\n"
+                "long long RtSGe(LString *, LString *);\n"
+                "long long RtSEq(LString *, LString *);\n"
+                "long long RtSNe(LString *, LString *);\n"
+                "long long RtSnEq(LString *, LString *);\n"
+                "long long RtSnNe(LString *, LString *);\n"
+                "LString *RtStrConcatN(VMRef, Value *, int);\n"
+                "LString *RtToString(VMRef, Value, type_elem_t);\n"
+                "LString *RtStructToString(VMRef, Value *, type_elem_t);\n"
                 "Value RtIndexStruct(VMRef, Value *, long long, int);\n"
-                "long long RtIsSubType(VMRef, RefObj *, int, int, int);\n"
-                "fun_base_t RtDynDispatch(VMRef, RefObj *, int);\n"
+                "long long RtIsSubType(VMRef, LObject *, int, int, int);\n"
+                "fun_base_t RtDynDispatch(VMRef, LObject *, int);\n"
                 "void RtEnumRangeErr(VMRef);\n"
-                "Value *RtLvalIndexClass(VMRef, RefObj *, long long, int);\n"
-                "void RtLvSAdd(VMRef, Value *, RefObj *);\n"
+                "Value *RtLvalIndexClass(VMRef, LObject *, long long, int);\n"
+                "void RtLvSAdd(VMRef, Value *, LString *);\n"
                 "int RtStaticSetThisFrame(VMRef, int);\n"
-                "int RtMemberSetThisFrame(VMRef, RefObj *, int);\n"
+                "int RtMemberSetThisFrame(VMRef, LObject *, int);\n"
                 ;
 
             sd += "extern void Entry(int, int, int, int, int, int);\n"
-                  "extern void IDXErr(VMRef, long long, long long, RefObj *);\n"
+                  "extern void IDXErr(VMRef, long long, long long, void *);\n"
                   "extern void IDXErrS(VMRef, long long, long long);\n"
                   "extern long long GLFrame(VMRef);\n"
                   "extern void BackupVar(VMRef, int);\n"
                   "extern void DecOwned(VMRef, int);\n"
-                  "extern void DecDelete(VMRef, RefObj *);\n"
+                  "extern void DecDelete(VMRef, void *);\n"
                   "extern void AssertFailed(VMRef, int, int, int);\n"
                   "extern void RestoreBackup(VMRef, int);\n"
-                  "extern int GetTypeSwitchID(VMRef, RefObj *, int);\n"
+                  "extern int GetTypeSwitchID(VMRef, LObject *, int);\n"
                   "extern void PushFunId(VMRef, const int *, StackPtr);\n"
                   "extern void PopFunId(VMRef);\n"
                   #if LOBSTER_FRAME_PROFILER
@@ -857,16 +878,22 @@ struct CodeGen  {
             case RTT_INT: return VK_INT;
             case RTT_FLOAT: return VK_FLOAT;
             case RTT_FUNCTION: return VK_FUN;
+            case RTT_STRING: return VK_STRING;
+            case RTT_VECTOR: return VK_VECTOR;
+            case RTT_CLASS: return VK_OBJECT;
             default: return VK_REF;
         }
     }
+
+    static bool IsRefKind(VKind k) { return k != VK_INT && k != VK_FLOAT && k != VK_FUN; }
 
     static VKind KindOf(TypeRef type) { return Kind(RtTypeOf(type)); }
 
     // The runtime type of a kind, for the places whose exact type nothing needs: a reference
     // that is only ever read, or passed on.
     static RTType Rtt(VKind k) {
-        static const RTType types[] = { RTT_INT, RTT_FLOAT, RTT_INVALID, RTT_FUNCTION };
+        static const RTType types[] = { RTT_INT, RTT_FLOAT, RTT_INVALID, RTT_FUNCTION,
+                                        RTT_STRING, RTT_VECTOR, RTT_CLASS };
         return types[k];
     }
 
@@ -903,8 +930,21 @@ struct CodeGen  {
     }
 
     string CType(VKind k) {
-        static const char *names[] = { "long long", "double", "RefObj *", "fun_base_t" };
+        static const char *names[] = { "long long", "double", "RefObj *", "fun_base_t",
+                                       "LString *", "LVector *", "LObject *" };
         return k == VK_INT && cpp ? "iint" : names[k];
+    }
+
+    // The field of a Value in memory a kind is read and written thru, and the accessor the
+    // C++ backend uses instead, which allows nil for the references.
+    static const char *Member(VKind k) {
+        static const char *names[] = { "ival", "fval", "ref", "ival", "sval", "vval", "oval" };
+        return names[k];
+    }
+    static const char *Accessor(VKind k) {
+        static const char *names[] = { "ival()", "fval()", "refany()", "ip()", "svalnil()",
+                                       "vvalnil()", "ovalnil()" };
+        return names[k];
     }
 
     static Place Var(string s, RTType rtt) { return { std::move(s), rtt, true }; }
@@ -950,12 +990,16 @@ struct CodeGen  {
     string Read(const Place &p) {
         if (HasPending(p.slot)) return pending[p.slot].expr;
         if (p.typed) return p.s;
-        switch (p.k()) {
-            case VK_INT: return cat(p.s, cpp ? ".ival()" : ".ival");
-            case VK_FLOAT: return cat(p.s, cpp ? ".fval()" : ".fval");
-            case VK_REF: return cat(p.s, cpp ? ".refany()" : ".ref");
-            default: return cpp ? cat(p.s, ".ip()") : cat("(fun_base_t)", p.s, ".ival");
-        }
+        if (cpp) return cat(p.s, ".", Accessor(p.k()));
+        if (p.k() == VK_FUN) return cat("(fun_base_t)", p.s, ".ival");
+        return cat(p.s, ".", Member(p.k()));
+    }
+
+    // The same as a value of another kind, which for two kinds of reference is a cast.
+    string ReadAs(const Place &p, VKind k) {
+        auto r = Read(p);
+        if (p.k() == k || !IsRefKind(k) || !IsRefKind(p.k())) return r;
+        return cat("(", CType(k), ")", r);
     }
 
     // In C the runtime type field, when there is one, is ours to keep correct on every write to
@@ -989,7 +1033,7 @@ struct CodeGen  {
         }
         if (d.typed) return cat(d.s, " = ", expr, ";");
         if (cpp) {
-            if (d.k() == VK_REF) {
+            if (IsRefKind(d.k())) {
                 return cat(d.s, " = RefVal(", expr, ", lobster::", RttName(d.rtt), ");");
             }
             return cat(d.s, " = Value(", expr, ");");
@@ -997,10 +1041,11 @@ struct CodeGen  {
         switch (d.k()) {
             case VK_INT: return cat(d.s, ".ival = ", expr, ";", SetTypeText(d.s, RTT_INT));
             case VK_FLOAT: return cat(d.s, ".fval = ", expr, ";", SetTypeText(d.s, RTT_FLOAT));
-            case VK_REF: return cat(d.s, ".ref = ", expr, ";", RefTypeText(d.s, d.rtt));
-            default:
+            case VK_FUN:
                 return cat(d.s, ".ival = (long long)(", expr, ");",
                            SetTypeText(d.s, RTT_FUNCTION));
+            default:
+                return cat(d.s, ".", Member(d.k()), " = ", expr, ";", RefTypeText(d.s, d.rtt));
         }
     }
 
@@ -1013,10 +1058,10 @@ struct CodeGen  {
     // A copy of one place to another. Between two in memory the C backend copies the field and
     // the tag rather than the struct, since libtcc turns a struct assignment into a memcpy call.
     string CopyValueText(const Place &d, const Place &s) {
-        assert(d.k() == s.k());
-        if (d.typed || s.typed) return WriteText(d, Read(s));
+        assert(d.k() == s.k() || (IsRefKind(d.k()) && IsRefKind(s.k())));
+        if (d.typed || s.typed) return WriteText(d, ReadAs(s, d.k()));
         if (cpp) return cat(d.s, " = ", s.s, ";");
-        auto fld = s.k() == VK_FLOAT ? ".fval" : s.k() == VK_REF ? ".ref" : ".ival";
+        auto fld = cat(".", Member(s.k()));
         auto t = cat(d.s, fld, " = ", s.s, fld, ";");
         #if RTT_ENABLED
             append(t, " ", d.s, ".type = ", s.s, ".type;");
@@ -1025,12 +1070,12 @@ struct CodeGen  {
     }
 
     void CopyValue(string &sd, const Place &d, const Place &s, string_view lf = "\n") {
-        if (d.slot >= 0 && s.typed && &sd == &cb) {
+        if (d.slot >= 0 && s.typed && &sd == &cb && d.k() == s.k()) {
             // A push of a variable, or of a slot that is itself pending, is only remembered.
             if (HasPending(s.slot)) Defer(d, pending[s.slot].expr, pending[s.slot].var);
             else Defer(d, s.s, s.s);
         } else if (d.typed || s.typed) {
-            Write(sd, d, Read(s), lf);
+            Write(sd, d, ReadAs(s, d.k()), lf);
         } else {
             append(sd, "    ", CopyValueText(d, s), lf);
         }
@@ -1045,12 +1090,9 @@ struct CodeGen  {
 
     // A Value a helper returned, as the expression of a kind.
     string Unbox(string_view expr, VKind k) {
-        switch (k) {
-            case VK_INT: return cat(expr, cpp ? ".ival()" : ".ival");
-            case VK_FLOAT: return cat(expr, cpp ? ".fval()" : ".fval");
-            case VK_REF: return cat(expr, cpp ? ".refany()" : ".ref");
-            default: return cpp ? cat(expr, ".ip()") : cat("(fun_base_t)", expr, ".ival");
-        }
+        if (cpp) return cat(expr, ".", Accessor(k));
+        if (k == VK_FUN) return cat("(fun_base_t)", expr, ".ival");
+        return cat(expr, ".", Member(k));
     }
 
     // Writing a Value a helper returned to a variable, as the field for its kind.
@@ -1123,7 +1165,7 @@ struct CodeGen  {
 
     // The same for places of any kind, grouped by it.
     void GenPlaceDecls(string &sd, const vector<Place> &places) {
-        for (int k = 0; k < 4; k++) {
+        for (int k = 0; k < VK_COUNT; k++) {
             vector<string> names;
             for (auto &p : places) if (p.k() == k) names.push_back(p.s);
             GenDecls(sd, VKind(k), names);
@@ -1186,7 +1228,7 @@ struct CodeGen  {
             "span", "uint64_t", "int64_t", "memcpy", "memmove", "GLFrame", "Entry", "IDXErr",
             "IDXErrS", "BackupVar", "DecOwned", "DecDelete", "AssertFailed", "RefVal",
             "RestoreBackup", "GetTypeSwitchID", "PushFunId", "PopFunId", "StartProfile",
-            "EndProfile", "LSTRING_DATA",
+            "EndProfile", "STRING_DATA", "OBJECT_FIELDS",
         };
         if (reserved.count(name)) return true;
         if (name[0] == '_' || name.substr(0, 2) == "Rt") return true;
@@ -1196,7 +1238,8 @@ struct CodeGen  {
             return true;
         };
         return numbered("i") || numbered("f") || numbered("p") || numbered("fn") ||
-               numbered("keep") || numbered("block") || numbered("fun_");
+               numbered("s") || numbered("v") || numbered("o") || numbered("keep") ||
+               numbered("block") || numbered("fun_");
     }
 
     // A C name for a local that is unique within the function: the name it has in the program,
@@ -1226,10 +1269,10 @@ struct CodeGen  {
 
     // The stack slots, counted the way the emitters do: Slot(1) is the top of the stack before
     // the current op, Slot(0) the first one above it, Slot(-1) the one after that. Each is a
-    // variable per kind of value it holds, i5, f5, p5 and fn5 for slot 5, which is what lets
-    // the C compiler keep them in registers: nothing ever takes their address.
+    // variable per kind of value it holds, i5, f5, s5, v5, o5, p5 and fn5 for slot 5, which
+    // is what lets the C compiler keep them in registers: nothing ever takes their address.
     Place SlotVar(int idx, RTType rtt) {
-        static const char *prefix[] = { "i", "f", "p", "fn" };
+        static const char *prefix[] = { "i", "f", "p", "fn", "s", "v", "o" };
         auto p = Var(cat(prefix[Kind(rtt)], idx), rtt);
         p.slot = idx;
         return p;
@@ -1262,7 +1305,7 @@ struct CodeGen  {
         return Mem(cpp ? cat("vm.fvars[", varidx, "]") : cat("vm->fvars_ptr[", varidx, "]"),
                    var_types[varidx]);
     }
-    Place KeepVar(int i) { return Var(cat("keep", i), VK_REF); }
+    Place KeepVar(int i) { return Var(cat("keep", i), f_keeps[i]); }
     // Slot i of the values a non-local return passes to the function it returns from.
     Place RetBufSlot(int i, RTType rtt) {
         return Mem(cpp ? cat("vm.ret_buf.v[", i, "]") : cat("vm->ret_buf[", i, "]"), rtt);
@@ -1289,7 +1332,7 @@ struct CodeGen  {
     // one goes thru the stack array, at the slot the value comes from.
     string Box(int slotidx, const Place &p) {
         if (cpp) {
-            if (p.k() == VK_REF) {
+            if (IsRefKind(p.k())) {
                 return cat("RefVal(", Read(p), ", lobster::", RttName(p.rtt), ")");
             }
             return cat("Value(", Read(p), ")");
@@ -1425,7 +1468,7 @@ struct CodeGen  {
 
     // The fields of an object sit right behind its header.
     string Fields(string_view obj) {
-        return cpp ? cat("((LObject *)", obj, ")->Elems()") : cat("((Value *)(", obj, " + 1))");
+        return cpp ? cat(obj, "->Elems()") : cat("OBJECT_FIELDS(", obj, ")");
     }
 
     // A field as an lvalue is at a constant offset from the object, same as reading one. That
@@ -1433,7 +1476,7 @@ struct CodeGen  {
     void EmitLvalField(int slot) {
         TrackUseDef(1, 0);
         f_uses_lval = true;
-        append(cb, "    lv = ", Fields(Read(Slot(1, VK_REF))), " + ", slot, ";\n");
+        append(cb, "    lv = ", Fields(Read(Slot(1, VK_OBJECT))), " + ", slot, ";\n");
         f_lval_kind = LVK_PTR;
     }
 
@@ -1450,7 +1493,7 @@ struct CodeGen  {
     // innermost in _o and the index into it in _i, inside a block the caller closes. A struct
     // index has its components used back to front, the first one landing on the element.
     void GenVectorDescent(int levels, const Place &vec) {
-        append(cb, "    {\n    LVector *_o = (LVector *)", Read(vec), ";\n    long long _i;\n");
+        append(cb, "    {\n    LVector *_o = ", Read(vec), ";\n    long long _i;\n");
         for (int j = levels - 1; j >= 0; j--) {
             append(cb, "    _i = ", Read(Slot(levels - j, VK_INT)), ";\n");
             if (cpp) {
@@ -1459,8 +1502,8 @@ struct CodeGen  {
                 if (j) append(cb, "    _o = _o->AtS(_i).vval();\n");
             } else {
                 append(cb, "    if ((unsigned long long)_i >= (unsigned long long)_o->len)"
-                           " IDXErr(vm, _i, _o->len, &_o->ro);\n");
-                if (j) append(cb, "    _o = (LVector *)_o->elems[_i].ref;\n");
+                           " IDXErr(vm, _i, _o->len, _o);\n");
+                if (j) append(cb, "    _o = _o->elems[_i].vval;\n");
             }
         }
     }
@@ -1472,7 +1515,7 @@ struct CodeGen  {
     void EmitLvalVectorIndex(int levels, int offset, int width) {
         TrackUseDef(levels + 1, 0);
         f_uses_lval = true;
-        GenVectorDescent(levels, Slot(levels + 1, VK_REF));
+        GenVectorDescent(levels, Slot(levels + 1, VK_VECTOR));
         append(cb, "    lv = ", Elems(), " + ", ElemIndex(width, offset), ";\n    }\n");
         f_lval_kind = LVK_PTR;
     }
@@ -1481,7 +1524,7 @@ struct CodeGen  {
     void EmitLvalClassIndex(int offset) {
         TrackUseDef(2, 0);
         f_uses_lval = true;
-        append(cb, "    lv = RtLvalIndexClass(vm, ", Read(Slot(2, VK_REF)), ", ",
+        append(cb, "    lv = RtLvalIndexClass(vm, ", Read(Slot(2, VK_OBJECT)), ", ",
                Read(Slot(1, VK_INT)), ", ", offset, ");\n");
         f_lval_kind = LVK_PTR;
     }
@@ -1588,7 +1631,10 @@ struct CodeGen  {
             case VK_FLOAT: conv = cat("(double)", cond); break;
             case VK_INT: conv = k == VK_FLOAT ? cat("(long long)", cond)
                                               : cat("(long long)(", cond, " != 0)"); break;
-            default: assert(onfail); conv = "0"; break;
+            default:
+                // Between two kinds of reference only a false one gets kept, but say what it is.
+                conv = IsRefKind(k) ? cat("(", CType(resk), ")", cond) : "0";
+                break;
         }
         append(cb, "    if (", onfail ? "!" : "", cond, ") { ", WriteText(Slot(1, resk), conv),
                " goto block", lab, "; }\n");
@@ -1609,7 +1655,7 @@ struct CodeGen  {
         auto lab = Label();
         if (member) {
             TrackUseDef(1, 0);
-            auto self = Read(Slot(1, VK_REF));
+            auto self = Read(Slot(1, VK_OBJECT));
             Flush();
             append(cb, "    if (!RtMemberSetThisFrame(vm, ", self, ", ", varidx, ")) goto block",
                    lab, ";\n");
@@ -1653,13 +1699,16 @@ struct CodeGen  {
         comment(nf->name);
     }
 
-    void EmitKeep(int stack_offset, int keep_index_add) {
+    // Keeps the reference at the given depth in a temporary of its type until the function
+    // returns, since the reference is only borrowed by whatever consumes it.
+    void EmitKeep(int stack_offset, RTType rtt) {
         // Inside a loop the slot may already hold a reference from a previous iteration.
         auto inloop = !loops.empty();
         TrackUseDef(0, 0);
-        auto offset = f_keepvars++ + keep_index_add;
+        auto offset = (int)f_keeps.size();
+        f_keeps.push_back(rtt);
         if (inloop) GenDecRef(cb, KeepVar(offset));
-        CopyValue(cb, KeepVar(offset), Slot(stack_offset + 1, VK_REF));
+        CopyValue(cb, KeepVar(offset), Slot(stack_offset + 1, rtt));
     }
 
     // The function's return values, from wherever `src` says slot i of them is.
@@ -1776,7 +1825,7 @@ struct CodeGen  {
     void EmitDynDispatch(int vtable_idx, const Types &args, const Types &rets) {
         TrackUseDef(0, 0);
         auto ptr = cat("((", FunPtrType(args, rets), ")RtDynDispatch(vm, ",
-                       Read(Slot((int)args.size(), VK_REF)), ", ", vtable_idx, "))");
+                       ReadAs(Slot((int)args.size(), args[0]), VK_OBJECT), ", ", vtable_idx, "))");
         EmitCallTo(ptr, args, rets, (int)args.size());
     }
 
@@ -1796,18 +1845,18 @@ struct CodeGen  {
 
     // The optimizer guarantees what is tested is never a scalar, so it is a reference or nil,
     // and whether nil matches was decided statically.
-    void EmitIsType(int type_idx, int nilres, TypeRef type) {
+    void EmitIsType(int type_idx, int nilres, TypeRef type, TypeRef vtype) {
         TrackUseDef(1, 1);
-        auto v = Read(Slot(1, VK_REF));
+        auto v = Read(Slot(1, vtype));
         Write(cb, Slot(1, VK_INT),
               cat(v, " ? ", v, cpp ? "->tti == (type_elem_t)" : "->typeinfo == ", type_idx,
                   " : ", nilres), "");
         TypeComment(type);
     }
 
-    void EmitIsSubType(int start, int end, int nilres, TypeRef type) {
+    void EmitIsSubType(int start, int end, int nilres, TypeRef type, TypeRef vtype) {
         TrackUseDef(1, 1);
-        Write(cb, Slot(1, VK_INT), cat("RtIsSubType(vm, ", Read(Slot(1, VK_REF)), ", ", start,
+        Write(cb, Slot(1, VK_INT), cat("RtIsSubType(vm, ", ReadAs(Slot(1, vtype), VK_OBJECT), ", ", start,
                                       ", ", end, ", ", nilres, ")"), "");
         comment(type->udt->name);
     }
@@ -1887,7 +1936,7 @@ struct CodeGen  {
         } else if (p.typed) {
             append(sd, "    if (", r, " && --", r, "->refc <= 0) DecDelete(vm, ", r, ");\n");
         } else {
-            append(sd, "    { RefObj *_r = ", r, ";"
+            append(sd, "    { ", CType(p.k()), "_r = ", r, ";"
                        " if (_r && --_r->refc <= 0) DecDelete(vm, _r); }\n");
         }
     }
@@ -1901,17 +1950,17 @@ struct CodeGen  {
         } else if (p.typed) {
             append(cb, "    if (", r, ") ", r, "->refc++;\n");
         } else {
-            append(cb, "    { RefObj *_r = ", r, "; if (_r) _r->refc++; }\n");
+            append(cb, "    { ", CType(p.k()), "_r = ", r, "; if (_r) _r->refc++; }\n");
         }
     }
 
-    void EmitIncRef(int off) {
+    void EmitIncRef(int off, RTType rtt) {
         TrackUseDef(0, 0);
         // FIXME: even when the static type is IsRef (i.e. no NIL or scalar), at runtime it is
         // still possible we get passed an int false value due to the way and/or are compiled?
         // See e.g. astar_result in the test.
         // Would be great to remove this case since the if-check is not needed in almost all cases.
-        GenIncRef(Slot(off + 1, VK_REF));
+        GenIncRef(Slot(off + 1, rtt));
     }
 
     // The ones below are a move or a test on the stack and nothing else. Calling a helper for
@@ -1925,9 +1974,9 @@ struct CodeGen  {
         SetNil(cb, SlotVar(regso, RtTypeOf(type)));
     }
 
-    void EmitPopRef() {
+    void EmitPopRef(RTType rtt) {
         TrackUseDef(1, 0);
-        GenDecRef(cb, Slot(1, VK_REF));
+        GenDecRef(cb, Slot(1, rtt));
     }
 
     // Turning a reference into a bool can drop it first: what is left only gets tested against
@@ -1961,14 +2010,15 @@ struct CodeGen  {
         for (auto &p : f_arg_places) argtypes.push_back(p.rtt);
         append(sd, FunSignature(cat("fun_", sf_idx), argtypes, f_ret_types, &f_arg_places),
                " {\n");
-        // NOTE: f_keepvars, f_slot_kinds, f_uses_vals, f_vals_max and f_regs_max are not known
+        // NOTE: f_keeps, f_slot_kinds, f_uses_vals, f_vals_max and f_regs_max are not known
         // until the end of codegen of the function!
-        vector<Place> slots, locals;
+        vector<Place> slots, keeps, locals;
         for (auto [i, kinds] : enumerate(f_slot_kinds)) {
-            for (int k = 0; k < 4; k++) if (kinds & (1 << k)) slots.push_back(SlotVar((int)i, VKind(k)));
+            for (int k = 0; k < VK_COUNT; k++) {
+                if (kinds & (1 << k)) slots.push_back(SlotVar((int)i, VKind(k)));
+            }
         }
-        vector<string> keeps;
-        for (int i = 0; i < f_keepvars; i++) keeps.push_back(KeepVar(i).s);
+        for (int i = 0; i < (int)f_keeps.size(); i++) keeps.push_back(KeepVar(i));
         // The arguments are the parameters, so only the locals after them are declared here.
         int nargs_local = 0;
         for (auto varidx : f_args) if (!sids[varidx].used_as_freevar()) nargs_local++;
@@ -1978,7 +2028,7 @@ struct CodeGen  {
         if (f_uses_vals) {
             append(sd, "    Value vals[", std::max({ 1, f_regs_max, f_vals_max }), "];\n");
         }
-        GenDecls(sd, VK_REF, keeps);
+        GenPlaceDecls(sd, keeps);
         GenPlaceDecls(sd, locals);
         if (ShadowLocals() && numlocals) append(sd, "    Value locals[", numlocals, "];\n");
         if (f_uses_lval) append(sd, "    Value *lv = 0;\n");
@@ -2024,7 +2074,7 @@ struct CodeGen  {
             funstarttables.push_back((int)f_defs.size());
             funstarttables.insert(funstarttables.end(), f_defs.begin(), f_defs.end());
         }
-        for (int i = 0; i < f_keepvars; i++) {
+        for (int i = 0; i < (int)f_keeps.size(); i++) {
             SetNil(sd, KeepVar(i));
         }
 
@@ -2038,7 +2088,7 @@ struct CodeGen  {
         }
         if (!sdt.empty()) append(sd, sdt);
         sdt.clear();
-        for (int i = 0; i < f_keepvars; i++) {
+        for (int i = 0; i < (int)f_keeps.size(); i++) {
             GenDecRef(sd, KeepVar(i));
         }
         for (int i = 0; i < (int)f_args.size(); i++) {
@@ -2051,7 +2101,7 @@ struct CodeGen  {
         if (f_ret_types.size() == 1) sd += "    return ret;\n";
         sd += "}\n";
         ownedvars.clear();
-        f_keepvars = -1;
+        f_keeps.clear();
         pending.clear();
         f_slot_kinds.clear();
         f_uses_vals = false;
@@ -2382,7 +2432,7 @@ struct CodeGen  {
     // behind its header. It lands in the slot the object was in.
     void GenPushField(int offset, TypeRef ftype) {
         TrackUseDef(1, 1);
-        auto obj = Read(Slot(1, VK_REF));
+        auto obj = Read(Slot(1, VK_OBJECT));
         CopyValue(cb, Slot(1, ftype), Mem(cat(Fields(obj), "[", offset, "]"), ftype));
     }
 
@@ -2391,7 +2441,7 @@ struct CodeGen  {
     void GenPushFieldStruct(int offset, TypeRef ftype) {
         auto fwidth = ValWidth(ftype);
         TrackUseDef(1, fwidth);
-        append(cb, "    {\n    RefObj *_o = ", Read(Slot(1, VK_REF)), ";\n");
+        append(cb, "    {\n    LObject *_o = ", Read(Slot(1, VK_OBJECT)), ";\n");
         for (int i = 0; i < fwidth; i++) {
             CopyValue(cb, Slot(1 - i, ftype, i),
                       Mem(cat(Fields("_o"), "[", offset + i, "]"), SlotType(ftype, i)));
@@ -2410,9 +2460,8 @@ struct CodeGen  {
             case V_INT:
                 return Read(v);
             case V_VECTOR:
-                return cat("((LVector *)", Read(v), ")->len");
             case V_STRING:
-                return cat("((LString *)", Read(v), ")->len");
+                return cat(Read(v), "->len");
             default:
                 assert(false);
                 return {};
@@ -2425,7 +2474,8 @@ struct CodeGen  {
         // Reads the counter and the object being iterated, and leaves both for the body.
         TrackUseDef(2, 2);
         auto lab = Label();
-        auto len = LenOf(itertype, Slot(1, itertype == V_INT ? VK_INT : VK_REF));
+        auto len = LenOf(itertype, Slot(1, itertype == V_INT ? VK_INT
+                                         : itertype == V_STRING ? VK_STRING : VK_VECTOR));
         auto i = Slot(2, VK_INT);
         Write(cb, i, cat(Read(i), " + 1"));
         append(cb, "    if (!(", Read(i), " < ", len, ")) goto block", lab, ";\n");
@@ -2446,14 +2496,14 @@ struct CodeGen  {
         // Everything but the counter and the object being iterated is the element.
         auto width = defslots - 2;
         auto idx = Read(Slot(2, VK_INT));
-        auto obj = Read(Slot(1, VK_REF));
         if (isstring) {
-            auto data = cpp ? cat("((unsigned char *)((LString *)", obj, ")->data())")
-                            : cat("LSTRING_DATA((LString *)", obj, ")");
+            auto str = Read(Slot(1, VK_STRING));
+            auto data = cpp ? cat("((unsigned char *)", str, "->data())")
+                            : cat("STRING_DATA(", str, ")");
             Write(cb, Slot(0, VK_INT), cat("(long long)", data, "[", idx, "]"));
             return;
         }
-        auto elems = cat("((LVector *)", obj, ")->", cpp ? "Elems()" : "elems");
+        auto elems = cat(Read(Slot(1, VK_VECTOR)), "->", cpp ? "Elems()" : "elems");
         if (width > 1) {
             // A struct element is the same load per slot it occupies, at the width the vector
             // holds them at, which is what the element type says it is.
@@ -2463,12 +2513,12 @@ struct CodeGen  {
             }
             cb += "    }\n";
             for (int i = 0; i < width; i++) {
-                if ((1 << i) & bitmask) GenIncRef(Slot(-i, VK_REF));
+                if ((1 << i) & bitmask) GenIncRef(Slot(-i, elemtype, i));
             }
             return;
         }
         CopyValue(cb, Slot(0, elemtype), Mem(cat(elems, "[", idx, "]"), elemtype));
-        if (bitmask & 1) GenIncRef(Slot(0, VK_REF));
+        if (bitmask & 1) GenIncRef(Slot(0, elemtype));
     }
 
     // Reading an element out of a vector, or just the part of it asked for, with the index
@@ -2478,7 +2528,7 @@ struct CodeGen  {
         // The vector plus one index per level it steps thru, replaced by the element.
         TrackUseDef(levels + 1, subwidth);
         auto elemwidth = ValWidth(elemtype);
-        GenVectorDescent(levels, Slot(levels + 1, VK_REF));
+        GenVectorDescent(levels, Slot(levels + 1, VK_VECTOR));
         for (int i = 0; i < subwidth; i++) {
             CopyValue(cb, Slot(levels + 1 - i, elemtype, offset + i),
                       Mem(cat(Elems(), "[", ElemIndex(elemwidth, offset + i), "]"),
@@ -2495,19 +2545,19 @@ struct CodeGen  {
         auto elemwidth = ValWidth(elemtype);
         // A string index may read the terminating 0-byte, one past its length.
         auto bound = str ? "_o->len + 1" : "_o->len";
-        auto otype = str ? "LString" : "LVector";
-        append(cb, "    {\n    ", otype, " *_o = (", otype, " *)", Read(Slot(2, VK_REF)),
-               "; long long _i = ", Read(Slot(1, VK_INT)), ";\n");
+        append(cb, "    {\n    ", str ? "LString" : "LVector", " *_o = ",
+               Read(Slot(2, str ? VK_STRING : VK_VECTOR)), "; long long _i = ",
+               Read(Slot(1, VK_INT)), ";\n");
         if (cpp) {
             append(cb, "    if ((uint64_t)_i >= (uint64_t)(", bound, ")) vm.IDXErr(_i, ", bound,
                    ", _o);\n");
         } else {
             append(cb, "    if ((unsigned long long)_i >= (unsigned long long)(", bound,
-                   ")) IDXErr(vm, _i, ", bound, ", &_o->ro);\n");
+                   ")) IDXErr(vm, _i, ", bound, ", _o);\n");
         }
         if (str) {
             Write(cb, Slot(2, VK_INT), cpp ? "(long long)((unsigned char *)_o->data())[_i]"
-                                           : "LSTRING_DATA(_o)[_i]");
+                                           : "STRING_DATA(_o)[_i]");
         } else {
             for (int i = 0; i < subwidth; i++) {
                 CopyValue(cb, Slot(2 - i, elemtype, offset + i),
@@ -2524,7 +2574,8 @@ struct CodeGen  {
                 // TODO: alternatively call a single helper with a list or bitmask?
                 // See BitMaskForRefStuct.
                 for (int j = typelt.type->udt->numslots - 1; j >= 0; j--) {
-                    if (IsRefNil(FindSlot(*typelt.type->udt, j)->type->t)) EmitPopRef();
+                    auto stype = FindSlot(*typelt.type->udt, j)->type;
+                    if (IsRefNil(stype->t)) EmitPopRef(RtTypeOf(stype));
                     else GenPopSlot();
                 }
             } else {
@@ -2532,7 +2583,7 @@ struct CodeGen  {
                 TrackUseDef(typelt.type->udt->numslots, 0);
             }
         } else {
-            if (ShouldDec(typelt)) EmitPopRef(); else GenPopSlot();
+            if (ShouldDec(typelt)) EmitPopRef(RtTypeOf(typelt.type)); else GenPopSlot();
         }
     }
 
@@ -2642,12 +2693,12 @@ struct CodeGen  {
             for (int i = 0; i < width; i++)
                 CopyValue(cb, Lval(i, type), Slot(width - i, type, i));
         } else if (op == LV_SADD) {
-            auto rhs = Read(Slot(1, VK_REF));
+            auto rhs = Read(Slot(1, VK_STRING));
             if (f_lval_kind == LVK_LOCAL) {
                 // The old string is an operand, so it loses its reference only once the new
                 // one exists.
                 auto v = Lval(0, type);
-                append(cb, "    {\n    RefObj *_s = RtSAdd(vm, ", v.s, ", ", rhs, ");\n");
+                append(cb, "    {\n    LString *_s = RtSAdd(vm, ", v.s, ", ", rhs, ");\n");
                 GenDecRef(cb, v);
                 Write(cb, v, "_s");
                 cb += "    }\n";
@@ -2835,7 +2886,8 @@ struct CodeGen  {
         TrackUseDef(nstrs, 1);
         auto d = SlotVar(regso - nstrs, RTT_STRING);
         if (nstrs == 2) {
-            Write(cb, d, cat("RtSAdd(vm, ", Read(Slot(2, VK_REF)), ", ", Read(Slot(1, VK_REF)), ")"));
+            Write(cb, d, cat("RtSAdd(vm, ", Read(Slot(2, VK_STRING)), ", ", Read(Slot(1, VK_STRING)),
+                             ")"));
         } else {
             auto strs = StageArgs(Types(nstrs, RTT_STRING));
             Write(cb, d, cat("RtStrConcatN(vm, ", strs, ", ", nstrs, ")"));
@@ -2871,8 +2923,8 @@ struct CodeGen  {
             // handled below.
             assert(op >= MOP_LT);
             TrackUseDef(2, 1);
-            Write(cb, Slot(2, VK_INT), cat(MathOpName("S", op), "(", Read(Slot(2, VK_REF)), ", ",
-                                          Read(Slot(1, VK_REF)), ")"));
+            Write(cb, Slot(2, VK_INT), cat(MathOpName("S", op), "(", Read(Slot(2, VK_STRING)), ", ",
+                                          Read(Slot(1, VK_STRING)), ")"));
         } else if ((rtype->t == V_FUNCTION && ltype->t == V_FUNCTION)) {
             assert(op == MOP_EQ || op == MOP_NE);
             TrackUseDef(2, 1);
@@ -2890,14 +2942,15 @@ struct CodeGen  {
             } else {
                 assert(IsRefNil(ltype->t) && IsRefNil(rtype->t));
                 TrackUseDef(2, 1);
-                auto a = Read(Slot(2, VK_REF));
-                auto b = Read(Slot(1, VK_REF));
                 if ((ltype->t == V_NIL && ltype->sub->t == V_STRING) ||
                     (rtype->t == V_NIL && rtype->sub->t == V_STRING)) {
-                    Write(cb, Slot(2, VK_INT), cat(MathOpName("Sn", op), "(", a, ", ", b, ")"));
+                    Write(cb, Slot(2, VK_INT), cat(MathOpName("Sn", op), "(", Read(Slot(2, VK_STRING)),
+                                                  ", ", Read(Slot(1, VK_STRING)), ")"));
                 } else {
-                    // References compare by identity.
-                    Write(cb, Slot(2, VK_INT), cat(a, op == MOP_EQ ? " == " : " != ", b));
+                    // References compare by identity, as whatever kind the left one is.
+                    auto l = Slot(2, ltype);
+                    Write(cb, Slot(2, VK_INT), cat(Read(l), op == MOP_EQ ? " == " : " != ",
+                                                  ReadAs(Slot(1, rtype), l.k())));
                 }
             }
         } else {
@@ -3349,11 +3402,12 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                     for (int j = 0; j < type->udt->numslots; j++) {
                         auto stype = FindSlot(*type->udt, j)->type;
                         if (IsRefNil(stype->t)) {
-                            cg.EmitIncRef(stack_offset + type->udt->numslots - 1 - j);
+                            cg.EmitIncRef(stack_offset + type->udt->numslots - 1 - j,
+                                          CodeGen::RtTypeOf(stype));
                         }
                     }
                 } else {
-                    cg.EmitIncRef(stack_offset);
+                    cg.EmitIncRef(stack_offset, CodeGen::RtTypeOf(type));
                 }
             }
             if (decref & (1LL << i)) {
@@ -3362,11 +3416,14 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                     // TODO: alternatively call a single helper with a list or bitmask?
                     // See BitMaskForRefStuct.
                     for (int j = 0; j < type->udt->numslots; j++) {
-                        if (IsRefNil(FindSlot(*type->udt, j)->type->t))
-                            cg.EmitKeep(stack_offset + (type->udt->numslots - j - 1), 0);
+                        auto stype = FindSlot(*type->udt, j)->type;
+                        if (IsRefNil(stype->t)) {
+                            cg.EmitKeep(stack_offset + (type->udt->numslots - j - 1),
+                                        CodeGen::RtTypeOf(stype));
+                        }
                     }
                 } else {
-                    cg.EmitKeep(stack_offset, 0);
+                    cg.EmitKeep(stack_offset, CodeGen::RtTypeOf(type));
                 }
             }
         }
@@ -3864,7 +3921,7 @@ void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mi
     // The cases are jump targets, so what is on the stack has to be in its slots.
     string on;
     if (vtable_idx >= 0) {
-        on = cat("GetTypeSwitchID(vm, ", cg.Read(cg.Slot(1, CodeGen::VK_REF)), ", ", vtable_idx,
+        on = cat("GetTypeSwitchID(vm, ", cg.Read(cg.Slot(1, CodeGen::VK_OBJECT)), ", ", vtable_idx,
                  ")");
     } else {
         on = cg.Read(cg.Slot(1, CodeGen::VK_INT));
@@ -3999,9 +4056,10 @@ void IsType::Generate(CodeGen &cg, size_t retval) const {
         if (te->t == V_CLASS && te->udt->subtype_dfs_end > te->udt->subtype_dfs) {
             // The tested type has subclasses, so test the value's type against
             // the id range of the tested type's subtree.
-            cg.EmitIsSubType(te->udt->subtype_dfs, te->udt->subtype_dfs_end, nilres, te);
+            cg.EmitIsSubType(te->udt->subtype_dfs, te->udt->subtype_dfs_end, nilres, te,
+                             child->exptype);
         } else {
-            cg.EmitIsType(cg.GetTypeTableOffset(te), nilres, te);
+            cg.EmitIsType(cg.GetTypeTableOffset(te), nilres, te, child->exptype);
         }
     }
 }
