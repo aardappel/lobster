@@ -109,17 +109,29 @@ struct CodeGen  {
         int slot = -1;
         VKind k() const { return Kind(rtt); }
     };
-    // A local or a constant pushed onto the stack is not copied into its slot: the slot
-    // remembers the expression instead, and whatever reads the slot uses that in its place,
-    // see Defer. The copy is emitted after all where the expression may stop holding: before
-    // a write to the variable it reads, and at control flow, see Flush.
+    // A value pushed onto the stack, or computed from what is on it, is not written to its
+    // slot: the slot remembers the expression instead, and whatever reads the slot uses that
+    // in its place, see Defer, which is how the operators of one expression in the program
+    // end up as one expression in C. The write is emitted after all where the expression may
+    // stop holding: before a write to a variable it reads, and at control flow, see Flush.
     struct Pending {
         Place slot;
         string expr;
-        // The variable `expr` reads, which for a constant is none.
-        string var;
+        // The variables `expr` reads, which for a constant are none.
+        vector<string> vars;
+        // The precedence of the operator on top of `expr`, 0 for an atom, see Operand.
+        int prec;
     };
     vector<Pending> pending;
+
+    // An expression an emitter builds out of what is on the stack: what it reads, whether it
+    // could be deferred (no loads or calls in it), and its precedence.
+    struct Expr {
+        string text;
+        vector<string> vars;
+        bool pure;
+        int prec;
+    };
     // The parameter each slot of the arguments comes in as, in f_args order, and what the
     // function returns, see FunSignature.
     vector<Place> f_arg_places;
@@ -961,19 +973,29 @@ struct CodeGen  {
         return slot >= 0 && slot < (int)pending.size() && !pending[slot].expr.empty();
     }
 
-    // Remembers `expr` as what slot `d` holds in place of copying it there, where `var` is the
-    // variable it reads, if any.
-    void Defer(const Place &d, string expr, string var) {
+    // Remembers `expr` as what slot `d` holds in place of writing it there.
+    void Defer(const Place &d, string expr, vector<string> vars, int prec) {
         assert(d.slot >= 0);
         if ((int)pending.size() <= d.slot) pending.resize(d.slot + 1);
-        pending[d.slot] = { d, std::move(expr), std::move(var) };
+        pending[d.slot] = { d, std::move(expr), std::move(vars), prec };
+    }
+    void Defer(const Place &d, string expr, string var) {
+        vector<string> vars;
+        if (!var.empty()) vars.push_back(std::move(var));
+        Defer(d, std::move(expr), std::move(vars), 0);
     }
 
-    // Emits the copy a pending slot stands for, since from here on its expression may not
+    // Emits the write a pending slot stands for, since from here on its expression may not
     // hold any more.
     void Materialize(Pending &p) {
-        append(cb, "    ", WriteText(p.slot, p.expr), "\n");
+        auto expr = std::move(p.expr);
         p.expr.clear();
+        Write(cb, p.slot, expr);
+    }
+
+    static bool Reads(const Pending &p, string_view var) {
+        for (auto &v : p.vars) if (v == var) return true;
+        return false;
     }
 
     // Every slot still on the stack gets its value, for control flow: whatever reads it past a
@@ -988,7 +1010,57 @@ struct CodeGen  {
     // The same for the slots that read the variable about to be written, whether it is a
     // local or another slot.
     void FlushVar(string_view var) {
-        for (auto &p : pending) if (!p.expr.empty() && p.var == var) Materialize(p);
+        for (auto &p : pending) if (!p.expr.empty() && Reads(p, var)) Materialize(p);
+    }
+
+    // The C precedence of the operators the emitters build expressions from, lower binding
+    // tighter: 1 a call or index, 2 a prefix operator or cast, 3 * / %, 4 + -, 5 the shifts,
+    // 6 the relational and 7 the equality comparisons, 8 &, 9 ^, 10 |.
+    // A place as an operand of an operator of precedence `prec`, in parentheses when it is an
+    // expression that binds looser, or as loose on the right, which keeps the grouping.
+    Expr Operand(const Place &p, int prec, bool right = false) {
+        Expr e;
+        if (HasPending(p.slot)) {
+            auto &q = pending[p.slot];
+            e = { q.expr, q.vars, true, q.prec };
+        } else if (p.typed) {
+            e = { p.s, { p.s }, true, 0 };
+        } else {
+            e = { Read(p), {}, false, 0 };
+        }
+        if (e.prec > prec || (e.prec == prec && right)) {
+            e.text = cat("(", e.text, ")");
+            e.prec = 0;
+        }
+        return e;
+    }
+
+    // What an operator makes of its operands.
+    static Expr Combine(int prec, string text, const Expr &a, const Expr &b) {
+        Expr e = { std::move(text), a.vars, a.pure && b.pure, prec };
+        e.vars.insert(e.vars.end(), b.vars.begin(), b.vars.end());
+        return e;
+    }
+
+    // A prefix operator on a place; a repeated minus gets parentheses, since two in a row
+    // would read as a decrement.
+    Expr Unary(string_view op, const Place &v) {
+        auto e = Operand(v, 2);
+        if (e.text[0] == op[0] && op[0] == '-') e.text = cat("(", e.text, ")");
+        e.text = cat(op, e.text);
+        e.prec = 2;
+        return e;
+    }
+
+    // Writes an expression to a slot, which for an int or float that can be deferred is
+    // remembering it, unless it has grown long enough to be worth a line of its own.
+    void WriteExpr(const Place &d, const Expr &e) {
+        if (d.slot >= 0 && e.pure && (d.k() == VK_INT || d.k() == VK_FLOAT) &&
+            e.text.size() <= 80) {
+            Defer(d, e.text, e.vars, e.prec);
+        } else {
+            Write(cb, d, e.text);
+        }
     }
 
     // A place, as the C expression of its kind.
@@ -1077,8 +1149,14 @@ struct CodeGen  {
     void CopyValue(string &sd, const Place &d, const Place &s, string_view lf = "\n") {
         if (d.slot >= 0 && s.typed && &sd == &cb && d.k() == s.k()) {
             // A push of a variable, or of a slot that is itself pending, is only remembered.
-            if (HasPending(s.slot)) Defer(d, pending[s.slot].expr, pending[s.slot].var);
-            else Defer(d, s.s, s.s);
+            // A computed expression is written first rather than computed twice.
+            if (HasPending(s.slot) && pending[s.slot].prec) Materialize(pending[s.slot]);
+            if (HasPending(s.slot)) {
+                auto &q = pending[s.slot];
+                Defer(d, q.expr, q.vars, q.prec);
+            } else {
+                Defer(d, s.s, s.s);
+            }
         } else if (d.typed || s.typed) {
             Write(sd, d, ReadAs(s, d.k()), lf);
         } else {
@@ -1413,17 +1491,25 @@ struct CodeGen  {
     }
 
     // A binary operator on scalars is the C operator, except for integer division and modulo,
-    // which check their divisor, and float modulo, which is fmod.
-    string BinExpr(bool isfloat, MathOp op, string_view a, string_view b) {
+    // which check their divisor and so have to run where they are, and float modulo, which
+    // is fmod.
+    Expr BinExpr(bool isfloat, MathOp op, const Place &a, const Place &b) {
         static const char *cops[] = { "+", "-", "*", "/", "%",
                                       "<", ">", "<=", ">=", "==", "!=" };
-        if (op == MOP_MOD) {
+        static const int precs[] = { 4, 4, 3, 3, 3, 6, 6, 6, 6, 7, 7 };
+        if (op == MOP_MOD || (op == MOP_DIV && !isfloat)) {
+            auto x = Operand(a, 15), y = Operand(b, 15);
             // The only helper without an argument the C++ backend could find it thru.
-            return isfloat ? cat(cpp ? "lobster::" : "", "RtFMod(", a, ", ", b, ")")
-                           : cat("RtIMod(vm, ", a, ", ", b, ")");
+            auto call = op == MOP_DIV ? cat("RtIDiv(vm, ", x.text, ", ", y.text, ")")
+                      : isfloat ? cat(cpp ? "lobster::" : "", "RtFMod(", x.text, ", ", y.text, ")")
+                                : cat("RtIMod(vm, ", x.text, ", ", y.text, ")");
+            auto e = Combine(1, call, x, y);
+            e.pure = e.pure && isfloat;
+            return e;
         }
-        if (op == MOP_DIV && !isfloat) return cat("RtIDiv(vm, ", a, ", ", b, ")");
-        return cat(a, " ", cops[op], " ", b);
+        auto prec = precs[op];
+        auto x = Operand(a, prec), y = Operand(b, prec, true);
+        return Combine(prec, cat(x.text, " ", cops[op], " ", y.text), x, y);
     }
 
     // What one produces: an int for a comparison whatever it compared.
@@ -1432,15 +1518,27 @@ struct CodeGen  {
     }
     static VKind ScalarKind(bool isfloat) { return isfloat ? VK_FLOAT : VK_INT; }
 
-    // The shifts mask their count to the width of an int, see MaskedShiftLeft.
-    string BitExpr(BitOp op, string_view a, string_view b) {
+    // The shifts mask their count to the width of an int, see MaskedShiftLeft, and both shift
+    // what they are given as 64 bits, which a constant is not by itself.
+    Expr BitExpr(BitOp op, const Place &a, const Place &b) {
         switch (op) {
-            case BIT_AND: return cat(a, " & ", b);
-            case BIT_OR:  return cat(a, " | ", b);
-            case BIT_XOR: return cat(a, " ^ ", b);
-            // Both shift what they are given as 64 bits, which a constant is not by itself.
-            case BIT_ASL: return cat("(long long)((unsigned long long)", a, " << (", b, " & 63))");
-            default:      return cat("(long long)", a, " >> (", b, " & 63)");
+            case BIT_AND:
+            case BIT_OR:
+            case BIT_XOR: {
+                auto prec = op == BIT_AND ? 8 : op == BIT_XOR ? 9 : 10;
+                auto x = Operand(a, prec), y = Operand(b, prec, true);
+                auto cop = op == BIT_AND ? " & " : op == BIT_XOR ? " ^ " : " | ";
+                return Combine(prec, cat(x.text, cop, y.text), x, y);
+            }
+            case BIT_ASL: {
+                auto x = Operand(a, 2), y = Operand(b, 8);
+                return Combine(2, cat("(long long)((unsigned long long)", x.text, " << (", y.text,
+                                      " & 63))"), x, y);
+            }
+            default: {
+                auto x = Operand(a, 2), y = Operand(b, 8);
+                return Combine(5, cat("(long long)", x.text, " >> (", y.text, " & 63)"), x, y);
+            }
         }
     }
 
@@ -1650,8 +1748,13 @@ struct CodeGen  {
         TrackUseDef(1, defslots);
         auto lab = Label();
         auto v = Slot(1, k);
-        auto cond = Read(v);
-        Flush();
+        // Read as the operand of the ! it may get, or of a cast. When the value stays on the
+        // stack it is written to its slot first, since that write is what its expression may
+        // read, and the test then reads the slot; when it is consumed here the expression is
+        // used as is, since the flush only drops it.
+        if (defslots) Flush();
+        auto cond = Operand(v, 2).text;
+        if (!defslots) Flush();
         if (k == resk || !defslots) {
             append(cb, "    if (", onfail ? "!" : "", cond, ") goto block", lab, ";\n");
             return lab;
@@ -1954,7 +2057,7 @@ struct CodeGen  {
     // deal more code, and stays a call.
     // A pending reference that is a constant can only be nil, which has no count.
     bool IsNilConstant(const Place &p) {
-        return HasPending(p.slot) && pending[p.slot].var.empty();
+        return HasPending(p.slot) && pending[p.slot].vars.empty() && !pending[p.slot].prec;
     }
 
     void GenDecRef(string &sd, const Place &p) {
@@ -2015,18 +2118,25 @@ struct CodeGen  {
         TrackUseDef(1, 1);
         auto v = Slot(1, k);
         if (decref) GenDecRef(cb, v);
-        Write(cb, Slot(1, VK_INT), cat(Read(v), " ", test));
+        auto e = Operand(v, 7);
+        e.text = cat(e.text, " ", test);
+        e.prec = 7;
+        WriteExpr(Slot(1, VK_INT), e);
     }
 
     void EmitIntToFloat() {
         TrackUseDef(1, 1);
-        Write(cb, Slot(1, VK_FLOAT), cat("(double)", Read(Slot(1, VK_INT))));
+        auto e = Operand(Slot(1, VK_INT), 2);
+        e.text = "(double)" + e.text;
+        e.prec = 2;
+        WriteExpr(Slot(1, VK_FLOAT), e);
     }
 
     // All that is left of an assert in the common case is the test; the reporting is a call.
     void EmitAssert(int defslots, int line, int fileidx, int stringidx, VKind k) {
         TrackUseDef(1, defslots);
-        append(cb, "    if (!", Read(Slot(1, k)), ") ", cpp ? "vm.AssertFailed(" : "AssertFailed(vm, ",
+        append(cb, "    if (!", Operand(Slot(1, k), 2).text, ") ",
+               cpp ? "vm.AssertFailed(" : "AssertFailed(vm, ",
                line, ", ", fileidx, ", ", stringidx, ");\n");
     }
 
@@ -2439,8 +2549,7 @@ struct CodeGen  {
     void GenScalarBinOp(bool isfloat, MathOp op) {
         TrackUseDef(2, 1);
         auto k = ScalarKind(isfloat);
-        Write(cb, Slot(2, BinKind(isfloat, op)),
-              BinExpr(isfloat, op, Read(Slot(2, k)), Read(Slot(1, k))));
+        WriteExpr(Slot(2, BinKind(isfloat, op)), BinExpr(isfloat, op, Slot(2, k), Slot(1, k)));
     }
 
     // Comparing two structs is a compare per slot, of whatever kind it is.
@@ -2448,8 +2557,9 @@ struct CodeGen  {
         auto len = ValWidth(type);
         append(cb, "    { long long _c = ", eq ? "1" : "0", ";\n");
         for (int j = 0; j < len; j++) {
-            append(cb, "    _c = _c ", eq ? "&&" : "||", " ", Read(Slot(len * 2 - j, type, j)), " ",
-                   eq ? "==" : "!=", " ", Read(Slot(len - j, type, j)), ";\n");
+            append(cb, "    _c = _c ", eq ? "&&" : "||", " ",
+                   Operand(Slot(len * 2 - j, type, j), 7).text, " ", eq ? "==" : "!=", " ",
+                   Operand(Slot(len - j, type, j), 7, true).text, ";\n");
         }
         // Only written after all the reads, since the result lands in the first slot of the left
         // hand side.
@@ -2741,7 +2851,7 @@ struct CodeGen  {
             Write(cb, v, Read(v) + c);
         } else if (op >= LV_BINAND && op <= LV_ASR) {
             auto v = Lval(0, type);
-            Write(cb, v, BitExpr(BitOp(op - LV_BINAND), Read(v), Read(Slot(1, VK_INT))));
+            Write(cb, v, BitExpr(BitOp(op - LV_BINAND), v, Slot(1, VK_INT)).text);
         } else {
             // The arithmetic families, each in MathOp order: an int or float scalar, or a
             // struct of either with a struct or a scalar on the right, one operator per slot.
@@ -2765,7 +2875,7 @@ struct CodeGen  {
             for (int i = 0; i < n; i++) {
                 auto rhs = isvec && !withscalar ? Slot(width - i, k) : Slot(1, k);
                 auto v = Lval(i, type);
-                Write(cb, v, BinExpr(isfloat, mop, Read(v), Read(rhs)));
+                Write(cb, v, BinExpr(isfloat, mop, v, rhs).text);
             }
         }
         GenLvalWriteBack(type);
@@ -3001,21 +3111,23 @@ struct CodeGen  {
             // the left operand was.
             if (!withscalar) {
                 for (int j = 0; j < width; j++) {
-                    Write(cb, Slot(width * 2 - j, rk),
-                          BinExpr(isfloat, op, Read(Slot(width * 2 - j, k)), Read(Slot(width - j, k))));
+                    WriteExpr(Slot(width * 2 - j, rk),
+                              BinExpr(isfloat, op, Slot(width * 2 - j, k), Slot(width - j, k)));
                 }
             } else if (leftisvec) {
                 for (int j = 0; j < width; j++) {
-                    Write(cb, Slot(width + 1 - j, rk),
-                          BinExpr(isfloat, op, Read(Slot(width + 1 - j, k)), Read(Slot(1, k))));
+                    WriteExpr(Slot(width + 1 - j, rk),
+                              BinExpr(isfloat, op, Slot(width + 1 - j, k), Slot(1, k)));
                 }
             } else {
                 // The scalar sits below the struct, in the slot the first result lands in, so
-                // it is read into a local first.
+                // it is read into a local first, which the results are computed from where they
+                // are since that local does not outlive the block.
                 append(cb, "    { ", CType(k), " _s = ", Read(Slot(width + 1, k)), ";\n");
+                auto scalar = Var("_s", k);
                 for (int j = 0; j < width; j++) {
-                    Write(cb, Slot(width + 1 - j, rk),
-                          BinExpr(isfloat, op, "_s", Read(Slot(width - j, k))));
+                    auto e = BinExpr(isfloat, op, scalar, Slot(width - j, k));
+                    Write(cb, Slot(width + 1 - j, rk), e.text);
                 }
                 cb += "    }\n";
             }
@@ -3028,7 +3140,7 @@ struct CodeGen  {
         if (retval) {
             TakeTemp(2, false);
             TrackUseDef(2, 1);
-            Write(cb, Slot(2, VK_INT), BitExpr(op, Read(Slot(2, VK_INT)), Read(Slot(1, VK_INT))));
+            WriteExpr(Slot(2, VK_INT), BitExpr(op, Slot(2, VK_INT), Slot(1, VK_INT)));
         }
     }
 
@@ -3339,7 +3451,7 @@ void UnaryMinus::Generate(CodeGen &cg, size_t retval) const {
     cg.TrackUseDef(width, width);
     for (int i = 0; i < width; i++) {
         auto v = cg.Slot(width - i, ctype, i);
-        cg.Write(cg.cb, v, "-" + cg.Read(v));
+        cg.WriteExpr(v, cg.Unary("-", v));
     }
 }
 
@@ -3355,7 +3467,7 @@ void Negate::Generate(CodeGen &cg, size_t retval) const {
     cg.TakeTemp(1, false);
     cg.TrackUseDef(1, 1);
     auto v = cg.Slot(1, CodeGen::VK_INT);
-    cg.Write(cg.cb, v, "~" + cg.Read(v));
+    cg.WriteExpr(v, cg.Unary("~", v));
 }
 
 void ToFloat::Generate(CodeGen &cg, size_t retval) const {
