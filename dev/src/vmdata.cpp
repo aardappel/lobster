@@ -434,7 +434,7 @@ Value Value::CopyRef(VM &vm, iint depth) {
             auto len = oval()->Len(vm);
             auto nv = vm.NewObject(len, oval()->tti);
             if (len) {
-                nv->CopyElemsShallow(oval()->Elems(), len);
+                nv->CopyElemsShallow(oval()->FieldSlots(), len);
                 if (depth) {
                     nv->CopyRefElemsDeep(vm, len, depth);
                 } else {
@@ -520,7 +520,7 @@ const TypeInfo &LVector::ElemType(VM &vm) const {
 }
 
 void VectorOrObjectToString(VM &vm, string &sd, PrintPrefs &pp, char openb, char closeb,
-                            iint len, iint width, const Value *elems, bool is_vector,
+                            iint len, iint width, const void *elems, bool is_vector,
                             std::function<const TypeInfo &(iint)> getti) {
     sd += openb;
     if (pp.indent) sd += '\n';
@@ -546,10 +546,10 @@ void VectorOrObjectToString(VM &vm, string &sd, PrintPrefs &pp, char openb, char
             subpp.indent = pp.indent;
             subpp.cur_indent = pp.cur_indent;
             if (RTIsStruct(ti.t)) {
-                vm.StructToString(sd, subpp, ti, elems + i * width);
+                vm.StructToString(sd, subpp, ti, SubSlots(elems, i * width));
                 if (!is_vector) i += ti.len - 1;
             } else {
-                elems[i].ToString(vm, sd, ti, subpp);
+                LoadSlot(elems, i).ToString(vm, sd, ti, subpp);
             }
         } else {
             sd += "..";
@@ -565,7 +565,7 @@ void LObject::ToString(VM &vm, string &sd, PrintPrefs &pp) {
     auto name = vm.ReverseLookupType(ti(vm).structidx);
     sd += name;
     if (pp.indent) sd += ' ';
-    VectorOrObjectToString(vm, sd, pp, '{', '}', Len(vm), 1, Elems(), false,
+    VectorOrObjectToString(vm, sd, pp, '{', '}', Len(vm), 1, FieldSlots(), false,
         [&](iint i) -> const TypeInfo & {
             return ElemTypeSP(vm, i);
         }
@@ -585,7 +585,7 @@ void LResource::ToString(string &sd) {
     append(sd, "(resource:", type->name, ")");
 }
 
-void VM::StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Value *elems) {
+void VM::StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const void *elems) {
     sd += ReverseLookupType(ti.structidx);
     if (pp.indent) sd += ' ';
     VectorOrObjectToString(*this, sd, pp, '{', '}', ti.len, 1, elems, false,
@@ -596,17 +596,18 @@ void VM::StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Va
 }
 
 void ElemToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, iint &i, iint width,
-                      const Value *elems, string_view key, type_elem_t defval) {
+                      const void *elems, string_view key, type_elem_t defval) {
     fbc.cur_depth++;
     if (RTIsStruct(ti.t)) {
         if (!key.empty()) fbc.builder.Key(key.data());
-        bool emitted = fbc.vm.StructToFlexBuffer(fbc, ti, elems + i * width, !key.empty());
+        bool emitted = fbc.vm.StructToFlexBuffer(fbc, ti, SubSlots(elems, i * width),
+                                                 !key.empty());
         if (!key.empty()) {
             i += ti.len - 1;
             if (!emitted) fbc.builder.Undo();  // Pop key.
         }
     } else {
-        elems[i].ToFlexBuffer(fbc, ti.t, key, defval);
+        LoadSlot(elems, i).ToFlexBuffer(fbc, ti.t, key, defval);
     }
     fbc.cur_depth--;
 }
@@ -663,7 +664,7 @@ void LObject::ToFlexBuffer(ToFlexBufferContext &fbc) {
         auto &eti = ElemTypeSP(fbc.vm, i);
         auto fname = fbc.vm.LookupField(stidx, f);
         auto dv = stti.elemtypes[i].defval;
-        ElemToFlexBuffer(fbc, eti, i, 1, Elems(), fname, dv);
+        ElemToFlexBuffer(fbc, eti, i, 1, FieldSlots(), fname, dv);
     }
     fbc.builder.EndMap(start);
     if (inserted) {
@@ -681,7 +682,7 @@ void LVector::ToFlexBuffer(ToFlexBufferContext &fbc) {
 }
 
 bool VM::StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &sti,
-                            const Value *elems, bool omit_if_empty) {
+                            const void *elems, bool omit_if_empty) {
     auto start = fbc.builder.StartMap();
     for (iint i = 0, f = 0; i < sti.len; i++, f++) {
         auto &ti = GetTypeInfo(sti.GetElemOrParent(i));
@@ -695,12 +696,12 @@ bool VM::StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &sti,
 }
 
 void ElemToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &ti, iint &i, iint width,
-                         const Value *elems, bool is_object) {
+                         const void *elems, bool is_object) {
     if (RTIsStruct(ti.t)) {
-        vm.StructToLobsterBinary(vm, buf, ti, elems + i * width);
+        vm.StructToLobsterBinary(vm, buf, ti, SubSlots(elems, i * width));
         if (is_object) i += ti.len - 1;
     } else {
-        elems[i].ToLobsterBinary(vm, buf, ti.t);
+        LoadSlot(elems, i).ToLobsterBinary(vm, buf, ti.t);
     }
 }
 
@@ -713,7 +714,7 @@ void LObject::ToLobsterBinary(VM &vm, vector<uint8_t> &buf) {
     EncodeVarintU(stti.serializable_id, buf);
     for (iint i = 0; i < stti.len; i++) {
         auto &eti = ElemTypeSP(vm, i);
-        ElemToLobsterBinary(vm, buf, eti, i, 1, Elems(), true);
+        ElemToLobsterBinary(vm, buf, eti, i, 1, FieldSlots(), true);
     }
 }
 
@@ -726,7 +727,7 @@ void LVector::ToLobsterBinary(VM &vm, vector<uint8_t> &buf) {
 }
 
 void VM::StructToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &sti,
-                               const Value *elems) {
+                               const void *elems) {
     for (iint i = 0; i < sti.len; i++) {
         auto &ti = GetTypeInfo(sti.GetElemOrParent(i));
         ElemToLobsterBinary(vm, buf, ti, i, 1, elems, true);

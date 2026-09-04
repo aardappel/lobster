@@ -640,7 +640,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             }
             // Upgrade to dynamic type if maybe subclass.
             ti = &v->oval()->ti(vm);
-            v = v->oval()->Elems();  // To iterate it like a struct.
+            v = (Value *)v->oval()->FieldSlots();  // To iterate it like a struct.
         case RTT_STRUCT_R:
         case RTT_STRUCT_S: {
             auto &st = vm.vma.meta->udts[ti->structidx];

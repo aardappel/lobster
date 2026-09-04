@@ -186,9 +186,8 @@ VM_INLINE bool RtStaticSetThisFrame(VM &vm, int vidx) {
 }
 
 VM_INLINE bool RtMemberSetThisFrame(VM &vm, LObject *self, int slot) {
-    auto &v = self->AtR(slot);
-    auto jump = v.ival() < vm.frame_count;
-    v = vm.frame_count + 1;
+    auto jump = self->At(slot).ival() < vm.frame_count;
+    self->SetAt(slot, vm.frame_count + 1);
     return jump;
 }
 
@@ -213,7 +212,7 @@ VM_INLINE void RtAbort(VM &vm) {
 // A class indexed at runtime as an lvalue, whose range check needs the type info.
 VM_INLINE Value *RtLvalIndexClass(VM &vm, LObject *o, iint i, int offset) {
     RANGECHECK(vm, i, o->Len(vm), o);
-    return &o->AtR(i) + offset;
+    return (Value *)o->FieldSlots() + i + offset;
 }
 
 // Appending to a string in place, which can free the old one.

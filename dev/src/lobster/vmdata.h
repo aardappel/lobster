@@ -712,21 +712,42 @@ template<typename T, int N> struct InlineVec {
 template<typename T> inline T *AllocSubBuf(VM &vm, iint size, type_elem_t tti);
 template<typename T> inline void DeallocSubBuf(VM &vm, T *v, iint size);
 
+// Slot `i` of a run of them, where the run may be storage the generated code holds as the types
+// its values are rather than as Values, which is what the fields of an object are, see
+// CodeGen::UDTName. Copying the bytes is what makes that defined whatever it was stored as, and
+// costs nothing: a slot is the size of a register, so this is the load it looks like.
+static_assert(std::is_trivially_copyable<Value>::value, "a slot is copied as bytes");
+
+VM_INLINE Value LoadSlot(const void *slots, iint i) {
+    Value v(0);
+    memcpy(&v, (const char *)slots + i * ssizeof<Value>(), sizeof(Value));
+    return v;
+}
+
+VM_INLINE void StoreSlot(void *slots, iint i, Value v) {
+    memcpy((char *)slots + i * ssizeof<Value>(), &v, sizeof(Value));
+}
+
+// The run that starts at slot `i` of this one, for the walkers that step into a struct.
+VM_INLINE const void *SubSlots(const void *slots, iint i) {
+    return (const char *)slots + i * ssizeof<Value>();
+}
+
 struct LObject : RefObj {
     LObject(type_elem_t _tti) : RefObj(_tti) {}
 
     // FIXME: reduce the use of these.
     iint Len(VM &vm) const { return ti(vm).len; }
 
-    Value *Elems() const { return (Value *)(this + 1); }
+    // The slots its fields live in, which the generated code holds as the types those fields
+    // are rather than as Values, see CodeGen::UDTName. That is why everything below reads and
+    // writes them a byte at a time, see LoadSlot: reading an object as another type than it
+    // was stored as is only defined that way.
+    void *FieldSlots() const { return (void *)(this + 1); }
 
-    // This may only be called from a context where i < len has already been ensured/asserted.
-    Value At(iint i) const {
-        return Elems()[i];
-    }
-    Value &AtR(iint i) {
-        return Elems()[i];
-    }
+    // These may only be called from a context where i < len has already been ensured/asserted.
+    Value At(iint i) const { return LoadSlot(FieldSlots(), i); }
+    void SetAt(iint i, Value v) { StoreSlot(FieldSlots(), i, v); }
 
     void DeleteSelf(VM &vm);
 
@@ -752,8 +773,8 @@ struct LObject : RefObj {
         return true;
     }
 
-    void CopyElemsShallow(Value *from, iint len) {
-        t_memcpy(Elems(), from, len);
+    void CopyElemsShallow(const void *from, iint len) {
+        memcpy(FieldSlots(), from, (size_t)len * sizeof(Value));
     }
 
     void IncRefElems(VM &vm, iint len) {
@@ -766,7 +787,7 @@ struct LObject : RefObj {
     void CopyRefElemsDeep(VM &vm, iint len, iint depth) {
         auto &oti = ti(vm);
         for (iint i = 0; i < len; i++) {
-            if (RTIsRefNil(ElemTypeSOf(vm, oti, i).t)) AtR(i) = At(i).CopyRef(vm, depth);
+            if (RTIsRefNil(ElemTypeSOf(vm, oti, i).t)) SetAt(i, At(i).CopyRef(vm, depth));
         }
     }
 
@@ -1282,15 +1303,15 @@ struct VM : VMBase {
         a.ToString(*this, s_reuse, ti, programprintprefs);
         return NewString(s_reuse);
     }
-    LString *StructToString(const Value *elems, const TypeInfo &ti) {
+    LString *StructToString(const void *elems, const TypeInfo &ti) {
         s_reuse.clear();
         StructToString(s_reuse, programprintprefs, ti, elems);
         return NewString(s_reuse);
     }
-    void StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const Value *elems);
-    bool StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, const Value *elems,
+    void StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const void *elems);
+    bool StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, const void *elems,
                             bool omit_if_empty);
-    void StructToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &ti, const Value *elems);
+    void StructToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &ti, const void *elems);
     bool EnumLookup(string *sd, iint val, int enumidx);
     bool EnumName(string &sd, iint val, int enumidx);
     bool EnumValueValid(iint val, int enumidx);
