@@ -291,10 +291,11 @@ use a prefix like <code>builtin_gl_</code> for a group registered under
 a namespace) whose parameter list and body follow the macro, and a
 global holding the metadata that adds itself to the
 <code>BUILTIN_GROUP</code> list. The compiled code calls the function by
-that name, so the parameter list must be <code>StackPtr &amp;</code>,
+that name. The parameter list must be <code>StackPtr &amp;</code>,
 <code>VM &amp;</code> and then one <code>Value</code> per argument in
-the type string. See <code>natreg.h</code> for the variants for vararg
-builtins and for overloading a name.</p>
+the type string, which the macro enforces by declaring the function that
+way ahead of the definition. See <code>natreg.h</code> for the variants
+for vararg builtins and for overloading a name.</p>
 <p>You'll need to become somewhat familiar with the Lobster internals to
 write these functions successfully, in particular with the
 <code>Value</code> type (see <code>vmdata.h</code>), which is a union of

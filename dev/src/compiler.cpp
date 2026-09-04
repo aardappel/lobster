@@ -594,25 +594,12 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view metadata_buffer, stri
                           const JitOptions &jit_options) {
     #if VM_JIT_MODE
         const char *export_names[] = { "compiled_entry_point", "vtables", nullptr };
-        // What the generated code may refer to: the runtime helpers, and the builtins by their
-        // symbol, which it gets from this executable.
-        vector<const void *> imports;
-        for (auto p = vm_ops_jit_table; *p; p += 2) {
-            imports.push_back(p[0]);
-            imports.push_back(p[1]);
-        }
-        for (auto nf : nfr.nfuns) {
-            auto addr = FindExecutableSymbol(nf->symbol);
-            if (!addr) THROW_OR_ABORT(cat("builtin ", nf->symbol, " is not exported by this executable"));
-            imports.push_back(nf->symbol);
-            imports.push_back(addr);
-        }
-        imports.push_back(nullptr);
-        imports.push_back(nullptr);
+        assert(!nfr.jit_imports.empty());
         auto start_time = SecondsSinceStart();
         pair<string, iint> ret;
         auto ok = RunC(
-            c_codegen.c_str(), object_name, error, imports.data(), export_names, jit_options,
+            c_codegen.c_str(), object_name, error, nfr.jit_imports.data(), export_names,
+            jit_options,
             [&](void **exports) -> bool {
                 LOG_INFO("time to ", jit_options.mir ? "mir" : "tcc",
                          " (seconds): ", SecondsSinceStart() - start_time);

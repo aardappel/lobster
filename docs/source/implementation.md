@@ -292,9 +292,10 @@ BUILTIN(add, "x,y", "II", "I", "Adds two integers.")
 `builtin_add`, use a prefix like `builtin_gl_` for a group registered under a
 namespace) whose parameter list and body follow the macro, and a global holding
 the metadata that adds itself to the `BUILTIN_GROUP` list. The compiled code
-calls the function by that name, so the parameter list must be `StackPtr &`,
-`VM &` and then one `Value` per argument in the type string. See `natreg.h` for
-the variants for vararg builtins and for overloading a name.
+calls the function by that name. The parameter list must be `StackPtr &`,
+`VM &` and then one `Value` per argument in the type string, which the macro
+enforces by declaring the function that way ahead of the definition. See
+`natreg.h` for the variants for vararg builtins and for overloading a name.
 
 You'll need to become somewhat familiar with the Lobster internals to write
 these functions successfully, in particular with the `Value` type (see
