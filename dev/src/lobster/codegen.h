@@ -2387,6 +2387,10 @@ struct CodeGen  {
         if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START)
             append(sd, "// ", Signature(*st.subfunctiontable[sf_idx]), "\n");
         assert(f_arg_places.size() == f_args.size());
+        // The body is complete, so a slot whose write is still deferred is never read:
+        // dropping those here also keeps the writes to locals below from flushing them
+        // into the body, which is already past the declarations they would need.
+        pending.clear();
         Types argtypes;
         for (auto &p : f_arg_places) argtypes.push_back(p.rtt);
         append(sd, FunSignature(FunName(sf_idx), argtypes, f_ret_types, &f_arg_places), " {\n");
@@ -2487,7 +2491,6 @@ struct CodeGen  {
         sd += "}\n";
         ownedvars.clear();
         f_keeps.clear();
-        pending.clear();
         f_slot_kinds.clear();
         f_uses_vals = false;
         f_vals_max = 0;
@@ -3760,18 +3763,6 @@ void ToInt::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
     // No actual opcode needed, this node is purely to store correct types.
     if (retval) cg.TakeTemp(1, false);
-}
-
-void ToStructSuper::Generate(CodeGen &cg, size_t retval) const {
-    // TODO: rather than chopping off extra fields, can see if child is an IdentRef and make it
-    // not push those fields in the first place.
-    cg.Gen(child, retval);
-    if (!retval) return;
-    cg.TakeTemp(1, true);
-    for (auto i = child->exptype->udt->sfields.size() - 1; i >= exptype->udt->sfields.size(); i--) {
-        auto &sfield = child->exptype->udt->sfields[i];
-        cg.GenPop({ sfield.type, lt });
-    }
 }
 
 void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
