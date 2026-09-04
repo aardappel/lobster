@@ -143,20 +143,20 @@ BUILTIN(format_time, "format,time,localtime", "SIB", "S",
     " using the same format string syntax as POSIX strftime. If localtime is true, then"
     " the time will be displayed using the local timezone, otherwise it will use UTC."
     " Returns an empty string on error.")
-(StackPtr &, VM &vm, Value format, Value time, Value use_localtime) {
-    chrono::system_clock::time_point tp { chrono::seconds(time.ival()) };
+(StackPtr &, VM &vm, LString *format, iint time, iint use_localtime) {
+    chrono::system_clock::time_point tp { chrono::seconds(time) };
     time_t tt = chrono::system_clock::to_time_t(tp);
     tm ctm{};
     bool ok = false;
     #ifdef _WIN32
-        ok = (use_localtime.True() ? localtime_s(&ctm, &tt) : gmtime_s(&ctm, &tt)) == 0;
+        ok = ((use_localtime != 0) ? localtime_s(&ctm, &tt) : gmtime_s(&ctm, &tt)) == 0;
     #else
-        ok = (use_localtime.True() ? localtime_r(&tt, &ctm) : gmtime_r(&tt, &ctm)) != nullptr;
+        ok = ((use_localtime != 0) ? localtime_r(&tt, &ctm) : gmtime_r(&tt, &ctm)) != nullptr;
     #endif
     if (!ok) return Value(vm.NewString(0));
     // TODO: using strftime to avoid pulling in std::format(); maybe we should reconsider that?
     char buf[1024];
-    auto written = strftime(buf, sizeof(buf), format.sval()->data(), &ctm);
+    auto written = strftime(buf, sizeof(buf), format->data(), &ctm);
     // TODO: written may be zero if the format string was too long; in that
     // case maybe we want to try again with a larger buf?
     if (written == 0) return Value(vm.NewString(0));
@@ -170,11 +170,11 @@ BUILTIN(scan_folder, "folder,rel", "SB?", "S]?I]?I]?",
     " the number of seconds since 00:00:00 UTC, Thursday, 1 January 1970, not including leap seconds."
     " set rel use a relative path, default is absolute."
     " Returns nil if folder couldn't be scanned.")
-(StackPtr &sp, VM &vm, Value fld, Value rel) {
+(StackPtr &sp, VM &vm, LString *fld, iint rel) {
     vector<DirectoryInfo> dir;
-    auto ok = rel.True()
-        ? ScanDir(fld.sval()->strv(), dir)
-        : ScanDirAbs(fld.sval()->strv(), dir);
+    auto ok = (rel != 0)
+        ? ScanDir(fld->strv(), dir)
+        : ScanDirAbs(fld->strv(), dir);
     if (!ok) {
         Push(sp, NilVal());
         Push(sp, NilVal());
@@ -227,9 +227,9 @@ BUILTIN(scan_folder, "folder,rel", "SB?", "S]?I]?I]?",
 BUILTIN(read_file, "file,textmode", "SI?", "S?",
     "returns the contents of a file as a string, or nil if the file can't be found."
     " you may use either \\ or / as path separators")
-(StackPtr &, VM &vm, Value file, Value textmode) {
+(StackPtr &, VM &vm, LString *file, iint textmode) {
     string buf;
-    auto l = LoadFile(file.sval()->strv(), &buf, 0, -1, textmode.False());
+    auto l = LoadFile(file->strv(), &buf, 0, -1, (textmode == 0));
     if (l < 0) return NilVal();
     auto s = vm.NewString(buf);
     return Value(s);
@@ -237,42 +237,41 @@ BUILTIN(read_file, "file,textmode", "SI?", "S?",
 
 BUILTIN(write_file, "file,contents,textmode,absolute_path", "SSI?I?", "B",
     "creates a file with the contents of a string, returns false if writing wasn't possible")
-(StackPtr &, VM &, Value file, Value contents, Value textmode, Value absolute) {
-    auto ok = WriteFile(file.sval()->strv(), textmode.False(), contents.sval()->strv(), absolute.True());
+(StackPtr &, VM &, LString *file, LString *contents, iint textmode, iint absolute) {
+    auto ok = WriteFile(file->strv(), (textmode == 0), contents->strv(), (absolute != 0));
     return Value(ok);
 }
 
 BUILTIN(rename_file, "old_file,new_file", "SS", "B",
     "renames a file, returns false if it wasn't possible")
-(StackPtr &, VM &, Value old_file, Value new_file) {
-    auto ok = RenameFile(old_file.sval()->strv(), new_file.sval()->strv());
+(StackPtr &, VM &, LString *old_file, LString *new_file) {
+    auto ok = RenameFile(old_file->strv(), new_file->strv());
     return Value(ok);
 }
 
 BUILTIN(delete_file, "file", "S", "B", "deletes a file, returns false if it wasn't possible. Will search in all import dirs.")
-(StackPtr &, VM &, Value file) {
-    auto ok = FileDelete(file.sval()->strv());
+(StackPtr &, VM &, LString *file) {
+    auto ok = FileDelete(file->strv());
     return Value(ok);
 }
 
 BUILTIN(exists_file, "file", "S", "B", "checks whether a file exists.")
-(StackPtr &, VM &, Value file) {
-    auto ok = FileExists(file.sval()->strv(), false);
+(StackPtr &, VM &, LString *file) {
+    auto ok = FileExists(file->strv(), false);
     return Value(ok);
 }
 
 BUILTIN_V(launch_subprocess, "commandline,stdin", "S]S?", "IS",
     "launches a sub process, with optionally a stdin for the process, and returns its"
     " return code (or -1 if it couldn't launch at all), and any output")
-(StackPtr &sp, VM &vm, Value commandline_, Value stdins) {
-    auto commandline = commandline_.vval();
+(StackPtr &sp, VM &vm, LVector *commandline, LString *stdins) {
     vector<const char *> cmdl;
     for (iint i = 0; i < commandline->len; i++) {
         cmdl.push_back(commandline->AtS(i).sval()->data());
     }
     cmdl.push_back(nullptr);
     string out;
-    auto ret = LaunchSubProcess(cmdl.data(), stdins.True() ? stdins.sval()->data() : nullptr, out);
+    auto ret = LaunchSubProcess(cmdl.data(), (stdins != nullptr) ? stdins->data() : nullptr, out);
     Push(sp, ret);
     Push(sp, vm.NewString(out));
 }
@@ -282,13 +281,11 @@ BUILTIN(vector_to_buffer, "vec,width,offset,len", "A]*I?:4I?I?", "S",
     " each scalar is written with \"width\" bytes (1/2/4/8, default 4). Returns nil if the"
     " type couldn't be converted. Uses native endianness."
     " Offset and len can specify a slice of the input, but if not specified default to all.")
-(StackPtr &, VM &vm, Value vec, Value width, Value _offset, Value _len) {
-    auto v = vec.vval();
-    auto w = width.intval();
-    auto offset = _offset.ival();
+(StackPtr &, VM &vm, LVector *v, iint width, iint offset, iint _len) {
+    auto w = (int)width;
     if (offset > v->len)
         vm.Error("vector_to_buffer: offset out of range");
-    auto len = _len.ival();
+    auto len = _len;
     if (!len) len = v->len - offset;
     else if (len > v->len - offset)
         vm.Error("vector_to_buffer: len out of range");
@@ -350,11 +347,11 @@ BUILTIN(ensure_size, "string,size,char,extra", "SkIII?", "S",
     " added), with any new characters set to"
     " char. You can specify a negative size to mean relative to the end, i.e. new"
     " characters will be added at the start. ")
-(StackPtr &, VM &vm, Value str, Value size, Value c, Value extra) {
-    auto asize = std::abs(size.ival());
-    return str.sval()->len >= asize
+(StackPtr &, VM &vm, LString *str, iint size, iint c, iint extra) {
+    auto asize = std::abs(size);
+    return str->len >= asize
         ? str
-        : Value(vm.ResizeString(str.sval(), asize + extra.ival(), c.intval(), size.ival() < 0));
+        : Value(vm.ResizeString(str, asize + extra, (int)c, size < 0));
 }
 
 static const char *write_val_desc1 =
@@ -364,45 +361,39 @@ static const char *write_val_desc1 =
     " and the index of the location right after where the value was written. The"
     " _back version writes relative to the end (and writes before the index)";
 static const char *write_val_desc2 = "(see write_int64_le)";
-#define WRITEOP(N, T, B, D, S) \
+#define WRITEOP(N, T, B, D, S, VT) \
     BUILTIN(N, "string,i,val", "SkI" S, "SI", D) \
-    (StackPtr &sp, VM &vm, Value str, Value idx, Value val) { \
+    (StackPtr &sp, VM &vm, LString *str, iint idx, VT val) { \
         return WriteVal<T, B>(sp, vm, str, idx, val); \
     }
-WRITEOP(write_int64_le, int64_t, false, write_val_desc1, "I")
-WRITEOP(write_int32_le, int32_t, false, write_val_desc2, "I")
-WRITEOP(write_int16_le, int16_t, false, write_val_desc2, "I")
-WRITEOP(write_int8_le, int8_t, false, write_val_desc2, "I")
-WRITEOP(write_float64_le, double, false, write_val_desc2, "F")
-WRITEOP(write_float32_le, float, false, write_val_desc2, "F")
-WRITEOP(write_int64_le_back, int64_t, true, write_val_desc2, "I")
-WRITEOP(write_int32_le_back, int32_t, true, write_val_desc2, "I")
-WRITEOP(write_int16_le_back, int16_t, true, write_val_desc2, "I")
-WRITEOP(write_int8_le_back, int8_t, true, write_val_desc2, "I")
-WRITEOP(write_float64_le_back, double, true, write_val_desc2, "F")
-WRITEOP(write_float32_le_back, float, true, write_val_desc2, "F")
+WRITEOP(write_int64_le, int64_t, false, write_val_desc1, "I", iint)
+WRITEOP(write_int32_le, int32_t, false, write_val_desc2, "I", iint)
+WRITEOP(write_int16_le, int16_t, false, write_val_desc2, "I", iint)
+WRITEOP(write_int8_le, int8_t, false, write_val_desc2, "I", iint)
+WRITEOP(write_float64_le, double, false, write_val_desc2, "F", double)
+WRITEOP(write_float32_le, float, false, write_val_desc2, "F", double)
+WRITEOP(write_int64_le_back, int64_t, true, write_val_desc2, "I", iint)
+WRITEOP(write_int32_le_back, int32_t, true, write_val_desc2, "I", iint)
+WRITEOP(write_int16_le_back, int16_t, true, write_val_desc2, "I", iint)
+WRITEOP(write_int8_le_back, int8_t, true, write_val_desc2, "I", iint)
+WRITEOP(write_float64_le_back, double, true, write_val_desc2, "F", double)
+WRITEOP(write_float32_le_back, float, true, write_val_desc2, "F", double)
 
 BUILTIN(write_substring, "string,i,substr,nullterm", "SkISI", "SI",
     "writes a substring into another string at i (see also write_int64_le)")
-(StackPtr &sp, VM &vm, Value str, Value idx, Value val, Value term) {
-    return WriteStr<false>(sp, vm, str, idx, val.sval(), term.True());
+(StackPtr &sp, VM &vm, LString *str, iint idx, LString *val, iint term) {
+    return WriteStr<false>(sp, vm, str, idx, val, (term != 0));
 }
 
 BUILTIN(write_substring_back, "string,i,substr,nullterm", "SkISI", "SI",
     "")
-(StackPtr &sp, VM &vm, Value str, Value idx, Value val, Value term) {
-    return WriteStr<true>(sp, vm, str, idx, val.sval(), term.True());
+(StackPtr &sp, VM &vm, LString *str, iint idx, LString *val, iint term) {
+    return WriteStr<true>(sp, vm, str, idx, val, (term != 0));
 }
 
 BUILTIN(compare_substring, "string_a,i_a,string_b,i_b,len", "SISII", "I",
     "returns if the two substrings are equal (0), or a < b (-1) or a > b (1).")
-(StackPtr &, VM &vm, Value str1, Value idx1, Value str2, Value idx2,
-    Value len) {
-    auto s1 = str1.sval();
-    auto s2 = str2.sval();
-    auto i1 = idx1.ival();
-    auto i2 = idx2.ival();
-    auto l = len.ival();
+(StackPtr &, VM &vm, LString *s1, iint i1, LString *s2, iint i2, iint l) {
     if (l < 0 || i1 < 0 || i2 < 0 || i1 + l > s1->len || i2 + l > s2->len)
         vm.Error("compare_substring: index out of bounds");
     auto eq = memcmp(s1->data() + i1, s2->data() + i2, l);
@@ -417,7 +408,7 @@ static const char *read_val_desc1 =
 static const char *read_val_desc2 = "(see read_int64_le)";
 #define READOP(N, T, B, D, S) \
     BUILTIN(N, "string,i", "SI", S "I", D) \
-    (StackPtr &sp, VM &vm, Value str, Value idx) { return ReadVal<T, B>(sp, vm, str, idx); }
+    (StackPtr &sp, VM &vm, LString *str, iint idx) { return ReadVal<T, B>(sp, vm, str, idx); }
 READOP(read_int64_le, int64_t, false, read_val_desc1, "I")
 READOP(read_int32_le, int32_t, false, read_val_desc2, "I")
 READOP(read_int16_le, int16_t, false, read_val_desc2, "I")
@@ -451,44 +442,44 @@ static const char *read_field_desc1 =
     " and default value def. The value must be within"
     " bounds of the string. Returns the value (or default if the field was not present)";
 static const char *read_field_desc2 = "(see flatbuffers.field_int64)";
-#define READFOP(N, T, D, S) \
+#define READFOP(N, T, D, S, VT) \
     BUILTIN(N, "string,tablei,vo,def", "SII" S, S, D) \
-    (StackPtr &, VM &vm, Value str, Value idx, Value vidx, Value def) { \
+    (StackPtr &, VM &vm, LString *str, iint idx, iint vidx, VT def) { \
         auto val = ReadField<T, S[0] == 'F', false, false>(vm, str, idx, vidx, def); \
         return Value(val); \
     }
-READFOP(field_int64, int64_t, read_field_desc1, "I")
-READFOP(field_int32, int32_t, read_field_desc2, "I")
-READFOP(field_int16, int16_t, read_field_desc2, "I")
-READFOP(field_int8, int8_t, read_field_desc2, "I")
-READFOP(field_uint64, uint64_t, read_field_desc1, "I")
-READFOP(field_uint32, uint32_t, read_field_desc2, "I")
-READFOP(field_uint16, uint16_t, read_field_desc2, "I")
-READFOP(field_uint8, uint8_t, read_field_desc2, "I")
-READFOP(field_float64, double, read_field_desc2, "F")
-READFOP(field_float32, float, read_field_desc2, "F")
+READFOP(field_int64, int64_t, read_field_desc1, "I", iint)
+READFOP(field_int32, int32_t, read_field_desc2, "I", iint)
+READFOP(field_int16, int16_t, read_field_desc2, "I", iint)
+READFOP(field_int8, int8_t, read_field_desc2, "I", iint)
+READFOP(field_uint64, uint64_t, read_field_desc1, "I", iint)
+READFOP(field_uint32, uint32_t, read_field_desc2, "I", iint)
+READFOP(field_uint16, uint16_t, read_field_desc2, "I", iint)
+READFOP(field_uint8, uint8_t, read_field_desc2, "I", iint)
+READFOP(field_float64, double, read_field_desc2, "F", double)
+READFOP(field_float32, float, read_field_desc2, "F", double)
 
 BUILTIN(field_string, "string,tablei,vo", "SII", "S",
     "reads a flatbuffer string field, returns \"\" if not present")
-(StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
+(StackPtr &, VM &vm, LString *str, iint idx, iint vidx) {
     auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                     Value(0)).ival();
-    auto ret = Value(GetString(vm, fi, str.sval()));
+    auto ret = Value(GetString(vm, fi, str));
     return ret;
 }
 
 BUILTIN(field_vector_len, "string,tablei,vo", "SII", "I",
     "reads a flatbuffer vector field length, or 0 if not present")
-(StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
+(StackPtr &, VM &vm, LString *str, iint idx, iint vidx) {
     auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                     Value(0)).ival();
-    Value ret(fi ? Read<flatbuffers::uoffset_t, false>(vm, fi, str.sval()) : 0);
+    Value ret(fi ? Read<flatbuffers::uoffset_t, false>(vm, fi, str) : 0);
     return ret;
 }
 
 BUILTIN(field_vector, "string,tablei,vo", "SII", "I",
     "returns a flatbuffer vector field element start, or 0 if not present")
-(StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
+(StackPtr &, VM &vm, LString *str, iint idx, iint vidx) {
     auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                     Value(0)).ival();
     Value ret(fi ? fi + ssizeof<flatbuffers::uoffset_t>() : 0);
@@ -497,7 +488,7 @@ BUILTIN(field_vector, "string,tablei,vo", "SII", "I",
 
 BUILTIN(field_table, "string,tablei,vo", "SII", "I",
     "returns a flatbuffer table field start, or 0 if not present")
-(StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
+(StackPtr &, VM &vm, LString *str, iint idx, iint vidx) {
     auto ret = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                      Value(0));
     return ret;
@@ -505,7 +496,7 @@ BUILTIN(field_table, "string,tablei,vo", "SII", "I",
 
 BUILTIN(field_struct, "string,tablei,vo", "SII", "I",
     "returns a flatbuffer struct field start, or 0 if not present")
-(StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
+(StackPtr &, VM &vm, LString *str, iint idx, iint vidx) {
     auto ret = ReadField<flatbuffers::uoffset_t, false, false, true>(vm, str, idx, vidx,
                                                                      Value(0));
     return ret;
@@ -513,22 +504,22 @@ BUILTIN(field_struct, "string,tablei,vo", "SII", "I",
 
 BUILTIN(field_present, "string,tablei,vo", "SII", "B",
     "returns if a flatbuffer field is present (unequal to default)")
-(StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
+(StackPtr &, VM &vm, LString *str, iint idx, iint vidx) {
     return FieldPresent(vm, str, idx, vidx);
 }
 
 BUILTIN(indirect, "string,index", "SI", "I",
     "returns a flatbuffer offset at index relative to itself")
-(StackPtr &, VM &vm, Value str, Value idx) {
-    auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
-    return Value(off + idx.ival());
+(StackPtr &, VM &vm, LString *str, iint idx) {
+    auto off = Read<flatbuffers::uoffset_t, false>(vm, idx, str);
+    return Value(off + idx);
 }
 
 BUILTIN(string, "string,index", "SI", "S",
     "returns a flatbuffer string whose offset is at given index")
-(StackPtr &, VM &vm, Value str, Value idx) {
-    auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
-    auto ret = GetString(vm, off + idx.ival(), str.sval());
+(StackPtr &, VM &vm, LString *str, iint idx) {
+    auto off = Read<flatbuffers::uoffset_t, false>(vm, idx, str);
+    auto ret = GetString(vm, off + idx, str);
     return Value(ret);
 }
 
@@ -536,12 +527,12 @@ BUILTIN(binary_to_json, "schemas,binary,includedirs", "SSS]", "SS?",
     "returns a JSON string generated from the given binary and corresponding schema."
     "if there was an error parsing the schema, the error will be in the second return"
     "value, or nil for no error")
-(StackPtr &sp, VM &vm, Value schema, Value binary, Value includes) {
+(StackPtr &sp, VM &vm, LString *schema, LString *binary, LVector *includes) {
     flatbuffers::Parser parser;
     auto err = ParseSchemas(vm, parser, schema, includes);
     string json;
     if (err.False()) {
-        auto e = GenText(parser, binary.sval()->data(), &json);
+        auto e = GenText(parser, binary->data(), &json);
         if (e) {
             err = vm.NewString("unable to generate text for FlatBuffer binary: " + string(e));
         }
@@ -554,12 +545,12 @@ BUILTIN(json_to_binary, "schema,json,includedirs", "SSS]", "SS?",
     "returns a binary flatbuffer generated from the given json and corresponding schema."
     "if there was an error parsing the schema, the error will be in the second return"
     "value, or nil for no error")
-(StackPtr &sp, VM &vm, Value schema, Value json, Value includes) {
+(StackPtr &sp, VM &vm, LString *schema, LString *json, LVector *includes) {
     flatbuffers::Parser parser;
     auto err = ParseSchemas(vm, parser, schema, includes);
     string binary;
     if (err.False()) {
-        if (!parser.Parse(json.sval()->data())) {
+        if (!parser.Parse(json->data())) {
             err = vm.NewString(parser.error_);
         } else {
             binary.assign((const char *)parser.builder_.GetBufferPointer(),

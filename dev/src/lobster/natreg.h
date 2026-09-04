@@ -145,31 +145,60 @@ constexpr int BuiltinNumArgs(const char *typeids) {
     return n;
 }
 
-// Whether argument `arg` is one whose values live in a run of stack slots rather than in a
-// single one: a numeric struct ('}'), or one that may be passed a struct ('w'). The builtin
-// gets a pointer to them plus how many there are, see BuiltinParamKindOf. A ']' after the '}'
-// makes it a vector of structs, which is a single reference again.
-constexpr bool BuiltinArgIsVec(const char *typeids, int arg) {
+// What C++ type an argument of a builtin becomes, from its type letter and what wraps it.
+// A '}' argument (a numeric struct) and a 'w' one (which may be passed a struct) have their
+// values in a run of stack slots rather than in a single one, so the builtin gets a pointer to
+// them plus how many there are. A ']' makes any of them a vector, which is a reference again.
+// An 'A' argument can hold any kind of reference, and an 'L' one is only ever passed on, so
+// they stay a Value.
+enum BuiltinArgKind {
+    BAK_VALUE,     // A, L
+    BAK_INT,       // I, B, T
+    BAK_FLOAT,     // F
+    BAK_STRING,    // S
+    BAK_VECTOR,    // ]
+    BAK_RESOURCE,  // R
+    BAK_VEC,       // } or w
+    BAK_LEN        // Not an argument: the count that follows a BAK_VEC one.
+};
+
+constexpr BuiltinArgKind BuiltinArgKindOf(const char *typeids, int arg) {
     auto n = -1;
-    auto isvec = false;
+    char base = 0;
+    auto wrap = 0;  // 1 = vector, 2 = the values on the stack.
     auto resource = false;
     for (;; typeids++) {
         auto c = *typeids;
         if (!c || (c >= 'A' && c <= 'Z')) {
-            if (n == arg) return isvec;
-            if (!c) return false;
+            if (n == arg) {
+                if (wrap == 2) return BAK_VEC;
+                if (wrap == 1) return BAK_VECTOR;
+                switch (base) {
+                    case 'I': case 'B': case 'T': return BAK_INT;
+                    case 'F': return BAK_FLOAT;
+                    case 'S': return BAK_STRING;
+                    case 'R': return BAK_RESOURCE;
+                    default: return BAK_VALUE;
+                }
+            }
+            if (!c) return BAK_VALUE;
             n++;
-            isvec = false;
+            base = c;
+            wrap = 0;
             resource = c == 'R';
         } else if (resource && c == ':') {
             // The name of the resource type follows, which is all lowercase, see Narg::Set.
             while (typeids[1] >= 'a' && typeids[1] <= 'z') typeids++;
         } else if (c == '}' || c == 'w') {
-            isvec = true;
+            wrap = 2;
         } else if (c == ']') {
-            isvec = false;
+            wrap = 1;
         }
     }
+}
+
+constexpr bool BuiltinArgIsVec(const char *typeids, int arg) {
+    return BuiltinArgKindOf(typeids, arg) == BAK_VEC;
 }
 
 // The parameters of a builtin: one per argument, except a vec one, which takes two.
@@ -179,29 +208,32 @@ constexpr int BuiltinNumParams(const char *typeids) {
     return n;
 }
 
-enum BuiltinParamKind {
-    BPK_VALUE,     // A single value.
-    BPK_VALUEPTR,  // The values of a vec argument, in the stack slots they were passed in.
-    BPK_LEN        // How many of those there are, which follows the pointer to them.
-};
-
-constexpr BuiltinParamKind BuiltinParamKindOf(const char *typeids, int param) {
+constexpr BuiltinArgKind BuiltinParamKindOf(const char *typeids, int param) {
     for (auto arg = 0;; arg++) {
-        if (BuiltinArgIsVec(typeids, arg)) {
-            if (!param) return BPK_VALUEPTR;
-            if (param == 1) return BPK_LEN;
+        auto k = BuiltinArgKindOf(typeids, arg);
+        if (k == BAK_VEC) {
+            if (!param) return BAK_VEC;
+            if (param == 1) return BAK_LEN;
             param -= 2;
         } else {
-            if (!param) return BPK_VALUE;
+            if (!param) return k;
             param--;
         }
     }
 }
 
+template<BuiltinArgKind K> struct BuiltinParamType;
+template<> struct BuiltinParamType<BAK_VALUE>    { typedef Value type; };
+template<> struct BuiltinParamType<BAK_INT>      { typedef iint type; };
+template<> struct BuiltinParamType<BAK_FLOAT>    { typedef double type; };
+template<> struct BuiltinParamType<BAK_STRING>   { typedef LString *type; };
+template<> struct BuiltinParamType<BAK_VECTOR>   { typedef LVector *type; };
+template<> struct BuiltinParamType<BAK_RESOURCE> { typedef LResource *type; };
+template<> struct BuiltinParamType<BAK_VEC>      { typedef Value *type; };
+template<> struct BuiltinParamType<BAK_LEN>      { typedef iint type; };
+
 template<typename TIDS, size_t P> struct BuiltinParam {
-    static constexpr BuiltinParamKind kind = BuiltinParamKindOf(TIDS::tids, (int)P);
-    typedef std::conditional_t<kind == BPK_VALUEPTR, Value *,
-            std::conditional_t<kind == BPK_LEN, iint, Value>> type;
+    typedef typename BuiltinParamType<BuiltinParamKindOf(TIDS::tids, (int)P)>::type type;
 };
 
 template<typename TIDS, bool PushRets, typename Params> struct BuiltinSigT;
@@ -363,11 +395,22 @@ struct NativeFun : Named {
         }
     }
 
-    // Whether argument `i` is passed as a pointer to its values on the stack plus how many
-    // there are, see BuiltinArgIsVec.
-    bool ArgIsVec(size_t i) const {
-        return args[i].vttype->t == V_STRUCT_NUM || (args[i].flags & NF_PUSHVALUEWIDTH);
+    // The C++ type argument `i` reaches the builtin as, which must agree with what
+    // BuiltinArgKindOf makes of the type string it came from.
+    BuiltinArgKind ArgKind(size_t i) const {
+        auto &arg = args[i];
+        if (arg.vttype->t == V_STRUCT_NUM || (arg.flags & NF_PUSHVALUEWIDTH)) return BAK_VEC;
+        switch (arg.vttype->ElementIfNil()->t) {
+            case V_VECTOR: return BAK_VECTOR;
+            case V_INT:
+            case V_TYPEID: return BAK_INT;
+            case V_FLOAT: return BAK_FLOAT;
+            case V_STRING: return BAK_STRING;
+            case V_RESOURCE: return BAK_RESOURCE;
+            default: return BAK_VALUE;
+        }
     }
+    bool ArgIsVec(size_t i) const { return ArgKind(i) == BAK_VEC; }
 
     bool IsGLFrame() {
         return name == "gl.frame";

@@ -70,9 +70,9 @@ BuiltinGroup font_builtins;
 BUILTIN(set_font_name, "filename", "S", "B",
     "sets a freetype/OTF/TTF font as current (and loads it from disk the first time). returns"
     " true if success.")
-(StackPtr &, VM &vm, Value fname) {
+(StackPtr &, VM &vm, LString *fname) {
     TestGL(vm);
-    auto piname = string(fname.sval()->strv());
+    auto piname = string(fname->strv());
     auto faceit = loadedfaces.find(piname);
     if (faceit != loadedfaces.end()) {
         curface = faceit->second;
@@ -97,11 +97,11 @@ BUILTIN_V(set_font_size, "size,outlinesize,outlinecolor", "IF?F}:4?", "B",
     " an optional outlinesize will give the font an outline."
     " make sure to call this every frame."
     " returns true if success")
-(StackPtr &sp, VM &vm, Value size_, Value outlinesize_, Value *outlinecolor,
+(StackPtr &sp, VM &vm, iint size_, double outlinesize_, Value *outlinecolor,
  iint outlinecolor_len) {
     auto outlinecol = ToVec<float4>(outlinecolor, outlinecolor_len);
-    auto outlinesize = outlinesize_.fltval();
-    auto fontsize = size_.intval();
+    auto outlinesize = (float)outlinesize_;
+    auto fontsize = (int)size_;
     if (!curface) vm.BuiltinError("gl.set_font_size: no current font set with gl.set_font_name");
     float osize = min(16.0f, max(0.0f, outlinesize));
     int size = max(1, fontsize);
@@ -128,8 +128,8 @@ BUILTIN_V(set_font_size, "size,outlinesize,outlinecolor", "IF?F}:4?", "B",
 BUILTIN(set_max_font_size, "size", "I", "",
     "sets the max font size to render to bitmaps. any sizes specified over that by setfontsize"
     " will still work but cause scaled rendering. default 256")
-(StackPtr &, VM &, Value fontsize) {
-    maxfontsize = fontsize.intval();
+(StackPtr &, VM &, iint fontsize) {
+    maxfontsize = (int)fontsize;
     return NilVal();
 }
 
@@ -143,10 +143,10 @@ BUILTIN(get_outline_size, "", "", "F",
 
 BUILTIN(text, "text", "S", "Sb",
     "renders a text with the current font (at the current coordinate origin)")
-(StackPtr &, VM &vm, Value s) {
+(StackPtr &, VM &vm, LString *s) {
     auto f = curfont;
     if (!f) return vm.BuiltinError("gl.text: no font / font size set");
-    if (!s.sval()->len) return s;
+    if (!s->len) return s;
     if (curfontsize > maxfontsize) {
         otransforms.push();
         otransforms.append_object2view(scaling(curfontsize / float(maxfontsize)));
@@ -154,7 +154,7 @@ BUILTIN(text, "text", "S", "Sb",
     SetTexture(0, f->tex);
     if (gs->fonttexturedshader.get_or_nil()) gs->fonttexturedshader->Set();
     else gs->currentshader->Set();
-    f->RenderText(s.sval()->strv());
+    f->RenderText(s->strv());
     if (curfontsize > maxfontsize) {
         otransforms.pop();
     }
@@ -163,10 +163,10 @@ BUILTIN(text, "text", "S", "Sb",
 
 BUILTIN_V(text_size, "text", "S", "I}:2",
     "the x/y size in pixels the given text would need")
-(StackPtr &sp, VM &vm, Value text) {
+(StackPtr &sp, VM &vm, LString *text) {
     auto f = curfont;
     if (!f) vm.BuiltinError("gl.text_size: no font / font size set");
-    auto size = f->TextSize(text.sval()->strv());
+    auto size = f->TextSize(text->strv());
     if (curfontsize > maxfontsize) {
         size = fceil<int>(float2(size) * float(curfontsize) / float(maxfontsize));
     }
@@ -175,23 +175,23 @@ BUILTIN_V(text_size, "text", "S", "I}:2",
 
 BUILTIN(get_glyph_name, "i", "I", "S",
     "the name of a glyph index, or empty string if the font doesn\'t have names")
-(StackPtr &, VM &vm, Value i) {
-    return Value(vm.NewString(curface ? curface->GetName(i.intval()) : ""));
+(StackPtr &, VM &vm, iint i) {
+    return Value(vm.NewString(curface ? curface->GetName((int)i) : ""));
 }
 
 BUILTIN(get_char_code, "name", "S", "I",
     "the char code of a glyph by specifying its name, or 0 if it can not be found"
     " (or if the font doesn\'t have names)")
-(StackPtr &, VM &, Value n) {
-    return Value(curface ? curface->GetCharCode(n.sval()->strvnt()) : 0);
+(StackPtr &, VM &, LString *n) {
+    return Value(curface ? curface->GetCharCode(n->strvnt()) : 0);
 }
 
 BUILTIN(use_default_font_shader, "on", "B", "",
     "by default set_font_name sets the use of the \"textured\" shader."
     " With this function you can turn that on/off to use a current shader instead.")
-(StackPtr &, VM &vm, Value on) {
+(StackPtr &, VM &vm, iint on) {
     TestGL(vm);
-    if (on.True())  {
+    if ((on != 0))  {
         SetDefaultFontShader();
     } else {
         gs->fonttexturedshader.reset();

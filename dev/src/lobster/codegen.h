@@ -584,11 +584,8 @@ struct CodeGen  {
             } else {
                 append(decls, "Value ", nf->symbol, "(StackPtr *, VMRef");
             }
-            // An argument whose values are a run of stack slots takes a pointer to them plus
-            // how many there are, see BuiltinSig.
             for (size_t i = 0; i < nf->args.size(); i++) {
-                if (!nf->ArgIsVec(i)) decls += ", Value";
-                else append(decls, ", Value *, ", cpp ? "iint" : "long long");
+                append(decls, ", ", NativeArgCType(nf->ArgKind(i)));
             }
             decls += ");\n";
         }
@@ -720,6 +717,7 @@ struct CodeGen  {
                 "typedef lobster::LObject LObject;\n"
                 "typedef lobster::LVector LVector;\n"
                 "typedef lobster::LString LString;\n"
+                "typedef lobster::LResource LResource;\n"
                 "using lobster::RefVal;\n"
                 "\n"
                 // A program is free to assign a variable it never reads.
@@ -1860,23 +1858,47 @@ struct CodeGen  {
         #endif
     }
 
-    // The arguments of a call to a builtin, whose values start at slot `base`. Each is one
-    // value, except one whose values are a run of slots, which is a pointer to them plus how
-    // many there are, and which the slot holding that number follows on the stack.
-    string NativeArgList(int base, const Types &args, const NativeArgs &nargs) {
+    // The types a builtin declares its arguments as, see BuiltinSig. The C side has no name
+    // for a resource, whose fields it never reads, and holds a reference as a pointer to its
+    // header, hence the mirrors of the other three, see Prologue.
+    string NativeArgCType(BuiltinArgKind k) {
+        switch (k) {
+            case BAK_INT:      return cpp ? "iint" : "long long";
+            case BAK_FLOAT:    return "double";
+            case BAK_STRING:   return "LString *";
+            case BAK_VECTOR:   return "LVector *";
+            case BAK_RESOURCE: return cpp ? "LResource *" : "void *";
+            case BAK_VEC:      return cat("Value *, ", cpp ? "iint" : "long long");
+            default:           return "Value";
+        }
+    }
+
+    // The arguments of a call to a builtin, whose values start at slot `base`. Each is the
+    // slot it lives in, as the type the builtin takes it as, except one whose values are a run
+    // of slots, which is a pointer to them plus how many there are, and which the slot holding
+    // that number follows on the stack.
+    string NativeArgList(int base, NativeFun *nf, const Types &args, const NativeArgs &nargs) {
         string s;
         auto slot = base;
-        for (auto len : nargs) {
-            if (len < 0) {
-                append(s, ", ", Box(slot, SlotVar(slot, args[slot - base])));
-                slot++;
-            } else {
+        for (auto [i, len] : enumerate(nargs)) {
+            if (len >= 0) {
                 // An argument that was left out is a single nil, of no elements.
                 auto nslots = std::max(len, 1);
                 StageRange(slot, args, slot - base, nslots);
                 append(s, ", ", StackArray(), " + ", slot, ", ", len);
                 slot += nslots + (len ? 1 : 0);
+                continue;
             }
+            auto p = SlotVar(slot, args[slot - base]);
+            switch (nf->ArgKind(i)) {
+                case BAK_INT:
+                case BAK_FLOAT:    append(s, ", ", Read(p)); break;
+                case BAK_STRING:   append(s, ", ", ReadAs(p, VK_STRING)); break;
+                case BAK_VECTOR:   append(s, ", ", ReadAs(p, VK_VECTOR)); break;
+                case BAK_RESOURCE: append(s, ", ", cpp ? "(LResource *)" : "", Read(p)); break;
+                default:           append(s, ", ", Box(slot, p)); break;
+            }
+            slot++;
         }
         assert(slot - base == (int)args.size());
         return s;
@@ -1912,7 +1934,7 @@ struct CodeGen  {
         TrackUseDef(uses, defs);
         auto base = regso - uses;
         auto stackrets = nf->pushrets || defs > 1;
-        auto argstr = NativeArgList(base, args, nargs);
+        auto argstr = NativeArgList(base, nf, args, nargs);
         if (stackrets) {
             f_uses_vals = true;
             string s = "    ";

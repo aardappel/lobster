@@ -299,28 +299,26 @@ BUILTIN_V(init, "size", "I}:3", "R:voxels",
 
 BUILTIN_V(size, "block", "R:voxels", "I}:3",
     "returns the current block size")
-(StackPtr &sp, VM &, Value block) {
+(StackPtr &sp, VM &, LResource *block) {
     PushVec(sp, GetVoxels(block).grid.dim);
 }
 
 BUILTIN_V(name, "block", "R:voxels", "S",
     "returns the current block name")
-(StackPtr &sp, VM &vm, Value block) {
+(StackPtr &sp, VM &vm, LResource *block) {
     Push(sp, vm.NewString(GetVoxels(block).name));
 }
 
 BUILTIN_V(offset, "block", "R:voxels", "I}:3",
     "returns the current block offset")
-(StackPtr &sp, VM &, Value block) {
+(StackPtr &sp, VM &, LResource *block) {
     PushVec(sp, GetVoxels(block).offset);
 }
 
 BUILTIN_V(set, "block,pos,size,paletteindex", "R:voxelsI}:3I}:3I", "",
     "sets a range of cubes to palette index. index 0 is considered empty space."
     "Coordinates automatically clipped to the size of the grid")
-(StackPtr &, VM &, Value res, Value *pos_, iint pos_len, Value *size_, iint size_len,
- Value paletteindex) {
-    auto color = paletteindex.ival();
+(StackPtr &, VM &, LResource *res, Value *pos_, iint pos_len, Value *size_, iint size_len, iint color) {
     auto size = ToVec<int3>(size_, size_len);
     auto pos = ToVec<int3>(pos_, pos_len);
     GetVoxels(res).Set(pos, size, (uint8_t)color);
@@ -330,7 +328,7 @@ BUILTIN_V(get, "block,pos", "R:voxelsI}:3", "I",
     "returns the palette index of a single cube. index 0 is considered empty space."
     " coordinates outside of the grid also read as 0, which allows callers to sample"
     " neighbours without having to bounds check themselves")
-(StackPtr &sp, VM &, Value res, Value *pos_, iint pos_len) {
+(StackPtr &sp, VM &, LResource *res, Value *pos_, iint pos_len) {
     auto pos = ToVec<int3>(pos_, pos_len);
     auto &v = GetVoxels(res);
     Push(sp, all(pos >= 0) && all(pos < v.grid.dim) ? v.grid.Get(pos) : transparant);
@@ -340,8 +338,8 @@ BUILTIN_V(copy, "block,pos,size,dest,flip", "R:voxelsI}:3I}:3I}:3I}:3", "",
     "copy a range of cubes from pos to dest. flip can be 1 (regular copy), or -1 (mirror)for"
     " each component, indicating the step from dest."
     " Coordinates automatically clipped to the size of the grid")
-(StackPtr &, VM &, Value res, Value *pos, iint pos_len, Value *size, iint size_len, Value *dest,
- iint dest_len, Value *flip, iint flip_len) {
+(StackPtr &, VM &, LResource *res, Value *pos, iint pos_len, Value *size, iint size_len,
+ Value *dest, iint dest_len, Value *flip, iint flip_len) {
     auto fl = ToVec<int3>(flip, flip_len);
     auto d = ToVec<int3>(dest, dest_len);
     auto sz = ToVec<int3>(size, size_len);
@@ -353,8 +351,8 @@ BUILTIN_V(blit, "dst,src,dst_pos,src_pos,size,flip", "R:voxelsR:voxelsI}:3I}:3I}
     "copy a range of solid cubes from src to dst starting at src_pos and dst_pos, respectively."
     " flip can be 1 (regular copy), or -1 (mirror)for each component, indicating the step from dest."
     " Coordinates automatically clipped to the size of the grids")
-(StackPtr &, VM &, Value dst_, Value src_, Value *dst_pos_, iint dst_pos_len, Value *src_pos_,
- iint src_pos_len, Value *size_, iint size_len, Value *flip, iint flip_len) {
+(StackPtr &, VM &, LResource *dst_, LResource *src_, Value *dst_pos_, iint dst_pos_len,
+ Value *src_pos_, iint src_pos_len, Value *size_, iint size_len, Value *flip, iint flip_len) {
     auto fl = ToVec<int3>(flip, flip_len);
     auto size = ToVec<int3>(size_, size_len);
     auto src_pos = ToVec<int3>(src_pos_, src_pos_len);
@@ -367,7 +365,7 @@ BUILTIN_V(blit, "dst,src,dst_pos,src_pos,size,flip", "R:voxelsR:voxelsI}:3I}:3I}
 BUILTIN_V(clone, "block,pos,size", "R:voxelsI}:3I}:3", "R:voxels",
     "clone a range of cubes from pos to a new block."
     " Coordinates automatically clipped to the size of the grid")
-(StackPtr &sp, VM &vm, Value res, Value *pos, iint pos_len, Value *size, iint size_len) {
+(StackPtr &sp, VM &vm, LResource *res, Value *pos, iint pos_len, Value *size, iint size_len) {
     auto sz = ToVec<int3>(size, size_len);
     auto p = ToVec<int3>(pos, pos_len);
     auto &v = GetVoxels(res);
@@ -380,37 +378,37 @@ BUILTIN_V(clone, "block,pos,size", "R:voxelsI}:3I}:3", "R:voxels",
 BUILTIN_V(color_to_palette, "block,color", "R:voxelsF}:4", "I",
     "converts a color to a palette index. alpha < 0.5 is considered empty space."
     " note: this is fast for the default palette, slow otherwise.")
-(StackPtr &sp, VM &, Value res, Value *color_, iint color_len) {
+(StackPtr &sp, VM &, LResource *res, Value *color_, iint color_len) {
     auto color = ToVec<float4>(color_, color_len);
     Push(sp, GetVoxels(res).Color2Palette(color));
 }
 
 BUILTIN_V(palette_to_color, "block,paletteindex", "R:voxelsI", "F}:4",
     "converts a palette index to a color. empty space (index 0) will have 0 alpha")
-(StackPtr &sp, VM &, Value res, Value paletteindex) {
-    auto p = uint8_t(paletteindex.ival());
+(StackPtr &sp, VM &, LResource *res, iint paletteindex) {
+    auto p = uint8_t(paletteindex);
     PushVec(sp, color2vec(palettes[GetVoxels(res).palette_idx].colors[p]));
 }
 
 BUILTIN(get_palette, "world", "R:voxels", "I", "")
-(StackPtr &, VM &, Value world) {
+(StackPtr &, VM &, LResource *world) {
     auto &w = GetVoxels(world);
     return Value(w.palette_idx);
 }
 
 BUILTIN(set_palette, "world,palette_idx", "R:voxelsI", "", "")
-(StackPtr &, VM &vm, Value world, Value idx) {
+(StackPtr &, VM &vm, LResource *world, iint idx) {
     auto &w = GetVoxels(world);
-    auto i = (size_t)idx.ival();
+    auto i = (size_t)idx;
     if (i >= palettes.size()) vm.BuiltinError("set_palette: out of range");
     w.palette_idx = i;
     return NilVal();
 }
 
 BUILTIN(load_palette, "act_palette_file", "S", "I", "")
-(StackPtr &, VM &vm, Value fn) {
+(StackPtr &, VM &vm, LString *fn) {
     string buf;
-    auto len = LoadFile(fn.sval()->strv(), &buf);
+    auto len = LoadFile(fn->strv(), &buf);
     if (len < 768) vm.BuiltinError("load_palette: load failed");
     vector<byte4> pal;
     pal.reserve(256);
@@ -427,12 +425,12 @@ BUILTIN(load_palette, "act_palette_file", "S", "I", "")
 
 BUILTIN(new_palette, "palette", "F}:4]", "I",
     "Create a new palette from 256 float4 color values.")
-(StackPtr &, VM &vm, Value palette) {
+(StackPtr &, VM &vm, LVector *palette) {
     vector<byte4> pal;
     pal.reserve(256);
-    if (palette.vval()->len != 256) vm.BuiltinError("new_palette: Expected 256 colors");
-    for (int i = 0; i < palette.vval()->len; i++) {
-        auto p = quantizec(ValueToFLT<4>(palette.vval()->AtSt(i), palette.vval()->width));
+    if (palette->len != 256) vm.BuiltinError("new_palette: Expected 256 colors");
+    for (int i = 0; i < palette->len; i++) {
+        auto p = quantizec(ValueToFLT<4>(palette->AtSt(i), palette->width));
         p.w = p.w > 0 ? 0x80 : 0;  // NOTE: does not allow setting material flags.
         pal.push_back(p);
     }
@@ -440,16 +438,16 @@ BUILTIN(new_palette, "palette", "F}:4]", "I",
 }
 
 BUILTIN_V(get_palette_color, "palette_idx,entry", "II", "F}:4", "")
-(StackPtr &sp, VM &vm, Value palette_idx_, Value entry_) {
-    auto entry = (uint8_t)entry_.intval();
-    auto palette_idx = (size_t)palette_idx_.ival();
+(StackPtr &sp, VM &vm, iint palette_idx_, iint entry_) {
+    auto entry = (uint8_t)(int)entry_;
+    auto palette_idx = (size_t)palette_idx_;
     if (palette_idx >= palettes.size()) vm.BuiltinError("get_palette_color: out of range");
     PushVec(sp, color2vec(palettes[palette_idx].colors[entry]));
 }
 
 BUILTIN(sample_down, "scale,world,alpha_threshold", "IR:voxelsF", "R:voxels", "")
-(StackPtr &, VM &vm, Value scale, Value world, Value alpha_threshold) {
-    auto sc = scale.intval();
+(StackPtr &, VM &vm, iint scale, LResource *world, double alpha_threshold) {
+    auto sc = (int)scale;
     if (sc < 2 || sc > 128)
         vm.Error("cg.sample_down: scale out of range");
     auto &v = GetVoxels(world);
@@ -506,7 +504,7 @@ BUILTIN(sample_down, "scale,world,alpha_threshold", "IR:voxelsF", "R:voxels", ""
                            internalcount ? internalacc / float(internalcount) :
                            float3_0;
                 auto np = v.Color2Palette(float4(to_srgb(col), float(solid_count) / volume),
-                                          alpha_threshold.fltval());
+                                          (float)alpha_threshold);
                 nw->grid.Get(pos) = np;
             }
         }
@@ -515,8 +513,8 @@ BUILTIN(sample_down, "scale,world,alpha_threshold", "IR:voxelsF", "R:voxels", ""
 }
 
 BUILTIN(scale_up, "scale,world", "IR:voxels", "R:voxels", "")
-(StackPtr &, VM &vm, Value scale, Value world) {
-    auto sc = scale.intval();
+(StackPtr &, VM &vm, iint scale, LResource *world) {
+    auto sc = (int)scale;
     auto &v = GetVoxels(world);
     // Output is 1 byte per cell, cap it at 1GB.
     if (sc < 2 || sc > 256 ||
@@ -543,7 +541,7 @@ BUILTIN(scale_up, "scale,world", "IR:voxels", "R:voxels", "")
 }
 
 BUILTIN_V(stretch, "newsize,world", "I}:3R:voxels", "R:voxels", "")
-(StackPtr &sp, VM &vm, Value *newsize, iint newsize_len, Value world) {
+(StackPtr &sp, VM &vm, Value *newsize, iint newsize_len, LResource *world) {
     auto &v = GetVoxels(world);
     auto ns = ToVec<int3>(newsize, newsize_len);
     if (!(all(v.grid.dim <= ns)) || !(all(ns < 256)))
@@ -570,7 +568,7 @@ BUILTIN_V(stretch, "newsize,world", "I}:3R:voxels", "R:voxels", "")
 
 BUILTIN(create_mesh, "block", "R:voxels", "R:mesh",
     "converts block to a mesh")
-(StackPtr &, VM &vm, Value wid) {
+(StackPtr &, VM &vm, LResource *wid) {
     auto &v = GetVoxels(wid);
     auto &palette = palettes[v.palette_idx].colors;
     static int3 neighbors[] = {
@@ -660,7 +658,7 @@ BUILTIN(create_mesh, "block", "R:voxels", "R:mesh",
 BUILTIN(create_3d_texture, "block,textureformat,monochrome", "R:voxelsII?", "R:texture",
     "returns the new texture, for format, pass flags you want in addition to"
     " 3d|single_channel|has_mips")
-(StackPtr &, VM &vm, Value wid, Value textureflags, Value monochrome) {
+(StackPtr &, VM &vm, LResource *wid, iint textureflags, iint monochrome) {
     auto &v = GetVoxels(wid);
     auto &palette = palettes[v.palette_idx].colors;
     if (!all(v.grid.dim > 0))
@@ -711,13 +709,13 @@ BUILTIN(create_3d_texture, "block,textureformat,monochrome", "R:voxelsII?", "R:t
         mipb = mips;
         db = ds;
     }
-    if (monochrome.True()) {
+    if ((monochrome != 0)) {
         for (int i = 0; i < mipsizes; i++) buf[i] = buf[i] ? 255 : 0;
     }
     auto tex = CreateTexture(
         "cg.create_3d_texture", buf, v.grid.dim,
         TF_3D | /*TF_NEAREST_MAG | TF_NEAREST_MIN | TF_CLAMP |*/ TF_SINGLE_CHANNEL |
-        TF_BUFFER_HAS_MIPS | textureflags.intval());
+        TF_BUFFER_HAS_MIPS | (int)textureflags);
     delete[] buf;
     return Value(vm.NewResource(&texture_type, new OwnedTexture(tex)));
 }
@@ -732,8 +730,9 @@ BUILTIN(load_vox, "name,material_palette,file_contents,remap_palettes", "SB?S?B?
     "if file_contents is non-nil, it contains the file already loaded. "
     "if remap_palettes is true, then the palette will be remapped to match the MagicaVoxel UI if necessary. "
     "returns vector of blocks or empty if file failed to load, and error string if any")
-(StackPtr &sp, VM &vm, Value name, Value material_palette, Value file_contents, Value remap_palettes) {
-    auto namep = name.sval()->strv();
+(StackPtr &sp, VM &vm, LString *name, iint material_palette, LString *file_contents,
+ iint remap_palettes) {
+    auto namep = name->strv();
     auto voxvec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_RESOURCE);
     auto errf = [&](string_view err) {
         // TODO: could clear voxvec elements if any?
@@ -746,9 +745,9 @@ BUILTIN(load_vox, "name,material_palette,file_contents,remap_palettes", "SB?S?B?
     const char *buf_c_str = nullptr;
     size_t buf_size = 0;
     string buf;
-    if (file_contents.True()) {
-        buf_c_str = file_contents.sval()->data();
-        buf_size = (size_t)file_contents.sval()->len;
+    if ((file_contents != nullptr)) {
+        buf_c_str = file_contents->data();
+        buf_size = (size_t)file_contents->len;
     } else {
         auto l = LoadFile(namep, &buf);
         if (l < 0) return errf("could not load");
@@ -764,12 +763,12 @@ BUILTIN(load_vox, "name,material_palette,file_contents,remap_palettes", "SB?S?B?
         Voxels *voxels = nullptr;
         vector<byte4> palette;
         auto palette_init_materials = [&]() {
-            if (material_palette.True()) {
+            if ((material_palette != 0)) {
                 MaterialPalette(palette);
             }
         };
         auto clone_if_default = [&]() {
-            if (material_palette.True() && palette.empty()) {
+            if ((material_palette != 0) && palette.empty()) {
                 // File uses default palette, clone it since we're about to modify it.
                 palette = palettes[0].colors;
                 palette_init_materials();
@@ -986,7 +985,7 @@ BUILTIN(load_vox, "name,material_palette,file_contents,remap_palettes", "SB?S?B?
                         } */
                     })) return erreof();
                 // Now to pack the parts we're interested in into bits in the palette.
-                if (material_palette.True()) {
+                if ((material_palette != 0)) {
                     switch (type) {
                         case M_EMIT: {
                             clone_if_default();
@@ -1032,7 +1031,7 @@ BUILTIN(load_vox, "name,material_palette,file_contents,remap_palettes", "SB?S?B?
         }
         // See IMAP chunk comment above.
         // Remap now that MATL chunks have been processed.
-        if (remap_palettes.True() && index_remap_start && !palette.empty()) {
+        if ((remap_palettes != 0) && index_remap_start && !palette.empty()) {
             vector<byte4> remapped_palette = palette;
             for (int i = 0; i < 255; i++) {
                 palette_index_remap[index_remap_start[i]] = (uint8_t)(i + 1);
@@ -1049,7 +1048,7 @@ BUILTIN(load_vox, "name,material_palette,file_contents,remap_palettes", "SB?S?B?
             for (iint i = 0; i < voxvec->len; i++) {
                 auto *voxels = &GetVoxels(voxvec->AtS(i));
                 voxels->palette_idx = pi;
-                if (remap_palettes.True() && index_remap_start) {
+                if ((remap_palettes != 0) && index_remap_start) {
                     for (int z = 0; z < voxels->grid.dim.z; ++z) {
                         for (int y = 0; y < voxels->grid.dim.y; ++y) {
                             for (int x = 0; x < voxels->grid.dim.x; ++x) {
@@ -1152,7 +1151,7 @@ BUILTIN(load_vox, "name,material_palette,file_contents,remap_palettes", "SB?S?B?
             byte4 c = byte4(p);
             p += 3;
             c *= 4;  // Values range from 0..63?
-            c.w = material_palette.True() ? 0x80 : 0xFF;
+            c.w = (material_palette != 0) ? 0x80 : 0xFF;
             palette.push_back(c);
         }
         voxels->palette_idx = NewPalette(palette.data());
@@ -1163,8 +1162,8 @@ BUILTIN(load_vox, "name,material_palette,file_contents,remap_palettes", "SB?S?B?
 
 BUILTIN(load_vox_names, "name", "S", "S]S?",
     "loads a MagicaVoxel .vox file, and returns its contained sub model names.")
-(StackPtr &sp, VM &vm, Value name) {
-    auto namep = name.sval()->strv();
+(StackPtr &sp, VM &vm, LString *name) {
+    auto namep = name->strv();
     string buf;
     auto namevec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
     auto errf = [&](string_view err) {
@@ -1276,21 +1275,19 @@ BUILTIN(save_vox, "blocks,names,flags", "R:voxels]S]I?", "S?",
     " named models are laid out in rows on the X/Y plane in the scene."
     " all blocks must use the same palette."
     " flags: bit 1: if on, only save palette, no blocks")
-(StackPtr &, VM &vm, Value blocks, Value names, Value flags) {
-    auto save_blocks = (flags.ival() & 1) == 0;
-    auto bvec = blocks.vval();
-    auto nvec = names.vval();
+(StackPtr &, VM &vm, LVector *bvec, LVector *nvec, iint flags) {
+    auto save_blocks = (flags & 1) == 0;
     auto nblocks = bvec->len;
     if (!nblocks)
-        vm.BuiltinError("save_vox: no blocks given");
+        vm.BuiltinError("save_vox: no bvec given");
     if (nvec->len != nblocks && (nblocks != 1 || nvec->len))
-        vm.BuiltinError("save_vox: number of names must match number of blocks");
+        vm.BuiltinError("save_vox: number of nvec must match number of bvec");
     auto palette_idx = GetVoxels(bvec->AtS(0)).palette_idx;
     for (iint i = 0; i < nblocks; i++) {
         auto &v = GetVoxels(bvec->AtS(i));
         if (!all(v.grid.dim <= 256)) return NilVal();
         if (v.palette_idx != palette_idx)
-            vm.BuiltinError("save_vox: all blocks must use the same palette");
+            vm.BuiltinError("save_vox: all bvec must use the same palette");
     }
     string buf;
     auto wint = [&](int i) { buf.append((const char *)&i, 4); };
@@ -1331,7 +1328,7 @@ BUILTIN(save_vox, "blocks,names,flags", "R:voxels]S]I?", "S?",
         }
     }
     if (nvec->len && save_blocks) {
-        // A minimal scene graph to hold the model names: a root nTRN pointing at an
+        // A minimal scene graph to hold the model nvec: a root nTRN pointing at an
         // nGRP, which points at an nTRN (holding the name and position) + nSHP pair
         // per model.
         // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox-extension.txt
@@ -1407,14 +1404,14 @@ BUILTIN(save_vox, "blocks,names,flags", "R:voxels]S]I?", "S?",
 }
 
 BUILTIN(chunks_skipped, "block", "R:voxels", "B", "")
-(StackPtr &, VM &, Value wid) {
+(StackPtr &, VM &, LResource *wid) {
     auto &v = GetVoxels(wid);
     return Value(v.chunks_skipped);
 }
 
 BUILTIN(get_buf, "block", "R:voxels", "S",
     "returns the data as a string of all palette indices, in z-major order")
-(StackPtr &, VM &vm, Value wid) {
+(StackPtr &, VM &vm, LResource *wid) {
     auto &v = GetVoxels(wid);
     auto buf = vm.NewString(v.grid.dim.volume());
     v.grid.ToContinousGrid((uint8_t *)buf->strv().data());
@@ -1423,11 +1420,11 @@ BUILTIN(get_buf, "block", "R:voxels", "S",
 
 BUILTIN_V(set_buf, "block,indices,offset,size", "R:voxelsSI}:3I}:3", "",
     "sets the data as a string of all palette indices, in z-major order")
-(StackPtr &, VM &vm, Value block, Value indices, Value *offset_, iint offset_len, Value *size_,
- iint size_len) {
+(StackPtr &, VM &vm, LResource *block, LString *indices, Value *offset_, iint offset_len,
+ Value *size_, iint size_len) {
     auto size = ToVec<int3>(size_, size_len);
     auto offset = ToVec<int3>(offset_, offset_len);
-    auto buf = indices.sval()->strv();
+    auto buf = indices->strv();
     auto &v = GetVoxels(block);
     if (size.volume() != (int)buf.size()) vm.BuiltinError("cg.set_buf: buf does not match size");
     if (!in_range(offset, v.grid.dim)) vm.BuiltinError("cg.set_buf: out of bounds");
@@ -1437,7 +1434,7 @@ BUILTIN_V(set_buf, "block,indices,offset,size", "R:voxelsSI}:3I}:3", "",
 
 // Should probably be renamed because it collects a bunch of stats beyond color.
 BUILTIN_V(average_surface_color, "world", "R:voxels", "F}:3III}:3I}:3", "")
-(StackPtr &sp, VM &, Value world) {
+(StackPtr &sp, VM &, LResource *world) {
 		auto &v = GetVoxels(world);
     auto &palette = palettes[v.palette_idx].colors;
 		float3 col(0.0f);
@@ -1488,7 +1485,7 @@ BUILTIN_V(average_surface_color, "world", "R:voxels", "F}:3III}:3I}:3", "")
 BUILTIN_V(average_face_colors, "world", "R:voxels", "F]",
     "returns a vector of 8 elements with 4 floats per face: color and alpha."
     "last element contains the total average color and the average + max alpha in the last channel")
-(StackPtr &sp, VM &vm, Value world) {
+(StackPtr &sp, VM &vm, LResource *world) {
 		auto &v = GetVoxels(world);
     auto vec = vm.NewVec(0, 8 * 4, TYPE_ELEM_VECTOR_OF_FLOAT);
     auto &palette = palettes[v.palette_idx].colors;
@@ -1549,7 +1546,7 @@ BUILTIN_V(average_face_colors, "world", "R:voxels", "F]",
 	}
 
 BUILTIN_V(num_solid, "world", "R:voxels", "I", "")
-(StackPtr &sp, VM &, Value world) {
+(StackPtr &sp, VM &, LResource *world) {
     auto &v = GetVoxels(world);
     int nvol = 0;
     for (int x = 0; x < v.grid.dim.x; x++) {
@@ -1566,9 +1563,8 @@ BUILTIN_V(num_solid, "world", "R:voxels", "I", "")
 
 BUILTIN(rotate, "block,n", "R:voxelsI", "R:voxels",
     "returns a new block rotated by n 90 degree steps from the input")
-(StackPtr &, VM &vm, Value wid, Value rots) {
+(StackPtr &, VM &vm, LResource *wid, iint n) {
     auto &v = GetVoxels(wid);
-    auto n = rots.ival();
     auto &d = n == 1 || n == 3
 			? *NewWorld(int3(v.grid.dim.y, v.grid.dim.x, v.grid.dim.z), v.palette_idx)
         : *NewWorld(v.grid.dim, v.palette_idx);
@@ -1598,15 +1594,15 @@ BUILTIN(rotate, "block,n", "R:voxelsI", "R:voxels",
 
 BUILTIN_V(simplex, "block,pos,size,spos,ssize,octaves,scale,persistence,solidcol,zscale,zbias", "R:voxelsI}:3I}:3F}:3F}:3IFFIFF", "",
     "")
-(StackPtr &, VM &, Value res, Value *pos, iint pos_len, Value *size, iint size_len, Value *spos_,
- iint spos_len, Value *ssize_, iint ssize_len, Value octaves_, Value scale_, Value persistence_,
- Value solidcol_, Value zscale_, Value zbias_) {
-    auto zbias = zbias_.fltval();
-    auto zscale = zscale_.fltval();
-    auto solidcol = solidcol_.intval();
-    auto persistence = persistence_.fltval();
-    auto scale = scale_.fltval();
-    auto octaves = octaves_.intval();
+(StackPtr &, VM &, LResource *res, Value *pos, iint pos_len, Value *size, iint size_len,
+ Value *spos_, iint spos_len, Value *ssize_, iint ssize_len, iint octaves_, double scale_,
+ double persistence_, iint solidcol_, double zscale_, double zbias_) {
+    auto zbias = (float)zbias_;
+    auto zscale = (float)zscale_;
+    auto solidcol = (int)solidcol_;
+    auto persistence = (float)persistence_;
+    auto scale = (float)scale_;
+    auto octaves = (int)octaves_;
     auto ssize = ToVec<float3>(ssize_, ssize_len);
     auto spos = ToVec<float3>(spos_, spos_len);
     auto sz = ToVec<int3>(size, size_len);
@@ -1624,8 +1620,8 @@ BUILTIN_V(simplex, "block,pos,size,spos,ssize,octaves,scale,persistence,solidcol
 // For a regular bounding box, see average_surface_color
 BUILTIN_V(bounding_box, "world,minsolids", "R:voxelsF", "I}:3I}:3",
     "")
-(StackPtr &sp, VM &, Value res, Value minsolids_) {
-    auto minsolids = minsolids_.fltval();
+(StackPtr &sp, VM &, LResource *res, double minsolids_) {
+    auto minsolids = (float)minsolids_;
 		auto &v = GetVoxels(res);
     auto bmin = int3_0;
     auto bmax = v.grid.dim;
@@ -1668,15 +1664,15 @@ BUILTIN_V(bounding_box, "world,minsolids", "R:voxelsF", "I}:3I}:3",
 	}
 
 BUILTIN(randomize, "world,rnd_range,cutoff,paletteindex,filter", "R:voxelsIIII", "", "")
-(StackPtr &, VM &, Value world, Value rnd_range, Value cutoff, Value paletteindex, Value filter) {
+(StackPtr &, VM &, LResource *world, iint rnd_range, iint cutoff, iint paletteindex, iint filter) {
     auto &v = GetVoxels(world);
     for (int x = 0; x < v.grid.dim.x; x++) {
         for (int y = 0; y < v.grid.dim.y; y++) {
             for (int z = 0; z < v.grid.dim.z; z++) {
                 auto pos = int3(x, y, z);
                 auto &p = v.grid.Get(pos);
-                if (p != filter.ival() && cg_rnd.rnd_int(rnd_range.intval()) < cutoff.intval())
-                    p = (uint8_t)paletteindex.ival();
+                if (p != filter && cg_rnd.rnd_int((int)rnd_range) < (int)cutoff)
+                    p = (uint8_t)paletteindex;
             }
         }
     }
@@ -1684,7 +1680,7 @@ BUILTIN(randomize, "world,rnd_range,cutoff,paletteindex,filter", "R:voxelsIIII",
 }
 
 BUILTIN(erode, "world,minsolid,maxsolid", "R:voxelsII", "R:voxels", "")
-(StackPtr &, VM &vm, Value world, Value minsolid, Value maxsolid) {
+(StackPtr &, VM &vm, LResource *world, iint minsolid, iint maxsolid) {
     auto &v = GetVoxels(world);
     auto &d = *NewWorld(v.grid.dim, v.palette_idx);
     for (int x = 0; x < v.grid.dim.x; x++) {
@@ -1709,8 +1705,8 @@ BUILTIN(erode, "world,minsolid,maxsolid", "R:voxelsII", "R:voxels", "")
                         }
                     }
                 }
-                if (p && nsolid <= minsolid.intval()) p = 0;
-                else if (!p && nsolid >= maxsolid.intval()) p = last_solid;
+                if (p && nsolid <= (int)minsolid) p = 0;
+                else if (!p && nsolid >= (int)maxsolid) p = last_solid;
                 d.grid.Get(pos) = p;
             }
         }
@@ -1723,9 +1719,8 @@ BUILTIN_V(normal_indices, "block,radius,adjacents", "R:voxelsIF]", "R:voxels",
     "the indices refer to the associated pallette."
     "empty voxels will have a 0 length normal."
     "2 is a good radius that balances speed/quality, use 1 for speed, 3 for max quality")
-(StackPtr &sp, VM &vm, Value res, Value radius_, Value adjacents_) {
-    auto adjacents = adjacents_.vval();
-    auto radius = radius_.intval();
+(StackPtr &sp, VM &vm, LResource *res, iint radius_, LVector *adjacents) {
+    auto radius = (int)radius_;
     auto &v = GetVoxels(res);
     auto have_adjacents = adjacents->len == 27;
 
@@ -1800,12 +1795,12 @@ BUILTIN_V(normal_indices, "block,radius,adjacents", "R:voxelsIF]", "R:voxels",
 BUILTIN_V(load_image, "name,depth,edge,numtiles", "SIII}:2", "R:voxels]",
     "loads an image file (same formats as gl.load_texture) and turns it into blocks."
     " returns blocks or [] if file failed to load")
-(StackPtr &sp, VM &vm, Value name_, Value depth_, Value edge_, Value *numtiles_,
+(StackPtr &sp, VM &vm, LString *name_, iint depth_, iint edge_, Value *numtiles_,
  iint numtiles_len) {
     auto numtiles = ToVec<int2>(numtiles_, numtiles_len);
-    auto edge = edge_.intval();
-    auto depth = depth_.intval();
-    auto name = name_.sval()->strv();
+    auto edge = (int)edge_;
+    auto depth = (int)depth_;
+    auto name = name_->strv();
     auto idim = int2_0;
     auto buf = LoadImageFile(name, idim);
     // Anything non-positive means no tiles at all, and no division below.
@@ -1853,7 +1848,7 @@ BUILTIN_V(load_image, "name,depth,edge,numtiles", "SIII}:2", "R:voxels]",
 }
 
 BUILTIN_V(palette_storage_index, "block", "R:voxels", "I", "")
-(StackPtr &sp, VM &, Value res) {
+(StackPtr &sp, VM &, LResource *res) {
     Push(sp, GetVoxels(res).palette_idx);
 }
 

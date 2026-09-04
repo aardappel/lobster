@@ -80,9 +80,9 @@ BuiltinGroup core_builtins;
 
 BUILTIN(print, "x", "Ss", "",
     "output any value to the console (with linefeed).")
-(StackPtr &, VM &vm, Value a) {
+(StackPtr &, VM &vm, LString *a) {
     vm.s_reuse.clear();
-    RefToString(vm, vm.s_reuse, a.svalnil(), vm.programprintprefs);
+    RefToString(vm, vm.s_reuse, a, vm.programprintprefs);
     if (vm.evalret.second) {
         LOG_ERROR(vm.s_reuse);
     } else {
@@ -94,60 +94,60 @@ BUILTIN(print, "x", "Ss", "",
 // This is now the identity function, but still useful to force a coercion.
 BUILTIN(string, "x", "Ssk", "S",
     "convert any value to string")
-(StackPtr &, VM &, Value a) {
+(StackPtr &, VM &, LString *a) {
     return a;
 }
 
 BUILTIN(set_print_depth, "depth", "I", "I",
     "for printing / string conversion: sets max vectors/objects recursion depth (default 10), "
     "returns old value")
-(StackPtr &, VM &vm, Value a) {
+(StackPtr &, VM &vm, iint a) {
     auto old = vm.programprintprefs.depth;
-    vm.programprintprefs.depth = a.ival();
+    vm.programprintprefs.depth = a;
     return Value(old);
 }
 
 BUILTIN(set_print_length, "len", "I", "I",
     "for printing / string conversion: sets max string length (default 100000), "
     "returns old value")
-(StackPtr &, VM &vm, Value a) {
+(StackPtr &, VM &vm, iint a) {
     auto old = vm.programprintprefs.budget;
-    vm.programprintprefs.budget = a.ival();
+    vm.programprintprefs.budget = a;
     return Value(old);
 }
 
 BUILTIN(set_print_quoted, "quoted", "B", "B",
     "for printing / string conversion: if the top level value is a string, whether to convert"
     " it with escape codes and quotes (default false), returns old value")
-(StackPtr &, VM &vm, Value a) {
+(StackPtr &, VM &vm, iint a) {
     auto old = vm.programprintprefs.quoted;
-    vm.programprintprefs.quoted = a.ival() != 0;
+    vm.programprintprefs.quoted = a != 0;
     return Value(old);
 }
 
 BUILTIN(set_print_decimals, "decimals", "I", "I",
     "for printing / string conversion: number of decimals for any floating point output"
     " (default -1, meaning all), returns old value")
-(StackPtr &, VM &vm, Value a) {
+(StackPtr &, VM &vm, iint a) {
     auto old = vm.programprintprefs.decimals;
-    vm.programprintprefs.decimals = a.ival();
+    vm.programprintprefs.decimals = a;
     return Value(old);
 }
 
 BUILTIN(set_print_indent, "spaces", "I", "I",
     "for printing / string conversion: number of spaces to indent with. default is 0:"
     " no indent / no multi-line, returns old value")
-(StackPtr &, VM &vm, Value a) {
+(StackPtr &, VM &vm, iint a) {
     auto old = vm.programprintprefs.indent;
-    vm.programprintprefs.indent = a.intval();
+    vm.programprintprefs.indent = (int)a;
     return Value(old);
 }
 
 BUILTIN(get_line, "prefix", "S", "S",
     "reads a string from the console if possible (followed by enter). Prefix will be"
     " printed before the input")
-(StackPtr &, VM &vm, Value prefix) {
-    fputs(prefix.sval()->data(), stdout);
+(StackPtr &, VM &vm, LString *prefix) {
+    fputs(prefix->data(), stdout);
     const int MAXSIZE = 1000;
     char buf[MAXSIZE];
     if (!fgets(buf, MAXSIZE, stdin)) buf[0] = 0;
@@ -159,18 +159,18 @@ BUILTIN(get_line, "prefix", "S", "S",
 
 BUILTIN(append, "xs,ys", "A]*cA]*u1c", "A]1",
     "creates a new vector by appending all elements of 2 input vectors")
-(StackPtr &, VM &vm, Value v1, Value v2) {
-    auto type = v1.vval()->tti;
-    auto nv = (LVector *)vm.NewVec(0, v1.vval()->len + v2.vval()->len, type);
-    nv->Append(vm, v1.vval(), 0, v1.vval()->len);
-    nv->Append(vm, v2.vval(), 0, v2.vval()->len);
+(StackPtr &, VM &vm, LVector *v1, LVector *v2) {
+    auto type = v1->tti;
+    auto nv = (LVector *)vm.NewVec(0, v1->len + v2->len, type);
+    nv->Append(vm, v1, 0, v1->len);
+    nv->Append(vm, v2, 0, v2->len);
     return Value(nv);
 }
 
 BUILTIN(append_into, "dest,src", "A]*A]1c", "Ab]1",
     "appends all elements of the second vector into the first")
-(StackPtr &, VM &vm, Value v1, Value v2) {
-    v1.vval()->Append(vm, v2.vval(), 0, v2.vval()->len);
+(StackPtr &, VM &vm, LVector *v1, LVector *v2) {
+    v1->Append(vm, v2, 0, v2->len);
     return v1;
 }
 
@@ -179,28 +179,28 @@ BUILTIN(vector_capacity, "xs,len", "A]*I", "Ab]1",
     " is at least \"len\". Does not actually add (or remove) elements. This function is"
     " just for efficiency in the case the amount of \"push\" operations is known."
     " returns original vector.")
-(StackPtr &, VM &vm, Value vec, Value len) {
-    vec.vval()->MinCapacity(vm, len.ival());
+(StackPtr &, VM &vm, LVector *vec, iint len) {
+    vec->MinCapacity(vm, len);
     return vec;
 }
 
 BUILTIN_OVERLOAD(length_int, "length", "x", "I", "I",
     "length of int (identity function, useful in combination with string/vector version)")
-(StackPtr &, VM &, Value a) {
+(StackPtr &, VM &, iint a) {
     return a;
 }
 
 BUILTIN_OVERLOAD(length_string, "length", "s", "S", "I",
     "length of string")
-(StackPtr &, VM &, Value a) {
-    auto len = a.sval()->len;
+(StackPtr &, VM &, LString *a) {
+    auto len = a->len;
     return Value(len);
 }
 
 BUILTIN_OVERLOAD(length_vector, "length", "xs", "A]*", "I",
     "length of vector")
-(StackPtr &, VM &, Value a) {
-    auto len = a.vval()->len;
+(StackPtr &, VM &, LVector *a) {
+    auto len = a->len;
     return Value(len);
 }
 
@@ -214,9 +214,8 @@ BUILTIN(equal, "a,b", "AA", "B",
 
 BUILTIN_V(push, "xs,x", "A]*Akw1", "Ab]1",
     "appends one element to a vector, returns existing vector")
-(StackPtr &sp, VM &vm, Value xs, Value *x, iint x_len) {
+(StackPtr &sp, VM &vm, LVector *l, Value *x, iint x_len) {
     auto v = ValueVec<RefObjPtr>(x, x_len);
-    auto l = xs.vval();
     assert(v.len == l->width);
     l->PushVW(vm, v.vals);
     Push(sp, l);
@@ -224,8 +223,7 @@ BUILTIN_V(push, "xs,x", "A]*Akw1", "Ab]1",
 
 BUILTIN_V(pop, "xs", "A]*", "A1",
     "removes last element from vector and returns it")
-(StackPtr &sp, VM &vm, Value xs) {
-    auto l = xs.vval();
+(StackPtr &sp, VM &vm, LVector *l) {
     if (!l->len) vm.BuiltinError("pop: empty vector");
     l->PopVW(TopPtr(sp));
     PushN(sp, l->width);
@@ -233,8 +231,7 @@ BUILTIN_V(pop, "xs", "A]*", "A1",
 
 BUILTIN_V(top, "xs", "A]*", "Ab1",
     "returns last element from vector")
-(StackPtr &sp, VM &vm, Value xs) {
-    auto l = xs.vval();
+(StackPtr &sp, VM &vm, LVector *l) {
     if (!l->len) vm.BuiltinError("top: empty vector");
     l->TopVW(TopPtr(sp));
     PushN(sp, l->width);
@@ -243,10 +240,8 @@ BUILTIN_V(top, "xs", "A]*", "Ab1",
 BUILTIN_V(insert, "xs,i,x", "A]*IAkw1", "Ab]1",
     "inserts a value into a vector at index i, existing elements shift upward,"
     " returns original vector")
-(StackPtr &sp, VM &vm, Value xs, Value i_, Value *x, iint x_len) {
+(StackPtr &sp, VM &vm, LVector *l, iint i, Value *x, iint x_len) {
     auto v = ValueVec<RefObjPtr>(x, x_len);
-    auto i = i_.ival();
-    auto l = xs.vval();
     if (i < 0 || i > l->len)
         vm.BuiltinError("insert: index or n out of range");  // note: i==len is legal
     assert(v.len == l->width);
@@ -256,9 +251,7 @@ BUILTIN_V(insert, "xs,i,x", "A]*IAkw1", "Ab]1",
 
 BUILTIN_V(remove, "xs,i", "A]*I", "A1",
     "remove element at index i, following elements shift down. returns the element removed.")
-(StackPtr &sp, VM &vm, Value xs, Value i_) {
-    auto i = i_.ival();
-    auto l = xs.vval();
+(StackPtr &sp, VM &vm, LVector *l, iint i) {
     if (i < 0 || i >= l->len)
         vm.BuiltinError(cat("remove: index (", i, ") out of range (", l->len, ")"));
     l->RemovePush(sp, i);
@@ -266,24 +259,21 @@ BUILTIN_V(remove, "xs,i", "A]*I", "A1",
 
 BUILTIN_V(remove_range, "xs,i,n", "A]*II", "",
     "remove n elements at index i, following elements shift down.")
-(StackPtr &, VM &vm, Value xs, Value i_, Value n) {
-    auto amount = n.ival();
-    auto i = i_.ival();
-    auto l = xs.vval();
+(StackPtr &, VM &vm, LVector *l, iint i, iint amount) {
     if (amount < 0 || amount > l->len || i < 0 || i > l->len - amount)
         vm.BuiltinError(
-            cat("remove: index (", i, ") or n (", amount, ") out of range (", l->len, ")"));
+            cat("remove: index (", i, ") or amount (", amount, ") out of range (", l->len, ")"));
     l->Remove(vm, i, amount);
 }
 
 BUILTIN(remove_obj, "xs,obj", "A]*A1", "Ab2",
     "remove all elements equal to obj (==), returns obj.")
-(StackPtr &, VM &vm, Value l, Value o) {
-    auto vt = vm.GetTypeInfo(l.vval()->ti(vm).subt).t;
-    for (iint i = 0; i < l.vval()->len; i++) {
-        auto e = l.vval()->AtS(i);
+(StackPtr &, VM &vm, LVector *l, Value o) {
+    auto vt = vm.GetTypeInfo(l->ti(vm).subt).t;
+    for (iint i = 0; i < l->len; i++) {
+        auto e = l->AtS(i);
         if (e.Equal(vm, vt, o, vt, false)) {
-            l.vval()->Remove(vm, i--, 1);
+            l->Remove(vm, i--, 1);
         }
     }
     return o;
@@ -291,9 +281,7 @@ BUILTIN(remove_obj, "xs,obj", "A]*A1", "Ab2",
 
 BUILTIN_V(truncate, "xs,i", "A]*I", "",
     "removes all elements starting from index i, does nothing if i >= len")
-(StackPtr &, VM &vm, Value xs, Value i_) {
-    auto i = i_.ival();
-    auto l = xs.vval();
+(StackPtr &, VM &vm, LVector *l, iint i) {
     if (i < 0 || i >= l->len) return;
     l->Truncate(vm, i);
 }
@@ -303,28 +291,28 @@ BUILTIN_OVERLOAD(binary_search_int, "binary_search", "xs,key", "I]I", "II",
     " matches were found, and as second the index in the array where the matches start (so you"
     " can read them, overwrite them, or remove them), or if none found, where the key could be"
     " inserted such that the vector stays sorted. This overload is for int vectors and keys.")
-(StackPtr &sp, VM &, Value l, Value key) {
+(StackPtr &sp, VM &, LVector *l, iint key) {
     auto r = BinarySearch(sp, l, key, IntCompare);
     return r;
 }
 
 BUILTIN_OVERLOAD(binary_search_float, "binary_search", "xs,key", "F]F", "II",
     "float version.")
-(StackPtr &sp, VM &, Value l, Value key) {
+(StackPtr &sp, VM &, LVector *l, double key) {
     auto r = BinarySearch(sp, l, key, FloatCompare);
     return r;
 }
 
 BUILTIN_OVERLOAD(binary_search_string, "binary_search", "xs,key", "S]S", "II",
     "string version.")
-(StackPtr &sp, VM &, Value l, Value key) {
+(StackPtr &sp, VM &, LVector *l, LString *key) {
     auto r = BinarySearch(sp, l, key, StringCompare);
     return r;
 }
 
 BUILTIN(binary_search_object, "xs,key", "A]*A1", "II",
     "object version. compares by reference rather than contents.")
-(StackPtr &sp, VM &, Value l, Value key) {
+(StackPtr &sp, VM &, LVector *l, Value key) {
     auto r = BinarySearch(sp, l, key, ObjectCompare);
     return r;
 }
@@ -332,8 +320,8 @@ BUILTIN(binary_search_object, "xs,key", "A]*A1", "II",
 // TODO: add int/float versions of this?
 BUILTIN(binary_search_first_field_string, "xs,key", "A]*S", "II",
     "object version where key is the first field (must be string, runtime error if it is not)")
-(StackPtr &sp, VM &vm, Value l, Value key) {
-    auto &et = vm.GetTypeInfo(l.vval()->ti(vm).subt);
+(StackPtr &sp, VM &vm, LVector *l, LString *key) {
+    auto &et = vm.GetTypeInfo(l->ti(vm).subt);
     if (et.t != RTT_CLASS || !et.len || vm.GetTypeInfo(et.elemtypes[0].type).t != RTT_STRING)
         vm.BuiltinError(
             "binary_search_first_field_string: elements not objects with first string field");
@@ -343,8 +331,8 @@ BUILTIN(binary_search_first_field_string, "xs,key", "A]*S", "II",
 
 BUILTIN(binary_search_first_field_object, "xs,key", "A]*A", "II",
     "object version where key is the first field (must be object, runtime error if it is not)")
-(StackPtr &sp, VM &vm, Value l, Value key) {
-    auto &et = vm.GetTypeInfo(l.vval()->ti(vm).subt);
+(StackPtr &sp, VM &vm, LVector *l, Value key) {
+    auto &et = vm.GetTypeInfo(l->ti(vm).subt);
     if (et.t != RTT_CLASS || !et.len || vm.GetTypeInfo(et.elemtypes[0].type).t != RTT_CLASS)
         vm.BuiltinError(
             "binary_search_first_field_object: elements not objects with first object field");
@@ -361,33 +349,32 @@ BUILTIN(copy, "x", "A", "A1",
 BUILTIN(deepcopy, "x,depth", "AI", "A1",
     "makes a deep copy of any object/vector/string. DAGs become trees, and cycles will"
     " clone until it reach the given depth. depth == 1 would do the same as copy.")
-(StackPtr &, VM &vm, Value v, Value depth) {
-    return v.CopyRef(vm, max((iint)1, depth.ival()));
+(StackPtr &, VM &vm, Value v, iint depth) {
+    return v.CopyRef(vm, max((iint)1, depth));
 }
 
 BUILTIN(slice, "xs,start,size", "A]*II", "A]1",
     "returns a sub-vector of size elements from index start."
     " size can be negative to indicate the rest of the vector.")
-(StackPtr &, VM &vm, Value l, Value s, Value e) {
-    auto size = e.ival();
-    auto start = s.ival();
+(StackPtr &, VM &vm, LVector *l, iint start, iint e) {
+    auto size = e;
     if (start < 0)
         vm.BuiltinError(cat("slice: start cannot be negative: ", start));
-    if (size < 0) size = std::max((iint)0, l.vval()->len - start);
-    if (start + size > l.vval()->len)
-        vm.BuiltinError(cat("slice: range extends beyond the end: ", start + size, " > ", l.vval()->len));
-    auto nv = (LVector *)vm.NewVec(0, size, l.vval()->tti);
-    nv->Append(vm, l.vval(), start, size);
+    if (size < 0) size = std::max((iint)0, l->len - start);
+    if (start + size > l->len)
+        vm.BuiltinError(cat("slice: range extends beyond the end: ", start + size, " > ", l->len));
+    auto nv = (LVector *)vm.NewVec(0, size, l->tti);
+    nv->Append(vm, l, start, size);
     return Value(nv);
 }
 
 BUILTIN_OVERLOAD(any_vector, "any", "xs", "A]*", "B",
     "returns whether any elements of the vector are true values")
-(StackPtr &, VM &, Value v) {
+(StackPtr &, VM &, LVector *v) {
     Value r(false);
-    iint l = v.vval()->len;
+    iint l = v->len;
     for (auto i = 0; i < l; i++) {
-        if (v.vval()->AtS(i).True()) { r = Value(true); break; }
+        if (v->AtS(i).True()) { r = Value(true); break; }
     }
     return r;
 }
@@ -404,10 +391,10 @@ BUILTIN_V_OVERLOAD(any_ivec, "any", "xs", "I}", "B",
 
 BUILTIN_OVERLOAD(all_vector, "all", "xs", "A]*", "B",
     "returns whether all elements of the vector are true values")
-(StackPtr &, VM &, Value v) {
+(StackPtr &, VM &, LVector *v) {
     Value r(true);
-    for (iint i = 0; i < v.vval()->len; i++) {
-        if (v.vval()->AtS(i).False()) { r = Value(false); break; }
+    for (iint i = 0; i < v->len; i++) {
+        if (v->AtS(i).False()) { r = Value(false); break; }
     }
     return r;
 }
@@ -425,45 +412,44 @@ BUILTIN_V_OVERLOAD(all_ivec, "all", "xs", "I}", "B",
 BUILTIN(substring, "s,start,size", "SII", "S",
     "returns a substring of size characters from index start."
     " size can be negative to indicate the rest of the string.")
-(StackPtr &, VM &vm, Value l, Value s, Value e) {
-    iint size = e.ival();
-    iint start = s.ival();
+(StackPtr &, VM &vm, LString *l, iint start, iint e) {
+    iint size = e;
     if (start < 0) vm.BuiltinError(cat("substring: start cannot be negative: ", start));
-    if (size < 0) size = std::max((iint)0, l.sval()->len - start);
-    if (start + size > l.sval()->len)
-        vm.BuiltinError(cat("substring: range extends beyond the end: ", start + size, " > ", l.sval()->len));
-    auto ns = vm.NewString(string_view(l.sval()->data() + start, (size_t)size));
+    if (size < 0) size = std::max((iint)0, l->len - start);
+    if (start + size > l->len)
+        vm.BuiltinError(cat("substring: range extends beyond the end: ", start + size, " > ", l->len));
+    auto ns = vm.NewString(string_view(l->data() + start, (size_t)size));
     return Value(ns);
 }
 
 BUILTIN(find_string, "s,substr,offset", "SSI?", "I",
     "finds the index at which substr first appears, or -1 if none."
     " optionally start at a position other than 0")
-(StackPtr &, VM &, Value s, Value sub, Value offset) {
-    return Value((ssize_t)s.sval()->strv().find(sub.sval()->strv(), (size_t)offset.ival()));
+(StackPtr &, VM &, LString *s, LString *sub, iint offset) {
+    return Value((ssize_t)s->strv().find(sub->strv(), (size_t)offset));
 }
 
 BUILTIN(find_string_reverse, "s,substr,offset", "SSI?", "I",
     "finds the index at which substr first appears when searching from the end, or -1 if none."
     " optionally start at a position other than the end of the string")
-(StackPtr &, VM &, Value s, Value sub, Value offset) {
-    auto sv = s.sval()->strv();
-    auto lim = offset.ival() ? (size_t)offset.ival() : sv.size();
+(StackPtr &, VM &, LString *s, LString *sub, iint offset) {
+    auto sv = s->strv();
+    auto lim = offset ? (size_t)offset : sv.size();
     // Cut sv, because the "pos" arg to rfind has the weird behavior that it
     // will go over that limit by the size of the search string (wtf?)
     sv = sv.substr(0, lim);
-    return Value((ssize_t)sv.rfind(sub.sval()->strv()));
+    return Value((ssize_t)sv.rfind(sub->strv()));
 }
 
 BUILTIN(split_string, "s,delimiter", "SS", "SS",
     "returns two strings, the parts of the input before and after the first delimiter."
     " if not found, returns the input and an empty string")
-(StackPtr &sp, VM &vm, Value input, Value delim) {
-    auto s = input.sval()->strv();
-    auto d = delim.sval()->strv();
+(StackPtr &sp, VM &vm, LString *input, LString *delim) {
+    auto s = input->strv();
+    auto d = delim->strv();
     auto pos = s.find(d, 0);
     if (pos == string_view::npos) {
-        input.LTINCRT();
+        input->Inc();
         Push(sp, input);
         return Value(vm.NewString(0));  // FIXME: need to have a way to not allocate empty strings.
     } else {
@@ -477,13 +463,13 @@ BUILTIN(split_string, "s,delimiter", "SS", "SS",
 BUILTIN(split_string_reverse, "s,delimiter", "SS", "SS",
     "returns two strings, the parts of the input before and after the last delimiter."
     " if not found, returns an empty string and the input")
-(StackPtr &sp, VM &vm, Value input, Value delim) {
-    auto s = input.sval()->strv();
-    auto d = delim.sval()->strv();
+(StackPtr &sp, VM &vm, LString *input, LString *delim) {
+    auto s = input->strv();
+    auto d = delim->strv();
     auto pos = s.rfind(d);
     if (pos == string_view::npos) {
         Push(sp, Value(vm.NewString(0)));  // FIXME: need to have a way to not allocate empty strings.
-        input.LTINCRT();
+        input->Inc();
         return input;
     } else {
         auto left = vm.NewString(string_view(s.data(), pos));
@@ -497,12 +483,12 @@ BUILTIN(replace_string, "s,a,b,count", "SSSI?", "S",
     "returns a copy of s where all occurrences of a have been replaced with b."
     " if a is empty, no replacements are made."
     " if count is specified, makes at most that many replacements")
-(StackPtr &, VM &vm, Value is, Value ia, Value ib, Value count) {
+(StackPtr &, VM &vm, LString *is, LString *ia, LString *ib, iint count) {
     string s;
-    auto sv = is.sval()->strv();
-    auto a = ia.sval()->strv();
-    auto b = ib.sval()->strv();
-    auto c = count.ival() ? count.ival() : numeric_limits<iint>::max();
+    auto sv = is->strv();
+    auto a = ia->strv();
+    auto b = ib->strv();
+    auto c = count ? count : numeric_limits<iint>::max();
     if (a.empty()) {
         // We could error here, but more useful to just return the input.
         s = sv;
@@ -529,12 +515,12 @@ BUILTIN(string_to_int, "s,base", "SI?", "IB",
     "converts a string to an int given the base (2..36, e.g. 16 for hex, default is 10)."
     "returns 0 if no numeric data could be parsed (or overflow); second return value is true if all"
     "characters of the string were parsed (and no overflow).")
-(StackPtr &sp, VM &vm, Value s, Value b) {
-    int base = b.True() ? b.intval() : 10;
+(StackPtr &sp, VM &vm, LString *s, iint b) {
+    int base = (b != 0) ? (int)b : 10;
     if (base < 2 || base > 36)
         vm.BuiltinError("string_to_int: values out of range");
     std::errc ec;
-    auto svnt = s.sval()->strv();
+    auto svnt = s->strv();
     auto i = parse_int<iint>(svnt, base, &ec);
     Push(sp,  i);
     return Value(ec == std::errc());
@@ -543,9 +529,9 @@ BUILTIN(string_to_int, "s,base", "SI?", "IB",
 BUILTIN(string_to_float, "s", "S", "FB",
     "converts a string to a float. returns 0.0 if no numeric data could be parsed;"
     "second return value is true if all characters of the string were parsed.")
-(StackPtr &sp, VM &, Value s) {
+(StackPtr &sp, VM &, LString *s) {
     const char *end;
-    auto sv = s.sval()->strv();
+    auto sv = s->strv();
     auto f = parse_float<double>(sv, &end);
     Push(sp, f);
     return Value(end == sv.data() + sv.size());
@@ -556,14 +542,14 @@ BUILTIN(tokenize, "s,delimiters,whitespace,dividing", "SSSI?", "S]",
     " terminating delimiter. Segments are stripped of leading and trailing whitespace."
     " Example: \"; A ; B C;; \" becomes [ \"\", \"A\", \"B C\", \"\" ] with \";\" as delimiter and"
     " \" \" as whitespace. If dividing was true, there would be a 5th empty string element.")
-(StackPtr &, VM &vm, Value s, Value delims, Value whitespace, Value dividing) {
+(StackPtr &, VM &vm, LString *s, LString *delims, LString *whitespace, iint dividing) {
     auto v = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
-    auto ws = whitespace.sval()->strv();
-    auto dl = delims.sval()->strv();
-    auto p = s.sval()->strv();
+    auto ws = whitespace->strv();
+    auto dl = delims->strv();
+    auto p = s->strv();
     p.remove_prefix(std::min(p.find_first_not_of(ws), p.size()));
     bool has_delim = false;
-    while (!p.empty() || (has_delim && dividing.True())) {
+    while (!p.empty() || (has_delim && (dividing != 0))) {
         auto delim = std::min(p.find_first_of(dl), p.size());
         auto delimstr = p.substr(0, delim);
         auto end = std::min(delimstr.find_last_not_of(ws) + 1, delim);
@@ -578,11 +564,11 @@ BUILTIN(tokenize, "s,delimiters,whitespace,dividing", "SSSI?", "S]",
 
 BUILTIN(unicode_to_string, "us", "I]", "S",
     "converts a vector of ints representing unicode values to a UTF-8 string.")
-(StackPtr &, VM &vm, Value v) {
+(StackPtr &, VM &vm, LVector *v) {
     char buf[7];
     string s;
-    for (iint i = 0; i < v.vval()->len; i++) {
-        auto c = v.vval()->AtS(i);
+    for (iint i = 0; i < v->len; i++) {
+        auto c = v->AtS(i);
         auto len = ToUTF8((int)c.ival(), buf);
         s += string_view(buf, len);
     }
@@ -593,10 +579,10 @@ BUILTIN(string_to_unicode, "s", "S", "I]B",
     "converts a UTF-8 string into a vector of unicode values. second return value is false"
     " if there was a decoding error, and the vector will only contain the characters up to the"
     " error")
-(StackPtr &sp, VM &vm, Value s) {
-    auto v = (LVector *)vm.NewVec(0, s.sval()->len, TYPE_ELEM_VECTOR_OF_INT);
+(StackPtr &sp, VM &vm, LString *s) {
+    auto v = (LVector *)vm.NewVec(0, s->len, TYPE_ELEM_VECTOR_OF_INT);
     Push(sp, v);
-    auto p = s.sval()->strv();
+    auto p = s->strv();
     while (!p.empty()) {
         int u = FromUTF8(p);
         if (u < 0) return Value(false);
@@ -608,23 +594,23 @@ BUILTIN(string_to_unicode, "s", "S", "I]B",
 BUILTIN(number_to_string, "number,base,minchars", "III", "S",
     "converts the (unsigned version) of the input integer number to a string given the base"
     " (2..36, e.g. 16 for hex) and outputting a minimum of characters (padding with 0).")
-(StackPtr &, VM &vm, Value n, Value b, Value mc) {
-    if (b.ival() < 2 || b.ival() > 36 || mc.ival() > 32)
+(StackPtr &, VM &vm, iint n, iint b, iint mc) {
+    if (b < 2 || b > 36 || mc > 32)
         vm.BuiltinError("number_to_string: values out of range");
-    auto i = (uint64_t)n.ival();
+    auto i = (uint64_t)n;
     string s;
     auto from = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    while (i || ssize(s) < mc.ival()) {
-        s.insert(0, 1, from[i % b.ival()]);
-        i /= b.ival();
+    while (i || ssize(s) < mc) {
+        s.insert(0, 1, from[i % b]);
+        i /= b;
     }
     return Value(vm.NewString(s));
 }
 
 BUILTIN(lowercase, "s", "S", "S",
     "converts a UTF-8 string from any case to lower case, affecting only A-Z")
-(StackPtr &, VM &vm, Value s) {
-    auto ns = vm.NewString(s.sval()->strv());
+(StackPtr &, VM &vm, LString *s) {
+    auto ns = vm.NewString(s->strv());
     for (auto &c : ns->strv()) {
         // This is unicode-safe, since all unicode chars are in bytes >= 128
         if (c >= 'A' && c <= 'Z') (char &)c += 'a' - 'A';
@@ -634,8 +620,8 @@ BUILTIN(lowercase, "s", "S", "S",
 
 BUILTIN(uppercase, "s", "S", "S",
     "converts a UTF-8 string from any case to upper case, affecting only a-z")
-(StackPtr &, VM &vm, Value s) {
-    auto ns = vm.NewString(s.sval()->strv());
+(StackPtr &, VM &vm, LString *s) {
+    auto ns = vm.NewString(s->strv());
     for (auto &c : ns->strv()) {
         // This is unicode-safe, since all unicode chars are in bytes >= 128
         if (c >= 'a' && c <= 'z') (char &)c -= 'a' - 'A';
@@ -645,16 +631,16 @@ BUILTIN(uppercase, "s", "S", "S",
 
 BUILTIN(escape_string, "s,set,prefix,postfix", "SSSS", "S",
     "prefixes & postfixes any occurrences or characters in set in string s")
-(StackPtr &, VM &vm, Value s, Value set, Value prefix, Value postfix) {
+(StackPtr &, VM &vm, LString *s, LString *set, LString *prefix, LString *postfix) {
     string out;
-    for (auto p = s.sval()->strv();;) {
-        auto loc = p.find_first_of(set.sval()->strv());
+    for (auto p = s->strv();;) {
+        auto loc = p.find_first_of(set->strv());
         if (loc != string_view::npos) {
             out.append(p.data(), loc);
-            auto presv = prefix.sval()->strv();
+            auto presv = prefix->strv();
             out.append(presv.data(), presv.size());
             out += p[loc++];
-            auto postsv = postfix.sval()->strv();
+            auto postsv = postfix->strv();
             out.append(postsv.data(), postsv.size());
             p.remove_prefix(loc);
         } else {
@@ -667,12 +653,12 @@ BUILTIN(escape_string, "s,set,prefix,postfix", "SSSS", "S",
 
 BUILTIN(concat_string, "v,sep", "S]S", "S",
     "concatenates all elements of the string vector, separated with sep.")
-(StackPtr &, VM &vm, Value v, Value sep) {
+(StackPtr &, VM &vm, LVector *v, LString *sep) {
     string s;
-    auto sepsv = sep.sval()->strv();
-    for (iint i = 0; i < v.vval()->len; i++) {
+    auto sepsv = sep->strv();
+    for (iint i = 0; i < v->len; i++) {
         if (i) s.append(sepsv);
-        auto esv = v.vval()->AtS(i).sval()->strv();
+        auto esv = v->AtS(i).sval()->strv();
         s.append(esv);
     }
     return Value(vm.NewString(s));
@@ -680,16 +666,16 @@ BUILTIN(concat_string, "v,sep", "S]S", "S",
 
 BUILTIN(repeat_string, "s,n", "SI", "S",
     "returns a string consisting of n copies of the input string.")
-(StackPtr &, VM &vm, Value s, Value _n) {
-    auto n = std::max(iint(0), _n.ival());
-    auto len = s.sval()->len;
+(StackPtr &, VM &vm, LString *s, iint _n) {
+    auto n = std::max(iint(0), _n);
+    auto len = s->len;
     const iint max_len = 1024 * 1024 * 1024;
     // Divide rather than multiply, so the check itself can't overflow.
     if (len && n > max_len / len)
         vm.BuiltinError(cat("repeat_string: resulting string too big: ", len, " * ", n));
     auto ns = vm.NewString(len * n);
     for (iint i = 0; i < n; i++) {
-        memcpy((char *)ns->data() + i * len, s.sval()->data(), (size_t)len);
+        memcpy((char *)ns->data() + i * len, s->data(), (size_t)len);
     }
     return Value(ns);
 }
@@ -707,57 +693,56 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
 
 BUILTIN_OVERLOAD(pow_int, "pow", "a,b", "II", "I",
     "a raised to the power of b, for integers, using exponentiation by squaring")
-(StackPtr &, VM &, Value a, Value b) {
-    return Value(b.ival() >= 0 ? ipow<iint>(a.ival(), b.ival()) : 0);
+(StackPtr &, VM &, iint a, iint b) {
+    return Value(b >= 0 ? ipow<iint>(a, b) : 0);
 }
 
 BUILTIN_OVERLOAD(pow_float, "pow", "a,b", "FF", "F",
     "a raised to the power of b")
-(StackPtr &, VM &, Value a, Value b) { return Value(pow(a.fval(), b.fval())); }
+(StackPtr &, VM &, double a, double b) { return Value(pow(a, b)); }
 
 BUILTIN_V_OVERLOAD(pow_fvec, "pow", "a,b", "F}F", "F}",
     "struct elements raised to the power of b")
-(StackPtr &, VM &, Value *elems, iint len, Value b) {
-    auto exp = b.fval();
+(StackPtr &, VM &, Value *elems, iint len, double exp) {
     VECTOROP(pow(f.fval(), exp));
 }
 
 BUILTIN(log, "a", "F", "F",
     "natural logaritm of a")
-(StackPtr &, VM &, Value a) { return Value(log(a.fval())); }
+(StackPtr &, VM &, double a) { return Value(log(a)); }
 
 BUILTIN(log2, "a", "F", "F",
     "base 2 logaritm of a")
-(StackPtr &, VM &, Value a) { return Value(log2(a.fval())); }
+(StackPtr &, VM &, double a) { return Value(log2(a)); }
 
 BUILTIN(sqrt, "f", "F", "F",
     "square root")
-(StackPtr &, VM &, Value a) { return Value(sqrt(a.fval())); }
+(StackPtr &, VM &, double a) { return Value(sqrt(a)); }
 
 BUILTIN_OVERLOAD(ceiling_float, "ceiling", "f", "F", "I",
     "the nearest int >= f")
-(StackPtr &, VM &, Value a) { return Value(fceil<iint>(a.fval())); }
+(StackPtr &, VM &, double a) { return Value(fceil<iint>(a)); }
 BUILTIN_V_OVERLOAD(ceiling_fvec, "ceiling", "v", "F}", "I}",
     "the nearest ints >= each component of v")
 (StackPtr &, VM &, Value *elems, iint len) { VECTOROP(iint(fceil<iint>(f.fval()))); }
 
 BUILTIN_OVERLOAD(floor_float, "floor", "f", "F", "I",
     "the nearest int <= f")
-(StackPtr &, VM &, Value a) { return Value(ffloor<iint>(a.fval())); }
+(StackPtr &, VM &, double a) { return Value(ffloor<iint>(a)); }
 BUILTIN_V_OVERLOAD(floor_fvec, "floor", "v", "F}", "I}",
     "the nearest ints <= each component of v")
 (StackPtr &, VM &, Value *elems, iint len) { VECTOROP((ffloor<iint>(f.fval()))); }
 
 BUILTIN_OVERLOAD(int_float, "int", "f", "F", "I",
     "converts a float to an int by dropping the fraction")
-(StackPtr &, VM &, Value a) { return Value(iint(a.fval())); }
+(StackPtr &, VM &, double a) { return Value(iint(a)); }
 BUILTIN_V_OVERLOAD(int_fvec, "int", "v", "F}", "I}",
     "converts a struct of floats to ints by dropping the fraction")
 (StackPtr &, VM &, Value *elems, iint len) { VECTOROP(iint(f.fval())); }
 
 BUILTIN_OVERLOAD(round_float, "round", "f", "F", "I",
     "converts a float to the closest int")
-(StackPtr &, VM &, Value a) { return Value(iint(a.fval() + (double(a.fval() >= 0) - 0.5))); }
+(StackPtr &, VM &, double a) { return Value(iint(a + (double(a >= 0) - 0.5))); }
 BUILTIN_V_OVERLOAD(round_fvec, "round", "v", "F}", "I}",
     "converts a struct of floats to the closest ints")
 (StackPtr &, VM &, Value *elems, iint len) {
@@ -766,60 +751,59 @@ BUILTIN_V_OVERLOAD(round_fvec, "round", "v", "F}", "I}",
 
 BUILTIN_OVERLOAD(fraction_float, "fraction", "f", "F", "F",
     "returns the fractional part of a float: short for f - floor(f)")
-(StackPtr &, VM &, Value a) { return Value(a.fval() - floor(a.fval())); }
+(StackPtr &, VM &, double a) { return Value(a - floor(a)); }
 BUILTIN_V_OVERLOAD(fraction_fvec, "fraction", "v", "F}", "F}",
     "returns the fractional part of a struct of floats")
 (StackPtr &, VM &, Value *elems, iint len) { VECTOROP(f.fval() - floor(f.fval())); }
 
 BUILTIN_OVERLOAD(float_int, "float", "i", "I", "F",
     "converts an int to float")
-(StackPtr &, VM &, Value a) { return Value(double(a.ival())); }
+(StackPtr &, VM &, iint a) { return Value(double(a)); }
 BUILTIN_V_OVERLOAD(float_ivec, "float", "v", "I}", "F}",
     "converts a struct of ints to floats")
 (StackPtr &, VM &, Value *elems, iint len) { VECTOROP(double(f.ival())); }
 
 BUILTIN_OVERLOAD(sin_float, "sin", "angle", "F", "F",
     "the y coordinate of the normalized vector indicated by angle (in degrees)")
-(StackPtr &, VM &, Value a) { return Value(sin(a.fval() * RAD_D)); }
+(StackPtr &, VM &, double a) { return Value(sin(a * RAD_D)); }
 BUILTIN_V_OVERLOAD(sin_fvec, "sin", "angle", "F}", "F}",
     "the y coordinates of the normalized vector indicated by the angles (in degrees)")
 (StackPtr &, VM &, Value *elems, iint len) { VECTOROP(sin(f.fval() * RAD_D)); }
 BUILTIN_OVERLOAD(cos_float, "cos", "angle", "F", "F",
     "the x coordinate of the normalized vector indicated by angle (in degrees)")
-(StackPtr &, VM &, Value a) { return Value(cos(a.fval() * RAD_D)); }
+(StackPtr &, VM &, double a) { return Value(cos(a * RAD_D)); }
 BUILTIN_V_OVERLOAD(cos_fvec, "cos", "angle", "F}", "F}",
     "the x coordinates of the normalized vector indicated by the angles (in degrees)")
 (StackPtr &, VM &, Value *elems, iint len) { VECTOROP(cos(f.fval() * RAD_D)); }
 BUILTIN_OVERLOAD(tan_float, "tan", "angle", "F", "F",
     "the tangent of an angle (in degrees)")
-(StackPtr &, VM &, Value a) { return Value(tan(a.fval() * RAD_D)); }
+(StackPtr &, VM &, double a) { return Value(tan(a * RAD_D)); }
 BUILTIN_V_OVERLOAD(tan_fvec, "tan", "angle", "F}", "F}",
     "the tangents of the angles (in degrees)")
 (StackPtr &, VM &, Value *elems, iint len) { VECTOROP(tan(f.fval() * RAD_D)); }
 
 BUILTIN_V(sincos, "angle", "F", "F}:2",
     "the normalized vector indicated by angle (in degrees), same as float2 { cos(angle), sin(angle) }")
-(StackPtr &sp, VM &, Value angle) {
-    auto a = angle.fval();
+(StackPtr &sp, VM &, double a) {
     PushVec(sp, double2(cos(a * RAD_D), sin(a * RAD_D)));
 }
 
 BUILTIN(asin, "y", "F", "F",
     "the angle (in degrees) indicated by the y coordinate projected to the unit circle")
-(StackPtr &, VM &, Value y) { return Value(asin(y.fval()) / RAD_D); }
+(StackPtr &, VM &, double y) { return Value(asin(y) / RAD_D); }
 BUILTIN(acos, "x", "F", "F",
     "the angle (in degrees) indicated by the x coordinate projected to the unit circle")
-(StackPtr &, VM &, Value x) { return Value(acos(x.fval()) / RAD_D); }
+(StackPtr &, VM &, double x) { return Value(acos(x) / RAD_D); }
 BUILTIN(atan, "x", "F", "F",
     "the angle (in degrees) indicated by the y coordinate of the tangent projected to the unit circle")
-(StackPtr &, VM &, Value x) { return Value(atan(x.fval()) / RAD_D); }
+(StackPtr &, VM &, double x) { return Value(atan(x) / RAD_D); }
 
 BUILTIN(radians, "angle", "F", "F",
     "converts an angle in degrees to radians")
-(StackPtr &, VM &, Value a) { return Value(a.fval() * RAD_D); }
+(StackPtr &, VM &, double a) { return Value(a * RAD_D); }
 BUILTIN(degrees, "angle", "F", "F",
     "converts an angle in radians to degrees")
-(StackPtr &, VM &, Value a) { return Value(a.fval() / RAD_D); }
+(StackPtr &, VM &, double a) { return Value(a / RAD_D); }
 
 BUILTIN_V(atan2, "vec", "F}:2" , "F",
     "the angle (in degrees) corresponding to a normalized 2D vector")
@@ -899,8 +883,8 @@ BUILTIN_V_OVERLOAD(volume_ivec, "volume", "v", "I}", "I", "the volume of the are
 
 BUILTIN_OVERLOAD(rnd_int, "rnd", "max", "I", "I",
     "a random value [0..max).")
-(StackPtr &, VM &vm, Value a) {
-    return Value(vm.rndx[vm.active_rng].rnd_int64(std::max((iint)1, a.ival())));
+(StackPtr &, VM &vm, iint a) {
+    return Value(vm.rndx[vm.active_rng].rnd_int64(std::max((iint)1, a)));
 }
 
 BUILTIN_V_OVERLOAD(rnd_ivec, "rnd", "max", "I}", "I}",
@@ -923,16 +907,15 @@ BUILTIN(rnd_gaussian, "", "", "F",
 
 BUILTIN(rnd_seed, "seed", "I", "",
     "explicitly set a random seed for reproducable randomness")
-(StackPtr &, VM &vm, Value seed) {
-    vm.rndx[vm.active_rng].seed(seed.ival());
+(StackPtr &, VM &vm, iint seed) {
+    vm.rndx[vm.active_rng].seed(seed);
     return NilVal();
 }
 
 BUILTIN(rnd_select, "index", "I", "I",
     "select a different random number generator to be active. default is 0, max is 1000000."
     " returns previous value.")
-(StackPtr &, VM &vm, Value idx) {
-    auto i = idx.ival();
+(StackPtr &, VM &vm, iint i) {
     if (i > 1000000) vm.BuiltinError("rnd_select: too many random number generators");
     auto old = vm.active_rng;
     vm.active_rng = (size_t)i;
@@ -943,31 +926,31 @@ BUILTIN(rnd_select, "index", "I", "I",
 
 BUILTIN(rndm, "max", "I", "I",
     "deprecated: old mersenne twister version of the above for backwards compat.")
-(StackPtr &, VM &vm, Value a) {
-    return Value(vm.rndm.rnd_int(std::max(1, (int)a.ival())));
+(StackPtr &, VM &vm, iint a) {
+    return Value(vm.rndm.rnd_int(std::max(1, (int)a)));
 }
 
 BUILTIN(rndm_seed, "seed", "I", "",
     "deprecated: old mersenne twister version of the above for backwards compat.")
-(StackPtr &, VM &vm, Value seed) {
-    vm.rndm.seed((int)seed.ival());
+(StackPtr &, VM &vm, iint seed) {
+    vm.rndm.seed((int)seed);
     return NilVal();
 }
 
 BUILTIN(div, "a,b", "II", "F",
     "forces two ints to be divided as floats")
-(StackPtr &, VM &, Value a, Value b) { return Value(double(a.ival()) / double(b.ival())); }
+(StackPtr &, VM &, iint a, iint b) { return Value(double(a) / double(b)); }
 
 BUILTIN_OVERLOAD(clamp_int, "clamp", "x,min,max", "III", "I",
     "forces an integer to be in the range between min and max (inclusive)")
-(StackPtr &, VM &, Value a, Value b, Value c) {
-    return Value(geom::clamp(a.ival(), b.ival(), c.ival()));
+(StackPtr &, VM &, iint a, iint b, iint c) {
+    return Value(geom::clamp(a, b, c));
 }
 
 BUILTIN_OVERLOAD(clamp_float, "clamp", "x,min,max", "FFF", "F",
     "forces a float to be in the range between min and max (inclusive)")
-(StackPtr &, VM &, Value a, Value b, Value c) {
-    return Value(geom::clamp(a.fval(), b.fval(), c.fval()));
+(StackPtr &, VM &, double a, double b, double c) {
+    return Value(geom::clamp(a, b, c));
 }
 
 BUILTIN_V_OVERLOAD(clamp_ivec, "clamp", "x,min,max", "I}I}1I}1", "I}",
@@ -990,14 +973,14 @@ BUILTIN_V_OVERLOAD(clamp_fvec, "clamp", "x,min,max", "F}F}1F}1", "F}",
 
 BUILTIN_OVERLOAD(in_range_int, "in_range", "x,range,bias", "III?", "B",
     "checks if an integer is >= bias and < bias + range. Bias defaults to 0.")
-(StackPtr &, VM &, Value x, Value range, Value bias) {
-    return Value(x.ival() >= bias.ival() && x.ival() < bias.ival() + range.ival());
+(StackPtr &, VM &, iint x, iint range, iint bias) {
+    return Value(x >= bias && x < bias + range);
 }
 
 BUILTIN_OVERLOAD(in_range_float, "in_range", "x,range,bias", "FFF?", "B",
     "checks if a float is >= bias and < bias + range. Bias defaults to 0.")
-(StackPtr &, VM &, Value x, Value range, Value bias) {
-    return Value(x.fval() >= bias.fval() && x.fval() < bias.fval() + range.fval());
+(StackPtr &, VM &, double x, double range, double bias) {
+    return Value(x >= bias && x < bias + range);
 }
 
 BUILTIN_V_OVERLOAD(in_range_ivec2, "in_range", "x,range,bias", "I}:2I}:2I}:2?", "B",
@@ -1041,10 +1024,10 @@ BUILTIN_V_OVERLOAD(in_range_fvec3, "in_range", "x,range,bias", "F}:3F}:3F}:3?", 
 
 BUILTIN_OVERLOAD(abs_int, "abs", "x", "I", "I",
     "absolute value of an integer")
-(StackPtr &, VM &, Value a) { return Value(std::abs(a.ival())); }
+(StackPtr &, VM &, iint a) { return Value(std::abs(a)); }
 BUILTIN_OVERLOAD(abs_float, "abs", "x", "F", "F",
     "absolute value of a float")
-(StackPtr &, VM &, Value a) { return Value(fabs(a.fval())); }
+(StackPtr &, VM &, double a) { return Value(fabs(a)); }
 BUILTIN_V_OVERLOAD(abs_ivec, "abs", "x", "I}", "I}",
     "absolute value of an int vector")
 (StackPtr &, VM &, Value *elems, iint len) { VECTOROP(std::abs(f.ival())); }
@@ -1054,10 +1037,10 @@ BUILTIN_V_OVERLOAD(abs_fvec, "abs", "x", "F}", "F}",
 
 BUILTIN_OVERLOAD(sign_int, "sign", "x", "I", "I",
     "sign (-1, 0, 1) of an integer")
-(StackPtr &, VM &, Value a) { return Value(signum(a.ival())); }
+(StackPtr &, VM &, iint a) { return Value(signum(a)); }
 BUILTIN_OVERLOAD(sign_float, "sign", "x", "F", "I",
     "sign (-1, 0, 1) of a float")
-(StackPtr &, VM &, Value a) { return Value(signum(a.fval())); }
+(StackPtr &, VM &, double a) { return Value(signum(a)); }
 BUILTIN_V_OVERLOAD(sign_ivec, "sign", "x", "I}", "I}",
     "signs of an int vector")
 (StackPtr &, VM &, Value *elems, iint len) { VECTOROP(signum(f.ival())); }
@@ -1065,11 +1048,11 @@ BUILTIN_V_OVERLOAD(sign_fvec, "sign", "x", "F}", "I}",
     "signs of a float vector")
 (StackPtr &, VM &, Value *elems, iint len) { VECTOROP(signum(f.fval())); }
 
-#define VECSCALAROP(type, init, fun, acc, len, at) \
+#define VECSCALAROP(type, init, fun, len, at) \
     type v = init; \
-    auto l = x.acc()->len; \
+    auto l = x->len; \
     for (iint i = 0; i < l; i++) { \
-        auto f = x.acc()->at; \
+        auto f = x->at; \
         fun; \
     } \
     return Value(v);
@@ -1084,13 +1067,13 @@ BUILTIN_V_OVERLOAD(sign_fvec, "sign", "x", "F}", "I}",
 
 BUILTIN_OVERLOAD(min_int, "min", "x,y", "II", "I",
     "smallest of 2 integers.")
-(StackPtr &, VM &, Value x, Value y) {
-    return Value(std::min(x.ival(), y.ival()));
+(StackPtr &, VM &, iint x, iint y) {
+    return Value(std::min(x, y));
 }
 BUILTIN_OVERLOAD(min_float, "min", "x,y", "FF", "F",
     "smallest of 2 floats.")
-(StackPtr &, VM &, Value x, Value y) {
-    return Value(std::min(x.fval(), y.fval()));
+(StackPtr &, VM &, double x, double y) {
+    return Value(std::min(x, y));
 }
 BUILTIN_V_OVERLOAD(min_ivec, "min", "x,y", "I}I}1", "I}",
     "smallest components of 2 int vectors")
@@ -1118,24 +1101,24 @@ BUILTIN_V_OVERLOAD(min_of_fvec, "min", "v", "F}", "F",
 }
 BUILTIN_OVERLOAD(min_of_int_vector, "min", "v", "I]", "I",
     "smallest component of a int vector, or INT64_MAX if length 0.")
-(StackPtr &, VM &, Value x) {
-    VECSCALAROP(iint, INT64_MAX, v = std::min(v, f.ival()), vval, len, AtS(i))
+(StackPtr &, VM &, LVector *x) {
+    VECSCALAROP(iint, INT64_MAX, v = std::min(v, f.ival()), len, AtS(i))
 }
 BUILTIN_OVERLOAD(min_of_float_vector, "min", "v", "F]", "F",
     "smallest component of a float vector, or DBL_MAX if length 0.")
-(StackPtr &, VM &, Value x) {
-    VECSCALAROP(double, DBL_MAX, v = std::min(v, f.fval()), vval, len, AtS(i))
+(StackPtr &, VM &, LVector *x) {
+    VECSCALAROP(double, DBL_MAX, v = std::min(v, f.fval()), len, AtS(i))
 }
 
 BUILTIN_OVERLOAD(max_int, "max", "x,y", "II", "I",
     "largest of 2 integers.")
-(StackPtr &, VM &, Value x, Value y) {
-    return Value(std::max(x.ival(), y.ival()));
+(StackPtr &, VM &, iint x, iint y) {
+    return Value(std::max(x, y));
 }
 BUILTIN_OVERLOAD(max_float, "max", "x,y", "FF", "F",
     "largest of 2 floats.")
-(StackPtr &, VM &, Value x, Value y) {
-    return Value(std::max(x.fval(), y.fval()));
+(StackPtr &, VM &, double x, double y) {
+    return Value(std::max(x, y));
 }
 BUILTIN_V_OVERLOAD(max_ivec, "max", "x,y", "I}I}1", "I}",
     "largest components of 2 int vectors")
@@ -1163,31 +1146,31 @@ BUILTIN_V_OVERLOAD(max_of_fvec, "max", "v", "F}", "F",
 }
 BUILTIN_OVERLOAD(max_of_int_vector, "max", "v", "I]", "I",
     "largest component of a int vector, or INT64_MIN if length 0.")
-(StackPtr &, VM &, Value x) {
-    VECSCALAROP(iint, INT64_MIN, v = std::max(v, f.ival()), vval, len, AtS(i))
+(StackPtr &, VM &, LVector *x) {
+    VECSCALAROP(iint, INT64_MIN, v = std::max(v, f.ival()), len, AtS(i))
 }
 BUILTIN_OVERLOAD(max_of_float_vector, "max", "v", "F]", "F",
     "largest component of a float vector, or -DBL_MAX if length 0.")
-(StackPtr &, VM &, Value x) {
-    VECSCALAROP(double, -DBL_MAX, v = std::max(v, f.fval()), vval, len, AtS(i))
+(StackPtr &, VM &, LVector *x) {
+    VECSCALAROP(double, -DBL_MAX, v = std::max(v, f.fval()), len, AtS(i))
 }
 
 BUILTIN(popcount, "x", "I", "I",
     "number of bits set in an integer")
-(StackPtr &, VM &, Value a) {
-    return Value(PopCount((uint64_t)a.ival()));
+(StackPtr &, VM &, iint a) {
+    return Value(PopCount((uint64_t)a));
 }
 
 BUILTIN_OVERLOAD(lerp_float, "lerp", "x,y,f", "FFF", "F",
     "linearly interpolates between x and y with factor f [0..1]")
-(StackPtr &, VM &, Value x, Value y, Value f) {
-    return Value(mix(x.fval(), y.fval(), (float)f.fval()));
+(StackPtr &, VM &, double x, double y, double f) {
+    return Value(mix(x, y, (float)f));
 }
 
 BUILTIN_V_OVERLOAD(lerp_fvec, "lerp", "a,b,f", "F}F}1F", "F}",
     "linearly interpolates between a and b vectors with factor f [0..1]")
-(StackPtr &, VM &, Value *a, iint a_len, Value *b, iint b_len, Value f_) {
-    auto f = f_.fltval();
+(StackPtr &, VM &, Value *a, iint a_len, Value *b, iint b_len, double f_) {
+    auto f = (float)f_;
     auto y = ValueVec<double>(b, b_len);
     auto x = ValueVec<double>(a, a_len);
     x.mix(y, f);
@@ -1195,8 +1178,8 @@ BUILTIN_V_OVERLOAD(lerp_fvec, "lerp", "a,b,f", "F}F}1F", "F}",
 
 BUILTIN_V(spherical_lerp, "a,b,f", "F}:4F}:4F", "F}:4",
     "spherically interpolates between a and b quaternions with factor f [0..1]")
-(StackPtr &sp, VM &, Value *a, iint a_len, Value *b, iint b_len, Value f_) {
-    auto f = f_.fltval();
+(StackPtr &sp, VM &, Value *a, iint a_len, Value *b, iint b_len, double f_) {
+    auto f = (float)f_;
     auto y = ToVec<quat>(b, b_len);
     auto x = ToVec<quat>(a, a_len);
     PushVec(sp, spherical_lerp(x, y, f));
@@ -1204,35 +1187,32 @@ BUILTIN_V(spherical_lerp, "a,b,f", "F}:4F}:4F", "F}:4",
 
 BUILTIN(smoothmin, "x,y,k", "FFF", "F",
     "k is the influence range")
-(StackPtr &, VM &, Value x, Value y, Value k) {
-    return Value(smoothmin(x.fltval(), y.fltval(), k.fltval()));
+(StackPtr &, VM &, double x, double y, double k) {
+    return Value(smoothmin((float)x, (float)y, (float)k));
 }
 
 BUILTIN_OVERLOAD(smoothstep_x, "smoothstep", "x", "F", "F",
     "input must be in range 0..1, https://en.wikipedia.org/wiki/Smoothstep")
-(StackPtr &, VM &, Value x) {
-    return Value(smoothstep(x.fltval()));
+(StackPtr &, VM &, double x) {
+    return Value(smoothstep((float)x));
 }
 
 BUILTIN_OVERLOAD(smoothstep_abf, "smoothstep", "a,b,f", "FFF", "F",
     "hermite interpolation between a and b by f [0..1], https://registry.khronos.org/OpenGL-Refpages/gl4/html/smoothstep.xhtml")
-(StackPtr &, VM &, Value a, Value b, Value f) {
-    return Value(smoothstep(a.fltval(), b.fltval(), f.fltval()));
+(StackPtr &, VM &, double a, double b, double f) {
+    return Value(smoothstep((float)a, (float)b, (float)f));
 }
 
 BUILTIN(smootherstep, "x", "F", "F",
     "input must be in range 0..1, https://en.wikipedia.org/wiki/Smoothstep")
-(StackPtr &, VM &, Value x) {
-    return Value(smootherstep(x.fltval()));
+(StackPtr &, VM &, double x) {
+    return Value(smootherstep((float)x));
 }
 
 BUILTIN_V(cardinal_spline, "z,a,b,c,f,tension", "F}F}1F}1F}1FF", "F}",
     "computes the position between a and b with factor f [0..1], using z (before a) and c"
     " (after b) to form a cardinal spline (tension at 0.5 is a good default)")
-(StackPtr &sp, VM &, Value *z, iint z_len, Value *a, iint a_len, Value *b, iint b_len, Value *c,
- iint c_len, Value f_, Value tension) {
-    auto t = tension.fval();
-    auto f = f_.fval();
+(StackPtr &sp, VM &, Value *z, iint z_len, Value *a, iint a_len, Value *b, iint b_len, Value *c, iint c_len, double f, double t) {
     PushVec(sp, cardinal_spline(ToVec<double3>(z, z_len), ToVec<double3>(a, a_len),
                                 ToVec<double3>(b, b_len), ToVec<double3>(c, c_len), f, t),
             (int)z_len);
@@ -1241,8 +1221,8 @@ BUILTIN_V(cardinal_spline, "z,a,b,c,f,tension", "F}F}1F}1F}1FF", "F}",
 BUILTIN_V(line_intersect, "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "IF}:2",
     "computes if there is an intersection point between 2 line segments, with the point as"
     " second return value")
-(StackPtr &sp, VM &, Value *line1a, iint line1a_len, Value *line1b, iint line1b_len, Value *line2a,
- iint line2a_len, Value *line2b, iint line2b_len) {
+(StackPtr &sp, VM &, Value *line1a, iint line1a_len, Value *line1b, iint line1b_len,
+ Value *line2a, iint line2a_len, Value *line2b, iint line2b_len) {
     auto l2b = ToVec<double2>(line2b, line2b_len);
     auto l2a = ToVec<double2>(line2a, line2a_len);
     auto l1b = ToVec<double2>(line1b, line1b_len);
@@ -1264,16 +1244,12 @@ BUILTIN_V(circles_within_range, "dist,positions,radiuses,positions2,radiuses2,gr
     " each dimension, e.g. 100 elements would use a 20x20 grid."
     " Efficiency wise this algorithm is fastest if there is not too much variance in the radiuses of"
     " the second set and/or the second set has smaller radiuses than the first.")
-(StackPtr &sp, VM &vm, Value dist, Value positions, Value radiuses, Value positions2v,
- Value radiuses2v, Value *gridsize, iint gridsize_len) {
+(StackPtr &sp, VM &vm, double qdist, LVector *positions1, LVector *radiuses1, LVector *positions2v, LVector *radiuses2v, Value *gridsize, iint gridsize_len) {
     auto ncelld = ToVec<iint2>(gridsize, gridsize_len);
-    auto radiuses2 = radiuses2v.vval();
-    auto positions2 = positions2v.vval();
-    auto radiuses1 = radiuses.vval();
-    auto positions1 = positions.vval();
+    auto radiuses2 = radiuses2v;
+    auto positions2 = positions2v;
     if (!radiuses2->len) radiuses2 = radiuses1;
     if (!positions2->len) positions2 = positions1;
-    auto qdist = dist.fval();
     if (ncelld.x <= 0 || ncelld.y <= 0)
         ncelld = iint2((iint)sqrtf(float(positions2->len + 1) * 4));
     if (radiuses1->len != positions1->len || radiuses2->len != positions2->len)
@@ -1349,13 +1325,13 @@ BUILTIN_V(wave_function_collapse, "tilemap,size", "S]I}:2", "S]I",
     " the number of failed neighbor matches, this should"
     " ideally be 0, but can be non-0 for larger maps. Simply call this function"
     " repeatedly until it is 0")
-(StackPtr &sp, VM &vm, Value tilemap, Value *size, iint size_len) {
+(StackPtr &sp, VM &vm, LVector *tilemap, Value *size, iint size_len) {
     auto sz = ToVec<int2>(size, size_len);
-    auto rows = tilemap.vval()->SLen();
+    auto rows = tilemap->SLen();
     vector<const char *> inmap(rows);
     iint cols = 0;
     for (ssize_t i = 0; i < rows; i++) {
-        auto sv = tilemap.vval()->AtS(i).sval()->strv();
+        auto sv = tilemap->AtS(i).sval()->strv();
         if (i) {
             if (ssize(sv) != cols)
                 vm.BuiltinError("all columns must be equal length");
@@ -1377,8 +1353,8 @@ BUILTIN_V(wave_function_collapse, "tilemap,size", "S]I}:2", "S]I",
 
 BUILTIN_OVERLOAD(hash_int, "hash", "x", "I", "I",
     "hashes an int value into a positive int; may be the identity function")
-(StackPtr &, VM &vm, Value a) {
-    auto h = positive_bits(a.Hash(vm, RTT_INT));
+(StackPtr &, VM &vm, iint a) {
+    auto h = positive_bits(Value(a).Hash(vm, RTT_INT));
     return Value(h);
 }
 BUILTIN_OVERLOAD(hash_any, "hash", "x", "A", "I",
@@ -1395,8 +1371,8 @@ BUILTIN_OVERLOAD(hash_function, "hash", "x", "L", "I",
 }
 BUILTIN_OVERLOAD(hash_float, "hash", "x", "F", "I",
     "hashes a float value into a positive int")
-(StackPtr &, VM &vm, Value a) {
-    auto h = positive_bits(a.Hash(vm, RTT_FLOAT));
+(StackPtr &, VM &vm, double a) {
+    auto h = positive_bits(Value(a).Hash(vm, RTT_FLOAT));
     return Value(h);
 }
 BUILTIN_V_OVERLOAD(hash_ivec, "hash", "v", "I}", "I",
@@ -1437,8 +1413,8 @@ BUILTIN_V(type_string, "ref", "A", "S",
 
 BUILTIN_V(type_element_string, "v", "A]*", "S",
     "string representing the type of the elements of a vector")
-(StackPtr &sp, VM &vm, Value a) {
-    auto &ti = a.vval()->ti(vm);
+(StackPtr &sp, VM &vm, LVector *a) {
+    auto &ti = a->ti(vm);
     string sd;
     vm.GetTypeInfo(ti.subt).Print(vm, sd, nullptr);
     Push(sp, vm.NewString(sd));
@@ -1453,8 +1429,7 @@ BUILTIN_V(type_field_count, "obj", "A", "I",
 
 BUILTIN_V(type_field_string, "obj,idx", "AI", "S",
     "string representing the type of a field in an object, or empty for other reference types")
-(StackPtr &sp, VM &vm, Value a, Value idx) {
-    auto i = idx.ival();
+(StackPtr &sp, VM &vm, Value a, iint i) {
     auto &ti = a.ref()->ti(vm);
     string sd;
     if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
@@ -1465,8 +1440,8 @@ BUILTIN_V(type_field_string, "obj,idx", "AI", "S",
 
 BUILTIN_V(type_field_name, "obj,idx", "AI", "S",
     "name of a field in an object, or empty for other reference types")
-(StackPtr &sp, VM &vm, Value a, Value idx) {
-    auto i = idx.intval();
+(StackPtr &sp, VM &vm, Value a, iint idx) {
+    auto i = (int)idx;
     auto &ti = a.ref()->ti(vm);
     string sd;
     if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
@@ -1477,8 +1452,7 @@ BUILTIN_V(type_field_name, "obj,idx", "AI", "S",
 
 BUILTIN_V(type_field_value, "obj,idx", "AI", "S",
     "string representing the value of a field in an object, or empty for other reference types")
-(StackPtr &sp, VM &vm, Value a, Value idx) {
-    auto i = idx.ival();
+(StackPtr &sp, VM &vm, Value a, iint i) {
     auto &ti = a.ref()->ti(vm);
     if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
         auto &sti = vm.GetTypeInfo(ti.elemtypes[i].type);
@@ -1490,9 +1464,7 @@ BUILTIN_V(type_field_value, "obj,idx", "AI", "S",
 
 BUILTIN_V(type_enum_value_name, "enum_type_id,idx", "TI", "S",
     "string representing the name of an enum value, belonging to the enum (use typeof)")
-(StackPtr &sp, VM &vm, Value enum_type_id, Value idx) {
-    auto i = idx.ival();
-    auto id = enum_type_id.ival();
+(StackPtr &sp, VM &vm, iint id, iint i) {
     auto &ti = vm.GetTypeInfo((type_elem_t)id);
     string sd;
     if (ti.t == RTT_INT && ti.enumidx >= 0) {
@@ -1507,9 +1479,7 @@ BUILTIN_V(type_enum_value_valid, "enum_type_id,idx", "TI", "B",
     " to range check a value that may come from elsewhere (such as a file written by a newer"
     " version of the program) before switching on it. For an enum_flags, any combination of"
     " declared bits is a value, so this is true for more values than a switch on it has cases")
-(StackPtr &sp, VM &vm, Value enum_type_id, Value idx) {
-    auto i = idx.ival();
-    auto id = enum_type_id.ival();
+(StackPtr &sp, VM &vm, iint id, iint i) {
     auto &ti = vm.GetTypeInfo((type_elem_t)id);
     Push(sp, Value(ti.t == RTT_INT && ti.enumidx >= 0 && vm.EnumValueValid(i, ti.enumidx)));
 }
@@ -1536,14 +1506,14 @@ BUILTIN(seconds_elapsed, "", "", "F",
 BUILTIN(date_time, "utc", "B?", "I]",
     "a vector of integers representing date & time information (index with date_time.lobster)."
     " By default returns local time, pass true for UTC instead.")
-(StackPtr &, VM &vm, Value utc) {
+(StackPtr &, VM &vm, iint utc) {
     auto time = std::time(nullptr);
     const iint num_elems = 9;
     auto v = vm.NewVec(num_elems, num_elems, TYPE_ELEM_VECTOR_OF_INT);
     for (iint i = 0; i < num_elems; i++) v->AtSR(i) = -1;
     if (!time) return Value(v);
     v->AtSR(0) = (iint)time; // unix epoch in seconds
-    auto tm = utc.True() ? std::gmtime(&time) : std::localtime(&time);
+    auto tm = (utc != 0) ? std::gmtime(&time) : std::localtime(&time);
     if (!tm) return Value(v);
     v->AtSR(1) = tm->tm_year;
     v->AtSR(2) = tm->tm_mon;
@@ -1559,10 +1529,10 @@ BUILTIN(date_time, "utc", "B?", "I]",
 BUILTIN(date_time_string, "utc", "B?", "S",
     "a string representing date & time information in the format: \'Www Mmm dd hh:mm:ss yyyy\'."
     " By default returns local time, pass true for UTC instead.")
-(StackPtr &, VM &vm, Value utc) {
+(StackPtr &, VM &vm, iint utc) {
     auto time = std::time(nullptr);
     if (!time) return Value(vm.NewString(""));
-    auto tm = utc.True() ? std::gmtime(&time) : std::localtime(&time);
+    auto tm = (utc != 0) ? std::gmtime(&time) : std::localtime(&time);
     if (!tm) return Value(vm.NewString(""));
     auto ts = std::asctime(tm);
     auto s = vm.NewString(string_view(ts, 24));
@@ -1573,14 +1543,14 @@ BUILTIN(date_time_string_format, "format,utc", "SB?", "S",
     "a string representing date & time information using a formatting string according to"
     " https://en.cppreference.com/w/cpp/chrono/c/strftime, for example \"%Y_%m_%d_%H_%M_%S\"."
     " By default returns local time, pass true for UTC instead.")
-(StackPtr &, VM &vm, Value fmt, Value utc) {
+(StackPtr &, VM &vm, LString *fmt, iint utc) {
     auto time = std::time(nullptr);
     if (!time) return Value(vm.NewString(""));
-    auto tm = utc.True() ? std::gmtime(&time) : std::localtime(&time);
+    auto tm = (utc != 0) ? std::gmtime(&time) : std::localtime(&time);
     if (!tm) return Value(vm.NewString(""));
     const size_t max = 1024;
     char buf[max];
-    auto sz = std::strftime(buf, max, fmt.sval()->strvnt().c_str(), tm);
+    auto sz = std::strftime(buf, max, fmt->strvnt().c_str(), tm);
     if (!sz) return Value(vm.NewString(""));
     auto s = vm.NewString(string_view(buf, sz));
     return Value(s);
@@ -1604,8 +1574,8 @@ BUILTIN(get_stack_trace, "", "", "S",
 
 BUILTIN(get_memory_usage, "n", "I", "S",
     "gets a text showing the top n object types that are using the most memory.")
-(StackPtr &, VM &vm, Value n) {
-    return Value(vm.NewString(vm.MemoryUsage(n.intval())));
+(StackPtr &, VM &vm, iint n) {
+    return Value(vm.NewString(vm.MemoryUsage((int)n)));
 }
 
 BUILTIN(pass, "", "", "",
@@ -1623,23 +1593,23 @@ BUILTIN(reference_count, "val", "A", "I",
 
 BUILTIN(set_console, "on", "B", "",
     "lets you turn on/off the console window (on Windows)")
-(StackPtr &, VM &, Value x) {
-    SetConsole(x.True());
+(StackPtr &, VM &, iint x) {
+    SetConsole((x != 0));
     return NilVal();
 }
 
 BUILTIN(set_output_level, "level", "I", "",
     "0 = debug, 1 = verbose, 2 = warn (default), 3 = error, 4 = program")
-(StackPtr &, VM &, Value x) {
+(StackPtr &, VM &, iint x) {
     // Do "min", so we can override even lower from command-line.
-    min_output_level = std::min(min_output_level, (OutputType)x.intval());
+    min_output_level = std::min(min_output_level, (OutputType)(int)x);
     return NilVal();
 }
 
 BUILTIN(set_exit_code, "code", "I", "",
     "this will be returned when run as a console application")
-(StackPtr &, VM &vm, Value x) {
-    vm.evalret.second = x.ival();
+(StackPtr &, VM &vm, iint x) {
+    vm.evalret.second = x;
     return NilVal();
 }
 
@@ -1664,8 +1634,8 @@ BUILTIN(is_worker_thread, "", "", "B",
 
 BUILTIN(start_worker_threads, "numthreads", "I", "",
     "launch worker threads")
-(StackPtr &, VM &vm, Value n) {
-    vm.StartWorkers(n.ival());
+(StackPtr &, VM &vm, iint n) {
+    vm.StartWorkers(n);
     return NilVal();
 }
 
@@ -1696,23 +1666,23 @@ BUILTIN(thread_read, "type", "T", "A1?",
     "get an object from the thread queue. pass the typeof object. blocks if no such"
     " objects available. returns object, or nil if this was the result of thread_wake()"
     " or stop_worker_threads() was called")
-(StackPtr &, VM &vm, Value t) {
-    return vm.WorkerRead((type_elem_t)t.ival());
+(StackPtr &, VM &vm, iint t) {
+    return vm.WorkerRead((type_elem_t)t);
 }
 
 BUILTIN(thread_check, "type", "T", "A1?",
     "tests if an object is available on the thread queue. pass the typeof object. "
     "returns object, or nil if none available, or if stop_worker_threads() was called")
-(StackPtr &, VM &vm, Value t) {
-    return vm.WorkerCheck((type_elem_t)t.ival());
+(StackPtr &, VM &vm, iint t) {
+    return vm.WorkerCheck((type_elem_t)t);
 }
 
 BUILTIN(thread_wake, "type", "T", "",
     "wakes up one thread that are currently blocked on a thread_read for this type. "
     "this will cause them to return nil since no object is sent. "
     "it is similar to thread_write(nil)")
-(StackPtr &, VM &vm, Value t) {
-    vm.WorkerWake((type_elem_t)t.ival());
+(StackPtr &, VM &vm, iint t) {
+    vm.WorkerWake((type_elem_t)t);
     return NilVal();
 }
 
@@ -1726,7 +1696,7 @@ BUILTIN_V(crash_test_cpp_nullptr_exception, "", "", "",
 // See also the similar im.show_profiling_stats.
 BUILTIN(profiler_dump_stats, "num,histogram", "IB", "S",
     "returns a string with CSV data for the num top items")
-(StackPtr &, VM &vm, Value num, Value histogram) {
+(StackPtr &, VM &vm, iint i, iint histogram) {
     string s;
     #if LOBSTER_FRAME_PROFILER == 1
         auto &prof_db = prof_db_thread_local;
@@ -1740,20 +1710,19 @@ BUILTIN(profiler_dump_stats, "num,histogram", "IB", "S",
                  return a.second->time >= b.second->time;
             });
         s += "Function,AVG ms,HI ms,TOTAL sec,COUNT\n";  // ,Histogram
-        auto i = num.ival();
         for (auto &it : display) {
             s += cat("\"", it.first->function, "\",",
                 it.second->time * 1000.0 / it.second->n, ",",
                 it.second->highest * 1000.0, ",",
                 it.second->time, ",",
                 it.second->n, "\n");
-            if (histogram.True()) {
+            if ((histogram != 0)) {
                 // FIXME: output it.second->window somehow.
             }
             if (!--i) break;
         }
     #else
-        (void)num;
+        (void)i;
         (void)histogram;
     #endif
     return Value(vm.NewString(s));
@@ -1761,10 +1730,10 @@ BUILTIN(profiler_dump_stats, "num,histogram", "IB", "S",
 
 BUILTIN(profiler_paused, "paused", "B", "",
     "")
-(StackPtr &, VM &, Value paused) {
+(StackPtr &, VM &, iint paused) {
     #if LOBSTER_FRAME_PROFILER == 1
         auto &prof_db = prof_db_thread_local;
-        prof_db.paused = paused.True();
+        prof_db.paused = (paused != 0);
     #else
         (void)paused;
     #endif
@@ -1790,9 +1759,7 @@ BuiltinGroup matrix_builtins;
 
 BUILTIN(multiply, "a,b", "F]F]", "F]",
     "input matrices must be 4x4 elements")
-(StackPtr &, VM &vm, Value a, Value b) {
-    auto av = a.vval();
-    auto bv = b.vval();
+(StackPtr &, VM &vm, LVector *av, LVector *bv) {
     if (av->len != 16 || bv->len != 16)
         vm.BuiltinError("matrix_multiply: input vectors must be length 16");
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);

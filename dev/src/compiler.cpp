@@ -879,13 +879,13 @@ BUILTIN(compile_run_code, "code,args", "SS]", "SS?",
     " with an error string as second return value, or nil if none. using parse_data(),"
     " two program can communicate more complex data structures even if they don't have the same"
     " version of struct definitions.")
-(StackPtr &sp, VM &vm, Value filename, Value args) {
+(StackPtr &sp, VM &vm, LString *filename, LVector *args) {
     return CompileRun(vm, sp, filename, true, ValueToVectorOfStrings(args));
 }
 
 BUILTIN(compile_run_file, "filename,args", "SS]", "SS?",
     "same as compile_run_code(), only now you pass a filename.")
-(StackPtr &sp, VM &vm, Value filename, Value args) {
+(StackPtr &sp, VM &vm, LString *filename, LVector *args) {
     return CompileRun(vm, sp, filename, false, ValueToVectorOfStrings(args));
 }
 
@@ -900,7 +900,7 @@ BUILTIN(compile_run_c_code, "code,input", "SS", "S?S?",
     " returns the output as a string (or nil if output_buf() was never called), plus an error"
     " string as second return value (nil if none). note the C code can also modify the input"
     " buffer in-place as a way to return data.")
-(StackPtr &sp, VM &vm, Value code, Value input) {
+(StackPtr &sp, VM &vm, LString *code, LString *input) {
     return CompileRunCCode(vm, sp, code, input);
 }
 

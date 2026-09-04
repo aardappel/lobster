@@ -686,9 +686,9 @@ BuiltinGroup meshgen_builtins;
 
 BUILTIN(sphere, "radius", "F", "",
     "a sphere")
-(StackPtr &, VM &, Value rad) {
+(StackPtr &, VM &, double rad) {
     auto s = new IFSphere();
-    s->rad = rad.fltval();
+    s->rad = (float)rad;
     return AddShape(s);
 }
 
@@ -702,20 +702,20 @@ BUILTIN_V(cube, "extents", "F}:3", "",
 
 BUILTIN(cylinder, "radius,height", "FF", "",
     "a unit cylinder (height is from center)")
-(StackPtr &, VM &, Value radius, Value height) {
+(StackPtr &, VM &, double radius, double height) {
     auto c = new IFCylinder();
-    c->radius = radius.fltval();
-    c->height = height.fltval();
+    c->radius = (float)radius;
+    c->height = (float)height;
     return AddShape(c);
 }
 
 BUILTIN(tapered_cylinder, "bot,top,height", "FFF", "",
     "a cyclinder where you specify the top and bottom radius (height is from center)")
-(StackPtr &, VM &, Value bot, Value top, Value height) {
+(StackPtr &, VM &, double bot, double top, double height) {
     auto tc = new IFTaperedCylinder();
-    tc->bot = bot.fltval();
-    tc->top = top.fltval();
-    tc->height = height.fltval();
+    tc->bot = (float)bot;
+    tc->top = (float)top;
+    tc->height = (float)height;
     return AddShape(tc);
 }
 
@@ -744,19 +744,19 @@ BUILTIN_V(superquadric_non_uniform, "posexponents,negexponents,posscale,negscale
 
 BUILTIN_V(supertoroid, "R,exponents", "FF}:3", "",
     "a super toroid. R is the distance from the origin to the center of the ring.")
-(StackPtr &, VM &, Value R, Value *exponents, iint exponents_len) {
+(StackPtr &, VM &, double R, Value *exponents, iint exponents_len) {
     auto t = new IFSuperToroid();
     t->exp = ToVec<float3>(exponents, exponents_len);
-    t->r = R.fltval();
+    t->r = (float)R;
     AddShape(t);
 }
 
 BUILTIN(landscape, "zscale,xyscale", "FF", "",
     "a simplex landscape of unit size")
-(StackPtr &, VM &, Value zscale, Value xyscale) {
+(StackPtr &, VM &, double zscale, double xyscale) {
     auto ls = new IFLandscape();
-    ls->zscale = zscale.fltval();
-    ls->xyscale = xyscale.fltval();
+    ls->zscale = (float)zscale;
+    ls->xyscale = (float)xyscale;
     return AddShape(ls);
 }
 
@@ -766,20 +766,19 @@ BUILTIN(set_polygon_reduction, "polyreductionpasses,epsilon,maxtricornerdot", "I
     " determines how flat adjacent triangles must be to be reduced, use 0.98 as a good"
     " tradeoff, lower to get more compression. maxtricornerdot avoid very thin triangles, use"
     " 0.95 as a good tradeoff, up to 0.99 to get more compression")
-(StackPtr &, VM &, Value _polyreductionpasses, Value _epsilon,
-    Value _maxtricornerdot) {
-    polyreductionpasses = _polyreductionpasses.intval();
-    epsilon = _epsilon.fltval();
-    maxtricornerdot = _maxtricornerdot.fltval();
+(StackPtr &, VM &, iint _polyreductionpasses, double _epsilon, double _maxtricornerdot) {
+    polyreductionpasses = (int)_polyreductionpasses;
+    epsilon = (float)_epsilon;
+    maxtricornerdot = (float)_maxtricornerdot;
     return NilVal();
 }
 
 BUILTIN(set_color_noise, "noiseintensity,noisestretch", "FF", "",
     "applies simplex noise to the colors of the model. try 0.3 for intensity."
     " stretch scales the pattern over the model")
-(StackPtr &, VM &, Value _noiseintensity, Value _noisestretch) {
-    noisestretch = _noisestretch.fltval();
-    noiseintensity = _noiseintensity.fltval();
+(StackPtr &, VM &, double _noiseintensity, double _noisestretch) {
+    noisestretch = (float)_noisestretch;
+    noiseintensity = (float)_noiseintensity;
     return NilVal();
 }
 
@@ -787,15 +786,15 @@ BUILTIN(set_vertex_randomize, "factor", "F", "",
     "randomizes all verts produced to give a more organic look and to hide the inherent messy"
     " polygons produced by the algorithm. try 0.15. note that any setting other than 0 will"
     " likely counteract the polygon reduction algorithm")
-(StackPtr &, VM &, Value factor) {
-    randomizeverts = factor.fltval();
+(StackPtr &, VM &, double factor) {
+    randomizeverts = (float)factor;
     return NilVal();
 }
 
 BUILTIN(set_point_mode, "on", "B", "",
     "generates a point mesh instead of polygons")
-(StackPtr &, VM &, Value aspoints) {
-    pointmode = aspoints.True();
+(StackPtr &, VM &, iint aspoints) {
+    pointmode = (aspoints != 0);
     return NilVal();
 }
 
@@ -804,16 +803,16 @@ BUILTIN(polygonize, "subdiv", "I", "R:mesh",
     " subdiv determines detail and number of polygons (relative to the largest dimension of the"
     " model), try 30.. 300 depending on the subject."
     " values much higher than that will likely make you run out of memory (or take very long).")
-(StackPtr &, VM &vm, Value subdiv) {
-    return eval_and_polygonize(vm, subdiv.intval(), 0, true);
+(StackPtr &, VM &vm, iint subdiv) {
+    return eval_and_polygonize(vm, (int)subdiv, 0, true);
 }
 
 BUILTIN(convert_to_cubes, "subdiv,zoffset", "II", "R:voxels",
     "returns a cubegen block (see cg_ functions) from past mg commands."
     " subdiv determines detail and number of cubes (relative to the largest dimension of the"
     " model).")
-(StackPtr &, VM &vm, Value subdiv, Value zoffset) {
-    return eval_and_polygonize(vm, subdiv.intval(), zoffset.intval(), false);
+(StackPtr &, VM &vm, iint subdiv, iint zoffset) {
+    return eval_and_polygonize(vm, (int)subdiv, (int)zoffset, false);
 }
 
 BUILTIN_V(translate, "vec", "F}:3", "",
@@ -826,8 +825,8 @@ BUILTIN_V(translate, "vec", "F}:3", "",
 
 BUILTIN_V(scale, "f", "F", "",
     "scales the current coordinate system by the given factor")
-(StackPtr &, VM &, Value f_) {
-    auto f = f_.fltval();
+(StackPtr &, VM &, double f_) {
+    auto f = (float)f_;
     cur.size *= f;
 }
 
@@ -840,8 +839,8 @@ BUILTIN_V(scale_vec, "vec", "F}:3", "",
 
 BUILTIN_V(rotate, "axis,angle", "F}:3F", "",
     "rotates using axis/angle")
-(StackPtr &, VM &, Value *axis_, iint axis_len, Value angle_) {
-    auto angle = angle_.fltval();
+(StackPtr &, VM &, Value *axis_, iint axis_len, double angle_) {
+    auto angle = (float)angle_;
     auto axis = ToVec<float3>(axis_, axis_len);
     cur.rot *= float3x3(angle * RAD_F, axis);
 }
@@ -857,8 +856,8 @@ BUILTIN_V(color, "color", "F}:4", "",
 BUILTIN_V(smooth, "smooth", "F", "",
     "sets the smoothness in terms of the range of distance from the shape smoothing happens,"
     " defaults to 1.0")
-(StackPtr &, VM &, Value smooth_) {
-    auto smooth = smooth_.fltval();
+(StackPtr &, VM &, double smooth_) {
+    auto smooth = (float)smooth_;
     cur.smoothmink = smooth;
 }
 
