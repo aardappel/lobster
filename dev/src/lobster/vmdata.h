@@ -1149,13 +1149,34 @@ struct VMBase {
     } ret_buf;
 };
 
-// The generated code reads globals and string constants out of these directly, so its mirror of
-// this type has to find them in the same place, see CodeGen::Prologue.
-static_assert(offsetof(VMBase, fvars_ptr) == sizeof(int) * 4);
-static_assert(offsetof(VMBase, constant_strings_ptr) == sizeof(int) * 4 + sizeof(Value *));
-static_assert(offsetof(VMBase, ret_buf) == sizeof(int) * 4 + sizeof(Value *) * 2);
-static_assert(sizeof(VMBase) ==
-              sizeof(int) * 4 + sizeof(Value *) * 2 + sizeof(Value) * MAX_RETURN_SLOTS);
+// The C we generate declares its own version of VMBase and reads globals, string constants and
+// return values out of it directly, see CodeGen::Prologue. This is that declaration in C++, so
+// that the checks below pin every field to where the generated code expects it, on 32 and 64-bit
+// targets alike.
+struct VMBaseMirror {
+    int last_line;
+    int last_fileidx;
+    int ret_unwind_to;
+    Value *fvars_ptr;
+    Value *constant_strings_ptr;
+    Value ret_buf[MAX_RETURN_SLOTS];
+};
+
+#if defined(__GNUC__) || defined(__clang__)
+    // offsetof is only conditionally supported on a type holding a Value, which keeps its payload
+    // private and its type tag public and so is not standard-layout. All the compilers we build
+    // with compute the offset anyway, they just want to be asked.
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Winvalid-offsetof"
+#endif
+static_assert(offsetof(VMBase, fvars_ptr) == offsetof(VMBaseMirror, fvars_ptr));
+static_assert(offsetof(VMBase, constant_strings_ptr) ==
+              offsetof(VMBaseMirror, constant_strings_ptr));
+static_assert(offsetof(VMBase, ret_buf) == offsetof(VMBaseMirror, ret_buf));
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic pop
+#endif
+static_assert(sizeof(VMBase) == sizeof(VMBaseMirror));
 
 typedef void (*EngineShutdownFunctionPtr)();
 
