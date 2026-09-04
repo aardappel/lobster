@@ -734,10 +734,12 @@ struct CodeGen  {
                 "typedef lobster::LResource LResource;\n"
                 "using lobster::RefVal;\n"
                 "\n"
-                // A program is free to assign a variable it never reads.
+                // A program is free to assign a variable it never reads, or to compare a
+                // variable with itself.
                 "#if defined(__clang__) || defined(__GNUC__)\n"
                 "    #pragma GCC diagnostic ignored \"-Wunused-but-set-variable\"\n"
                 "    #pragma GCC diagnostic ignored \"-Wunused-variable\"\n"
+                "    #pragma GCC diagnostic ignored \"-Wtautological-compare\"\n"
                 "#endif\n"
                 "\n"
                 "#if LOBSTER_ENGINE\n"
@@ -1091,8 +1093,18 @@ struct CodeGen  {
     // The C precedence of the operators the emitters build expressions from, lower binding
     // tighter: 1 a call or index, 2 a prefix operator or cast, 3 * / %, 4 + -, 5 the shifts,
     // 6 the relational and 7 the equality comparisons, 8 &, 9 ^, 10 |.
-    // A place as an operand of an operator of precedence `prec`, in parentheses when it is an
-    // expression that binds looser, or as loose on the right, which keeps the grouping.
+    // An expression as an operand of an operator of precedence `prec`, in parentheses when it
+    // binds looser, or as loose on the right, which keeps the grouping.
+    static Expr &Parens(Expr &e, int prec, bool right = false) {
+        if (e.prec > prec || (e.prec == prec && right)) {
+            e.text = cat("(", e.text, ")");
+            e.prec = 0;
+        }
+        return e;
+    }
+
+    // A place as an operand of an operator of precedence `prec`. A `prec` past the operators,
+    // 15, is a context that groups by itself, such as an argument or a whole condition.
     Expr Operand(const Place &p, int prec, bool right = false) {
         Expr e;
         if (HasPending(p.slot)) {
@@ -1103,11 +1115,7 @@ struct CodeGen  {
         } else {
             e = { Read(p), {}, false, 0 };
         }
-        if (e.prec > prec || (e.prec == prec && right)) {
-            e.text = cat("(", e.text, ")");
-            e.prec = 0;
-        }
-        return e;
+        return Parens(e, prec, right);
     }
 
     // What an operator makes of its operands.
@@ -1857,17 +1865,22 @@ struct CodeGen  {
         TrackUseDef(1, defslots);
         auto lab = Label();
         auto v = Slot(1, k);
-        // Read as the operand of the ! it may get, or of a cast. When the value stays on the
-        // stack it is written to its slot first, since that write is what its expression may
-        // read, and the test then reads the slot; when it is consumed here the expression is
-        // used as is, since the flush only drops it.
+        // Read as the operand of the ! it may get, and otherwise as the whole condition, which
+        // needs no parentheses of its own. When the value stays on the stack it is written to
+        // its slot first, since that write is what its expression may read, and the test then
+        // reads the slot; when it is consumed here the expression is used as is, since the
+        // flush only drops it.
         if (defslots) Flush();
-        auto cond = Operand(v, 2).text;
+        auto e = Operand(v, onfail ? 2 : 15);
         if (!defslots) Flush();
         if (k == resk || !defslots) {
-            append(cb, "    if (", onfail ? "!" : "", cond, ") goto block", lab, ";\n");
+            append(cb, "    if (", onfail ? "!" : "", e.text, ") goto block", lab, ";\n");
             return lab;
         }
+        // The test stays the whole condition, while the conversion below takes the value as
+        // the operand of a cast.
+        auto test = e.text;
+        auto cond = Parens(e, 2).text;
         string conv;
         switch (resk) {
             case VK_FLOAT: conv = cat("(double)", cond); break;
@@ -1878,7 +1891,7 @@ struct CodeGen  {
                 conv = IsRefKind(k) ? cat("(", CType(resk), ")", cond) : "0";
                 break;
         }
-        append(cb, "    if (", onfail ? "!" : "", cond, ") { ", WriteText(Slot(1, resk), conv),
+        append(cb, "    if (", onfail ? "!" : "", test, ") { ", WriteText(Slot(1, resk), conv),
                " goto block", lab, "; }\n");
         return lab;
     }

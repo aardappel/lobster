@@ -206,7 +206,7 @@ VM_INLINE void RtAbort(VM &vm) {
     vm.SeriousError("VM internal error: abort");
 }
 
-VM_INLINE void RtEnumRangeErr(VM &vm) {
+[[noreturn]] VM_INLINE void RtEnumRangeErr(VM &vm) {
     vm.Error("Enum out of range of possible values in switch");
 }
 

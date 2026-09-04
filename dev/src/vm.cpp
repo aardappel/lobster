@@ -555,6 +555,11 @@ void VM::DumpStackTraceMemory(const string &err) {
     #endif
 }
 
+#ifdef _MSC_VER
+    // Error returns a Value only so it can be used as the result of a builtin, see vmdata.h.
+    #pragma warning(disable: 4646)  // function declared with 'noreturn' has non-void return type
+#endif
+
 Value VM::Error(string err) {
     if (vma.stack_trace_python_ordering && vma.runtime_checks <= RUNTIME_DEBUG) {
         DumpStackTrace(errmsg, true);
@@ -571,7 +576,6 @@ Value VM::Error(string err) {
         DumpStackTrace(errmsg, false);
     }
     UnwindOnError();
-    return NilVal();
 }
 
 // Unlike Error above, this one does not attempt any variable dumping since the VM may already be
@@ -580,13 +584,11 @@ Value VM::SeriousError(string err) {
     ErrorBase(err);
     assert(false);
     UnwindOnError();
-    return NilVal();
 }
 
 Value VM::NormalExit(string err) {
     errmsg = err;
     UnwindOnError();
-    return NilVal();
 }
 
 void VM::VMAssert(const char *what)  {
@@ -640,7 +642,7 @@ static void PrepareLongJmpBuffer(jmp_buf buf) {
 }
 #endif
 
-void VM::UnwindOnError() {
+[[noreturn]] void VM::UnwindOnError() {
     // This is the single location from which we unwind the execution stack from within the VM.
     // This requires special care, because there may be jitted code on the stack, and depending
     // on the platform we can use exception handling, or not.
