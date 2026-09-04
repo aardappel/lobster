@@ -93,8 +93,9 @@ struct CodeGen  {
     map<int, NativeFun *> natives_used;
     size_t natives_decl_offset = 0;
     // The object types whose fields the code names, which get a struct of their own at the
-    // same spot, see UDTName.
-    map<int, const UDT *> udts_used;
+    // same spot, see UDTName, with the members it has, see Members.
+    struct UDTMember;
+    map<int, pair<const UDT *, vector<UDTMember>>> udts_used;
     // Whether the function calls any builtin, which takes a stack pointer to hand it, one whose
     // result lands in a Value first, and one that gets the profiler hooks, see EmitNativeCall.
     bool f_uses_sp = false;
@@ -120,7 +121,12 @@ struct CodeGen  {
     struct Place {
         string s;
         RTType rtt;
+        // Whether it is read and written as the type its value is rather than as a Value, and
+        // whether it is a variable, which is what lets it be named more than once and be
+        // remembered in place of a write, see Defer. A field of an object is the first without
+        // being the second.
         bool typed;
+        bool var = false;
         int slot = -1;
         VKind k() const { return Kind(rtt); }
     };
@@ -164,10 +170,15 @@ struct CodeGen  {
     // code at all beyond a note of where the assignment that follows writes to, or an address
     // computed into the "lv" local, which f_uses_lval says the function then needs. A struct
     // occupies consecutive slots from there.
-    enum LvalKind { LVK_NONE, LVK_LOCAL, LVK_GLOBAL, LVK_PTR };
+    // A field of an object is neither: it is a member of the struct for its type, which the
+    // object it belongs to sits in "lo" for. LVK_NUMPTR is a pointer to slots that hold the one
+    // numeric type they are rather than Values, which is what indexing such a field gives.
+    enum LvalKind { LVK_NONE, LVK_LOCAL, LVK_GLOBAL, LVK_PTR, LVK_FIELD, LVK_NUMPTR };
     LvalKind f_lval_kind = LVK_NONE;
     int f_lval_idx = 0;
+    const UDT *f_lval_udt = nullptr;
     bool f_uses_lval = false;
+    bool f_uses_lobj = false;
     vector<int> ownedvars;
     vector<int> funstarttables;
     // The C name of each function, by its SubFunction index, see FunName.
@@ -596,10 +607,13 @@ struct CodeGen  {
         // The object types whose fields the code names, see UDTName. Each is the header every
         // reference carries and a Value per slot, which is what an object is; Entry() checks
         // the size of both of those, so nothing here needs a check of its own.
-        for (auto [idx, udt] : udts_used) {
+        for (auto &[idx, um] : udts_used) {
+            auto &[udt, members] = um;
             append(decls, "typedef struct {\n    int typeinfo;\n    int refc;\n");
-            for (int i = 0; i < udt->numslots; i++) {
-                append(decls, "    Value ", FieldName(*udt, i), ";\n");
+            for (auto &m : members) {
+                append(decls, "    ", m.ctype, m.ctype.back() == '*' ? "" : " ", m.name);
+                if (m.count > 1) append(decls, "[", m.count, "]");
+                decls += ";\n";
             }
             append(decls, "} ", UDTName(*udt), ";  // ", udt->name, "\n");
         }
@@ -1041,10 +1055,12 @@ struct CodeGen  {
         return names[k];
     }
 
-    static Place Var(string s, RTType rtt) { return { std::move(s), rtt, true }; }
+    static Place Var(string s, RTType rtt) { return { std::move(s), rtt, true, true }; }
     static Place Var(string s, VKind k) { return Var(std::move(s), Rtt(k)); }
     static Place Mem(string s, RTType rtt) { return { std::move(s), rtt, false }; }
     static Place Mem(string s, TypeRef type) { return Mem(std::move(s), RtTypeOf(type)); }
+    // Memory that holds the type it says, which is what a field of an object is.
+    static Place Direct(string s, RTType rtt) { return { std::move(s), rtt, true }; }
 
     bool HasPending(int slot) {
         return slot >= 0 && slot < (int)pending.size() && !pending[slot].expr.empty();
@@ -1129,7 +1145,7 @@ struct CodeGen  {
         if (HasPending(p.slot)) {
             auto &q = pending[p.slot];
             e = { q.expr, q.vars, true, q.prec };
-        } else if (p.typed) {
+        } else if (p.var) {
             e = { p.s, { p.s }, true, 0 };
         } else {
             e = { Read(p), {}, false, 0 };
@@ -1256,7 +1272,7 @@ struct CodeGen  {
     }
 
     void CopyValue(string &sd, const Place &d, const Place &s, string_view lf = "\n") {
-        if (d.slot >= 0 && s.typed && &sd == &cb && d.k() == s.k()) {
+        if (d.slot >= 0 && s.var && &sd == &cb && d.k() == s.k()) {
             // A push of a variable, or of a slot that is itself pending, is only remembered.
             // A computed expression is written first rather than computed twice.
             if (HasPending(s.slot) && pending[s.slot].prec) Materialize(pending[s.slot]);
@@ -1676,9 +1692,17 @@ struct CodeGen  {
         switch (f_lval_kind) {
             case LVK_LOCAL: return Local(f_lval_idx + i);
             case LVK_GLOBAL: return Global(f_lval_idx + i);
-            default: return Mem(cat("lv[", i, "]"), SlotType(type, i));
+            case LVK_FIELD: return Field("lo", *f_lval_udt, f_lval_idx + i, SlotType(type, i));
+            case LVK_NUMPTR:
+                return Direct(cat("((", SlotCType(type, i), " *)lv)[", i, "]"),
+                              RtTypeOf(SlotType(type, i)));
+            default: return Mem(cat("((Value *)lv)[", i, "]"), SlotType(type, i));
         }
     }
+
+    // Slots that hold what they are rather than Values only come of a field, and only with the
+    // runtime types off, since with them on a field is a Value like everything else.
+    LvalKind NumPtrKind() { return RTT_ENABLED ? LVK_PTR : LVK_NUMPTR; }
 
     // The same as an address, for the helpers that take one, which a local never has since it
     // is a variable.
@@ -1686,7 +1710,7 @@ struct CodeGen  {
         switch (f_lval_kind) {
             case LVK_GLOBAL: return cpp ? cat("vm.fvars + ", f_lval_idx)
                                         : cat("vm->fvars_ptr + ", f_lval_idx);
-            case LVK_PTR: return "lv";
+            case LVK_PTR: return "(Value *)lv";
             default: assert(false); return {};
         }
     }
@@ -1711,37 +1735,123 @@ struct CodeGen  {
     // the names they have in the program. It is emitted once the code is known to name them,
     // the way the builtins it calls are, see udts_used.
     string UDTName(const UDT &udt) {
-        udts_used[udt.idx] = &udt;
+        MembersOf(udt);
         auto name = cat("udt_", udt.name, udt.idx);
         for (auto &c : name) if (!isalnum((uint8_t)c) && c != '_') c = '_';
         return name;
     }
 
-    // The name of one of its members, which is the field the slot belongs to, kept clear of
-    // the names C has of its own. Members are in a namespace of their own, so that is all it
-    // takes for one to be unique.
-    string FieldName(const UDT &udt, int slot) {
-        auto name = slot < udt.numslots ? StructSlotName(udt, slot) : cat("slot", slot);
+    // A name from the program as a member of one, kept clear of the names C has of its own.
+    // Members are in a namespace of their own, so that is all it takes for one to be unique.
+    string MemberName(string name) {
         for (auto &c : name) if (!isalnum((uint8_t)c) && c != '_') c = '_';
         if (name.empty() || isdigit((uint8_t)name[0]) || IsReservedName(name)) name += "_";
         return name;
     }
 
-    // One of those members, which is a Value like every field is, at the object `obj`.
+    // The C type slot `i` of a value of this type holds. With the runtime types on it stays a
+    // Value, since that is what carries the tag they are, and a slot has no room for both.
+    string SlotCType(TypeRef type, int i) {
+        #if RTT_ENABLED
+            (void)type;
+            (void)i;
+            return "Value";
+        #else
+            return CType(KindOf(SlotType(type, i)));
+        #endif
+    }
+
+    // One member of the struct for an object type, which is one field, or one slot of a field
+    // when that field is a struct of more than one type.
+    struct UDTMember {
+        string name;
+        string ctype;
+        int slot;
+        int count;  // More than one for a field that is an array, see Members.
+    };
+
+    // All of them. A field that is a struct of one type over and over is an array of it, which
+    // is what lets the program index one at runtime be a real index, see EmitLvalStructIndex.
+    vector<UDTMember> Members(const UDT &udt) {
+        vector<UDTMember> ms;
+        for (auto [k, sfield] : enumerate(udt.sfields)) {
+            auto width = ValWidth(sfield.type);
+            auto ct = SlotCType(sfield.type, 0);
+            auto same = true;
+            for (int i = 1; i < width; i++) same = same && SlotCType(sfield.type, i) == ct;
+            if (same) {
+                ms.push_back({ MemberName(string(udt.g.fields[k].id->name)), ct, sfield.slot,
+                               width });
+            } else {
+                for (int i = 0; i < width; i++) {
+                    ms.push_back({ MemberName(StructSlotName(udt, sfield.slot + i)),
+                                   SlotCType(sfield.type, i), sfield.slot + i, 1 });
+                }
+            }
+        }
+        return ms;
+    }
+
+    // Kept once the code is known to name them, since finding one is a walk over the fields.
+    const vector<UDTMember> &MembersOf(const UDT &udt) {
+        auto it = udts_used.find(udt.idx);
+        if (it == udts_used.end()) it = udts_used.insert({ udt.idx, { &udt, Members(udt) } }).first;
+        return it->second.second;
+    }
+
+    // The member slot `slot` lives in, as an expression at the object `obj`.
+    string FieldName(string_view obj, const UDT &udt, int slot) {
+        auto s = cat("((", UDTName(udt), " *)", obj, ")->");
+        for (auto &m : MembersOf(udt)) {
+            if (slot >= m.slot && slot < m.slot + m.count) {
+                append(s, m.name);
+                if (m.count > 1) append(s, "[", slot - m.slot, "]");
+                return s;
+            }
+        }
+        // A slot no field claims, which only a malformed type would have.
+        assert(false);
+        append(s, "slot", slot);
+        return s;
+    }
+
+    // One of those members as a place. It holds the type the field is, except with the runtime
+    // types on, where it is a Value so that it carries the tag, see SlotCType. Either way the
+    // runtime only ever reads it a byte at a time, see LoadSlot.
     Place Field(string_view obj, const UDT &udt, int slot, RTType rtt) {
-        return Mem(cat("((", UDTName(udt), " *)", obj, ")->", FieldName(udt, slot)), rtt);
+        auto s = FieldName(obj, udt, slot);
+        #if RTT_ENABLED
+            return Mem(std::move(s), rtt);
+        #else
+            return Direct(std::move(s), rtt);
+        #endif
     }
     Place Field(string_view obj, const UDT &udt, int slot, TypeRef type) {
         return Field(obj, udt, slot, RtTypeOf(type));
+    }
+
+    // The member a field that is an array starts at, which is where a runtime index into it
+    // goes from, and which decays to a pointer to what it holds.
+    string FieldArray(string_view obj, const UDT &udt, int slot) {
+        auto s = cat("((", UDTName(udt), " *)", obj, ")->");
+        for (auto &m : MembersOf(udt)) {
+            if (slot >= m.slot && slot < m.slot + m.count) { s += m.name; return s; }
+        }
+        assert(false);
+        return s;
     }
 
     // A field as an lvalue is at a constant offset from the object, same as reading one. That
     // does lose a debug only range check.
     void EmitLvalField(const UDT &udt, int slot) {
         TrackUseDef(1, 0);
-        f_uses_lval = true;
-        append(cb, "    lv = &", Field(Read(Slot(1, VK_OBJECT)), udt, slot, RTT_NIL).s, ";\n");
-        f_lval_kind = LVK_PTR;
+        // The object goes in a local, since what follows may write the slot it came in, and
+        // its fields are members rather than something an address can point at.
+        f_uses_lobj = true;
+        append(cb, "    lo = ", Read(Slot(1, VK_OBJECT)), ";\n");
+        f_lval_kind = LVK_FIELD;
+        f_lval_udt = &udt;
+        f_lval_idx = slot;
     }
 
     // The elements of the vector in _o, and the index of one of them or of a slot of one, at
@@ -1785,12 +1895,13 @@ struct CodeGen  {
     }
 
     // A class indexed at runtime, whose range check needs the type info, so it stays a helper.
+    // Every field of one is of the same numeric type, which is what its slots hold.
     void EmitLvalClassIndex(int offset) {
         TrackUseDef(2, 0);
         f_uses_lval = true;
         append(cb, "    lv = RtLvalIndexClass(vm, ", Read(Slot(2, VK_OBJECT)), ", ",
                Read(Slot(1, VK_INT)), ", ", offset, ");\n");
-        f_lval_kind = LVK_PTR;
+        f_lval_kind = NumPtrKind();
     }
 
     // A struct indexed at runtime, the one case that steps into the lvalue it was handed.
@@ -1798,7 +1909,13 @@ struct CodeGen  {
         TrackUseDef(1, 0);
         f_uses_lval = true;
         string base;
-        if (f_lval_kind == LVK_LOCAL) {
+        auto kind = f_lval_kind == LVK_FIELD || f_lval_kind == LVK_NUMPTR ? NumPtrKind()
+                                                                         : LVK_PTR;
+        if (f_lval_kind == LVK_FIELD) {
+            // A field of a struct type is an array of what its slots hold, so indexing it is
+            // an index into that, see Members.
+            base = FieldArray("lo", *f_lval_udt, f_lval_idx);
+        } else if (f_lval_kind == LVK_LOCAL) {
             // A struct in variables has to be in memory to be indexed at runtime, so it goes
             // thru the stack array above what is in use, and comes back out once the modifier
             // has written it, see GenLvalWriteBack.
@@ -1823,7 +1940,7 @@ struct CodeGen  {
         }
         append(cb, "    lv = ", base, " + _i", offset ? cat(" + ", offset) : string(),
                ";\n    }\n");
-        f_lval_kind = LVK_PTR;
+        f_lval_kind = kind;
     }
 
     // What a modifier wrote thru the lvalue lands where it belongs: a struct staged in the
@@ -2469,11 +2586,14 @@ struct CodeGen  {
     void GenDecRef(string &sd, const Place &p) {
         if (IsNilConstant(p)) return;
         auto r = Read(p);
-        if (cpp) {
-            if (p.typed) append(sd, "    if (", r, ") ", r, "->Dec(vm);\n");
-            else append(sd, "    ", p.s, ".LTDECRTNIL(vm);\n");
-        } else if (p.typed) {
-            append(sd, "    if (", r, " && --", r, "->refc <= 0) DecDelete(vm, ", r, ");\n");
+        // Only a variable is free to be named more than once, so the rest go thru a local.
+        if (p.var) {
+            if (cpp) append(sd, "    if (", r, ") ", r, "->Dec(vm);\n");
+            else append(sd, "    if (", r, " && --", r, "->refc <= 0) DecDelete(vm, ", r, ");\n");
+        } else if (cpp && !p.typed) {
+            append(sd, "    ", p.s, ".LTDECRTNIL(vm);\n");
+        } else if (cpp) {
+            append(sd, "    { ", CType(p.k()), "_r = ", r, "; if (_r) _r->Dec(vm); }\n");
         } else {
             append(sd, "    { ", CType(p.k()), "_r = ", r, ";"
                        " if (_r && --_r->refc <= 0) DecDelete(vm, _r); }\n");
@@ -2483,11 +2603,13 @@ struct CodeGen  {
     void GenIncRef(const Place &p) {
         if (IsNilConstant(p)) return;
         auto r = Read(p);
-        if (cpp) {
-            if (p.typed) append(cb, "    if (", r, ") ", r, "->Inc();\n");
-            else append(cb, "    ", p.s, ".LTINCRTNIL();\n");
-        } else if (p.typed) {
-            append(cb, "    if (", r, ") ", r, "->refc++;\n");
+        if (p.var) {
+            if (cpp) append(cb, "    if (", r, ") ", r, "->Inc();\n");
+            else append(cb, "    if (", r, ") ", r, "->refc++;\n");
+        } else if (cpp && !p.typed) {
+            append(cb, "    ", p.s, ".LTINCRTNIL();\n");
+        } else if (cpp) {
+            append(cb, "    { ", CType(p.k()), "_r = ", r, "; if (_r) _r->Inc(); }\n");
         } else {
             append(cb, "    { ", CType(p.k()), "_r = ", r, "; if (_r) _r->refc++; }\n");
         }
@@ -2583,7 +2705,8 @@ struct CodeGen  {
         GenPlaceDecls(sd, keeps);
         GenPlaceDecls(sd, locals);
         if (ShadowLocals() && numlocals) append(sd, "    Value locals[", numlocals, "];\n");
-        if (f_uses_lval) append(sd, "    Value *lv = 0;\n");
+        if (f_uses_lval) append(sd, "    void *lv = 0;\n");
+        if (f_uses_lobj) append(sd, "    LObject *lo = 0;\n");
         if (f_ret_types.size() == 1) append(sd, "    ", CType(Kind(f_ret_types[0])), " ret;\n");
         for (int i = 0; i < (int)f_args.size(); i++) {
             auto varidx = f_args[i];
@@ -2663,6 +2786,7 @@ struct CodeGen  {
         f_uses_nret = false;
         f_uses_pctx = false;
         f_uses_lval = false;
+        f_uses_lobj = false;
         f_lval_kind = LVK_NONE;
         local_names.clear();
         local_types.clear();
@@ -3273,11 +3397,11 @@ struct CodeGen  {
                 CopyValue(cb, Lval(i, type), Slot(width - i, type, i));
         } else if (op == LV_SADD) {
             auto rhs = Read(Slot(1, VK_STRING));
-            if (f_lval_kind == LVK_LOCAL) {
+            if (f_lval_kind == LVK_LOCAL || f_lval_kind == LVK_FIELD) {
                 // The old string is an operand, so it loses its reference only once the new
                 // one exists.
                 auto v = Lval(0, type);
-                append(cb, "    {\n    LString *_s = RtSAdd(vm, ", v.s, ", ", rhs, ");\n");
+                append(cb, "    {\n    LString *_s = RtSAdd(vm, ", Read(v), ", ", rhs, ");\n");
                 GenDecRef(cb, v);
                 Write(cb, v, "_s");
                 cb += "    }\n";

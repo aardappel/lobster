@@ -574,6 +574,20 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
     }
     auto l = label.c_str();
     auto flags = expanded ? ImGuiTreeNodeFlags_DefaultOpen : 0;
+    // The fields of an object hold the types they are rather than Values, see LoadSlot, so the
+    // editor works on a copy of them, which goes back into the object when it is done.
+    struct FieldCopy {
+        LObject *obj = nullptr;
+        vector<Value> vals;
+        Value *Of(LObject *o, iint len) {
+            obj = o;
+            for (iint i = 0; i < len; i++) vals.push_back(o->At(i));
+            return vals.data();
+        }
+        ~FieldCopy() {
+            for (auto [i, v] : enumerate(vals)) obj->SetAt((iint)i, v);
+        }
+    } fieldcopy;
     switch (ti->t) {
         case RTT_INT: {
             if (ti->enumidx == 0) {
@@ -640,7 +654,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             }
             // Upgrade to dynamic type if maybe subclass.
             ti = &v->oval()->ti(vm);
-            v = (Value *)v->oval()->FieldSlots();  // To iterate it like a struct.
+            v = fieldcopy.Of(v->oval(), ti->len);  // To iterate it like a struct.
         case RTT_STRUCT_R:
         case RTT_STRUCT_S: {
             auto &st = vm.vma.meta->udts[ti->structidx];
