@@ -70,7 +70,7 @@ BuiltinGroup font_builtins;
 BUILTIN(set_font_name, "filename", "S", "B",
     "sets a freetype/OTF/TTF font as current (and loads it from disk the first time). returns"
     " true if success.")
-(StackPtr &, VM &vm, LString *fname) {
+(VM &vm, LString *fname) {
     TestGL(vm);
     auto piname = string(fname->strv());
     auto faceit = loadedfaces.find(piname);
@@ -97,7 +97,7 @@ BUILTIN(set_font_size, "size,outlinesize,outlinecolor", "IF?F}:4?", "B",
     " an optional outlinesize will give the font an outline."
     " make sure to call this every frame."
     " returns true if success")
-(StackPtr &, VM &vm, iint size_, double outlinesize_, double4 outlinecolor) {
+(VM &vm, iint size_, double outlinesize_, double4 outlinecolor) {
     auto outlinecol = ToVec<float4>(outlinecolor);
     auto outlinesize = (float)outlinesize_;
     auto fontsize = (int)size_;
@@ -127,21 +127,21 @@ BUILTIN(set_font_size, "size,outlinesize,outlinecolor", "IF?F}:4?", "B",
 BUILTIN(set_max_font_size, "size", "I", "",
     "sets the max font size to render to bitmaps. any sizes specified over that by setfontsize"
     " will still work but cause scaled rendering. default 256")
-(StackPtr &, VM &, iint fontsize) {
+(VM &, iint fontsize) {
     maxfontsize = (int)fontsize;
 }
 
 BUILTIN(get_font_size, "", "", "I",
     "the current font size")
-(StackPtr &, VM &) { return curfontsize; }
+(VM &) { return curfontsize; }
 
 BUILTIN(get_outline_size, "", "", "F",
     "the current font size")
-(StackPtr &, VM &) { return curoutlinesize; }
+(VM &) { return curoutlinesize; }
 
 BUILTIN(text, "text", "S", "Sb",
     "renders a text with the current font (at the current coordinate origin)")
-(StackPtr &, VM &vm, LString *s) {
+(VM &vm, LString *s) {
     auto f = curfont;
     if (!f) vm.BuiltinError("gl.text: no font / font size set");
     if (!s->len) return s;
@@ -173,21 +173,21 @@ BUILTIN_V(text_size, "text", "S", "I}:2",
 
 BUILTIN(get_glyph_name, "i", "I", "S",
     "the name of a glyph index, or empty string if the font doesn\'t have names")
-(StackPtr &, VM &vm, iint i) {
+(VM &vm, iint i) {
     return vm.NewString(curface ? curface->GetName((int)i) : "");
 }
 
 BUILTIN(get_char_code, "name", "S", "I",
     "the char code of a glyph by specifying its name, or 0 if it can not be found"
     " (or if the font doesn\'t have names)")
-(StackPtr &, VM &, LString *n) {
+(VM &, LString *n) {
     return curface ? curface->GetCharCode(n->strvnt()) : 0;
 }
 
 BUILTIN(use_default_font_shader, "on", "B", "",
     "by default set_font_name sets the use of the \"textured\" shader."
     " With this function you can turn that on/off to use a current shader instead.")
-(StackPtr &, VM &vm, iint on) {
+(VM &vm, iint on) {
     TestGL(vm);
     if ((on != 0))  {
         SetDefaultFontShader();

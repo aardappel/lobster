@@ -258,11 +258,22 @@ template<typename TIDS, bool PushRets> struct BuiltinRet {
                                   BuiltinArgWidthOf(TIDS::rids, n - 1)>::type> type;
 };
 
-template<typename TIDS, bool PushRets, typename Params> struct BuiltinSigT;
+// Whether a builtin has anything to push, which is what it is given a stack pointer for: all
+// of its return values for the V kind, all but the last one for the rest.
+constexpr bool BuiltinPushesValues(const char *rets, bool pushrets) {
+    return pushrets || BuiltinNumArgs(rets) > 1;
+}
+
+template<typename TIDS, bool PushRets, bool Stack, typename Params> struct BuiltinSigT;
 template<typename TIDS, bool PushRets, size_t... P>
-struct BuiltinSigT<TIDS, PushRets, std::index_sequence<P...>> {
+struct BuiltinSigT<TIDS, PushRets, true, std::index_sequence<P...>> {
     typedef typename BuiltinRet<TIDS, PushRets>::type ret;
     typedef ret type(StackPtr &, VM &, typename BuiltinParam<TIDS, P>::type...);
+};
+template<typename TIDS, bool PushRets, size_t... P>
+struct BuiltinSigT<TIDS, PushRets, false, std::index_sequence<P...>> {
+    typedef typename BuiltinRet<TIDS, PushRets>::type ret;
+    typedef ret type(VM &, typename BuiltinParam<TIDS, P>::type...);
 };
 
 // The function type the argument types of a builtin imply, where TIDS is a type that carries
@@ -270,7 +281,8 @@ struct BuiltinSigT<TIDS, PushRets, std::index_sequence<P...>> {
 // of its definition, which checks the parameter list of the definition against the argument
 // types given, and makes its address available.
 template<typename TIDS, bool PushRets> using BuiltinSig =
-    BuiltinSigT<TIDS, PushRets, std::make_index_sequence<BuiltinNumArgs(TIDS::tids)>>;
+    BuiltinSigT<TIDS, PushRets, BuiltinPushesValues(TIDS::rids, PushRets),
+                std::make_index_sequence<BuiltinNumArgs(TIDS::tids)>>;
 
 struct BuiltinDef;
 
@@ -320,11 +332,11 @@ struct BuiltinDef {
 // parameter list and body following it:
 //
 //     BUILTIN(set_shader, "shader", "S", "", "changes the current shader.")
-//     (StackPtr &, VM &vm, LString *shader) {
+//     (VM &vm, LString *shader) {
 //         ...
 //     }
 //
-// This defines extern "C" void builtin_gl_set_shader(StackPtr &, VM &, LString *), plus a
+// This defines extern "C" void builtin_gl_set_shader(VM &, LString *), plus a
 // BuiltinDef global holding the metadata. The symbol is thus always "builtin_" followed by the
 // full Lobster name with a "_" for the ".", which RegisterGroup() below verifies, and it is
 // what the generated code calls the builtin by. The function is declared ahead of the
@@ -333,7 +345,8 @@ struct BuiltinDef {
 // lives in a run of stack slots (a numeric struct, or one that may be a struct) becomes a
 // vector of its width, or a pointer to those slots when its width is not fixed.
 // A builtin returns its last return value as the type its letter implies, or void when it has
-// none, and pushes the ones before it onto the stack it is given.
+// none, and pushes the ones before it onto a stack it is given a pointer to, which it only
+// takes when it has any to push.
 // BUILTIN_V is for the kind of builtin that leaves all of its return values on that stack
 // rather than returning the last one, which is what a struct takes, and returns void.
 // The stack it gets starts where its arguments are, so those slots are what it writes its
@@ -444,6 +457,9 @@ struct NativeFun : Named {
     // with nothing to return, it returns void, which has no kind of its own.
     bool ReturnsValue() const { return !pushrets && !retvals.empty(); }
     BuiltinArgKind RetKind() const { return KindOf(retvals.back()); }
+
+    // Whether it takes a pointer to the stack, which only the ones that push anything do.
+    bool PushesValues() const { return pushrets || retvals.size() > 1; }
     // How many values a numeric struct argument has, which its type says.
     int ArgWidth(size_t i) const { return args[i].vttype->ns->flen; }
     bool ArgIsVec(size_t i) const {

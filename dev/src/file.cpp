@@ -143,7 +143,7 @@ BUILTIN(format_time, "format,time,localtime", "SIB", "S",
     " using the same format string syntax as POSIX strftime. If localtime is true, then"
     " the time will be displayed using the local timezone, otherwise it will use UTC."
     " Returns an empty string on error.")
-(StackPtr &, VM &vm, LString *format, iint time, iint use_localtime) {
+(VM &vm, LString *format, iint time, iint use_localtime) {
     chrono::system_clock::time_point tp { chrono::seconds(time) };
     time_t tt = chrono::system_clock::to_time_t(tp);
     tm ctm{};
@@ -227,7 +227,7 @@ BUILTIN(scan_folder, "folder,rel", "SB?", "S]?I]?I]?",
 BUILTIN(read_file, "file,textmode", "SI?", "S?",
     "returns the contents of a file as a string, or nil if the file can't be found."
     " you may use either \\ or / as path separators")
-(StackPtr &, VM &vm, LString *file, iint textmode) {
+(VM &vm, LString *file, iint textmode) {
     string buf;
     auto l = LoadFile(file->strv(), &buf, 0, -1, (textmode == 0));
     if (l < 0) return nullptr;
@@ -237,26 +237,26 @@ BUILTIN(read_file, "file,textmode", "SI?", "S?",
 
 BUILTIN(write_file, "file,contents,textmode,absolute_path", "SSI?I?", "B",
     "creates a file with the contents of a string, returns false if writing wasn't possible")
-(StackPtr &, VM &, LString *file, LString *contents, iint textmode, iint absolute) {
+(VM &, LString *file, LString *contents, iint textmode, iint absolute) {
     auto ok = WriteFile(file->strv(), (textmode == 0), contents->strv(), (absolute != 0));
     return ok;
 }
 
 BUILTIN(rename_file, "old_file,new_file", "SS", "B",
     "renames a file, returns false if it wasn't possible")
-(StackPtr &, VM &, LString *old_file, LString *new_file) {
+(VM &, LString *old_file, LString *new_file) {
     auto ok = RenameFile(old_file->strv(), new_file->strv());
     return ok;
 }
 
 BUILTIN(delete_file, "file", "S", "B", "deletes a file, returns false if it wasn't possible. Will search in all import dirs.")
-(StackPtr &, VM &, LString *file) {
+(VM &, LString *file) {
     auto ok = FileDelete(file->strv());
     return ok;
 }
 
 BUILTIN(exists_file, "file", "S", "B", "checks whether a file exists.")
-(StackPtr &, VM &, LString *file) {
+(VM &, LString *file) {
     auto ok = FileExists(file->strv(), false);
     return ok;
 }
@@ -281,7 +281,7 @@ BUILTIN(vector_to_buffer, "vec,width,offset,len", "A]*I?:4I?I?", "S",
     " each scalar is written with \"width\" bytes (1/2/4/8, default 4). Returns nil if the"
     " type couldn't be converted. Uses native endianness."
     " Offset and len can specify a slice of the input, but if not specified default to all.")
-(StackPtr &, VM &vm, LVector *v, iint width, iint offset, iint _len) {
+(VM &vm, LVector *v, iint width, iint offset, iint _len) {
     auto w = (int)width;
     if (offset > v->len)
         vm.Error("vector_to_buffer: offset out of range");
@@ -347,7 +347,7 @@ BUILTIN(ensure_size, "string,size,char,extra", "SkIII?", "S",
     " added), with any new characters set to"
     " char. You can specify a negative size to mean relative to the end, i.e. new"
     " characters will be added at the start. ")
-(StackPtr &, VM &vm, LString *str, iint size, iint c, iint extra) {
+(VM &vm, LString *str, iint size, iint c, iint extra) {
     auto asize = std::abs(size);
     return str->len >= asize
         ? str
@@ -393,7 +393,7 @@ BUILTIN(write_substring_back, "string,i,substr,nullterm", "SkISI", "SI",
 
 BUILTIN(compare_substring, "string_a,i_a,string_b,i_b,len", "SISII", "I",
     "returns if the two substrings are equal (0), or a < b (-1) or a > b (1).")
-(StackPtr &, VM &vm, LString *s1, iint i1, LString *s2, iint i2, iint l) {
+(VM &vm, LString *s1, iint i1, LString *s2, iint i2, iint l) {
     if (l < 0 || i1 < 0 || i2 < 0 || i1 + l > s1->len || i2 + l > s2->len)
         vm.Error("compare_substring: index out of bounds");
     auto eq = memcmp(s1->data() + i1, s2->data() + i2, l);
@@ -444,7 +444,7 @@ static const char *read_field_desc1 =
 static const char *read_field_desc2 = "(see flatbuffers.field_int64)";
 #define READFOP(N, T, D, S, VT) \
     BUILTIN(N, "string,tablei,vo,def", "SII" S, S, D) \
-    (StackPtr &, VM &vm, LString *str, iint idx, iint vidx, VT def) { \
+    (VM &vm, LString *str, iint idx, iint vidx, VT def) { \
         return ReadField<T, S[0] == 'F', false, false>(vm, str, idx, vidx, def).ifval<VT>(); \
     }
 READFOP(field_int64, int64_t, read_field_desc1, "I", iint)
@@ -460,7 +460,7 @@ READFOP(field_float32, float, read_field_desc2, "F", double)
 
 BUILTIN(field_string, "string,tablei,vo", "SII", "S",
     "reads a flatbuffer string field, returns \"\" if not present")
-(StackPtr &, VM &vm, LString *str, iint idx, iint vidx) {
+(VM &vm, LString *str, iint idx, iint vidx) {
     auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                     Value(0)).ival();
     return GetString(vm, fi, str);
@@ -468,7 +468,7 @@ BUILTIN(field_string, "string,tablei,vo", "SII", "S",
 
 BUILTIN(field_vector_len, "string,tablei,vo", "SII", "I",
     "reads a flatbuffer vector field length, or 0 if not present")
-(StackPtr &, VM &vm, LString *str, iint idx, iint vidx) {
+(VM &vm, LString *str, iint idx, iint vidx) {
     auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                     Value(0)).ival();
     return fi ? Read<flatbuffers::uoffset_t, false>(vm, fi, str) : 0;
@@ -476,7 +476,7 @@ BUILTIN(field_vector_len, "string,tablei,vo", "SII", "I",
 
 BUILTIN(field_vector, "string,tablei,vo", "SII", "I",
     "returns a flatbuffer vector field element start, or 0 if not present")
-(StackPtr &, VM &vm, LString *str, iint idx, iint vidx) {
+(VM &vm, LString *str, iint idx, iint vidx) {
     auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                     Value(0)).ival();
     return fi ? fi + ssizeof<flatbuffers::uoffset_t>() : 0;
@@ -484,34 +484,34 @@ BUILTIN(field_vector, "string,tablei,vo", "SII", "I",
 
 BUILTIN(field_table, "string,tablei,vo", "SII", "I",
     "returns a flatbuffer table field start, or 0 if not present")
-(StackPtr &, VM &vm, LString *str, iint idx, iint vidx) {
+(VM &vm, LString *str, iint idx, iint vidx) {
     return ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
                                                                 Value(0)).ival();
 }
 
 BUILTIN(field_struct, "string,tablei,vo", "SII", "I",
     "returns a flatbuffer struct field start, or 0 if not present")
-(StackPtr &, VM &vm, LString *str, iint idx, iint vidx) {
+(VM &vm, LString *str, iint idx, iint vidx) {
     return ReadField<flatbuffers::uoffset_t, false, false, true>(vm, str, idx, vidx,
                                                                 Value(0)).ival();
 }
 
 BUILTIN(field_present, "string,tablei,vo", "SII", "B",
     "returns if a flatbuffer field is present (unequal to default)")
-(StackPtr &, VM &vm, LString *str, iint idx, iint vidx) {
+(VM &vm, LString *str, iint idx, iint vidx) {
     return FieldPresent(vm, str, idx, vidx);
 }
 
 BUILTIN(indirect, "string,index", "SI", "I",
     "returns a flatbuffer offset at index relative to itself")
-(StackPtr &, VM &vm, LString *str, iint idx) {
+(VM &vm, LString *str, iint idx) {
     auto off = Read<flatbuffers::uoffset_t, false>(vm, idx, str);
     return off + idx;
 }
 
 BUILTIN(string, "string,index", "SI", "S",
     "returns a flatbuffer string whose offset is at given index")
-(StackPtr &, VM &vm, LString *str, iint idx) {
+(VM &vm, LString *str, iint idx) {
     auto off = Read<flatbuffers::uoffset_t, false>(vm, idx, str);
     auto ret = GetString(vm, off + idx, str);
     return ret;

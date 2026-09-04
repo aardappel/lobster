@@ -575,12 +575,13 @@ struct CodeGen  {
         for (auto [idx, nf] : natives_used) {
             auto rt = NativeRetCType(nf);
             auto sep = rt.back() == '*' ? "" : " ";
+            auto sp = nf->PushesValues() ? (cpp ? "StackPtr &, " : "StackPtr *, ") : "";
             if (cpp) {
-                append(decls, "extern \"C\" ", rt, sep, nf->symbol, "(StackPtr &, VMRef");
+                append(decls, "extern \"C\" ", rt, sep, nf->symbol, "(", sp, "VMRef");
             } else if (SretValues(nf)) {
-                append(decls, "void ", nf->symbol, "(Value *, StackPtr *, VMRef");
+                append(decls, "void ", nf->symbol, "(Value *, ", sp, "VMRef");
             } else {
-                append(decls, rt, sep, nf->symbol, "(StackPtr *, VMRef");
+                append(decls, rt, sep, nf->symbol, "(", sp, "VMRef");
             }
             for (size_t i = 0; i < nf->args.size(); i++) {
                 auto kind = nf->ArgKind(i);
@@ -1980,9 +1981,9 @@ struct CodeGen  {
     // prologue, see natives_used. The V kind and the ones that leave several values work on
     // the stack: both get a pointer to where their arguments are, the former leaving all of
     // its return values there, the latter all but the last, which it returns as the type it
-    // is. The rest return their single value the same way, and get a stack pointer they have
-    // no use for. Only a builtin that returns an untyped Value can lie about what it returned,
-    // so only that one is checked in a debug build, see VM::BCallRetCheck.
+    // is. The rest return their single value the same way and get no stack pointer at all.
+    // Only a builtin that returns an untyped Value can lie about what it returned, so only
+    // that one is checked in a debug build, see VM::BCallRetCheck.
     void EmitNativeCall(NativeFun *nf, const Types &args, const Types &rets,
                         const NativeArgs &nargs) {
         auto uses = (int)args.size();
@@ -1994,8 +1995,8 @@ struct CodeGen  {
             return;
         }
         natives_used[nf->idx] = nf;
-        f_uses_sp = true;
-        auto spref = cpp ? "sp" : "&sp";
+        auto spref = nf->PushesValues() ? (cpp ? "sp, " : "&sp, ") : "";
+        f_uses_sp = f_uses_sp || nf->PushesValues();
         auto sret = SretValues(nf);
         #if RTT_ENABLED
             auto checked = nf->ReturnsValue() && nf->RetKind() == BAK_VALUE;
@@ -2012,26 +2013,28 @@ struct CodeGen  {
             f_uses_vals = true;
             append(cb, "    sp = ", StackArray(), " + ", base, ";\n");
         }
-        auto call = cat(nf->symbol, "(", sret ? "&nret, " : "", spref, ", vm", argstr, ")");
-        // The value it returns lands in the last of the slots the call leaves behind.
-        auto ret = SlotVar(base + defs - 1, defs ? rets.back() : RTT_NIL);
+        auto call = cat(nf->symbol, "(", sret ? "&nret, " : "", spref, "vm", argstr, ")");
         if (!nf->ReturnsValue()) {
             append(cb, "    ", call, ";");
             comment(nf->name);
-        } else if (sret || checked) {
-            f_uses_nret = true;
-            append(cb, "    ", sret ? call : cat("nret = ", call), ";");
-            if (checked) {
-                if (cpp) append(cb, " vm.BCallRetCheck(nret, ", nf->idx, ");");
-                else append(cb, " RtNativeRetCheck(vm, ", nf->idx, ", nret);");
-            }
-            comment(nf->name);
-            SetValue(cb, ret, "nret");
         } else {
-            auto e = nf->RetKind() == BAK_VALUE ? Unbox(call, ret.k())
-                                                : CastAs(call, NativeRetKind(nf), ret.k());
-            Write(cb, ret, e, "");
-            comment(nf->name);
+            // The value it returns lands in the last of the slots the call leaves behind.
+            auto ret = SlotVar(base + defs - 1, rets.back());
+            if (sret || checked) {
+                f_uses_nret = true;
+                append(cb, "    ", sret ? call : cat("nret = ", call), ";");
+                if (checked) {
+                    if (cpp) append(cb, " vm.BCallRetCheck(nret, ", nf->idx, ");");
+                    else append(cb, " RtNativeRetCheck(vm, ", nf->idx, ", nret);");
+                }
+                comment(nf->name);
+                SetValue(cb, ret, "nret");
+            } else {
+                auto e = nf->RetKind() == BAK_VALUE ? Unbox(call, ret.k())
+                                                    : CastAs(call, NativeRetKind(nf), ret.k());
+                Write(cb, ret, e, "");
+                comment(nf->name);
+            }
         }
         // What it did push comes back out into the slots those values live in. Only the values
         // pushed by a builtin that also returns one are checked: those of the V kind include

@@ -685,7 +685,7 @@ BuiltinGroup meshgen_builtins;
 
 BUILTIN(sphere, "radius", "F", "",
     "a sphere")
-(StackPtr &, VM &, double rad) {
+(VM &, double rad) {
     auto s = new IFSphere();
     s->rad = (float)rad;
     return AddShape(s);
@@ -693,7 +693,7 @@ BUILTIN(sphere, "radius", "F", "",
 
 BUILTIN(cube, "extents", "F}:3", "",
     "a cube (extents are size from center)")
-(StackPtr &, VM &, double3 extents) {
+(VM &, double3 extents) {
     auto c = new IFCube();
     c->extents = ToVec<float3>(extents);
     AddShape(c);
@@ -701,7 +701,7 @@ BUILTIN(cube, "extents", "F}:3", "",
 
 BUILTIN(cylinder, "radius,height", "FF", "",
     "a unit cylinder (height is from center)")
-(StackPtr &, VM &, double radius, double height) {
+(VM &, double radius, double height) {
     auto c = new IFCylinder();
     c->radius = (float)radius;
     c->height = (float)height;
@@ -710,7 +710,7 @@ BUILTIN(cylinder, "radius,height", "FF", "",
 
 BUILTIN(tapered_cylinder, "bot,top,height", "FFF", "",
     "a cyclinder where you specify the top and bottom radius (height is from center)")
-(StackPtr &, VM &, double bot, double top, double height) {
+(VM &, double bot, double top, double height) {
     auto tc = new IFTaperedCylinder();
     tc->bot = (float)bot;
     tc->top = (float)top;
@@ -721,7 +721,7 @@ BUILTIN(tapered_cylinder, "bot,top,height", "FFF", "",
 BUILTIN(superquadric, "exponents,scale", "F}:3F}:3", "",
     "a super quadric. specify an exponent of 2 for spherical, higher values for rounded"
     " squares")
-(StackPtr &, VM &, double3 exponents, double3 scale) {
+(VM &, double3 exponents, double3 scale) {
     auto sq = new IFSuperQuadric();
     sq->scale = ToVec<float3>(scale);
     sq->exp = ToVec<float3>(exponents);
@@ -731,7 +731,7 @@ BUILTIN(superquadric, "exponents,scale", "F}:3F}:3", "",
 BUILTIN(superquadric_non_uniform, "posexponents,negexponents,posscale,negscale", "F}:3F}:3F}:3F}:3", "",
     "a superquadric that allows you to specify exponents and sizes in all 6 directions"
     " independently for maximum modelling possibilities")
-(StackPtr &, VM &, double3 posexponents, double3 negexponents, double3 posscale, double3 negscale) {
+(VM &, double3 posexponents, double3 negexponents, double3 posscale, double3 negscale) {
     auto sq = new IFSuperQuadricNonUniform();
     sq->scaleneg = max(float3(0.01f), ToVec<float3>(negscale));
     sq->scalepos = max(float3(0.01f), ToVec<float3>(posscale));
@@ -742,7 +742,7 @@ BUILTIN(superquadric_non_uniform, "posexponents,negexponents,posscale,negscale",
 
 BUILTIN(supertoroid, "R,exponents", "FF}:3", "",
     "a super toroid. R is the distance from the origin to the center of the ring.")
-(StackPtr &, VM &, double R, double3 exponents) {
+(VM &, double R, double3 exponents) {
     auto t = new IFSuperToroid();
     t->exp = ToVec<float3>(exponents);
     t->r = (float)R;
@@ -751,7 +751,7 @@ BUILTIN(supertoroid, "R,exponents", "FF}:3", "",
 
 BUILTIN(landscape, "zscale,xyscale", "FF", "",
     "a simplex landscape of unit size")
-(StackPtr &, VM &, double zscale, double xyscale) {
+(VM &, double zscale, double xyscale) {
     auto ls = new IFLandscape();
     ls->zscale = (float)zscale;
     ls->xyscale = (float)xyscale;
@@ -764,7 +764,7 @@ BUILTIN(set_polygon_reduction, "polyreductionpasses,epsilon,maxtricornerdot", "I
     " determines how flat adjacent triangles must be to be reduced, use 0.98 as a good"
     " tradeoff, lower to get more compression. maxtricornerdot avoid very thin triangles, use"
     " 0.95 as a good tradeoff, up to 0.99 to get more compression")
-(StackPtr &, VM &, iint _polyreductionpasses, double _epsilon, double _maxtricornerdot) {
+(VM &, iint _polyreductionpasses, double _epsilon, double _maxtricornerdot) {
     polyreductionpasses = (int)_polyreductionpasses;
     epsilon = (float)_epsilon;
     maxtricornerdot = (float)_maxtricornerdot;
@@ -773,7 +773,7 @@ BUILTIN(set_polygon_reduction, "polyreductionpasses,epsilon,maxtricornerdot", "I
 BUILTIN(set_color_noise, "noiseintensity,noisestretch", "FF", "",
     "applies simplex noise to the colors of the model. try 0.3 for intensity."
     " stretch scales the pattern over the model")
-(StackPtr &, VM &, double _noiseintensity, double _noisestretch) {
+(VM &, double _noiseintensity, double _noisestretch) {
     noisestretch = (float)_noisestretch;
     noiseintensity = (float)_noiseintensity;
 }
@@ -782,13 +782,13 @@ BUILTIN(set_vertex_randomize, "factor", "F", "",
     "randomizes all verts produced to give a more organic look and to hide the inherent messy"
     " polygons produced by the algorithm. try 0.15. note that any setting other than 0 will"
     " likely counteract the polygon reduction algorithm")
-(StackPtr &, VM &, double factor) {
+(VM &, double factor) {
     randomizeverts = (float)factor;
 }
 
 BUILTIN(set_point_mode, "on", "B", "",
     "generates a point mesh instead of polygons")
-(StackPtr &, VM &, iint aspoints) {
+(VM &, iint aspoints) {
     pointmode = (aspoints != 0);
 }
 
@@ -797,7 +797,7 @@ BUILTIN(polygonize, "subdiv", "I", "R:mesh",
     " subdiv determines detail and number of polygons (relative to the largest dimension of the"
     " model), try 30.. 300 depending on the subject."
     " values much higher than that will likely make you run out of memory (or take very long).")
-(StackPtr &, VM &vm, iint subdiv) {
+(VM &vm, iint subdiv) {
     return eval_and_polygonize(vm, (int)subdiv, 0, true);
 }
 
@@ -805,13 +805,13 @@ BUILTIN(convert_to_cubes, "subdiv,zoffset", "II", "R:voxels",
     "returns a cubegen block (see cg_ functions) from past mg commands."
     " subdiv determines detail and number of cubes (relative to the largest dimension of the"
     " model).")
-(StackPtr &, VM &vm, iint subdiv, iint zoffset) {
+(VM &vm, iint subdiv, iint zoffset) {
     return eval_and_polygonize(vm, (int)subdiv, (int)zoffset, false);
 }
 
 BUILTIN(translate, "vec", "F}:3", "",
     "translates the current coordinate system along a vector")
-(StackPtr &, VM &, double3 vec) {
+(VM &, double3 vec) {
     auto v = ToVec<float3>(vec);
     // FIXME: not good enough if non-uniform scale, might as well forbid that before any trans
     cur.orig += cur.rot * (v * cur.size);
@@ -819,21 +819,21 @@ BUILTIN(translate, "vec", "F}:3", "",
 
 BUILTIN(scale, "f", "F", "",
     "scales the current coordinate system by the given factor")
-(StackPtr &, VM &, double f_) {
+(VM &, double f_) {
     auto f = (float)f_;
     cur.size *= f;
 }
 
 BUILTIN(scale_vec, "vec", "F}:3", "",
     "non-unimformly scales the current coordinate system using individual factors per axis")
-(StackPtr &, VM &, double3 vec) {
+(VM &, double3 vec) {
     auto v = ToVec<float3>(vec);
     cur.size *= v;
 }
 
 BUILTIN(rotate, "axis,angle", "F}:3F", "",
     "rotates using axis/angle")
-(StackPtr &, VM &, double3 axis_, double angle_) {
+(VM &, double3 axis_, double angle_) {
     auto angle = (float)angle_;
     auto axis = ToVec<float3>(axis_);
     cur.rot *= float3x3(angle * RAD_F, axis);
@@ -842,7 +842,7 @@ BUILTIN(rotate, "axis,angle", "F}:3F", "",
 BUILTIN(color, "color", "F}:4", "",
     "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"
     " substracts them (carves)")
-(StackPtr &, VM &, double4 color) {
+(VM &, double4 color) {
     auto v = ToVec<float4>(color);
     cur.material = v;
 }
@@ -850,20 +850,20 @@ BUILTIN(color, "color", "F}:4", "",
 BUILTIN(smooth, "smooth", "F", "",
     "sets the smoothness in terms of the range of distance from the shape smoothing happens,"
     " defaults to 1.0")
-(StackPtr &, VM &, double smooth_) {
+(VM &, double smooth_) {
     auto smooth = (float)smooth_;
     cur.smoothmink = smooth;
 }
 
 BUILTIN(push_transform, "", "", "",
     "save the current state of the transform")
-(StackPtr &, VM &) {
+(VM &) {
     fstack.push_back(cur);
 }
 
 BUILTIN(pop_transform, "", "", "",
     "restore a previous state of the transform")
-(StackPtr &, VM &) {
+(VM &) {
     if (!fstack.empty()) {
         cur = fstack.back();
         fstack.pop_back();

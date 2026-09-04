@@ -292,45 +292,45 @@ BuiltinGroup vr_builtins;
 
 BUILTIN(init, "", "", "B",
     "initializes VR mode. returns true if a hmd was found and initialized")
-(StackPtr &, VM &) {
+(VM &) {
     return VRInit();
 }
 
 BUILTIN(start_eye, "isright,znear,zfar", "IFF", "",
     "starts rendering for an eye. call for each eye, followed by drawing the world as normal."
     " replaces gl.perspective")
-(StackPtr &, VM &, iint isright, double znear, double zfar) {
+(VM &, iint isright, double znear, double zfar) {
     VREye((isright != 0), (float)znear, (float)zfar);
 }
 
 BUILTIN(start, "", "", "",
     "starts VR by updating hmd & controller poses")
-(StackPtr &, VM &) {
+(VM &) {
     VRStart();
 }
 
 BUILTIN(finish, "", "", "",
     "finishes vr rendering by compositing (and distorting) both eye renders to the screen")
-(StackPtr &, VM &) {
+(VM &) {
     VRFinish();
 }
 
 BUILTIN(set_eye_texture, "unit,isright", "II", "",
     "sets the texture for an eye (like gl.set_primitive_texture). call after vr.finish. can be"
     " used to render the non-VR display")
-(StackPtr &, VM &vm, iint unit, iint isright) {
+(VM &vm, iint unit, iint isright) {
     SetTexture(GetSampler(vm, unit), retex[(isright != 0)]);
 }
 
 BUILTIN(num_motion_controllers, "", "", "I",
     "returns the number of motion controllers in the system")
-(StackPtr &, VM &) {
+(VM &) {
     return (int)motioncontrollers.size();
 }
 
 BUILTIN(motioncontrollerstracking, "n", "I", "B",
     "returns if motion controller n is tracking")
-(StackPtr &, VM &, iint mc) {
+(VM &, iint mc) {
     auto mcd = GetMC(mc);
     return mcd && mcd->tracking;
 }
@@ -339,14 +339,14 @@ BUILTIN(motion_controller, "n", "I", "",
     "sets up the transform ready to render controller n."
     " if there is no controller n (or it is currently not"
     " tracking) the identity transform is used")
-(StackPtr &, VM &, iint mc) {
+(VM &, iint mc) {
     auto mcd = GetMC(mc);
     otransforms.append_object2view(mcd ? mcd->mat : float4x4_1);
 }
 
 BUILTIN(create_motion_controller_mesh, "n", "I", "R:mesh?",
     "returns the mesh for motion controller n, or nil if not available")
-(StackPtr &, VM &vm, iint mc) {
+(VM &vm, iint mc) {
     auto mcd = GetMC(mc);
     return mcd ? vm.NewResource(&mesh_type, VRCreateMesh(mcd->device)) : nullptr;
 }
@@ -357,7 +357,7 @@ BUILTIN(motion_controller_button, "n,button", "IS", "I",
     "returns the button state for motion controller n."
     " isdown: >= 1, wentdown: == 1, wentup: == 0, isup: <= 0."
     " buttons are: system, menu, grip, trigger, touchpad")
-(StackPtr &, VM &vm, iint mc, LString *button) {
+(VM &vm, iint mc, LString *button) {
     #ifdef PLATFORM_VR
         auto mcd = GetMC(mc);
         auto mask = ButtonMaskFromId(GetButtonId(vm, button));

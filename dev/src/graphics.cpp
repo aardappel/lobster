@@ -225,7 +225,7 @@ BuiltinGroup graphics_builtins;
 BUILTIN(window, "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
     "opens a window for OpenGL rendering. returns error string if any problems, nil"
     " otherwise. For flags, see modules/gl.lobster")
-(StackPtr &, VM &vm, LString *title, iint xs, iint ys, iint flags, iint samples) {
+(VM &vm, LString *title, iint xs, iint ys, iint flags, iint samples) {
     if (gs)
         vm.BuiltinError("cannot call gl.window() twice");
     gs = new GraphicsState();
@@ -247,7 +247,7 @@ BUILTIN(window, "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
 BUILTIN(require_version, "major,minor", "II", "",
     "Call this before gl.window to request a certain version of OpenGL context."
             " Currently only works on win/nix, minimum is 3.2.")
-(StackPtr &, VM &, iint major, iint minor) {
+(VM &, iint major, iint minor) {
     SDLRequireGLVersion((int)major, (int)minor);
 }
 
@@ -256,7 +256,7 @@ BUILTIN(load_materials, "materialdefs,inline,prefix", "SI?S?", "S?",
     " by gl.window()). if inline is true, materialdefs is not a filename, but the actual"
     " materials. prefix will be added to all shader names allowing you to compile the same"
     " shaders multiple times. returns error string if any problems, nil otherwise.")
-(StackPtr &, VM &vm, LString *fn, iint isinline, LString *prefix) {
+(VM &vm, LString *fn, iint isinline, LString *prefix) {
     TestGL(vm);
     auto pf = (prefix != nullptr) ? prefix->strv() : string_view{};
     auto err = (isinline != 0) ? ParseMaterialFile(fn->strv(), pf, vm)
@@ -281,7 +281,7 @@ BUILTIN_V(scissor, "top_left,size", "I}:2I}:2", "I}:2I}:2",
 BUILTIN(frame, "", "", "B",
     "advances rendering by one frame, swaps buffers, and collects new input events."
     " returns false if the closebutton on the window was pressed")
-(StackPtr &, VM &vm) {
+(VM &vm) {
     // Native backends call this directly rather than going thru the function pointer.
     return GLFrame(vm);
 }
@@ -289,20 +289,20 @@ BUILTIN(frame, "", "", "B",
 BUILTIN(frame_counter, "delta", "I", "",
     "gl.frame advances the frame counter by 1, which affects features like member_frame."
     " this function allows you insert extra frames or remove them")
-(StackPtr &, VM &vm, iint delta) {
+(VM &vm, iint delta) {
     vm.FrameStart(delta);
 }
 
 BUILTIN(shutdown, "", "", "",
     "shuts down the OpenGL window. you only need to call this function if you wish to close it"
     " before the end of the program")
-(StackPtr &, VM &) {
+(VM &) {
     GraphicsShutDown();
 }
 
 BUILTIN(window_title, "title", "S", "Sb",
     "changes the window title.")
-(StackPtr &, VM &vm, LString *s) {
+(VM &vm, LString *s) {
     TestGL(vm);
     SDLTitle(s->strvnt());
     return s;
@@ -310,21 +310,21 @@ BUILTIN(window_title, "title", "S", "Sb",
 
 BUILTIN(window_min_max, "dir", "I", "",
     ">0 to maximize, <0 to minimize or 0 to restore.")
-(StackPtr &, VM &vm, iint dir) {
+(VM &vm, iint dir) {
     TestGL(vm);
     SDLWindowMinMax((int)dir);
 }
 
 BUILTIN(fullscreen, "mode", "I", "",
     "use window_init enum flags from gl module")
-(StackPtr &, VM &vm, iint mode) {
+(VM &vm, iint mode) {
     TestGL(vm);
     SDLSetFullscreen((InitFlags)(int)mode);
 }
 
 BUILTIN_OVERLOAD(window_size_set, "window_size", "size", "I}:2", "",
     "")
-(StackPtr &, VM &vm, iint2 size_) {
+(VM &vm, iint2 size_) {
     auto size = ToVec<int2>(size_);
     TestGL(vm);
     SDLSetWindowSize(size);
@@ -333,21 +333,21 @@ BUILTIN_OVERLOAD(window_size_set, "window_size", "size", "I}:2", "",
 BUILTIN(visible, "", "", "B",
     "checks if the window is currently visible (not minimized, or on mobile devices, in the"
     " foreground). If false, you should not render anything, nor run the frame's code.")
-(StackPtr &, VM &) {
+(VM &) {
     return !SDLIsMinimized();
 }
 
 BUILTIN(cursor, "on", "B", "B",
     "default the cursor is visible, turn off for implementing FPS like control schemes. return"
     " whether it was on before this call.")
-(StackPtr &, VM &vm, iint on) {
+(VM &vm, iint on) {
     TestGL(vm);
     return SDLCursor((on != 0));
 }
 
 BUILTIN(grab, "on", "B", "B",
     "grabs the mouse when the window is active. return whether it's on.")
-(StackPtr &, VM &vm, iint on) {
+(VM &vm, iint on) {
     TestGL(vm);
     return SDLGrab(on != 0);
 }
@@ -368,7 +368,7 @@ BUILTIN(button, "name", "S", "II",
 
 BUILTIN(key_repeat, "name", "S", "B",
     "returns if a key was a key repeat (went down, or is down with a key repeat)")
-(StackPtr &, VM &, LString *name) {
+(VM &, LString *name) {
     auto ks = GetKS(name->strv());
     return ks.first == 1 || (ks.first > 1 && KeyRepeat(name->strv()));
 }
@@ -376,7 +376,7 @@ BUILTIN(key_repeat, "name", "S", "B",
 BUILTIN(user_key, "name", "S", "S",
     "if name refers to a scancode key, returns the virtual key name, otherwise just"
     " the original name. Useful for showing users with non-US keyboards what keys to press")
-(StackPtr &, VM &vm, LString *name) {
+(VM &vm, LString *name) {
     return vm.NewString(GetUserKey(name->strvnt()));
 }
 
@@ -384,7 +384,7 @@ BUILTIN(start_text_input, "pos,size", "I}:2I}:2", "",
     "starts text input. unlike gl.button which gets you keyboard keys, this is for input of"
     " strings, that can deal with unicode IME etc. pos & size are a hint where the string"
     " being edited is being displayed, such that an IME can popup a box next to it, if needed.")
-(StackPtr &, VM &, iint2 pos_, iint2 size_) {
+(VM &, iint2 pos_, iint2 size_) {
     auto size = ToVec<int2>(size_);
     auto pos = ToVec<int2>(pos_);
     SDLStartTextInput(pos, size);
@@ -403,19 +403,19 @@ BUILTIN_V(text_input_state, "", "", "SSII",
 
 BUILTIN(set_text_input, "text", "S", "",
     "overwrites the current text string being accumulated")
-(StackPtr &, VM &, LString *text) {
+(VM &, LString *text) {
     SDLTextInputSet(text->strv());
 }
 
 BUILTIN(end_text_input, "", "", "",
     "stops accumulating text input")
-(StackPtr &, VM &) {
+(VM &) {
     SDLEndTextInput();
 }
 
 BUILTIN(touchscreen, "", "", "B",
     "whether a you\'re getting input from a touch screen (as opposed to mouse & keyboard)")
-(StackPtr &, VM &) {
+(VM &) {
     #ifdef PLATFORM_TOUCH
         return true;
     #else
@@ -426,7 +426,7 @@ BUILTIN(touchscreen, "", "", "B",
 BUILTIN(dpi, "screen", "I", "I",
     "the DPI of the screen. always returns a value for screen 0, any other screens may return"
     " 0 to indicate the screen doesn\'t exist")
-(StackPtr &, VM &, iint screen) {
+(VM &, iint screen) {
     return SDLScreenDPI((int)screen);
 }
 
@@ -477,14 +477,14 @@ BUILTIN_V(local_last_pos, "name,down", "SI", "F}:2",
 
 BUILTIN(mousewheel_delta, "", "", "I",
     "amount the mousewheel scrolled this frame, in number of notches")
-(StackPtr &, VM &) {
+(VM &) {
     return SDLWheelDelta();
 }
 
 BUILTIN(joy_axis, "i", "I", "F",
     "the current joystick orientation for axis i, as -1 to 1 value."
     " this gives you raw joystick values, prefer to use controller_axis()")
-(StackPtr &, VM &, iint i) {
+(VM &, iint i) {
     return GetJoyAxis((int)i);
 }
 
@@ -493,45 +493,45 @@ BUILTIN(controller_axis, "i", "I", "F",
     " the axes are (from 0): leftx, lefty, rightx, righty, triggerleft, triggerright."
     " down/right have positive values."
     " make sure to call gl.init_controller_database()")
-(StackPtr &, VM &, iint i) {
+(VM &, iint i) {
     return GetControllerAxis((int)i);
 }
 
 BUILTIN(delta_time, "", "", "F",
     "seconds since the last frame, updated only once per frame")
-(StackPtr &, VM &) {
+(VM &) {
     return SDLDeltaTime();
 }
 
 BUILTIN(delta_time_rolling, "n", "I", "F",
     "seconds since the last frame, updated only once per frame, as a rolling average over the last N frames (max 64)")
-(StackPtr &, VM &, iint n) {
+(VM &, iint n) {
     return SDLGetRollingAverage((size_t)n);
 }
 
 BUILTIN(set_target_delta_time, "delta_time", "F", "",
     "attempt to run at no more than the given delta_time (framerate cap). By default uncapped (only capped by vsync)")
-(StackPtr &, VM &, double ft) {
+(VM &, double ft) {
     SetTargetFrameTime(ft);
 }
 
 BUILTIN(time, "", "", "F",
     "seconds since the start of the OpenGL subsystem, updated only once per frame (use"
     " seconds_elapsed() for continuous timing)")
-(StackPtr &, VM &) {
+(VM &) {
     return SDLTime();
 }
 
 BUILTIN(last_time, "name,down", "SI", "F",
     "time key/mousebutton/finger last went down (true) or up (false)")
-(StackPtr &, VM &, LString *name, iint on) {
+(VM &, LString *name, iint on) {
     auto t = GetKeyTime(name->strv(), (int)on);
     return t;
 }
 
 BUILTIN(clear, "col", "F}:4", "",
     "clears the framebuffer (and depth buffer) to the given color")
-(StackPtr &, VM &vm, double4 col) {
+(VM &vm, double4 col) {
     TestGL(vm);
     ClearFrameBuffer(ToVec<float3>(col));
 }
@@ -547,13 +547,13 @@ BUILTIN_V(color, "col", "F}:4", "F}:4",
 BUILTIN(polygon, "vertlist", "F}]", "",
     "renders a polygon using the list of points given."
     " warning: gl.polygon creates a new mesh every time, gl.new_poly/gl.render_mesh is faster.")
-(StackPtr &, VM &vm, LVector *vl) {
+(VM &vm, LVector *vl) {
     CreatePolygon(vm, vl, true);
 }
 
 BUILTIN(rounded_rectangle, "size,segments,corner_ratio", "F}:2IF", "",
     "renders a rounded rectangle, try segments 50, corner_ratio 0.2")
-(StackPtr &, VM &vm, double2 size_, iint segments_, double corner_ratio_) {
+(VM &vm, double2 size_, iint segments_, double corner_ratio_) {
     TestGL(vm);
     auto corner_ratio = (float)corner_ratio_;
     auto segments = (int)segments_;
@@ -563,7 +563,7 @@ BUILTIN(rounded_rectangle, "size,segments,corner_ratio", "F}:2IF", "",
 
 BUILTIN(rounded_rectangle_border, "size,segments,corner_ratio,border_thickness", "F}:2IFF", "",
     "renders a rounded rectangle border, try segments 50, corner_ratio 0.2")
-(StackPtr &, VM &vm, double2 size_, iint segments_, double corner_ratio_,
+(VM &vm, double2 size_, iint segments_, double corner_ratio_,
  double border_thickness_) {
     TestGL(vm);
     auto border_thickness = (float)border_thickness_;
@@ -576,7 +576,7 @@ BUILTIN(rounded_rectangle_border, "size,segments,corner_ratio,border_thickness",
 
 BUILTIN(circle, "radius,segments", "FI", "",
     "renders a circle")
-(StackPtr &, VM &vm, double radius, iint segments) {
+(VM &vm, double radius, iint segments) {
     TestGL(vm);
     geomcache->RenderCircle(gs->currentshader.get(), gs->polymode, max((int)segments, 3), (float)radius);
 }
@@ -584,7 +584,7 @@ BUILTIN(circle, "radius,segments", "FI", "",
 BUILTIN(open_circle, "radius,segments,thickness", "FIF", "",
     "renders a circle that is open on the inside. thickness is the fraction of the radius that"
     " is filled, try e.g. 0.2")
-(StackPtr &, VM &vm, double radius, iint segments, double thickness) {
+(VM &vm, double radius, iint segments, double thickness) {
     TestGL(vm);
 
     geomcache->RenderOpenCircle(gs->currentshader.get(), max((int)segments, 3), (float)radius,
@@ -595,21 +595,21 @@ BUILTIN(open_circle, "radius,segments,thickness", "FIF", "",
 BUILTIN(unit_cube, "insideout", "I?", "",
     "renders a unit cube (0,0,0) - (1,1,1). optionally pass true to have it rendered inside"
     " out")
-(StackPtr &, VM &vm, iint inside) {
+(VM &vm, iint inside) {
     TestGL(vm);
     geomcache->RenderUnitCube(gs->currentshader.get(), (inside != 0));
 }
 
 BUILTIN(rotate_x, "vec", "F}:2", "",
     "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle")
-(StackPtr &, VM &, double2 vec) {
+(VM &, double2 vec) {
     auto a = ToVec<float2>(vec);
     otransforms.append_object2view(rotationX(a));
 }
 
 BUILTIN(rotate_y, "angle", "F}:2", "",
     "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle")
-(StackPtr &, VM &, double2 angle) {
+(VM &, double2 angle) {
     auto a = ToVec<float2>(angle);
     otransforms.append_object2view(rotationY(a));
 }
@@ -617,7 +617,7 @@ BUILTIN(rotate_y, "angle", "F}:2", "",
 BUILTIN(rotate_z, "angle", "F}:2", "",
     "rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector"
     " as angle")
-(StackPtr &, VM &, double2 angle) {
+(VM &, double2 angle) {
     auto a = ToVec<float2>(angle);
     otransforms.append_object2view(rotationZ(a));
 }
@@ -625,9 +625,9 @@ BUILTIN(rotate_z, "angle", "F}:2", "",
 // The 2D and 3D forms of the transform builtins, which the generated code passes the values of
 // a struct to in exactly as many stack slots, with no length to go with them.
 #define TRANSLATEW(sym, T, CT, W) \
-    BUILTIN_V_OVERLOAD(sym##W, "translate", "vec", T "}:" #W, "", \
+    BUILTIN_OVERLOAD(sym##W, "translate", "vec", T "}:" #W, "", \
         "translates the current coordinate system along a vector") \
-    (StackPtr &, VM &, vec<CT, W> v) { \
+    (VM &, vec<CT, W> v) { \
         otransforms.append_object2view(translation(ToVec<float3>(v))); \
     }
 TRANSLATEW(translate_fvec, "F", double, 2)
@@ -638,15 +638,15 @@ TRANSLATEW(translate_ivec, "I", iint, 3)
 
 BUILTIN_OVERLOAD(scale_float, "scale", "factor", "F", "",
     "scales the current coordinate system using a numerical factor")
-(StackPtr &, VM &, double f) {
+(VM &, double f) {
     auto v = (float)f * float3_1;
     otransforms.append_object2view(float4x4(float4(v, 1)));
 }
 
 #define SCALEW(W) \
-    BUILTIN_V_OVERLOAD(scale_fvec##W, "scale", "factor", "F}:" #W, "", \
+    BUILTIN_OVERLOAD(scale_fvec##W, "scale", "factor", "F}:" #W, "", \
         "scales the current coordinate system using a vector") \
-    (StackPtr &, VM &, vec<double, W> factor) { \
+    (VM &, vec<double, W> factor) { \
         auto v = ToVec<float3>(factor, 1); \
         otransforms.append_object2view(float4x4(float4(v, 1))); \
     }
@@ -672,7 +672,7 @@ BUILTIN_V(scaling, "", "", "F}:2",
 BUILTIN(model_view_projection, "", "", "F]",
     "returns a vector representing the current model view projection matrix"
     " (16 elements)")
-(StackPtr &, VM &vm) {
+(VM &vm) {
     auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     auto mvp = view2clip * otransforms.object2view();
     for (int i = 0; i < 16; i++) v->AtSR(i) = mvp.data()[i];
@@ -682,7 +682,7 @@ BUILTIN(model_view_projection, "", "", "F]",
 BUILTIN(model_view, "", "", "F]",
     "returns a vector representing the current model view matrix"
     " (16 elements)")
-(StackPtr &, VM &vm) {
+(VM &vm) {
     auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     auto &mv = otransforms.object2view();
     for (int i = 0; i < 16; i++) v->AtSR(i) = mv.data()[i];
@@ -692,7 +692,7 @@ BUILTIN(model_view, "", "", "F]",
 BUILTIN(projection, "", "", "F]",
     "returns a vector representing the current projection matrix"
     " (16 elements)")
-(StackPtr &, VM &vm) {
+(VM &vm) {
     auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     auto p = view2clip;
     for (int i = 0; i < 16; i++) v->AtSR(i) = p.data()[i];
@@ -701,13 +701,13 @@ BUILTIN(projection, "", "", "F]",
 
 BUILTIN(push_model_view, "", "", "",
     "save the current state of the model view matrix (gl.translate, gl.rotate etc)")
-(StackPtr &, VM &) {
+(VM &) {
     otransforms.push();
 }
 
 BUILTIN(pop_model_view, "", "", "B",
     "restore a previous state of the model view matrix. returns false if none")
-(StackPtr &, VM &) {
+(VM &) {
     return otransforms.pop();
 }
 
@@ -715,13 +715,13 @@ BUILTIN(point_scale, "factor", "F", "",
     "sets the current scaling factor for point sprites."
     " this can be what the current gl.scale is, or different, depending on the desired visuals."
     " the ideal size may also be FOV dependent.")
-(StackPtr &, VM &, double f) {
+(VM &, double f) {
     custompointscale = (float)f;
 }
 
 BUILTIN(line_mode, "on", "I", "I",
     "set line mode (true == on), returns previous mode")
-(StackPtr &, VM &vm, iint on) {
+(VM &vm, iint on) {
     TestGL(vm);
     auto oldmode = gs->polymode;
     gs->polymode = on ? PRIM_LOOP : PRIM_FAN;
@@ -730,7 +730,7 @@ BUILTIN(line_mode, "on", "I", "I",
 
 BUILTIN(cull_front, "on", "B", "B",
     "set culling front (true) or back (false), returns previous value.")
-(StackPtr &, VM &vm, iint on) {
+(VM &vm, iint on) {
     TestGL(vm);
     auto oldmode = gs->cull_front;
     gs->cull_front = (on != 0);
@@ -761,13 +761,13 @@ static bool GLHit(const float3 &size, int i) {
 }
 
 #define HITW(W) \
-    BUILTIN_V_OVERLOAD(hit_f##W, "hit", "vec,i", "F}:" #W "I", "B", \
+    BUILTIN_OVERLOAD(hit_f##W, "hit", "vec,i", "F}:" #W "I", "B", \
         "whether the mouse/finger is inside of the rectangle specified in terms of the current" \
         " transform (for touch screens only if the corresponding gl.isdown is true). Only true" \
         " if the last rectangle for which gl.hit was true last frame is of the same size as" \
         " this one (allows you to safely test in most cases of overlapping rendering)") \
-    (StackPtr &sp, VM &, vec<double, W> size, iint i) { \
-        Push(sp, GLHit(ToVec<float3>(size), (int)i)); \
+    (VM &, vec<double, W> size, iint i) { \
+        return GLHit(ToVec<float3>(size), (int)i); \
     }
 HITW(2) HITW(3)
 #undef HITW
@@ -775,7 +775,7 @@ HITW(2) HITW(3)
 BUILTIN(rect, "size,centered", "F}:2I?", "",
     "renders a rectangle (0,0)..(1,1) (or (-1,-1)..(1,1) when centered), scaled by the given"
     " size.")
-(StackPtr &, VM &vm, double2 size, iint centered_) {
+(VM &vm, double2 size, iint centered_) {
     auto centered = (centered_ != 0);
     auto vec = ToVec<float2>(size);
     TestGL(vm);
@@ -786,7 +786,7 @@ BUILTIN(rect, "size,centered", "F}:2I?", "",
 BUILTIN(rect_tc_col, "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
     "Like gl.rect renders a sized quad, but allows you to specify texture coordinates and"
     " optionally colors (empty list for all white). Slow.")
-(StackPtr &, VM &vm, double2 size, double2 tc, double2 tcsize, LVector *cols) {
+(VM &vm, double2 size, double2 tc, double2 tcsize, LVector *cols) {
     TestGL(vm);
     auto td = ToVec<float2>(tcsize);
     auto t = ToVec<float2>(tc);
@@ -807,15 +807,15 @@ BUILTIN(rect_tc_col, "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
 
 BUILTIN(unit_square, "centered", "I?", "",
     "renders a square (0,0)..(1,1) (or (-1,-1)..(1,1) when centered)")
-(StackPtr &, VM &vm, iint centered) {
+(VM &vm, iint centered) {
     TestGL(vm);
     geomcache->RenderUnitSquare(gs->currentshader.get(), gs->polymode, (centered != 0));
 }
 
 #define LINEW(W) \
-    BUILTIN_V_OVERLOAD(line_f##W, "line", "start,end,thickness", \
+    BUILTIN_OVERLOAD(line_f##W, "line", "start,end,thickness", \
         "F}:" #W "F}:" #W "1F", "", "renders a line with the given thickness") \
-    (StackPtr &, VM &vm, vec<double, W> start, vec<double, W> end, double thickness_) { \
+    (VM &vm, vec<double, W> start, vec<double, W> end, double thickness_) { \
         TestGL(vm); \
         auto thickness = (float)thickness_; \
         auto v2 = ToVec<float3>(end); \
@@ -831,7 +831,7 @@ BUILTIN(perspective, "fovy,znear,zfar,frame_buffer_size,frame_buffer_offset,node
     "changes from 2D mode (default) to 3D right handed perspective mode with vertical fov (try"
     " 60), far plane (furthest you want to be able to render, try 1000) and near plane (try"
     " 1). Optionally specify a framebuffer size to override the current gl.framebuffer_size")
-(StackPtr &, VM &, double fovy_, double znear_, double zfar_, iint2 frame_buffer_size,
+(VM &, double fovy_, double znear_, double zfar_, iint2 frame_buffer_size,
  iint2 frame_buffer_offset, iint nodepth_) {
     auto nodepth = (nodepth_ != 0);
     int2 fbo = ToVec<int2>(frame_buffer_offset);
@@ -850,13 +850,13 @@ BUILTIN(ortho, "rh,depth", "I?I?", "",
     " call to get back to that after gl.perspective."
     " Pass true to rh have (0,0) bottom-left instead."
     " Pass true to depth to have depth testing/writing on.")
-(StackPtr &, VM &, iint rh, iint depth) {
+(VM &, iint rh, iint depth) {
     Set2DMode(GetFrameBufferSize(GetScreenSize()), (rh == 0), (depth != 0));
 }
 
 BUILTIN(ortho3d, "center,extends", "F}:3F}:3", "",
     "sets a custom ortho projection as 3D projection.")
-(StackPtr &, VM &, double3 center_, double3 extends_) {
+(VM &, double3 center_, double3 extends_) {
     auto extends = ToVec<float3>(extends_);
     auto center = ToVec<float3>(center_);
     Set3DOrtho(GetFrameBufferSize(GetScreenSize()), center, extends);
@@ -867,7 +867,7 @@ BUILTIN(new_poly, "positions", "F}]", "R:mesh",
     " gl.line_mode determines how this gets drawn (fan or loop)."
     " automatically generates texcoords and normals."
     " returns mesh id")
-(StackPtr &, VM &vm, LVector *positions) {
+(VM &vm, LVector *positions) {
     auto m = CreatePolygon(vm, positions, false);
     return vm.NewResource(&mesh_type, m);
 }
@@ -879,7 +879,7 @@ BUILTIN(new_mesh, "format,positions,colors,normals,texcoords1,texcoords2,indices
     " you may specify [] for any of the other attributes if not required by format,"
     " or to get defaults for colors (white) / texcoords (position x & y) /"
     " normals (generated from adjacent triangles).")
-(StackPtr &, VM &vm, LString *format, LVector *positions, LVector *colors, LVector *normals,
+(VM &vm, LString *format, LVector *positions, LVector *colors, LVector *normals,
  LVector *texcoords1, LVector *texcoords2, LVector *indices) {
     TestGL(vm);
     auto nattr = format->len;
@@ -956,7 +956,7 @@ BUILTIN(new_mesh, "format,positions,colors,normals,texcoords1,texcoords2,indices
 
 BUILTIN(new_mesh_iqm, "filename", "S", "R:mesh?",
     "load a .iqm file into a mesh, returns mesh or nil on failure to load.")
-(StackPtr &, VM &vm, LString *fn) {
+(VM &vm, LString *fn) {
     TestGL(vm);
     auto m = LoadIQM(fn->strv());
     return m ? vm.NewResource(&mesh_type, m) : nullptr;
@@ -964,7 +964,7 @@ BUILTIN(new_mesh_iqm, "filename", "S", "R:mesh?",
 
 BUILTIN(mesh_parts, "m", "R:mesh", "S]",
     "returns an array of names of all parts of mesh m (names may be empty)")
-(StackPtr &, VM &vm, LResource *i) {
+(VM &vm, LResource *i) {
     auto &m = GetMesh(i);
     auto v = (LVector *)vm.NewVec(0, (int)m.surfs.size(), TYPE_ELEM_VECTOR_OF_STRING);
     for (auto s : m.surfs) v->Push(vm, Value(vm.NewString(s->name)));
@@ -973,7 +973,7 @@ BUILTIN(mesh_parts, "m", "R:mesh", "S]",
 
 BUILTIN(mesh_size, "m", "R:mesh", "I",
     "returns the number of verts in this mesh")
-(StackPtr &, VM &, LResource *i) {
+(VM &, LResource *i) {
     auto &m = GetMesh(i);
     return (int)m.geom->nverts;
 }
@@ -988,7 +988,7 @@ BUILTIN_V(mesh_bounds, "m", "R:mesh", "F}:3F}:3",
 
 BUILTIN(mesh_animations, "m", "R:mesh", "S]",
     "return names of animations")
-(StackPtr &, VM &vm, LResource *i) {
+(VM &vm, LResource *i) {
     auto &m = GetMesh(i);
     auto v = (LVector *)vm.NewVec(0, (int)m.animations.size(), TYPE_ELEM_VECTOR_OF_STRING);
     for (const auto &it : m.animations) v->Push(vm, Value(vm.NewString(it.first)));
@@ -1015,7 +1015,7 @@ BUILTIN(mesh_animation_frames, "m,name", "R:meshS", "IIF",
 
 BUILTIN(animate_mesh, "m,frame", "R:meshF", "",
     "set the frame for animated mesh m")
-(StackPtr &, VM &, LResource *i, double f) {
+(VM &, LResource *i, double f) {
     auto &m = GetMesh(i);
     m.anim_frame1 = (float)f;
     m.anim_frame2 = -1.0;
@@ -1023,7 +1023,7 @@ BUILTIN(animate_mesh, "m,frame", "R:meshF", "",
 
 BUILTIN(animate_mesh_blend, "m,frame1,frame2,blending", "R:meshFFF", "",
     "set the blending frames for animated mesh m")
-(StackPtr &, VM &, LResource *i, double f1, double f2, double b) {
+(VM &, LResource *i, double f1, double f2, double b) {
     auto &m = GetMesh(i);
     m.anim_frame1 = (float)f1;
     m.anim_frame2 = (float)f2;
@@ -1032,7 +1032,7 @@ BUILTIN(animate_mesh_blend, "m,frame1,frame2,blending", "R:meshFFF", "",
 
 BUILTIN(render_mesh, "m", "R:mesh", "",
     "renders the specified mesh")
-(StackPtr &, VM &vm, LResource *i) {
+(VM &vm, LResource *i) {
     TestGL(vm);
     GetMesh(i).Render(gs->currentshader.get());
 }
@@ -1043,7 +1043,7 @@ BUILTIN(save_mesh, "m,name,format", "R:meshSI?", "S?",
     "warning: when using iqm format, make sure vertex format is 'PNC', which is being "
     "used by meshgen and cubegen. "
     "returns error string if any problems, nil otherwise.")
-(StackPtr &, VM &vm, LResource *i, LString *name, iint format) {
+(VM &vm, LResource *i, LString *name, iint format) {
     TestGL(vm);
     auto err = GetMesh(i).Save(name->strv(), (ModelFormat)(int)format);
     return err.empty() ? nullptr : vm.NewString(err);
@@ -1053,7 +1053,7 @@ BUILTIN(mesh_pointsize, "m,pointsize", "R:meshF", "",
     "sets the pointsize for this mesh. "
     "the mesh must have been created with indices = nil for point rendering to be used. "
     "you also want to use a shader that works with points, such as color_attr_particle.")
-(StackPtr &, VM &, LResource *i, double ps) {
+(VM &, LResource *i, double ps) {
     auto &m = GetMesh(i);
     m.pointsize = (float)ps;
 }
@@ -1061,7 +1061,7 @@ BUILTIN(mesh_pointsize, "m,pointsize", "R:meshF", "",
 BUILTIN_OVERLOAD(set_shader_name, "set_shader", "shader", "S", "",
     "changes the current shader. shaders must reside in the shaders folder, builtin ones are:"
     " color / textured / phong")
-(StackPtr &, VM &vm, LString *shader) {
+(VM &vm, LString *shader) {
     TestGL(vm);
     gs->currentshader = LookupShader(shader->strv());
     if (!gs->currentshader.get()) vm.BuiltinError("no such shader: " + shader->strv());
@@ -1069,14 +1069,14 @@ BUILTIN_OVERLOAD(set_shader_name, "set_shader", "shader", "S", "",
 
 BUILTIN_OVERLOAD(set_shader_resource, "set_shader", "shader", "R:shader", "",
     "changes the current shader from a value received from gl.get_shader")
-(StackPtr &, VM &vm, LResource *shader) {
+(VM &vm, LResource *shader) {
     TestGL(vm);
     gs->currentshader = GetResourceRP<Shader>(shader, &shader_type, vm);
 }
 
 BUILTIN(get_shader, "shader", "S", "R:shader",
     "gets a shader by name, for use with gl.set_shader")
-(StackPtr &, VM &vm, LString *shader) {
+(VM &vm, LString *shader) {
     TestGL(vm);
     auto sh = LookupShader(shader->strv());
     if (!sh.get()) vm.BuiltinError("no such shader: " + shader->strv());
@@ -1084,12 +1084,12 @@ BUILTIN(get_shader, "shader", "S", "R:shader",
 }
 
 #define SETUNIFORMW(sym, T, CT, ET, W) \
-    BUILTIN_V_OVERLOAD(sym##W, "set_uniform", "name,value", "S" T "}:" #W, "B", \
+    BUILTIN_OVERLOAD(sym##W, "set_uniform", "name,value", "S" T "}:" #W, "B", \
         "set a uniform on the current shader. size of the vector must match the size of the" \
         " uniform in the shader. returns false on error.") \
-    (StackPtr &sp, VM &vm, LString *name, vec<CT, W> value) { \
+    (VM &vm, LString *name, vec<CT, W> value) { \
         auto v = ToVec<vec<ET, W>>(value); \
-        Push(sp, SetUniform(vm, name, v.begin(), W)); \
+        return SetUniform(vm, name, v.begin(), W); \
     }
 SETUNIFORMW(set_uniform_fvec, "F", double, float, 2)
 SETUNIFORMW(set_uniform_fvec, "F", double, float, 3)
@@ -1098,7 +1098,7 @@ SETUNIFORMW(set_uniform_fvec, "F", double, float, 4)
 BUILTIN_OVERLOAD(set_uniform_float, "set_uniform", "name,value", "SF", "B",
     "set a uniform on the current shader. uniform"
     " in the shader must be a single float. returns false on error.")
-(StackPtr &, VM &vm, LString *name, double vec) {
+(VM &vm, LString *name, double vec) {
     auto f = (float)vec;
     return SetUniform(vm, name, &f, 1);
 }
@@ -1111,7 +1111,7 @@ SETUNIFORMW(set_uniform_ivec, "I", iint, int, 4)
 BUILTIN_OVERLOAD(set_uniform_int, "set_uniform", "name,value", "SI", "B",
     "set a uniform on the current shader. uniform"
     " in the shader must be a single int. returns false on error.")
-(StackPtr &, VM &vm, LString *name, iint vec) {
+(VM &vm, LString *name, iint vec) {
     auto i = (int)vec;
     return SetUniform(vm, name, &i, 1);
 }
@@ -1119,7 +1119,7 @@ BUILTIN_OVERLOAD(set_uniform_int, "set_uniform", "name,value", "SI", "B",
 BUILTIN(set_uniform_array, "name,value", "SF}:4]", "B",
     "set a uniform on the current shader. uniform in the shader must be an array of vec4."
     " returns false on error.")
-(StackPtr &, VM &vm, LString *name, LVector *vec) {
+(VM &vm, LString *name, LVector *vec) {
     TestGL(vm);
     vector<float4> vals;
     vals.reserve(vec->len);
@@ -1135,7 +1135,7 @@ BUILTIN(set_uniform_matrix, "name,value,morerows", "SF]B?", "B",
     "set a uniform on the current shader. pass a vector of 4/6/9/12/16 floats to set a"
     " mat2/mat3x2/mat3/mat4x3/mat4 respectively. pass true for morerows to get"
     " mat2x3/mat3x4. returns false on error.")
-(StackPtr &, VM &vm, LString *name, LVector *vec, iint morerows) {
+(VM &vm, LString *name, LVector *vec, iint morerows) {
     TestGL(vm);
     vector<float> vals(vec->len);
     for (int i = 0; i < vec->len; i++) vals[i] = vec->AtS(i).fltval();
@@ -1149,7 +1149,7 @@ BUILTIN(update_buffer_object, "value,ssbo,offset,existing,dyn", "SIIRk:bufferobj
     "creates a uniform buffer object"
     " ssbo indicates if you want a shader storage block instead."
     " returns buffer resource or nil on error.")
-(StackPtr &, VM &vm, LString *vec, iint ssbo, iint offset, LResource *buf, iint dyn) {
+(VM &vm, LString *vec, iint ssbo, iint offset, LResource *buf, iint dyn) {
     TestGL(vm);
     return UpdateBufferObjectResource(vm, buf, vec->strv().data(),
                                       vec->strv().size(), (int)offset, (ssbo != 0),
@@ -1161,14 +1161,14 @@ BUILTIN(bind_buffer_object, "name,bo", "SR:bufferobject", "I",
     " uniform block name. uniforms in the shader can be any type, as long as it matches the"
     " data layout in the string buffer."
     " returns false for error.")
-(StackPtr &, VM &vm, LString *name, LResource *buf) {
+(VM &vm, LString *name, LResource *buf) {
     TestGL(vm);
     return BindBufferObject(gs->currentshader.get(), &GetBufferObject(buf), name->strvnt());
 }
 
 BUILTIN(copy_buffer_object, "source,destination,srcoffset,dstoffset,length", "R:bufferobjectR:bufferobjectIII", "",
     "copies the source buffer object into the destination buffer object")
-(StackPtr &, VM &vm, LResource *source, LResource *destination, iint srcoffset, iint dstoffset,
+(VM &vm, LResource *source, LResource *destination, iint srcoffset, iint dstoffset,
  iint length) {
     TestGL(vm);
     auto srco = &GetBufferObject(source);
@@ -1179,7 +1179,7 @@ BUILTIN(copy_buffer_object, "source,destination,srcoffset,dstoffset,length", "R:
 BUILTIN(bind_mesh_to_compute, "mesh,name", "R:mesh?S", "",
     "Bind the vertex data of a mesh to a SSBO binding of a compute shader. Pass a nil mesh to"
     " unbind.")
-(StackPtr &, VM &vm, LResource *mesh, LString *name) {
+(VM &vm, LResource *mesh, LString *name) {
     TestGL(vm);
     BindAsSSBO(gs->currentshader.get(), name->strvnt(), (mesh != nullptr) ? GetMesh(mesh).geom->vbo : 0);
 }
@@ -1187,7 +1187,7 @@ BUILTIN(bind_mesh_to_compute, "mesh,name", "R:mesh?S", "",
 BUILTIN(dispatch_compute, "groups", "I}:3", "",
     "dispatches the currently set compute shader in groups of sizes of the specified x/y/z"
     " values.")
-(StackPtr &, VM &vm, iint3 groups_) {
+(VM &vm, iint3 groups_) {
     auto groups = ToVec<int3>(groups_);
     TestGL(vm);
     gs->currentshader->Set();
@@ -1198,14 +1198,14 @@ BUILTIN(auto_compute_barrier, "on", "B", "",
     "whether a full memory barrier is issued after every dispatch_compute (default true)."
     " Apps that know their dependencies can turn this off and call gl.compute_barrier"
     " explicitly before each consumer instead, letting independent dispatches overlap.")
-(StackPtr &, VM &, iint on) {
+(VM &, iint on) {
     SetAutoComputeBarrier((on != 0));
 }
 
 BUILTIN(compute_barrier, "", "", "",
     "makes imageStore/SSBO writes of preceding dispatches visible to subsequent commands."
     " Only needed with gl.auto_compute_barrier(false).")
-(StackPtr &, VM &vm) {
+(VM &vm) {
     TestGL(vm);
     ComputeBarrier();
 }
@@ -1214,7 +1214,7 @@ BUILTIN(dump_shader, "filename,stripnonascii", "SB", "B",
     "Dumps the compiled (binary) version of the current shader to a file. Contents are driver"
     " dependent. On Nvidia hardware it contains the assembly version of the shader as text,"
     " pass true for stripnonascii if you're only interested in that part.")
-(StackPtr &, VM &vm, LString *filename, iint stripnonascii) {
+(VM &vm, LString *filename, iint stripnonascii) {
     TestGL(vm);
     gs->currentshader->Activate();
     auto ok = gs->currentshader->DumpBinary(filename->strv(), (stripnonascii != 0));
@@ -1223,7 +1223,7 @@ BUILTIN(dump_shader, "filename,stripnonascii", "SB", "B",
 
 BUILTIN(blend, "on", "I", "I",
     "changes the blending mode (use blending constants from texture.lobster), returns old mode")
-(StackPtr &, VM &vm, iint mode) {
+(VM &vm, iint mode) {
     TestGL(vm);
     BlendMode old = SetBlendMode((BlendMode)mode);
     return old;
@@ -1235,7 +1235,7 @@ BUILTIN(load_texture, "name,textureformat", "SI?", "R:texture?",
     " will load 6 images with \"_ft\" etc inserted before the \".\" in the filename."
     " Uses stb_image internally (see http://nothings.org/), loads JPEG Baseline,"
     " subsets of PNG, TGA, BMP, PSD, GIF, HDR, PIC.")
-(StackPtr &, VM &vm, LString *name, iint tf) {
+(VM &vm, LString *name, iint tf) {
     TestGL(vm);
     auto tex = CreateTextureFromFile(name->strv(), (int)tf);
     return tex.id ? vm.NewResource(&texture_type, new OwnedTexture(tex)) : nullptr;
@@ -1243,7 +1243,7 @@ BUILTIN(load_texture, "name,textureformat", "SI?", "R:texture?",
 
 BUILTIN(save_texture, "tex,filename,flip", "R:textureSB?", "B",
     "saves the texture in .png format, returns true if succesful")
-(StackPtr &, VM &vm, LResource *t, LString *fn, iint flip) {
+(VM &vm, LResource *t, LString *fn, iint flip) {
     TestGL(vm);
     auto ok = SaveTexture(GetTexture(t), fn->strvnt(), (flip != 0));
     return ok;
@@ -1252,7 +1252,7 @@ BUILTIN(save_texture, "tex,filename,flip", "R:textureSB?", "B",
 BUILTIN(set_primitive_texture, "i,tex,tf", "IR:textureI?", "",
     "sets texture unit i to texture (for use with rect/circle/polygon/line)."
     " if texture flags are given, sets those on the texture also")
-(StackPtr &, VM &vm, iint i, LResource *id, iint _tf) {
+(VM &vm, iint i, LResource *id, iint _tf) {
     TestGL(vm);
     auto tf = (int)_tf;
     auto tex = GetTexture(id);
@@ -1262,7 +1262,7 @@ BUILTIN(set_primitive_texture, "i,tex,tf", "IR:textureI?", "",
 
 BUILTIN(set_mesh_texture, "mesh,part,i,texture", "R:meshIIR:texture", "",
     "sets texture unit i to texture for a mesh and part (0 if not a multi-part mesh)")
-(StackPtr &, VM &vm, LResource *mid, iint part, iint i, LResource *id) {
+(VM &vm, LResource *mid, iint part, iint i, LResource *id) {
     auto &m = GetMesh(mid);
     if (part < 0 || part >= (iint)m.surfs.size())
         vm.BuiltinError("setmeshtexture: illegal part index");
@@ -1272,7 +1272,7 @@ BUILTIN(set_mesh_texture, "mesh,part,i,texture", "R:meshIIR:texture", "",
 BUILTIN(set_image_texture, "i,tex,level,accessflags", "IR:textureII?", "",
     "sets image unit i to texture (for use with compute). optionally specify "
     "writeonly/readwrite flags.")
-(StackPtr &, VM &vm, iint i, LResource *id, iint level, iint tf) {
+(VM &vm, iint i, LResource *id, iint level, iint tf) {
     TestGL(vm);
     SetImageTexture(GetSampler(vm, i), GetTexture(id), (int)level, (int)tf);
 }
@@ -1280,7 +1280,7 @@ BUILTIN(set_image_texture, "i,tex,level,accessflags", "IR:textureII?", "",
 BUILTIN(unbind_all_textures, "", "", "",
     "unbinds all textures set thru any set texture calls. typically not needed to call this manually, "
     "but may sometimes be needed when reusing textures across draw/compute calls")
-(StackPtr &, VM &vm) {
+(VM &vm) {
     TestGL(vm);
     UnbindAllTextures();
 }
@@ -1289,7 +1289,7 @@ BUILTIN(create_texture, "matrix,textureformat", "F}:4]]I?", "R:texture",
     "creates a texture from a 2d array of color vectors."
     " see texture.lobster for texture format."
     " for a cubemap, pass an array that is 6x as big on x than y")
-(StackPtr &, VM &vm, LVector *matv, iint tf) {
+(VM &vm, LVector *matv, iint tf) {
     TestGL(vm);
     return vm.NewResource(&texture_type, CreateTextureFromValues(matv, (int)tf));
 }
@@ -1298,7 +1298,7 @@ BUILTIN(create_texture_single_channel, "matrix,textureformat", "F]]I?", "R:textu
     "creates a texture from a 2d array of float vectors."
     " see texture.lobster for texture format."
     " for a cubemap, pass an array that is 6x as big on x than y")
-(StackPtr &, VM &vm, LVector *matv, iint tf) {
+(VM &vm, LVector *matv, iint tf) {
     TestGL(vm);
     return vm.NewResource(&texture_type, CreateTextureFromValues(matv, (int)tf | TF_SINGLE_CHANNEL));
 }
@@ -1306,7 +1306,7 @@ BUILTIN(create_texture_single_channel, "matrix,textureformat", "F]]I?", "R:textu
 BUILTIN(create_blank_texture, "size,textureformat", "I}:3I?", "R:texture",
     "creates a blank texture (for use as frame buffer or with compute shaders)."
     " see texture.lobster for texture format")
-(StackPtr &, VM &vm, iint3 size_, iint textureformat) {
+(VM &vm, iint3 size_, iint textureformat) {
     TestGL(vm);
     auto tf = (int)textureformat;
     auto size = ToVec<int3>(size_);
@@ -1317,7 +1317,7 @@ BUILTIN(create_blank_texture, "size,textureformat", "I}:3I?", "R:texture",
 BUILTIN(create_colored_texture, "size,color,textureformat", "I}:3F}:4I?", "R:texture",
     "creates a colored texture (for use as frame buffer or with compute shaders)."
     " see texture.lobster for texture format")
-(StackPtr &, VM &vm, iint3 size_, double4 color, iint textureformat) {
+(VM &vm, iint3 size_, double4 color, iint textureformat) {
     TestGL(vm);
     auto tf = (int)textureformat;
     auto col = ToVec<float4>(color);
@@ -1335,7 +1335,7 @@ BUILTIN_V(texture_size, "tex", "R:texture", "I}:2",
 
 BUILTIN(read_texture, "tex", "R:texture", "S?",
     "read back RGBA texture data into a string or nil on failure")
-(StackPtr &, VM &vm, LResource *t) {
+(VM &vm, LResource *t) {
     TestGL(vm);
     auto tex = GetTexture(t);
     auto numpixels = tex.size.x * tex.size.y;
@@ -1349,7 +1349,7 @@ BUILTIN(read_texture, "tex", "R:texture", "S?",
 
 BUILTIN(generate_texture_mipmap, "tex", "R:texture?", "",
     "generate mipmaps for the specified texture")
-(StackPtr &, VM &vm, LResource *t) {
+(VM &vm, LResource *t) {
     TestGL(vm);
     auto tex = GetTexture(t);
     GenerateTextureMipMap(tex);
@@ -1364,7 +1364,7 @@ BUILTIN(switch_to_framebuffer, "tex,hasdepth,multisampleformat,resolvetex,deptht
     " pass your own depth texture if desired."
     " pass a nil texture to switch back to the original framebuffer."
     " performance note: do not recreate texture passed in unless necessary.")
-(StackPtr &, VM &vm, LResource *t, iint depth, iint tf, LResource *retex, LResource *depthtex) {
+(VM &vm, LResource *t, iint depth, iint tf, LResource *retex, LResource *depthtex) {
     TestGL(vm);
     auto tex = GetTexture(t);
     return SwitchToFrameBuffer(tex, GetScreenSize(),
@@ -1384,7 +1384,7 @@ BUILTIN(light, "pos,params", "F}:3F}:2", "",
     " camera transforms but before any object transforms (i.e. defined in \"worldspace\")."
     " params contains specular exponent in x (try 32/64/128 for different material looks) and"
     " the specular scale in y (try 1 for full intensity)")
-(StackPtr &, VM &, double3 pos_, double2 params_) {
+(VM &, double3 pos_, double2 params_) {
     auto params = ToVec<float2>(params_);
     auto pos = otransforms.object2view() * float4(ToVec<float3>(pos_), 1);
     lights.push_back(Light{ pos, params });
@@ -1396,7 +1396,7 @@ BUILTIN(render_tiles, "positions,tilecoords,mapsize,sizes,rotations", "F}:2]I}:2
     " the amount of tiles in the texture. rotations are optional (may be empty, faster if not specified). Tiles may overlap, they are drawn in order."
     " Before calling this, make sure to have the texture set and a textured shader."
     " If you want tile to use top-left as position, wrap this call in gl.translate float2_h:")
-(StackPtr &, VM &vm, LVector *positions, LVector *tile, iint2 mapsize, LVector *sizes,
+(VM &vm, LVector *positions, LVector *tile, iint2 mapsize, LVector *sizes,
  LVector *rotations) {
     TestGL(vm);
     auto msize = float2(ToVec<int2>(mapsize));
@@ -1440,7 +1440,7 @@ BUILTIN(render_tiles, "positions,tilecoords,mapsize,sizes,rotations", "F}:2]I}:2
 BUILTIN(debug_grid, "num,dist,thickness", "I}:3F}:3F", "",
     "renders a grid in space for debugging purposes. num is the number of lines in all 3"
     " directions, and dist their spacing. thickness of the lines in the same units")
-(StackPtr &, VM &vm, iint3 num_, double3 dist_, double thickness_) {
+(VM &vm, iint3 num_, double3 dist_, double thickness_) {
     TestGL(vm);
     auto thickness = (float)thickness_;
     auto dist = ToVec<float3>(dist_);
@@ -1476,7 +1476,7 @@ BUILTIN(debug_grid, "num,dist,thickness", "I}:3F}:3F", "",
 BUILTIN(screenshot, "filename,resolution", "SI}:2?", "B",
     "saves a screenshot in .png format, returns true if succesful. resolution optionally gives a"
     " target size to resize the screenshot to; (0,0) or the current window size means no resizing")
-(StackPtr &, VM &, LString *fn, iint2 resolution_) {
+(VM &, LString *fn, iint2 resolution_) {
     auto resolution = ToVec<int2>(resolution_);
     bool ok = ScreenShot(fn->strvnt(), resolution);
     return ok;
@@ -1484,27 +1484,27 @@ BUILTIN(screenshot, "filename,resolution", "SI}:2?", "B",
 
 BUILTIN(get_renderer_info_string, "", "", "S",
     "Get a string describing the renderer, typically OpenGL vendor - renderer - version")
-(StackPtr &, VM &vm) {
+(VM &vm) {
     TestGL(vm);
     return vm.NewString(OpenGLVendorStr());
 }
 
 BUILTIN(dropped_file, "", "", "S",
     "if a file was dropped on the window this frame, the filename, otherwise empty")
-(StackPtr &, VM &vm) {
+(VM &vm) {
     return vm.NewString(GetDroppedFile());
 }
 
 BUILTIN(create_time_query, "", "", "R:timequery",
     "creates a time query object used for profiling GPU events")
-(StackPtr &, VM &vm) {
+(VM &vm) {
     TestGL(vm);
     return vm.NewResource(&timequery_type, new TimeQuery());
 }
 
 BUILTIN(start_time_query, "tq", "R:timequery?", "",
     "starts the time query")
-(StackPtr &, VM &vm, LResource *tq) {
+(VM &vm, LResource *tq) {
     if (!(tq != nullptr)) return;
     TestGL(vm);
     GetTimeQuery(tq).Start();
@@ -1512,7 +1512,7 @@ BUILTIN(start_time_query, "tq", "R:timequery?", "",
 
 BUILTIN(stop_time_query, "tq", "R:timequery?", "F",
     "stops the time query and returns the result")
-(StackPtr &, VM &vm, LResource *tq) {
+(VM &vm, LResource *tq) {
     if (!(tq != nullptr)) return 0;
     TestGL(vm);
     GetTimeQuery(tq).Stop();
@@ -1523,7 +1523,7 @@ BUILTIN(init_controller_database, "filename", "S", "S?",
     "loads the controller database if you want your game to support controllers."
     " typically the argument should be: pakfile \"data/controllers/gamecontrollerdb.txt\"."
     " returns error if something went wrong")
-(StackPtr &, VM &vm, LString *fn) {
+(VM &vm, LString *fn) {
     TestGL(vm);
     string dest;
     auto fnsv = fn->strv();
@@ -1537,20 +1537,20 @@ BUILTIN(init_controller_database, "filename", "S", "S?",
 
 BUILTIN(open_url, "url", "S", "B",
     "Opens a URL in the system browser, returns true if successful")
-(StackPtr &, VM &, LString *url) {
+(VM &, LString *url) {
     bool ok = SDLOpenURL(url->strv());
     return ok;
 }
 
 BUILTIN(set_clipboard, "contents", "S", "",
     "Set the contents of the system clipboard")
-(StackPtr &, VM &, LString *contents) {
+(VM &, LString *contents) {
     SDLSetClipBoard(contents->data());
 }
 
 BUILTIN(get_clipboard, "", "", "S",
     "Get the contents of the system clipboard")
-(StackPtr &, VM &vm) {
+(VM &vm) {
     auto contents = SDLGetClipBoard();
     return vm.NewString(contents);
 }

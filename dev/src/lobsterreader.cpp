@@ -402,7 +402,7 @@ BUILTIN_V(parse_data, "typeid,stringdata", "TS", "A1?S?",
 BUILTIN(flexbuffers_value_to_binary, "val,max_nesting,cycle_detection", "AI?B?", "S",
     "turns any reference value into a flexbuffer. max_nesting defaults to 100. "
     "cycle_detection is by default off (expensive)")
-(StackPtr &, VM &vm, Value val, iint mn, iint cycle_detect) {
+(VM &vm, Value val, iint mn, iint cycle_detect) {
     ToFlexBufferContext fbc(vm, 1024, flexbuffers::BUILDER_FLAG_SHARE_KEYS);
     if (mn > 0) fbc.max_depth = mn;
     fbc.cycle_detect = (cycle_detect != 0);
@@ -478,7 +478,7 @@ BUILTIN(lobster_value_to_binary, "val", "A", "S",
     "this is intended for threads/networking, not for storage (since it is not readable by other languages). "
     "data structures participating must have been marked by attribute serializable. "
     "does not provide protection against cycles, use flexbuffers if that is a concern. ")
-(StackPtr &, VM &vm, Value val) {
+(VM &vm, Value val) {
     vector<uint8_t> buf;
     val.ToLobsterBinary(vm, buf, val.refnil() ? val.refnil()->ti(vm).t : RTT_NIL);
     // FIXME: since this is meant to be fast, worth seeing if this can be made 0-copy?

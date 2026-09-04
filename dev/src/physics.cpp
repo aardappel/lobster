@@ -111,7 +111,7 @@ void CheckParticles(float size = 0.1f) {
     }
 }
 
-b2Body &GetBody(StackPtr &, VM &, Value id, float2 wpos) {
+b2Body &GetBody(VM &, Value id, float2 wpos) {
     CheckPhysics();
     b2Body *body = id.True() ? GetObject(id).fixture->GetBody() : nullptr;
     if (!body) {
@@ -148,7 +148,7 @@ BuiltinGroup physics_builtins;
 
 BUILTIN(initialize, "gravityvector", "F}:2", "",
     "initializes or resets the physical world, gravity typically [0, -10].")
-(StackPtr &, VM &, double2 gravityvector) {
+(VM &, double2 gravityvector) {
     InitPhysics(ToVec<float2>(gravityvector));
 }
 
@@ -157,13 +157,13 @@ BUILTIN(create_box, "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?R:
     " the center, offset from the center if needed, at a particular rotation (in degrees)."
     " attachto is a previous physical object to attach this one to, to become a combined"
     " physical body.")
-(StackPtr &sp, VM &vm, double2 position, double2 size, double2 offset_, double rotation,
+(VM &vm, double2 position, double2 size, double2 offset_, double rotation,
  LResource *other_id) {
     auto rot = (float)rotation;
     auto offset = OptionalOffset(offset_);
     auto sz = ToVec<float2>(size);
     auto wp = ToVec<float2>(position);
-    auto &body = GetBody(sp, vm, other_id, wp);
+    auto &body = GetBody(vm, other_id, wp);
     b2PolygonShape shape;
     shape.SetAsBox(sz.x, sz.y, offset, rot * RAD_F);
     return CreateFixture(vm, body, shape);
@@ -173,11 +173,11 @@ BUILTIN(create_circle, "position,radius,offset,attachto", "F}:2FF}:2?R:fixture?"
     "creates a physical circle shape in the world at position, with the given radius, offset"
     " from the center if needed. attachto is a previous physical object to attach this one to,"
     " to become a combined physical body.")
-(StackPtr &sp, VM &vm, double2 position, double radius_, double2 offset_, LResource *other_id) {
+(VM &vm, double2 position, double radius_, double2 offset_, LResource *other_id) {
     auto offset = OptionalOffset(offset_);
     auto radius = (float)radius_;
     auto wp = ToVec<float2>(position);
-    auto &body = GetBody(sp, vm, other_id, wp);
+    auto &body = GetBody(vm, other_id, wp);
     b2CircleShape shape;
     shape.m_p.Set(offset.x, offset.y);
     shape.m_radius = radius;
@@ -188,12 +188,12 @@ BUILTIN(create_polygon, "position,vertices,attachto", "F}:2F}:2]R:fixture?", "R:
     "creates a polygon circle shape in the world at position, with the given list of vertices."
     " attachto is a previous physical object to attach this one to, to become a combined"
     " physical body.")
-(StackPtr &sp, VM &vm, double2 position, LVector *vertices, LResource *other_id) {
+(VM &vm, double2 position, LVector *vertices, LResource *other_id) {
     auto wp = ToVec<float2>(position);
     if (vertices->len < 3 || vertices->len > b2_maxPolygonVertices)
         vm.BuiltinError(cat("ph.create_polygon: illegal number of vertices: ", vertices->len,
                             " (must be 3..", b2_maxPolygonVertices, ")"));
-    auto &body = GetBody(sp, vm, other_id, wp);
+    auto &body = GetBody(vm, other_id, wp);
     b2PolygonShape shape;
     auto verts = new b2Vec2[vertices->len];
     for (int i = 0; i < vertices->len; i++) {
@@ -207,7 +207,7 @@ BUILTIN(create_polygon, "position,vertices,attachto", "F}:2F}:2]R:fixture?", "R:
 
 BUILTIN(dynamic, "shape,on", "R:fixtureB", "",
     "makes a shape dynamic (on = true) or not.")
-(StackPtr &, VM &, LResource *fixture_id, iint on) {
+(VM &, LResource *fixture_id, iint on) {
     CheckPhysics();
     GetObject(fixture_id)
         .fixture->GetBody()
@@ -216,7 +216,7 @@ BUILTIN(dynamic, "shape,on", "R:fixtureB", "",
 
 BUILTIN(set_linear_velocity, "id,velocity", "R:fixtureF}:2", "",
     "sets the linear velocity of a shape's center of mass.")
-(StackPtr &, VM &, LResource *id, double2 velocity) {
+(VM &, LResource *id, double2 velocity) {
     CheckPhysics();
     auto vel = ToB2(velocity);
     GetObject(id)
@@ -226,7 +226,7 @@ BUILTIN(set_linear_velocity, "id,velocity", "R:fixtureF}:2", "",
 
 BUILTIN(apply_linear_impulse_to_center, "id,impulse", "R:fixtureF}:2", "",
     "applies a linear impulse to a shape at its center of mass.")
-(StackPtr &, VM &, LResource *id, double2 impulse) {
+(VM &, LResource *id, double2 impulse) {
     CheckPhysics();
     auto imp = ToB2(impulse);
     auto body = GetObject(id).fixture->GetBody();
@@ -235,7 +235,7 @@ BUILTIN(apply_linear_impulse_to_center, "id,impulse", "R:fixtureF}:2", "",
 
 BUILTIN(set_color, "id,color", "R:fixture?F}:4", "",
     "sets a shape (or nil for particles) to be rendered with a particular color.")
-(StackPtr &, VM &vm, LResource *id, double4 color) {
+(VM &vm, LResource *id, double4 color) {
     auto c = ToVec<float4>(color);
     auto &r = GetRenderable(vm, id);
     r.color = c;
@@ -243,7 +243,7 @@ BUILTIN(set_color, "id,color", "R:fixture?F}:4", "",
 
 BUILTIN(set_shader, "id,shadername", "R:fixture?S", "",
     "sets a shape (or nil for particles) to be rendered with a particular shader.")
-(StackPtr &, VM &vm, LResource *fixture_id, LString *shader) {
+(VM &vm, LResource *fixture_id, LString *shader) {
     auto &r = GetRenderable(vm, fixture_id);
     auto sh = LookupShader(shader->strv());
     if (sh.get()) r.sh = sh;
@@ -252,7 +252,7 @@ BUILTIN(set_shader, "id,shadername", "R:fixture?S", "",
 BUILTIN(set_texture, "id,tex,texunit", "R:fixture?R:textureI?", "",
     "sets a shape (or nil for particles) to be rendered with a particular texture"
     " (assigned to a texture unit, default 0).")
-(StackPtr &, VM &vm, LResource *fixture_id, LResource *tex, iint tex_unit) {
+(VM &vm, LResource *fixture_id, LResource *tex, iint tex_unit) {
     auto &r = GetRenderable(vm, fixture_id);
     r.Get(GetSampler(vm, tex_unit)) = GetTexture(tex);
 }
@@ -265,13 +265,13 @@ BUILTIN_V(get_position, "id", "R:fixture", "F}:2",
 
 BUILTIN(get_mass, "id", "R:fixture", "F",
     "gets a shape's mass.")
-(StackPtr &, VM &, LResource *id) {
+(VM &, LResource *id) {
     return GetObject(id).fixture->GetBody()->GetMass();
 }
 
 BUILTIN(create_particle, "position,velocity,color,flags", "F}:2F}:2F}:4I?", "I",
     "creates an individual particle. For flags, see include/physics.lobster")
-(StackPtr &, VM &, double2 position, double2 velocity, double4 color, iint flags) {
+(VM &, double2 position, double2 velocity, double4 color, iint flags) {
     CheckParticles();
     b2ParticleDef pd;
     pd.flags = (int)flags;
@@ -284,7 +284,7 @@ BUILTIN(create_particle, "position,velocity,color,flags", "F}:2F}:2F}:4I?", "I",
 
 BUILTIN(create_particle_circle, "position,radius,color,flags", "F}:2FF}:4I?", "",
     "creates a circle filled with particles. For flags, see include/physics.lobster")
-(StackPtr &, VM &, double2 position, double radius, double4 color, iint flags) {
+(VM &, double2 position, double radius, double4 color, iint flags) {
     CheckParticles();
     b2ParticleGroupDef pgd;
     b2CircleShape shape;
@@ -299,7 +299,7 @@ BUILTIN(create_particle_circle, "position,radius,color,flags", "F}:2FF}:4I?", ""
 
 BUILTIN(initialize_particles, "radius", "F", "",
     "initializes the particle system with a given particle radius.")
-(StackPtr &, VM &, double size) {
+(VM &, double size) {
     CheckParticles((float)size);
 }
 
@@ -307,7 +307,7 @@ BUILTIN(step, "seconds,viter,piter", "FII", "",
     "simulates the physical world for the given period (try: gl.delta_time()). You can specify"
     " the amount of velocity/position iterations per step, more means more accurate but also"
     " more expensive computationally (try 8 and 3).")
-(StackPtr &, VM &, double delta, iint viter, iint piter) {
+(VM &, double delta, iint viter, iint piter) {
     CheckPhysics();
     world->Step(min((float)delta, 0.1f), (int)viter, (int)piter);
     if (particlesystem) {
@@ -330,7 +330,7 @@ BUILTIN(step, "seconds,viter,piter", "FII", "",
 BUILTIN(particle_contacts, "id", "R:fixture", "I]",
     "gets the particle indices that are currently contacting a giving physics object."
     " Call after step(). Indices may be invalid after next step().")
-(StackPtr &, VM &vm, LResource *id) {
+(VM &vm, LResource *id) {
     CheckPhysics();
     auto &po = GetObject(id);
     if (!po.particle_contacts) po.particle_contacts = new vector<int>();
@@ -343,7 +343,7 @@ BUILTIN(particle_contacts, "id", "R:fixture", "I]",
 BUILTIN(raycast, "p1,p2,n", "F}:2F}:2I", "I]",
     "returns a vector of the first n particle ids that intersect a ray from p1 to p2,"
     " not including particles that overlap p1.")
-(StackPtr &, VM &vm, double2 p1, double2 p2, iint n) {
+(VM &vm, double2 p1, double2 p2, iint n) {
     CheckPhysics();
     auto p2v = ToB2(p2);
     auto p1v = ToB2(p1);
@@ -369,7 +369,7 @@ BUILTIN(raycast, "p1,p2,n", "F}:2F}:2I", "I]",
 BUILTIN(delete_particle, "i", "I", "",
     "deletes given particle. Deleting particles causes indices to be invalidated at next"
     " step().")
-(StackPtr &, VM &, iint i) {
+(VM &, iint i) {
     CheckPhysics();
     // CheckPhysics only creates the world, not the particle system.
     if (!particlesystem) return;
@@ -390,7 +390,7 @@ BUILTIN_V(getparticle_position, "i", "I", "F}:2",
 
 BUILTIN(render, "", "", "",
     "renders all rigid body objects.")
-(StackPtr &, VM &) {
+(VM &) {
     CheckPhysics();
     auto oldcolor = curcolor;
     for (b2Body *body = world->GetBodyList(); body; body = body->GetNext()) {
@@ -432,7 +432,7 @@ BUILTIN(render, "", "", "",
 
 BUILTIN(render_particles, "scale", "F", "",
     "render all particles, with the given scale.")
-(StackPtr &, VM &, double particlescale) {
+(VM &, double particlescale) {
     CheckPhysics();
     if (!particlesystem) return;
     auto num = particlesystem->GetParticleCount();
