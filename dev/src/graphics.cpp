@@ -278,13 +278,10 @@ BUILTIN_V(scissor, "top_left,size", "I}:2I}:2", "I}:2I}:2",
     PushVec(sp, prev.second);
 }
 
-BUILTIN(frame, "", "", "B",
+// The generated code calls GLFrame() by its own symbol, see EmitSpecialBuiltin.
+BUILTIN_CODEGEN(BS_GL_FRAME, frame, "", "", "B",
     "advances rendering by one frame, swaps buffers, and collects new input events."
-    " returns false if the closebutton on the window was pressed")
-(VM &vm) {
-    // Native backends call this directly rather than going thru the function pointer.
-    return GLFrame(vm);
-}
+    " returns false if the closebutton on the window was pressed");
 
 BUILTIN(frame_counter, "delta", "I", "",
     "gl.frame advances the frame counter by 1, which affects features like member_frame."

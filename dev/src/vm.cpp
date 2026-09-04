@@ -1104,6 +1104,7 @@ void CRtNativeProfileEnd(___tracy_c_zone_context ctx) { RtNativeProfileEnd(ctx);
 #endif
 LVector *CRtNewVec(VM *vm, type_elem_t ti, int len) { return RtNewVec(*vm, ti, len); }
 LObject *CRtNewObject(VM *vm, type_elem_t ti) { return RtNewObject(*vm, ti); }
+void CRtVectorGrow(VM *vm, LVector *v) { RtVectorGrow(*vm, v); }
 void CRtExit(VM *vm, Value ret, type_elem_t ti) { RtExit(*vm, ret, ti); }
 void CRtExitVoid(VM *vm) { RtExitVoid(*vm); }
 void CRtAbort(VM *vm) { RtAbort(*vm); }
@@ -1150,6 +1151,7 @@ const void *vm_ops_jit_table[] = {
     #endif
     "RtNewVec", (void *)&CRtNewVec,
     "RtNewObject", (void *)&CRtNewObject,
+    "RtVectorGrow", (void *)&CRtVectorGrow,
     "RtExit", (void *)&CRtExit,
     "RtExitVoid", (void *)&CRtExitVoid,
     "RtAbort", (void *)&CRtAbort,

@@ -211,12 +211,10 @@ BUILTIN(equal, "a,b", "AA", "B",
     return eq;
 }
 
-BUILTIN(push, "xs,x", "A]*Akw1", "Ab]1",
-    "appends one element to a vector, returns existing vector")
-(VM &vm, LVector *l, Value *x) {
-    l->PushVW(vm, x);
-    return l;
-}
+// A push is common enough, and small enough, that the generated code writes it out itself
+// rather than moving the element thru the stack to make a call, see EmitSpecialBuiltin.
+BUILTIN_CODEGEN(BS_PUSH, push, "xs,x", "A]*Akw1", "Ab]1",
+    "appends one element to a vector, returns existing vector");
 
 BUILTIN_V(pop, "xs", "A]*", "A1",
     "removes last element from vector and returns it")

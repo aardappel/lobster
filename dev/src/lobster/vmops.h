@@ -84,6 +84,12 @@ VM_INLINE LObject *RtNewObject(VM &vm, type_elem_t ti) {
     return vm.NewObject(vm.GetTypeInfo(ti).len, ti);
 }
 
+// Room for one more element in a vector that has none left, which is all a push the generated
+// code writes out itself cannot do on its own, see CodeGen::EmitVectorPush.
+VM_INLINE void RtVectorGrow(VM &vm, LVector *v) {
+    v->Resize(vm, v->maxl ? v->maxl * 2 : 4);
+}
+
 VM_INLINE LString *RtStrConcatN(VM &vm, Value *strs, int len) {
     iint blen = 0;
     // Find total len.

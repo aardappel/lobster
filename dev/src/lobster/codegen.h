@@ -863,6 +863,7 @@ struct CodeGen  {
                 #endif
                 "LVector *RtNewVec(VMRef, type_elem_t, int);\n"
                 "LObject *RtNewObject(VMRef, type_elem_t);\n"
+                "void RtVectorGrow(VMRef, LVector *);\n"
                 "void RtExit(VMRef, Value, type_elem_t);\n"
                 "void RtExitVoid(VMRef);\n"
                 "void RtAbort(VMRef);\n"
@@ -1977,6 +1978,52 @@ struct CodeGen  {
         return s;
     }
 
+    // A push of one element onto a vector, which the code writes out rather than calling
+    // push(), see EmitSpecialBuiltin. The element takes as many slots as its type is wide,
+    // which is the width the vector holds its elements at. The vector stays in the slot it
+    // came in, which is where the value push returns belongs anyway.
+    void EmitVectorPush(const Types &args, string_view cmt) {
+        auto width = (int)args.size() - 1;
+        auto base = regso - (int)args.size();
+        auto elems = string(cpp ? "_v->Elems()" : "_v->elems");
+        cb += "    {";
+        comment(cmt);
+        append(cb, "    LVector *_v = ", Read(SlotVar(base, RTT_VECTOR)), ";\n");
+        append(cb, "    if (_v->len == _v->maxl) ", cpp ? "lobster::" : "",
+               "RtVectorGrow(vm, _v);\n");
+        if (width == 1) {
+            CopyValue(cb, Mem(cat(elems, "[_v->len]"), args[1]), SlotVar(base + 1, args[1]));
+        } else {
+            append(cb, "    Value *_e = ", elems, " + _v->len * ", width, ";\n");
+            for (int i = 1; i <= width; i++) {
+                CopyValue(cb, Mem(cat("_e[", i - 1, "]"), args[i]), SlotVar(base + i, args[i]));
+            }
+        }
+        cb += "    _v->len++;\n    }\n";
+    }
+
+    // The builtins the code does not call but writes out itself, because they are leaned on
+    // often enough for the call to be worth avoiding, see BuiltinSpecial. Each reads its
+    // arguments from the slots below regso and leaves its return values in the same ones, just
+    // as a call would. Returns whether this was one of them.
+    bool EmitSpecialBuiltin(NativeFun *nf, const Types &args) {
+        // No default, so that a kind added without a case here is a compile error.
+        switch (nf->special) {
+            case BS_NONE:
+                return false;
+            case BS_GL_FRAME:
+                // Called by a symbol of its own, which the engine defines outside the registry.
+                Write(cb, Slot(0, VK_INT), "GLFrame(vm)", "");
+                comment(nf->name);
+                return true;
+            case BS_PUSH:
+                EmitVectorPush(args, nf->name);
+                return true;
+        }
+        assert(false);
+        return false;
+    }
+
     // A call to a builtin, which the code makes directly by its symbol, declared in the
     // prologue, see natives_used. The V kind and the ones that leave several values work on
     // the stack: both get a pointer to where their arguments are, the former leaving all of
@@ -1988,12 +2035,8 @@ struct CodeGen  {
                         const NativeArgs &nargs) {
         auto uses = (int)args.size();
         auto defs = (int)rets.size();
-        if (nf->IsGLFrame()) {
-            TrackUseDef(uses, defs);
-            Write(cb, Slot(0, VK_INT), "GLFrame(vm)", "");
-            comment(nf->name);
-            return;
-        }
+        TrackUseDef(uses, defs);
+        if (EmitSpecialBuiltin(nf, args)) return;
         natives_used[nf->idx] = nf;
         auto spref = nf->PushesValues() ? (cpp ? "sp, " : "&sp, ") : "";
         f_uses_sp = f_uses_sp || nf->PushesValues();
@@ -2004,7 +2047,6 @@ struct CodeGen  {
             auto checked = false;
         #endif
         EmitNativeProfile(true, nf->idx);
-        TrackUseDef(uses, defs);
         auto base = regso - uses;
         auto argstr = NativeArgList(base, nf, args, nargs);
         // The values the builtin does not return it pushes, which it needs a stack pointer to.
