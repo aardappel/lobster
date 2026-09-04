@@ -199,6 +199,13 @@ def errors_tests():
     expect_error("let a = 1\nreturn a()", "doesn\'t have a function type")
     // struct types cannot be made nilable.
     expect_error("struct S:\n    s:string\nlet z = nil::S\nreturn 1", "nillable")
+    // A struct with more fields than the one wanted is never shortened for you,
+    // not for a function and not to pick an overload of a builtin.
+    expect_error("import vec\ndef f(v:int2): return v.x\nreturn f(int3 \{ 1, 2, 3 \})",
+                 "requires type `int2`, got `int3`")
+    expect_error("import vec\nlet a = float4 \{ 1.0, 2.0, 3.0, 4.0 \}\n" +
+                 "return string(cardinal_spline(a, a, a, a, 0.5, 0.5))",
+                 "match no overloads")
     // continue outside a loop.
     expect_error("continue\nreturn 1", "must occur inside")
     // Assigning the wrong type to a typed field.

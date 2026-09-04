@@ -409,10 +409,9 @@ struct TypeChecker {
             case V_STRUCT_S: {
                 if (type->t != bound->t) return false;
                 if (SuperDistance(bound->udt, type->udt) < 0) return false;
-                // If number of fields is same as bound then this trivially converts.
-                if (type->udt->sfields.size() == bound->udt->sfields.size()) return true;
-                // This can convert if we chop off extra fields.
-                return (cf & CF_COERCIONS) != 0;
+                // A struct is exactly its fields, so a subclass only converts to a superclass
+                // that adds none: losing the extra ones would be a silent truncation.
+                return type->udt->sfields.size() == bound->udt->sfields.size();
             }
             case V_TUPLE:
                 return type->t == V_TUPLE && ConvertsToTuple(*type->tup, *bound->tup);
@@ -515,13 +514,6 @@ struct TypeChecker {
         tlt->exptype = n->exptype;
         tlt->lt = lt;
         n = tlt;
-    }
-
-    void MakeStructSuper(Node *&a, TypeRef structsuper) {
-        auto ss = new ToStructSuper(a->line, a);
-        ss->exptype = structsuper;
-        ss->lt = a->lt;
-        a = ss;
     }
 
     void StorageType(TypeRef type, const Node &context) {
@@ -648,16 +640,6 @@ struct TypeChecker {
                     return;
                 }
                 break;
-            case V_STRUCT_R:
-            case V_STRUCT_S: {
-                if (a->exptype->t == bound->t &&
-                    SuperDistance(bound->udt, a->exptype->udt) > 0 &&
-                    a->exptype->udt->sfields.size() > bound->udt->sfields.size()) {
-                    MakeStructSuper(a, bound);
-                    return;
-                }
-                break;
-            }
             default:
                 ;
         }

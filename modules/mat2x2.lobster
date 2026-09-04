@@ -7,11 +7,11 @@ import vec
 struct mat2x2 : float4
 
     def operator*(o:mat2x2):
-        return mat2x2 { dot(o.xz, this),    dot(o.yw, this),
+        return mat2x2 { dot(o.xz, this.xy), dot(o.yw, this.xy),
                         dot(o.xz, this.zw), dot(o.yw, this.zw) }
 
     def operator*(o:float2):
-        return float2 { dot(o, this),
+        return float2 { dot(o, this.xy),
                         dot(o, this.zw) }
 
     def determinant():

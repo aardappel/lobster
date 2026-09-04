@@ -480,8 +480,4 @@ ValueType ToLifetime::ConstVal(TypeChecker *, VTValue &) const {
     return V_VOID;
 }
 
-ValueType ToStructSuper::ConstVal(TypeChecker *, VTValue &) const {
-    return V_VOID;
-}
-
 }  // namespace lobster

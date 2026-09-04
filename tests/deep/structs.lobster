@@ -308,11 +308,13 @@ def structs_tests():
     def as_ddbase(x:DDBase): return x
     test_eq(dd(as_ddbase(DDSub { 2 }), int2 { 4, 5 }), 22)
 
-    // A subtype struct with more fields may be passed where the supertype is
-    // wanted: the extra fields are chopped off (int3 subtypes int2).
+    // A subtype struct is only accepted where the supertype is wanted if it adds
+    // no fields, since a struct is exactly its fields: shortening is explicit.
     def take_int2(v:int2): return v.x + v.y
-    test_eq(take_int2(int3 { 1, 2, 4 }), 3)
+    test_eq(take_int2(int3 { 1, 2, 4 }.xy), 3)
     let i3var = int3 { 5, 6, 7 }
-    test_eq(take_int2(i3var), 11)
+    test_eq(take_int2(i3var.xy), 11)
+    def take_vec2i(v:vec2<int>): return v.x + v.y
+    test_eq(take_vec2i(int2 { 1, 2 }), 3)
 
 structs_tests()
