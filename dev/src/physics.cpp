@@ -148,8 +148,8 @@ BuiltinGroup physics_builtins;
 
 BUILTIN_V(initialize, "gravityvector", "F}:2", "",
     "initializes or resets the physical world, gravity typically [0, -10].")
-(StackPtr &, VM &, Value *gravityvector, iint gravityvector_len) {
-    InitPhysics(ToVec<float2>(gravityvector, gravityvector_len));
+(StackPtr &, VM &, Value *gravityvector) {
+    InitPhysics(ToVec<float2>(gravityvector, 2));
 }
 
 BUILTIN_V(create_box, "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?R:fixture?", "R:fixture",
@@ -157,12 +157,12 @@ BUILTIN_V(create_box, "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?
     " the center, offset from the center if needed, at a particular rotation (in degrees)."
     " attachto is a previous physical object to attach this one to, to become a combined"
     " physical body.")
-(StackPtr &sp, VM &vm, Value *position, iint position_len, Value *size, iint size_len,
- Value *offset_, iint offset_len, double rotation, LResource *other_id) {
+(StackPtr &sp, VM &vm, Value *position, Value *size, Value *offset_, double rotation,
+ LResource *other_id) {
     auto rot = (float)rotation;
-    auto offset = OptionalOffset(offset_, offset_len);
-    auto sz = ToVec<float2>(size, size_len);
-    auto wp = ToVec<float2>(position, position_len);
+    auto offset = OptionalOffset(offset_, 2);
+    auto sz = ToVec<float2>(size, 2);
+    auto wp = ToVec<float2>(position, 2);
     auto &body = GetBody(sp, vm, other_id, wp);
     b2PolygonShape shape;
     shape.SetAsBox(sz.x, sz.y, offset, rot * RAD_F);
@@ -173,11 +173,10 @@ BUILTIN_V(create_circle, "position,radius,offset,attachto", "F}:2FF}:2?R:fixture
     "creates a physical circle shape in the world at position, with the given radius, offset"
     " from the center if needed. attachto is a previous physical object to attach this one to,"
     " to become a combined physical body.")
-(StackPtr &sp, VM &vm, Value *position, iint position_len, double radius_, Value *offset_,
- iint offset_len, LResource *other_id) {
-    auto offset = OptionalOffset(offset_, offset_len);
+(StackPtr &sp, VM &vm, Value *position, double radius_, Value *offset_, LResource *other_id) {
+    auto offset = OptionalOffset(offset_, 2);
     auto radius = (float)radius_;
-    auto wp = ToVec<float2>(position, position_len);
+    auto wp = ToVec<float2>(position, 2);
     auto &body = GetBody(sp, vm, other_id, wp);
     b2CircleShape shape;
     shape.m_p.Set(offset.x, offset.y);
@@ -189,8 +188,8 @@ BUILTIN_V(create_polygon, "position,vertices,attachto", "F}:2F}:2]R:fixture?", "
     "creates a polygon circle shape in the world at position, with the given list of vertices."
     " attachto is a previous physical object to attach this one to, to become a combined"
     " physical body.")
-(StackPtr &sp, VM &vm, Value *position, iint position_len, LVector *vertices, LResource *other_id) {
-    auto wp = ToVec<float2>(position, position_len);
+(StackPtr &sp, VM &vm, Value *position, LVector *vertices, LResource *other_id) {
+    auto wp = ToVec<float2>(position, 2);
     if (vertices->len < 3 || vertices->len > b2_maxPolygonVertices)
         vm.BuiltinError(cat("ph.create_polygon: illegal number of vertices: ", vertices->len,
                             " (must be 3..", b2_maxPolygonVertices, ")"));
@@ -218,9 +217,9 @@ BUILTIN(dynamic, "shape,on", "R:fixtureB", "",
 
 BUILTIN_V(set_linear_velocity, "id,velocity", "R:fixtureF}:2", "",
     "sets the linear velocity of a shape's center of mass.")
-(StackPtr &, VM &, LResource *id, Value *velocity, iint velocity_len) {
+(StackPtr &, VM &, LResource *id, Value *velocity) {
     CheckPhysics();
-    auto vel = ToB2(velocity, velocity_len);
+    auto vel = ToB2(velocity, 2);
     GetObject(id)
         .fixture->GetBody()
         ->SetLinearVelocity(vel);
@@ -228,17 +227,17 @@ BUILTIN_V(set_linear_velocity, "id,velocity", "R:fixtureF}:2", "",
 
 BUILTIN_V(apply_linear_impulse_to_center, "id,impulse", "R:fixtureF}:2", "",
     "applies a linear impulse to a shape at its center of mass.")
-(StackPtr &, VM &, LResource *id, Value *impulse, iint impulse_len) {
+(StackPtr &, VM &, LResource *id, Value *impulse) {
     CheckPhysics();
-    auto imp = ToB2(impulse, impulse_len);
+    auto imp = ToB2(impulse, 2);
     auto body = GetObject(id).fixture->GetBody();
     body->ApplyLinearImpulse(imp, body->GetWorldCenter(), true);
 }
 
 BUILTIN_V(set_color, "id,color", "R:fixture?F}:4", "",
     "sets a shape (or nil for particles) to be rendered with a particular color.")
-(StackPtr &, VM &vm, LResource *id, Value *color, iint color_len) {
-    auto c = ToVec<float4>(color, color_len);
+(StackPtr &, VM &vm, LResource *id, Value *color) {
+    auto c = ToVec<float4>(color, 4);
     auto &r = GetRenderable(vm, id);
     r.color = c;
 }
@@ -275,31 +274,29 @@ BUILTIN_V(get_mass, "id", "R:fixture", "F",
 
 BUILTIN_V(create_particle, "position,velocity,color,flags", "F}:2F}:2F}:4I?", "I",
     "creates an individual particle. For flags, see include/physics.lobster")
-(StackPtr &sp, VM &, Value *position, iint position_len, Value *velocity, iint velocity_len,
- Value *color, iint color_len, iint flags) {
+(StackPtr &sp, VM &, Value *position, Value *velocity, Value *color, iint flags) {
     CheckParticles();
     b2ParticleDef pd;
     pd.flags = (int)flags;
-    auto c = ToVec<float3>(color, color_len);
+    auto c = ToVec<float3>(color, 4);
     pd.color.Set(b2Color(c.x, c.y, c.z));
-    pd.velocity = ToB2(velocity, velocity_len);
-    pd.position = ToB2(position, position_len);
+    pd.velocity = ToB2(velocity, 2);
+    pd.position = ToB2(position, 2);
     Push(sp,  particlesystem->CreateParticle(pd));
 }
 
 BUILTIN_V(create_particle_circle, "position,radius,color,flags", "F}:2FF}:4I?", "",
     "creates a circle filled with particles. For flags, see include/physics.lobster")
-(StackPtr &, VM &, Value *position, iint position_len, double radius, Value *color,
- iint color_len, iint flags) {
+(StackPtr &, VM &, Value *position, double radius, Value *color, iint flags) {
     CheckParticles();
     b2ParticleGroupDef pgd;
     b2CircleShape shape;
     pgd.shape = &shape;
     pgd.flags = (int)flags;
-    auto c = ToVec<float3>(color, color_len);
+    auto c = ToVec<float3>(color, 4);
     pgd.color.Set(b2Color(c.x, c.y, c.z));
     shape.m_radius = (float)radius;
-    pgd.position = ToB2(position, position_len);
+    pgd.position = ToB2(position, 2);
     particlesystem->CreateParticleGroup(pgd);
 }
 
@@ -351,10 +348,10 @@ BUILTIN(particle_contacts, "id", "R:fixture", "I]",
 BUILTIN_V(raycast, "p1,p2,n", "F}:2F}:2I", "I]",
     "returns a vector of the first n particle ids that intersect a ray from p1 to p2,"
     " not including particles that overlap p1.")
-(StackPtr &sp, VM &vm, Value *p1, iint p1_len, Value *p2, iint p2_len, iint n) {
+(StackPtr &sp, VM &vm, Value *p1, Value *p2, iint n) {
     CheckPhysics();
-    auto p2v = ToB2(p2, p2_len);
-    auto p1v = ToB2(p1, p1_len);
+    auto p2v = ToB2(p2, 2);
+    auto p1v = ToB2(p1, 2);
     auto v = vm.NewVec(0, max(n, 1_L64), TYPE_ELEM_VECTOR_OF_INT);
     if (!particlesystem) { Push(sp,  v); return; }
     struct callback : b2RayCastCallback {

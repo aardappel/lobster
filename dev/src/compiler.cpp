@@ -176,7 +176,7 @@ TypeRef WrapKnown(UnTypeRef elem, ValueType with) {
 }
 
 TypeRef FixedNumStruct(ValueType num, int flen) {
-    assert(flen >= 2 && flen <= 4);
+    assert(flen >= 1 && flen <= 4);
     return &(num == V_INT ? g_type_ns_int : g_type_ns_float)[flen - 1];
 }
 

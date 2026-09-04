@@ -167,13 +167,25 @@ run_test("struct"):
         assert rs.a == "hihi" and rs.b == 2
         assert string(rs) == "RS\{\"hihi\", 2\}"
 
-    // We used to only support math on structs of sizes 2..4
+    // The math builtins work on structs of sizes 1..4, the operators on any size.
     do():
         struct V1:
             x:int
         assert V1 { 1 } + V1 { 1 } == V1 { 2 }
         assert min(V1 { 2 }, max(V1 { 1 }, V1 { -1 })) == V1 { 1 }
         assert manhattan(V1 { 2 }) == 2
+
+        struct V4:
+            x:float
+            y:float
+            z:float
+            w:float
+        let v4test = V4 { 1.0, 2.0, 3.0, 4.0 }
+        let v4test2 = v4test + v4test
+        assert v4test2 == v4test * 2.0
+        assert abs(magnitude(normalize(v4test2)) - 1.0) < 0.000001
+        assert min(v4test, max(v4test, v4test2)) == v4test
+        assert dot(v4test, v4test2) == 60.0
 
         struct V5:
             x:float
@@ -182,11 +194,7 @@ run_test("struct"):
             w:float
             v:float
         let v5test = V5 { 1.0, 2.0, 3.0, 4.0, 5.0 }
-        let v5test2 = v5test + v5test
-        assert v5test2 == v5test * 2.0
-        assert magnitude(normalize(v5test2)) == 1.0
-        assert min(v5test, max(v5test, v5test2)) == v5test
-        assert dot(v5test, v5test2) == 110.0
+        assert v5test + v5test == v5test * 2.0
 
     // Tests for struct operators with scalars
     do():

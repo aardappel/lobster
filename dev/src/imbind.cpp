@@ -1140,9 +1140,9 @@ BUILTIN_V(clear_fonts, "", "", "",
 
 BUILTIN_V(set_style_color, "i,color", "IF}:4", "",
     "")
-(StackPtr &, VM &vm, iint i_, Value *color, iint color_len) {
+(StackPtr &, VM &vm, iint i_, Value *color) {
     IsInit(vm,  { N_NONE, N_NONE });
-    auto c = ToVec<float4>(color, color_len);
+    auto c = ToVec<float4>(color, 4);
     auto i = (int)i_;
     if (i < 0 || i >= ImGuiCol_COUNT) return;
     ImGui::GetStyle().Colors[i] = ImVec4(c.x, c.y, c.z, c.w);
@@ -1150,41 +1150,41 @@ BUILTIN_V(set_style_color, "i,color", "IF}:4", "",
 
 BUILTIN_V(set_style_spacing, "spacing", "F}:2", "",
     "")
-(StackPtr &, VM &vm, Value *spacing, iint spacing_len) {
+(StackPtr &, VM &vm, Value *spacing) {
     IsInit(vm,  { N_NONE, N_NONE });
-    auto s = ToVec<float2>(spacing, spacing_len);
+    auto s = ToVec<float2>(spacing, 2);
     ImGui::GetStyle().ItemSpacing = ImVec2(s.x, s.y);
 }
 
 BUILTIN_V(set_style_inner_spacing, "spacing", "F}:2", "",
     "")
-(StackPtr &, VM &vm, Value *spacing, iint spacing_len) {
+(StackPtr &, VM &vm, Value *spacing) {
     IsInit(vm,  { N_NONE, N_NONE });
-    auto s = ToVec<float2>(spacing, spacing_len);
+    auto s = ToVec<float2>(spacing, 2);
     ImGui::GetStyle().ItemInnerSpacing = ImVec2(s.x, s.y);
 }
 
 BUILTIN_V(set_style_window_padding, "spacing", "F}:2", "",
     "")
-(StackPtr &, VM &vm, Value *spacing, iint spacing_len) {
+(StackPtr &, VM &vm, Value *spacing) {
     IsInit(vm,  { N_NONE, N_NONE });
-    auto s = ToVec<float2>(spacing, spacing_len);
+    auto s = ToVec<float2>(spacing, 2);
     ImGui::GetStyle().WindowPadding = ImVec2(s.x, s.y);
 }
 
 BUILTIN_V(set_style_frame_padding, "spacing", "F}:2", "",
     "")
-(StackPtr &, VM &vm, Value *spacing, iint spacing_len) {
+(StackPtr &, VM &vm, Value *spacing) {
     IsInit(vm,  { N_NONE, N_NONE });
-    auto s = ToVec<float2>(spacing, spacing_len);
+    auto s = ToVec<float2>(spacing, 2);
     ImGui::GetStyle().FramePadding = ImVec2(s.x, s.y);
 }
 
 BUILTIN_V(set_style_tabs_extra_padding, "spacing", "F}:2", "",
     "")
-(StackPtr &, VM &vm, Value *spacing, iint spacing_len) {
+(StackPtr &, VM &vm, Value *spacing) {
     IsInit(vm,  { N_NONE, N_NONE });
-    auto s = ToVec<float2>(spacing, spacing_len);
+    auto s = ToVec<float2>(spacing, 2);
     tabs_extra_padding = ImVec2(s.x, s.y);
 }
 
@@ -1259,26 +1259,26 @@ BUILTIN_V(window_end, "", "", "",
 
 BUILTIN_V(next_window_size, "size,cond", "F}:2I", "",
     "size in pixels")
-(StackPtr &, VM &vm, Value *size_, iint size_len, iint cond) {
+(StackPtr &, VM &vm, Value *size_, iint cond) {
     IsInit(vm, { N_FRAME, N_NONE });
-    auto size = ToVec<float2>(size_, size_len);
+    auto size = ToVec<float2>(size_, 2);
     ImGui::SetNextWindowSize(ImVec2(size.x, size.y), (ImGuiCond)cond);
 }
 
 BUILTIN_V(next_window_pos, "pos,pivot,cond", "F}:2F}:2I", "",
     "pos in pixels, pivot values 0..1 relative to pos")
-(StackPtr &, VM &vm, Value *pos_, iint pos_len, Value *pivot_, iint pivot_len, iint cond) {
+(StackPtr &, VM &vm, Value *pos_, Value *pivot_, iint cond) {
     IsInit(vm, { N_FRAME, N_NONE });
-    auto pivot = ToVec<float2>(pivot_, pivot_len);
-    auto pos = ToVec<float2>(pos_, pos_len);
+    auto pivot = ToVec<float2>(pivot_, 2);
+    auto pos = ToVec<float2>(pos_, 2);
     ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y), (ImGuiCond)cond, ImVec2(pivot.x, pivot.y));
 }
 
 BUILTIN_V(button, "label,size", "SF}:2?", "B",
     "")
-(StackPtr &sp, VM &vm, LString *title, Value *size_, iint size_len) {
+(StackPtr &sp, VM &vm, LString *title, Value *size_) {
     IsInit(vm);
-    auto size = ToVec<float2>(size_, size_len);
+    auto size = ToVec<float2>(size_, 2);
     auto press = ImGui::Button(Label(vm, title), ImVec2(size.x, size.y));
     Push(sp, press);
 }
@@ -1411,9 +1411,9 @@ BUILTIN_V(get_layout_pos, "", "", "F}:2", "")
 }
 
 BUILTIN_V(set_layout_pos, "pos", "F}:2", "", "")
-(StackPtr &, VM &vm, Value *pos_, iint pos_len) {
+(StackPtr &, VM &vm, Value *pos_) {
     IsInit(vm);
-    auto pos = ToVec<float2>(pos_, pos_len);
+    auto pos = ToVec<float2>(pos_, 2);
     ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
 }
 
@@ -1425,9 +1425,9 @@ BUILTIN_V(get_layout_screen_pos, "", "", "F}:2", "")
 }
 
 BUILTIN_V(set_layout_screen_pos, "pos", "F}:2", "", "")
-(StackPtr &, VM &vm, Value *pos_, iint pos_len) {
+(StackPtr &, VM &vm, Value *pos_) {
     IsInit(vm);
-    auto pos = ToVec<float2>(pos_, pos_len);
+    auto pos = ToVec<float2>(pos_, 2);
     ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y));
 }
 
@@ -1567,9 +1567,9 @@ BUILTIN_V(font_size_end, "", "", "",
 
 BUILTIN_V(color_start, "color", "F}:4", "",
     "(use im.color instead)")
-(StackPtr &, VM &vm, Value *color, iint color_len) {
+(StackPtr &, VM &vm, Value *color) {
     IsInit(vm);
-    auto c = ToVec<float4>(color, color_len);
+    auto c = ToVec<float4>(color, 4);
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(c.x, c.y, c.z, c.w));
     NPush(N_COLOR);
 }
@@ -1616,8 +1616,8 @@ BUILTIN_V(tooltip_multi_end, "", "", "",
 
 BUILTIN_V(tooltip_style, "font_size,frame_size", "FF}:2", "",
     "")
-(StackPtr &, VM &, double font_size, Value *frame_size, iint frame_size_len) {
-    auto sz = ToVec<float2>(frame_size, frame_size_len);
+(StackPtr &, VM &, double font_size, Value *frame_size) {
+    auto sz = ToVec<float2>(frame_size, 2);
     tooltip_frame = ImVec2{ sz.x, sz.y };
     tooltip_font_size = (float)font_size;
 }
@@ -1707,10 +1707,10 @@ BUILTIN(radio, "labels,active,horiz", "S]II", "I",
 BUILTIN_V(progress_bar, "fraction,size,overlay", "FF}:2S", "",
     "display progress bar filled up to the given fraction. size.x < 0 to use all available space, "
     " size.x > 0 for a specific pixel width")
-(StackPtr &, VM &vm, double fraction_, Value *size_, iint size_len, LString *overlay_) {
+(StackPtr &, VM &vm, double fraction_, Value *size_, LString *overlay_) {
     IsInit(vm);
     auto &overlay = *overlay_;
-    auto size = ToVec<float2>(size_, size_len);
+    auto size = ToVec<float2>(size_, 2);
     auto fraction = (float)fraction_;
     ImGui::ProgressBar(fraction, ImVec2(size.x, size.y), overlay.strvnt().c_str());
 }
@@ -1765,11 +1765,11 @@ BUILTIN(sliderfloat, "label,f,min,max", "SFFF", "F",
 
 #define VECSLIDER(Type, type, VT, T, N)                                                   \
     BUILTIN_V(slider##type##N, "label,"#T #N ",min,max", "S" #T "}:" #N #T #T, #T "}:" #N, "") \
-    (StackPtr &sp, VM &vm, LString *text, Value *val, iint val_len, VT minv, VT maxv) {   \
+    (StackPtr &sp, VM &vm, LString *text, Value *val, VT minv, VT maxv) {                 \
         IsInit(vm);                                                                       \
         auto max = (type)maxv;                                                            \
         auto min = (type)minv;                                                            \
-        auto v = ToVec<type ## N>(val, val_len);                                          \
+        auto v = ToVec<type ## N>(val, N);                                                \
         auto label = Label(vm, text);                                                     \
         ImGui::Slider ## Type ## N(label, &v.c[0], min, max);                             \
         PushVec(sp, v);                                                                   \
@@ -1782,21 +1782,23 @@ VECSLIDER(Float, float, double, F, 3)
 VECSLIDER(Float, float, double, F, 4)
 #undef VECSLIDER
 
-BUILTIN_V(coloredit, "label,color", "SF}", "A2",
-    "")
-(StackPtr &sp, VM &vm, LString *label, Value *color, iint color_len) {
-    IsInit(vm);
-    auto c = ToVec<float4>(color, color_len);
-    ImGui::ColorEdit4(Label(vm, label), (float *)c.data());
-    PushVec(sp, c);
-}
+#define COLOREDITW(W) \
+    BUILTIN_V_OVERLOAD(coloredit_f##W, "coloredit", "label,color", "SF}:" #W, "A2", "") \
+    (StackPtr &sp, VM &vm, LString *label, Value *color) { \
+        IsInit(vm); \
+        auto c = ToVec<float4>(color, W); \
+        ImGui::ColorEdit4(Label(vm, label), (float *)c.data()); \
+        PushVec(sp, c, W); \
+    }
+COLOREDITW(3) COLOREDITW(4)
+#undef COLOREDITW
 
 BUILTIN_V(image, "tex,size,flip", "R:textureF}:2B?", "",
     "")
-(StackPtr &, VM &vm, LResource *tex, Value *size, iint size_len, iint flip_) {
+(StackPtr &, VM &vm, LResource *tex, Value *size, iint flip_) {
     IsInit(vm);
     auto flip = (flip_ != 0);
-    auto sz = ToVec<float2>(size, size_len);
+    auto sz = ToVec<float2>(size, 2);
     auto t = GetTexture(tex);
     ImGui::Image((ImTextureID)(size_t)t.id, ImVec2(sz.x, sz.y), ImVec2(0.0f, flip ? 0.0f : 1.0f),
                                                                 ImVec2(1.0f, flip ? 1.0f : 0.0f));
@@ -1804,12 +1806,11 @@ BUILTIN_V(image, "tex,size,flip", "R:textureF}:2B?", "",
 
 BUILTIN_V(image_button, "label,tex,size,bgcol,flip", "SR:textureF}:2F}:4?B?", "B",
     "")
-(StackPtr &sp, VM &vm, LString *label, LResource *tex, Value *size, iint size_len, Value *bgcol_,
- iint bgcol_len, iint flip_) {
+(StackPtr &sp, VM &vm, LString *label, LResource *tex, Value *size, Value *bgcol_, iint flip_) {
     IsInit(vm);
     auto flip = (flip_ != 0);
-    auto bgcol = ToVec<float4>(bgcol_, bgcol_len);
-    auto sz = ToVec<float2>(size, size_len);
+    auto bgcol = ToVec<float4>(bgcol_, 4);
+    auto sz = ToVec<float2>(size, 2);
     auto t = GetTexture(tex);
     auto press =
         ImGui::ImageButton(Label(vm, label), (ImTextureID)(size_t)t.id, ImVec2(sz.x, sz.y),
@@ -1821,9 +1822,9 @@ BUILTIN_V(image_button, "label,tex,size,bgcol,flip", "SR:textureF}:2F}:4?B?", "B
 
 BUILTIN_V(image_mouseclick, "tex,size", "R:textureF}:2", "F}:2I",
     "")
-(StackPtr &sp, VM &vm, LResource *tex, Value *size_, iint size_len) {
+(StackPtr &sp, VM &vm, LResource *tex, Value *size_) {
     IsInit(vm);
-    auto sz = ToVec<float2>(size_, size_len);
+    auto sz = ToVec<float2>(size_, 2);
     auto t = GetTexture(tex);
     ImVec2 cursor = ImGui::GetCursorScreenPos();
     ImVec2 size = ImVec2(sz.x, sz.y);
@@ -1845,14 +1846,13 @@ BUILTIN_V(image_mouseclick, "tex,size", "R:textureF}:2", "F}:2I",
 
 BUILTIN_V(rect, "min,max,color,rounding,thickness", "F}:2F}:2F}:4FF", "",
     "")
-(StackPtr &, VM &vm, Value *min_, iint min_len, Value *max_, iint max_len, Value *color_,
- iint color_len, double rounding_, double thickness_) {
+(StackPtr &, VM &vm, Value *min_, Value *max_, Value *color_, double rounding_, double thickness_) {
     IsInit(vm);
     auto thickness = (float)thickness_;
     auto rounding = (float)rounding_;
-    auto color = ToVec<float4>(color_, color_len);
-    auto p_max = ToVec<float2>(max_, max_len);
-    auto p_min = ToVec<float2>(min_, min_len);
+    auto color = ToVec<float4>(color_, 4);
+    auto p_max = ToVec<float2>(max_, 2);
+    auto p_min = ToVec<float2>(min_, 2);
     ImDrawFlags flags = rounding >= 0.0 ? ImDrawFlags_RoundCornersAll : ImDrawFlags_None;
     ImGui::GetWindowDrawList()->AddRect(
         ImVec2(p_min.x, p_min.y),
@@ -1866,13 +1866,12 @@ BUILTIN_V(rect, "min,max,color,rounding,thickness", "F}:2F}:2F}:4FF", "",
 
 BUILTIN_V(rect_filled, "min,max,color,rounding", "F}:2F}:2F}:4F", "",
     "")
-(StackPtr &, VM &vm, Value *min_, iint min_len, Value *max_, iint max_len, Value *color_,
- iint color_len, double rounding_) {
+(StackPtr &, VM &vm, Value *min_, Value *max_, Value *color_, double rounding_) {
     IsInit(vm);
     auto rounding = (float)rounding_;
-    auto color = ToVec<float4>(color_, color_len);
-    auto p_max = ToVec<float2>(max_, max_len);
-    auto p_min = ToVec<float2>(min_, min_len);
+    auto color = ToVec<float4>(color_, 4);
+    auto p_max = ToVec<float2>(max_, 2);
+    auto p_min = ToVec<float2>(min_, 2);
     ImDrawFlags flags = rounding >= 0.0 ? ImDrawFlags_RoundCornersAll : ImDrawFlags_None;
     ImGui::GetWindowDrawList()->AddRectFilled(
         ImVec2(p_min.x, p_min.y),
@@ -2061,9 +2060,9 @@ BUILTIN_V(id_end, "", "", "",
 
 BUILTIN_V(child_start, "title,size,flags", "SF}:2I", "B",
     "create a self-contained scrolling/clipping region with a window. use im.child instead")
-(StackPtr &sp, VM &vm, LString *title, Value *size, iint size_len, iint flags) {
+(StackPtr &sp, VM &vm, LString *title, Value *size, iint flags) {
     IsInit(vm);
-    auto sz = ToVec<float2>(size, size_len);
+    auto sz = ToVec<float2>(size, 2);
     bool open = ImGui::BeginChild(Label(vm, title), ImVec2(sz.x, sz.y), false, (ImGuiWindowFlags)flags);
     Push(sp, open);
     // Unlike other begin/end pairs, we must always call end unconditionally, so we always push this.
@@ -2169,9 +2168,9 @@ BUILTIN_V(button_repeat_end, "", "", "",
 
 BUILTIN_V(dummy, "size", "F}:2", "",
     "add a dummy item of a given size")
-(StackPtr &, VM &vm, Value *size_, iint size_len) {
+(StackPtr &, VM &vm, Value *size_) {
     IsInit(vm);
-    auto size = ToVec<float2>(size_, size_len);
+    auto size = ToVec<float2>(size_, 2);
     ImGui::Dummy(ImVec2(size.x, size.y));
 }
 

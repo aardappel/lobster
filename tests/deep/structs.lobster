@@ -20,6 +20,12 @@ struct DS5:
     d:float
     e:float
 
+struct DS4:
+    a:float
+    b:float
+    c:float
+    d:float
+
 struct DS1:
     x:int
 
@@ -157,15 +163,16 @@ def structs_tests():
     test_eq(DSA { 3, 4 }.area(), 12)
     test_eq(area(DSA { 2, 5 }), 10)
 
-    // Structs of size 1 and > 4 support math too.
+    // Structs of size 1 support math too, ones of more than 4 only the operators, since the
+    // math builtins come in widths of 1 to 4.
     test_eq(DS5 { 1.0, 2.0, 3.0, 4.0, 5.0 } * 2.0, DS5 { 2.0, 4.0, 6.0, 8.0, 10.0 })
-    test_eq(dot(DS5 { 1.0, 2.0, 3.0, 4.0, 5.0 }, DS5 { 1.0, 1.0, 1.0, 1.0, 1.0 }), 15.0)
     test_eq(DS1 { 1 } + DS1 { 2 }, DS1 { 3 })
     test_eq(min(DS1 { 2 }, max(DS1 { 1 }, DS1 { -1 })), DS1 { 1 })
     test_eq(manhattan(DS1 { -2 }), 2)
-    let ds5 = DS5 { 1.0, 2.0, 3.0, 4.0, 5.0 }
-    test_approx(magnitude(normalize(ds5)), 1.0)
-    test_eq(min(ds5, ds5 * 2.0), ds5)
+    let ds4 = DS4 { 1.0, 2.0, 3.0, 4.0 }
+    test_eq(dot(ds4, DS4 { 1.0, 1.0, 1.0, 1.0 }), 10.0)
+    test_approx(magnitude(normalize(ds4)), 1.0)
+    test_eq(min(ds4, ds4 * 2.0), ds4)
     // 4-element types.
     test_eq(int4 { 1, 2, 3, 4 } + int4 { 4, 3, 2, 1 }, int4 { 5, 5, 5, 5 })
     test_eq(int4_1 * 3, int4 { 3, 3, 3, 3 })

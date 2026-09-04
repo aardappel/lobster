@@ -148,9 +148,9 @@ constexpr int BuiltinNumArgs(const char *typeids) {
 // What C++ type an argument of a builtin becomes, from its type letter and what wraps it.
 // A '}' argument (a numeric struct) and a 'w' one (which may be passed a struct) have their
 // values in a run of stack slots rather than in a single one, so the builtin gets a pointer to
-// them plus how many there are. A ']' makes any of them a vector, which is a reference again.
-// An 'A' argument can hold any kind of reference, and an 'L' one is only ever passed on, so
-// they stay a Value.
+// them; how many there are it knows from the width its type says it has. A ']' makes any of
+// them a vector, which is a reference again. An 'A' argument can hold any kind of reference,
+// and an 'L' one is only ever passed on, so they stay a Value.
 enum BuiltinArgKind {
     BAK_VALUE,     // A, L
     BAK_INT,       // I, B, T
@@ -158,8 +158,7 @@ enum BuiltinArgKind {
     BAK_STRING,    // S
     BAK_VECTOR,    // ]
     BAK_RESOURCE,  // R
-    BAK_VEC,       // } or w
-    BAK_LEN        // Not an argument: the count that follows a BAK_VEC one.
+    BAK_VEC        // } or w
 };
 
 constexpr BuiltinArgKind BuiltinArgKindOf(const char *typeids, int arg) {
@@ -201,27 +200,6 @@ constexpr bool BuiltinArgIsVec(const char *typeids, int arg) {
     return BuiltinArgKindOf(typeids, arg) == BAK_VEC;
 }
 
-// The parameters of a builtin: one per argument, except a vec one, which takes two.
-constexpr int BuiltinNumParams(const char *typeids) {
-    auto n = 0;
-    for (auto i = 0; i < BuiltinNumArgs(typeids); i++) n += BuiltinArgIsVec(typeids, i) ? 2 : 1;
-    return n;
-}
-
-constexpr BuiltinArgKind BuiltinParamKindOf(const char *typeids, int param) {
-    for (auto arg = 0;; arg++) {
-        auto k = BuiltinArgKindOf(typeids, arg);
-        if (k == BAK_VEC) {
-            if (!param) return BAK_VEC;
-            if (param == 1) return BAK_LEN;
-            param -= 2;
-        } else {
-            if (!param) return k;
-            param--;
-        }
-    }
-}
-
 template<BuiltinArgKind K> struct BuiltinParamType;
 template<> struct BuiltinParamType<BAK_VALUE>    { typedef Value type; };
 template<> struct BuiltinParamType<BAK_INT>      { typedef iint type; };
@@ -230,10 +208,9 @@ template<> struct BuiltinParamType<BAK_STRING>   { typedef LString *type; };
 template<> struct BuiltinParamType<BAK_VECTOR>   { typedef LVector *type; };
 template<> struct BuiltinParamType<BAK_RESOURCE> { typedef LResource *type; };
 template<> struct BuiltinParamType<BAK_VEC>      { typedef Value *type; };
-template<> struct BuiltinParamType<BAK_LEN>      { typedef iint type; };
 
 template<typename TIDS, size_t P> struct BuiltinParam {
-    typedef typename BuiltinParamType<BuiltinParamKindOf(TIDS::tids, (int)P)>::type type;
+    typedef typename BuiltinParamType<BuiltinArgKindOf(TIDS::tids, (int)P)>::type type;
 };
 
 template<typename TIDS, bool PushRets, typename Params> struct BuiltinSigT;
@@ -248,7 +225,7 @@ struct BuiltinSigT<TIDS, PushRets, std::index_sequence<P...>> {
 // of its definition, which checks the parameter list of the definition against the argument
 // types given, and makes its address available.
 template<typename TIDS, bool PushRets> using BuiltinSig =
-    BuiltinSigT<TIDS, PushRets, std::make_index_sequence<BuiltinNumParams(TIDS::tids)>>;
+    BuiltinSigT<TIDS, PushRets, std::make_index_sequence<BuiltinNumArgs(TIDS::tids)>>;
 
 struct BuiltinDef;
 

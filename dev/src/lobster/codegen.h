@@ -110,8 +110,7 @@ struct CodeGen  {
     // is kept in and the tag it carries when it is written to memory, see RtTypeOf.
     typedef vector<RTType> Types;
     // How each argument of a builtin reaches it, see EmitNativeCall: -1 for one that is a
-    // single value, otherwise how many values it has, which it is passed a pointer to, and
-    // which is 0 for an optional argument that was left out (a single nil).
+    // single value, otherwise how many slots its values take, which it is passed a pointer to.
     typedef vector<int> NativeArgs;
     // Where a value lives: a variable of its kind, or a Value in memory, which is read thru the
     // field for the kind and written along with the tag its static type says it carries.
@@ -1868,25 +1867,23 @@ struct CodeGen  {
             case BAK_STRING:   return "LString *";
             case BAK_VECTOR:   return "LVector *";
             case BAK_RESOURCE: return cpp ? "LResource *" : "void *";
-            case BAK_VEC:      return cat("Value *, ", cpp ? "iint" : "long long");
+            case BAK_VEC:      return "Value *";
             default:           return "Value";
         }
     }
 
     // The arguments of a call to a builtin, whose values start at slot `base`. Each is the
     // slot it lives in, as the type the builtin takes it as, except one whose values are a run
-    // of slots, which is a pointer to them plus how many there are, and which the slot holding
-    // that number follows on the stack.
+    // of slots, which is a pointer to them: how many there are the builtin knows from the
+    // width its type has, so the slots are copied into the stack array to point at.
     string NativeArgList(int base, NativeFun *nf, const Types &args, const NativeArgs &nargs) {
         string s;
         auto slot = base;
         for (auto [i, len] : enumerate(nargs)) {
             if (len >= 0) {
-                // An argument that was left out is a single nil, of no elements.
-                auto nslots = std::max(len, 1);
-                StageRange(slot, args, slot - base, nslots);
-                append(s, ", ", StackArray(), " + ", slot, ", ", len);
-                slot += nslots + (len ? 1 : 0);
+                StageRange(slot, args, slot - base, len);
+                append(s, ", ", StackArray(), " + ", slot);
+                slot += len;
                 continue;
             }
             auto p = SlotVar(slot, args[slot - base]);
@@ -3804,35 +3801,25 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     }
     // TODO: could pass arg types in here if most exps have types, cheaper than
     // doing it all in call instruction?
-    size_t numstructs = 0;
     CodeGen::Types args;
     CodeGen::NativeArgs nargtypes;
     for (auto [i, c] : enumerate(children)) {
         auto before = cg.tstack_size;
         cg.Gen(c, 1);
         if (Is<DefaultVal>(c)) {
-            // A single nil of the type, whatever it is.
+            // A single nil of the type, whatever it is. A struct argument that was left out is
+            // a value of zeroes instead, which the typechecker adds, so this is never one.
+            assert(!nf->ArgIsVec(i));
             for (auto n = cg.tstack_size - before; n; n--) {
                 args.push_back(CodeGen::RtTypeOf(c->exptype));
             }
         } else {
             CodeGen::AddTypes(args, c->exptype);
         }
-        if (!nf->ArgIsVec(i)) {
-            nargtypes.push_back(-1);
-        } else if (Is<DefaultVal>(c)) {
-            nargtypes.push_back(0);
-        } else {
-            // FIXME: struct variable size.
-            nargtypes.push_back(ValWidth(c->exptype));
-            cg.EmitPushInt(ValWidth(c->exptype));
-            cg.temptypestack.push_back({ type_int, LT_ANY });
-            args.push_back(RTT_INT);
-            numstructs++;
-        }
+        nargtypes.push_back(nf->ArgIsVec(i) ? ValWidth(c->exptype) : -1);
     }
     size_t nargs = children.size();
-    cg.TakeTemp(nargs + numstructs, true);
+    cg.TakeTemp(nargs, true);
     assert(nargs == nf->args.size());
     cg.EmitNativeCall(nf, args, CodeGen::TypesOf(nattype, nattype->NumValues()), nargtypes);
     if (nf->retvals.size() > 0) {
