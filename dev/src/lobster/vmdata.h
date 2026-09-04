@@ -1048,12 +1048,17 @@ struct JitOptions {
     int optimize_level = -1;
 };
 
+// What the generated code gives up the references of an object of one type with, by the
+// index of that type, see CodeGen::EmitObjectDecs. Null where a type holds none.
+typedef void (*object_dec_t)(VM &, LObject *);
+
 struct VMArgs {
     NativeRegistry &nfr;
     string programname;
     const VMMetaData *meta = nullptr;
     vector<string> program_args;
     const fun_base_t *native_vtables = nullptr;
+    const object_dec_t *object_decs = nullptr;
     fun_base_t jit_entry = nullptr;
     bool dump_leaks = true;
     int runtime_checks = RUNTIME_ASSERT;

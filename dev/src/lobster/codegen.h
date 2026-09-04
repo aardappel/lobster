@@ -740,6 +740,7 @@ struct CodeGen  {
                 "typedef lobster::StackPtr StackPtr;\n"
                 "typedef lobster::VM &VMRef;\n"
                 "typedef lobster::fun_base_t fun_base_t;\n"
+                "typedef lobster::object_dec_t object_dec_t;\n"
                 "typedef lobster::type_elem_t type_elem_t;\n"
                 "typedef lobster::RefObj RefObj;\n"
                 "typedef lobster::LObject LObject;\n"
@@ -860,6 +861,7 @@ struct CodeGen  {
                 "typedef Value *StackPtr;\n"
                 "typedef VMBase *VMRef;\n"
                 "typedef void (*fun_base_t)(VMRef);\n"
+                "typedef void (*object_dec_t)(VMRef, LObject *);\n"
                 // An offset into the type table, which is what the helpers take one as.
                 "typedef int type_elem_t;\n"
                 "struct ___tracy_source_location_data {\n"
@@ -1455,7 +1457,8 @@ struct CodeGen  {
             "vm", "lv", "vals", "locals", "ctx", "tsld", "top", "rs", "ret", "rets",
             "epilogue", "main", "argc", "argv", "vmmeta", "Value", "VMRef", "StackPtr",
             "RefObj", "LVector", "LString", "LObject", "VMBase", "fun_base_t", "type_elem_t",
-            "vtables", "funinfo_table", "compiled_entry_point", "type_table", "stringtable",
+            "vtables", "object_decs", "funinfo_table", "compiled_entry_point",
+            "type_table", "stringtable",
             "file_names", "function_names", "udts", "specidents", "enums", "ser_ids",
             "subfunctions_to_function", "iint", "int2float64", "lobster", "std", "string_view",
             "span", "uint64_t", "int64_t", "memcpy", "memmove", "GLFrame", "Entry", "IDXErr",
@@ -2796,7 +2799,39 @@ struct CodeGen  {
         has_profile = false;
     }
 
+    // What an object of each type gives up when it is deleted: the references among its
+    // fields, which the code knows exactly and which it therefore says outright rather than
+    // leaving the runtime to walk the type info for every field, see LObject::DeleteSelf.
+    // A type with none of them has no function and a null in the table.
+    void EmitObjectDecs(string &sd) {
+        vector<string> decs(st.udttable.size());
+        for (auto udt : st.udttable) {
+            if (udt->g.is_struct || udt->numslots <= 0) continue;
+            string body;
+            for (int i = 0; i < udt->numslots; i++) {
+                auto rtt = RtTypeOf(FindSlot(*udt, i)->type);
+                if (RTIsRefNil(rtt)) GenDecRef(body, Field("o", *udt, i, rtt));
+            }
+            if (body.empty()) continue;
+            decs[udt->idx] = UDTName(*udt) + "_dec";
+            append(sd, "\nstatic void ", decs[udt->idx], "(VMRef vm, LObject *o) {\n", body,
+                   "}\n");
+        }
+        if (cpp) sd += "\nstatic";
+        else if (mir) sd += "\n";
+        else sd += "\nextern";
+        sd += " const object_dec_t object_decs[] = {\n";
+        for (auto &d : decs) {
+            if (d.empty()) sd += "    0,\n";
+            else append(sd, "    ", d, ",\n");
+        }
+        // Not a language the empty array is legal in, and a program may have no object at all.
+        if (decs.empty()) sd += "    0,\n";
+        sd += "};\n";
+    }
+
     void Epilogue(string &sd, string_view custom_pre_init_name, uint64_t src_hash) {
+        EmitObjectDecs(sd);
         if (cpp) sd += "\nstatic";
         // c2mir turns a file scope declaration that has both `extern` and an initializer into a
         // mere import, dropping the definition, so for MIR we rely on the default external
@@ -2975,7 +3010,7 @@ struct CodeGen  {
             sd += "        span(subfunctions_to_function),\n";
             sd += "    };\n";
             sd += "    return RunCompiledCodeMain(argc, argv, ";
-            append(sd, "&vmmeta, vtables, ", custom_pre_init_name, ", \"",
+            append(sd, "&vmmeta, vtables, object_decs, ", custom_pre_init_name, ", \"",
                    (!cpp ? "main.lobster" : ""), "\");\n}\n");
         }
     }

@@ -183,11 +183,12 @@ void LVector::DeleteSelf(VM &vm) {
 
 void LObject::DeleteSelf(VM &vm) {
     auto &oti = ti(vm);
-    auto len = oti.len;
-    for (iint i = 0; i < len; i++) {
-        At(i).LTDECTYPE(vm, ElemTypeSOf(vm, oti, i).t);
-    }
-    vm.pool.dealloc(this, ssizeof<LObject>() + ssizeof<Value>() * len);
+    // The generated code knows which fields of this type hold a reference, so it has a
+    // function that gives up those and no others, see CodeGen::EmitObjectDecs. A type that
+    // holds none has a null there and nothing to do.
+    auto dec = vm.vma.object_decs[oti.structidx];
+    if (dec) dec(vm, this);
+    vm.pool.dealloc(this, ssizeof<LObject>() + ssizeof<Value>() * oti.len);
 }
 
 void LResource::DeleteSelf(VM &vm) {
