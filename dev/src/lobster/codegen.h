@@ -92,6 +92,9 @@ struct CodeGen  {
     // reserved for them once it is known which they are.
     map<int, NativeFun *> natives_used;
     size_t natives_decl_offset = 0;
+    // The object types whose fields the code names, which get a struct of their own at the
+    // same spot, see UDTName.
+    map<int, const UDT *> udts_used;
     // Whether the function calls any builtin, which takes a stack pointer to hand it, one whose
     // result lands in a Value first, and one that gets the profiler hooks, see EmitNativeCall.
     bool f_uses_sp = false;
@@ -590,6 +593,16 @@ struct CodeGen  {
             }
             decls += ");\n";
         }
+        // The object types whose fields the code names, see UDTName. Each is the header every
+        // reference carries and a Value per slot, which is what an object is; Entry() checks
+        // the size of both of those, so nothing here needs a check of its own.
+        for (auto [idx, udt] : udts_used) {
+            append(decls, "typedef struct {\n    int typeinfo;\n    int refc;\n");
+            for (int i = 0; i < udt->numslots; i++) {
+                append(decls, "    Value ", FieldName(*udt, i), ";\n");
+            }
+            append(decls, "} ", UDTName(*udt), ";  // ", udt->name, "\n");
+        }
         if (!decls.empty()) c_codegen.insert(natives_decl_offset, decls + "\n");
     }
 
@@ -782,11 +795,12 @@ struct CodeGen  {
                 "    int typeinfo;\n"
                 "    int refc;\n"
                 "};\n"
-                // The characters of a string and the fields of an object follow directly behind
-                // the header. Not a trailing array member, since the C compilers we feed this
-                // to do not agree on what those do to the size of the struct.
-                "#define STRING_DATA(S) ((unsigned char *)((S) + 1))\n"
-                "#define OBJECT_FIELDS(O) ((Value *)((O) + 1))\n";
+                // The characters of a string follow directly behind its header. Not a trailing
+                // array member, since the C compilers we feed this to do not agree on what
+                // those do to the size of the struct. The fields of an object follow behind
+                // its own header the same way, which is what the struct emitted per object
+                // type says, see UDTName.
+                "#define STRING_DATA(S) ((unsigned char *)((S) + 1))\n";
             #if RTT_ENABLED
                 // The tags the runtime type field takes, see RTType.
                 sd += "enum {";
@@ -1404,7 +1418,7 @@ struct CodeGen  {
             "span", "uint64_t", "int64_t", "memcpy", "memmove", "GLFrame", "Entry", "IDXErr",
             "IDXErrS", "BackupVar", "DecOwned", "DecDelete", "AssertFailed", "RefVal",
             "RestoreBackup", "GetTypeSwitchID", "PushFunId", "PopFunId", "StartProfile",
-            "EndProfile", "STRING_DATA", "OBJECT_FIELDS", "sp", "nret", "pctx",
+            "EndProfile", "STRING_DATA", "sp", "nret", "pctx",
         };
         if (reserved.count(name)) return true;
         if (name[0] == '_' || name.substr(0, 2) == "Rt" || name.substr(0, 8) == "builtin_")
@@ -1416,7 +1430,7 @@ struct CodeGen  {
         };
         return numbered("i") || numbered("f") || numbered("p") || numbered("fn") ||
                numbered("s") || numbered("v") || numbered("o") || numbered("keep") ||
-               numbered("block") || numbered("fun_");
+               numbered("block") || numbered("fun_") || name.substr(0, 4) == "udt_";
     }
 
     // A C name for a local that is unique within the function: the name it has in the program,
@@ -1666,17 +1680,40 @@ struct CodeGen  {
         append(cb, "    // lval: ", IdName(offset, false, type), "\n");
     }
 
-    // The fields of an object sit right behind its header.
-    string Fields(string_view obj) {
-        return cpp ? cat(obj, "->Elems()") : cat("OBJECT_FIELDS(", obj, ")");
+    // The struct the generated code gets for an object type, whose members are its fields by
+    // the names they have in the program. It is emitted once the code is known to name them,
+    // the way the builtins it calls are, see udts_used.
+    string UDTName(const UDT &udt) {
+        udts_used[udt.idx] = &udt;
+        auto name = cat("udt_", udt.name, udt.idx);
+        for (auto &c : name) if (!isalnum((uint8_t)c) && c != '_') c = '_';
+        return name;
+    }
+
+    // The name of one of its members, which is the field the slot belongs to, kept clear of
+    // the names C has of its own. Members are in a namespace of their own, so that is all it
+    // takes for one to be unique.
+    string FieldName(const UDT &udt, int slot) {
+        auto name = slot < udt.numslots ? StructSlotName(udt, slot) : cat("slot", slot);
+        for (auto &c : name) if (!isalnum((uint8_t)c) && c != '_') c = '_';
+        if (name.empty() || isdigit((uint8_t)name[0]) || IsReservedName(name)) name += "_";
+        return name;
+    }
+
+    // One of those members, which is a Value like every field is, at the object `obj`.
+    Place Field(string_view obj, const UDT &udt, int slot, RTType rtt) {
+        return Mem(cat("((", UDTName(udt), " *)", obj, ")->", FieldName(udt, slot)), rtt);
+    }
+    Place Field(string_view obj, const UDT &udt, int slot, TypeRef type) {
+        return Field(obj, udt, slot, RtTypeOf(type));
     }
 
     // A field as an lvalue is at a constant offset from the object, same as reading one. That
     // does lose a debug only range check.
-    void EmitLvalField(int slot) {
+    void EmitLvalField(const UDT &udt, int slot) {
         TrackUseDef(1, 0);
         f_uses_lval = true;
-        append(cb, "    lv = ", Fields(Read(Slot(1, VK_OBJECT))), " + ", slot, ";\n");
+        append(cb, "    lv = &", Field(Read(Slot(1, VK_OBJECT)), udt, slot, RTT_NIL).s, ";\n");
         f_lval_kind = LVK_PTR;
     }
 
@@ -2319,7 +2356,7 @@ struct CodeGen  {
         append(cb, "    {\n    LObject *_o = RtNewObject(vm, (type_elem_t)", type_idx, ");");
         TypeComment(type);
         for (int i = 0; i < n; i++) {
-            CopyValue(cb, Mem(cat(Fields("_o"), "[", i, "]"), args[i]), SlotVar(base + i, args[i]));
+            CopyValue(cb, Field("_o", *type->udt, i, args[i]), SlotVar(base + i, args[i]));
         }
         Write(cb, SlotVar(base, RtTypeOf(type)), "_o");
         cb += "    }\n";
@@ -2917,21 +2954,21 @@ struct CodeGen  {
 
     // Reading a field is a load at a constant offset from the object, whose fields sit right
     // behind its header. It lands in the slot the object was in.
-    void GenPushField(int offset, TypeRef ftype) {
+    void GenPushField(const UDT &udt, int offset, TypeRef ftype) {
         TrackUseDef(1, 1);
         auto obj = Read(Slot(1, VK_OBJECT));
-        CopyValue(cb, Slot(1, ftype), Mem(cat(Fields(obj), "[", offset, "]"), ftype));
+        CopyValue(cb, Slot(1, ftype), Field(obj, udt, offset, ftype));
     }
 
     // Same, once per slot the struct field occupies. The object is only needed to find them, so
     // it is read out of the stack slot the first one lands in before that gets overwritten.
-    void GenPushFieldStruct(int offset, TypeRef ftype) {
+    void GenPushFieldStruct(const UDT &udt, int offset, TypeRef ftype) {
         auto fwidth = ValWidth(ftype);
         TrackUseDef(1, fwidth);
         append(cb, "    {\n    LObject *_o = ", Read(Slot(1, VK_OBJECT)), ";\n");
         for (int i = 0; i < fwidth; i++) {
             CopyValue(cb, Slot(1 - i, ftype, i),
-                      Mem(cat(Fields("_o"), "[", offset + i, "]"), SlotType(ftype, i)));
+                      Field("_o", udt, offset + i, SlotType(ftype, i)));
         }
         cb += "    }\n";
     }
@@ -3272,7 +3309,7 @@ struct CodeGen  {
             if (stype->t == V_CLASS) {
                 Gen(dot->child, 1);
                 TakeTemp(take_temp + 1, true);
-                EmitLvalField(sfield.slot + offset);
+                EmitLvalField(*stype->udt, sfield.slot + offset);
             } else {
                 GenAssignLvalRec(dot->child, sfield.slot + offset, take_temp, type);
             }
@@ -3570,9 +3607,9 @@ struct CodeGen  {
             }
         } else {
             if (IsStruct(ftype->t)) {
-                GenPushFieldStruct(offset, ftype);
+                GenPushFieldStruct(*stype->udt, offset, ftype);
             } else {
-                GenPushField(offset, ftype);
+                GenPushField(*stype->udt, offset, ftype);
             }
         }
     }
@@ -3691,7 +3728,7 @@ void Member::Generate(CodeGen &cg, size_t retval) const {
         cg.Gen(child, 1);
         cg.GenPushVar(1, this_sid->type, this_sid->Idx(), this_sid->used_as_freevar);
         cg.TakeTemp(1, true);
-        cg.EmitLvalField(sfield.slot);
+        cg.EmitLvalField(*this_sid->type->udt, sfield.slot);
         cg.GenLvalModifier(cg.AssignBaseOp({ sfield.type, LT_KEEP }), sfield.type);
         cg.EmitLabelDef(lab);
     }
