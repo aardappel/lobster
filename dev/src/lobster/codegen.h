@@ -1093,10 +1093,29 @@ struct CodeGen  {
     // The C precedence of the operators the emitters build expressions from, lower binding
     // tighter: 1 a call or index, 2 a prefix operator or cast, 3 * / %, 4 + -, 5 the shifts,
     // 6 the relational and 7 the equality comparisons, 8 &, 9 ^, 10 |.
+    // Which pairs C groups in a way that reads wrong to most people, and that compilers warn
+    // about under -Wparentheses even where the grouping is the one we mean: a comparison in a
+    // comparison, arithmetic in a shift, and arithmetic, a comparison or a tighter bitwise
+    // operator in a bitwise one.
+    static bool Surprising(int prec, int operand) {
+        auto comparison = [](int p) { return p == 6 || p == 7; };
+        switch (prec) {
+            case 5: return operand == 4;
+            case 6:
+            case 7: return comparison(operand);
+            case 8: return operand == 4 || comparison(operand);
+            case 9:
+            case 10:
+                return operand == 4 || comparison(operand) || (operand >= 8 && operand < prec);
+            default: return false;
+        }
+    }
+
     // An expression as an operand of an operator of precedence `prec`, in parentheses when it
-    // binds looser, or as loose on the right, which keeps the grouping.
+    // binds looser, or as loose on the right, which keeps the grouping, or when the pair would
+    // be surprising as written.
     static Expr &Parens(Expr &e, int prec, bool right = false) {
-        if (e.prec > prec || (e.prec == prec && right)) {
+        if (e.prec > prec || (e.prec == prec && right) || Surprising(prec, e.prec)) {
             e.text = cat("(", e.text, ")");
             e.prec = 0;
         }
