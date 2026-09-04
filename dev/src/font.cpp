@@ -77,16 +77,16 @@ BUILTIN(set_font_name, "filename", "S", "B",
     if (faceit != loadedfaces.end()) {
         curface = faceit->second;
         curfacename = piname;
-        return Value(true);
+        return true;
     }
     SetDefaultFontShader();
     curface = LoadFont(piname);
     if (curface)  {
         curfacename = piname;
         loadedfaces[piname] = curface;
-        return Value(true);
+        return true;
     } else {
-        return Value(false);
+        return false;
     }
 }
 
@@ -129,22 +129,21 @@ BUILTIN(set_max_font_size, "size", "I", "",
     " will still work but cause scaled rendering. default 256")
 (StackPtr &, VM &, iint fontsize) {
     maxfontsize = (int)fontsize;
-    return NilVal();
 }
 
 BUILTIN(get_font_size, "", "", "I",
     "the current font size")
-(StackPtr &, VM &) { return Value(curfontsize); }
+(StackPtr &, VM &) { return curfontsize; }
 
 BUILTIN(get_outline_size, "", "", "F",
     "the current font size")
-(StackPtr &, VM &) { return Value(curoutlinesize); }
+(StackPtr &, VM &) { return curoutlinesize; }
 
 BUILTIN(text, "text", "S", "Sb",
     "renders a text with the current font (at the current coordinate origin)")
 (StackPtr &, VM &vm, LString *s) {
     auto f = curfont;
-    if (!f) return vm.BuiltinError("gl.text: no font / font size set");
+    if (!f) vm.BuiltinError("gl.text: no font / font size set");
     if (!s->len) return s;
     if (curfontsize > maxfontsize) {
         otransforms.push();
@@ -175,14 +174,14 @@ BUILTIN_V(text_size, "text", "S", "I}:2",
 BUILTIN(get_glyph_name, "i", "I", "S",
     "the name of a glyph index, or empty string if the font doesn\'t have names")
 (StackPtr &, VM &vm, iint i) {
-    return Value(vm.NewString(curface ? curface->GetName((int)i) : ""));
+    return vm.NewString(curface ? curface->GetName((int)i) : "");
 }
 
 BUILTIN(get_char_code, "name", "S", "I",
     "the char code of a glyph by specifying its name, or 0 if it can not be found"
     " (or if the font doesn\'t have names)")
 (StackPtr &, VM &, LString *n) {
-    return Value(curface ? curface->GetCharCode(n->strvnt()) : 0);
+    return curface ? curface->GetCharCode(n->strvnt()) : 0;
 }
 
 BUILTIN(use_default_font_shader, "on", "B", "",
@@ -195,5 +194,4 @@ BUILTIN(use_default_font_shader, "on", "B", "",
     } else {
         gs->fonttexturedshader.reset();
     }
-    return NilVal();
 }

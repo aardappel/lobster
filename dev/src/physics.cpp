@@ -212,7 +212,6 @@ BUILTIN(dynamic, "shape,on", "R:fixtureB", "",
     GetObject(fixture_id)
         .fixture->GetBody()
         ->SetType(on ? b2_dynamicBody : b2_staticBody);
-    return NilVal();
 }
 
 BUILTIN_V(set_linear_velocity, "id,velocity", "R:fixtureF}:2", "",
@@ -248,7 +247,6 @@ BUILTIN(set_shader, "id,shadername", "R:fixture?S", "",
     auto &r = GetRenderable(vm, fixture_id);
     auto sh = LookupShader(shader->strv());
     if (sh.get()) r.sh = sh;
-    return NilVal();
 }
 
 BUILTIN(set_texture, "id,tex,texunit", "R:fixture?R:textureI?", "",
@@ -257,7 +255,6 @@ BUILTIN(set_texture, "id,tex,texunit", "R:fixture?R:textureI?", "",
 (StackPtr &, VM &vm, LResource *fixture_id, LResource *tex, iint tex_unit) {
     auto &r = GetRenderable(vm, fixture_id);
     r.Get(GetSampler(vm, tex_unit)) = GetTexture(tex);
-    return NilVal();
 }
 
 BUILTIN_V(get_position, "id", "R:fixture", "F}:2",
@@ -304,7 +301,6 @@ BUILTIN(initialize_particles, "radius", "F", "",
     "initializes the particle system with a given particle radius.")
 (StackPtr &, VM &, double size) {
     CheckParticles((float)size);
-    return NilVal();
 }
 
 BUILTIN(step, "seconds,viter,piter", "FII", "",
@@ -329,7 +325,6 @@ BUILTIN(step, "seconds,viter,piter", "FII", "",
             if (pc) pc->push_back(c.index);
         }
     }
-    return NilVal();
 }
 
 BUILTIN(particle_contacts, "id", "R:fixture", "I]",
@@ -342,7 +337,7 @@ BUILTIN(particle_contacts, "id", "R:fixture", "I]",
     auto numelems = (int)po.particle_contacts->size();
     auto v = vm.NewVec(numelems, numelems, TYPE_ELEM_VECTOR_OF_INT);
     for (int i = 0; i < numelems; i++) v->AtSR(i) = Value((*po.particle_contacts)[i]);
-    return Value(v);
+    return v;
 }
 
 BUILTIN_V(raycast, "p1,p2,n", "F}:2F}:2I", "I]",
@@ -377,11 +372,10 @@ BUILTIN(delete_particle, "i", "I", "",
 (StackPtr &, VM &, iint i) {
     CheckPhysics();
     // CheckPhysics only creates the world, not the particle system.
-    if (!particlesystem) return NilVal();
+    if (!particlesystem) return;
     auto idx = (int)i;
-    if (idx < 0 || idx >= particlesystem->GetParticleCount()) return NilVal();
+    if (idx < 0 || idx >= particlesystem->GetParticleCount()) return;
     particlesystem->DestroyParticle(idx);
-    return NilVal();
 }
 
 BUILTIN_V(getparticle_position, "i", "I", "F}:2",
@@ -434,14 +428,13 @@ BUILTIN(render, "", "", "",
         otransforms.pop();
     }
     curcolor = oldcolor;
-    return NilVal();
 }
 
 BUILTIN(render_particles, "scale", "F", "",
     "render all particles, with the given scale.")
 (StackPtr &, VM &, double particlescale) {
     CheckPhysics();
-    if (!particlesystem) return NilVal();
+    if (!particlesystem) return;
     auto num = particlesystem->GetParticleCount();
     // LOG_DEBUG("rendering particles: ", num);
     auto verts = (float2 *)particlesystem->GetPositionBuffer();
@@ -457,5 +450,4 @@ BUILTIN(render_particles, "scale", "F", "",
     }
     RenderArraySlow("ph.render_particles", PRIM_POINT, span(interleaved),
                     "pC");
-    return NilVal();
 }

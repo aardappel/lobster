@@ -735,7 +735,7 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view metadata_buffer, stri
     #endif
 }
 
-Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value source, bool stringiscode,
+LString *CompileRun(VM &parent_vm, StackPtr &parent_sp, Value source, bool stringiscode,
                  vector<string> &&args) {
     string_view fn = stringiscode ? "string" : source.sval()->strv();  // fixme: datadir + sanitize?
     #ifdef USE_EXCEPTION_HANDLING
@@ -754,12 +754,12 @@ Value CompileRun(VM &parent_vm, StackPtr &parent_sp, Value source, bool stringis
                           parent_vm.vma.jit_options);
         if (!error.empty()) THROW_OR_ABORT(error);
         Push(parent_sp, Value(parent_vm.NewString(ret.first)));
-        return NilVal();
+        return nullptr;
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
         Push(parent_sp, Value(parent_vm.NewString("nil")));
-        return Value(parent_vm.NewString(s));
+        return parent_vm.NewString(s);
     }
     #endif
 }
@@ -797,11 +797,11 @@ static void CCodeOutputBuf(void *p, size_t len) {
 
 #endif  // VM_JIT_MODE
 
-Value CompileRunCCode(VM &vm, StackPtr &sp, Value code, Value input) {
+LString *CompileRunCCode(VM &vm, StackPtr &sp, Value code, Value input) {
     #if VM_JIT_MODE
         auto err = [&](string msg) {
             Push(sp, NilVal());
-            return Value(vm.NewString(msg));
+            return vm.NewString(msg);
         };
         CCodeContext ctx;
         ctx.input = input.sval()->data();
@@ -863,12 +863,12 @@ Value CompileRunCCode(VM &vm, StackPtr &sp, Value code, Value input) {
         } else {
             Push(sp, NilVal());
         }
-        return NilVal();
+        return nullptr;
     #else
         (void)code;
         (void)input;
         Push(sp, NilVal());
-        return Value(vm.NewString("cannot JIT code: libtcc not enabled"));
+        return vm.NewString("cannot JIT code: libtcc not enabled");
     #endif
 }
 

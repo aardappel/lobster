@@ -573,15 +573,14 @@ struct CodeGen  {
         // SretValues.
         string decls;
         for (auto [idx, nf] : natives_used) {
+            auto rt = NativeRetCType(nf);
+            auto sep = rt.back() == '*' ? "" : " ";
             if (cpp) {
-                append(decls, "extern \"C\" ", nf->pushrets ? "void " : "Value ", nf->symbol,
-                       "(StackPtr &, VMRef");
-            } else if (nf->pushrets) {
-                append(decls, "void ", nf->symbol, "(StackPtr *, VMRef");
-            } else if (SretValues()) {
+                append(decls, "extern \"C\" ", rt, sep, nf->symbol, "(StackPtr &, VMRef");
+            } else if (SretValues(nf)) {
                 append(decls, "void ", nf->symbol, "(Value *, StackPtr *, VMRef");
             } else {
-                append(decls, "Value ", nf->symbol, "(StackPtr *, VMRef");
+                append(decls, rt, sep, nf->symbol, "(StackPtr *, VMRef");
             }
             for (size_t i = 0; i < nf->args.size(); i++) {
                 auto kind = nf->ArgKind(i);
@@ -855,7 +854,7 @@ struct CodeGen  {
                 // Around the calls to builtins, see EmitNativeCall.
                 #if RTT_ENABLED
                 "void RtNativeRetCheck(VMRef, int, Value);\n"
-                "void RtNativeRetCheckStack(VMRef, StackPtr, int);\n"
+                "void RtNativeRetCheckStack(VMRef, StackPtr, int, int);\n"
                 #endif
                 #if LOBSTER_NATIVE_PROFILE
                 "struct ___tracy_c_zone_context RtNativeProfileStart(VMRef, int);\n"
@@ -1871,11 +1870,13 @@ struct CodeGen  {
 
     // Whether the C code gets a Value a builtin returns thru a pointer it passes as the first
     // argument: MSVC returns a class with constructors that way, where C returns a struct of
-    // that size in a register, see CValue in vm.cpp. The C++ backend agrees with itself.
-    bool SretValues() {
+    // that size in a register, see CValue in vm.cpp. The C++ backend agrees with itself, and
+    // only the builtins that return an untyped Value are returned indirectly at all.
+    bool SretValues(NativeFun *nf) {
         #ifdef _MSC_VER
-            return !cpp;
+            return !cpp && nf->ReturnsValue() && nf->RetKind() == BAK_VALUE;
         #else
+            (void)nf;
             return false;
         #endif
     }
@@ -1908,6 +1909,30 @@ struct CodeGen  {
             case BAK_FVEC:     return cpp ? cat("vec<double, ", width, ">") : cat("fvec", width);
             case BAK_VALUEVEC: return "Value *";
             default:           return "Value";
+        }
+    }
+
+    // The type a builtin returns, which is that of its last return value, see BuiltinRet.
+    string NativeRetCType(NativeFun *nf) {
+        return nf->ReturnsValue() ? NativeArgCType(nf->RetKind(), 0) : "void";
+    }
+
+    // A typed expression as a value of another kind, which between two kinds of reference is
+    // a cast: a builtin declares a resource or a vector where the slot it lands in may know
+    // the exact class it holds.
+    string CastAs(string_view expr, VKind from, VKind to) {
+        if (from == to || !IsRefKind(from) || !IsRefKind(to)) return string(expr);
+        return cat("(", CType(to), ")", expr);
+    }
+
+    // The kind of value a builtin returns, for the slot it goes into.
+    VKind NativeRetKind(NativeFun *nf) {
+        switch (nf->RetKind()) {
+            case BAK_INT:    return VK_INT;
+            case BAK_FLOAT:  return VK_FLOAT;
+            case BAK_STRING: return VK_STRING;
+            case BAK_VECTOR: return VK_VECTOR;
+            default:         return VK_REF;
         }
     }
 
@@ -1954,10 +1979,10 @@ struct CodeGen  {
     // A call to a builtin, which the code makes directly by its symbol, declared in the
     // prologue, see natives_used. The V kind and the ones that leave several values work on
     // the stack: both get a pointer to where their arguments are, the former leaving all of
-    // its return values there, the latter all but the last, which it returns, and which goes
-    // behind the others. The rest return their single value, and get a stack pointer they have
-    // no use for. In a debug build the check of what a builtin returned follows the call, see
-    // VM::BCallRetCheck.
+    // its return values there, the latter all but the last, which it returns as the type it
+    // is. The rest return their single value the same way, and get a stack pointer they have
+    // no use for. Only a builtin that returns an untyped Value can lie about what it returned,
+    // so only that one is checked in a debug build, see VM::BCallRetCheck.
     void EmitNativeCall(NativeFun *nf, const Types &args, const Types &rets,
                         const NativeArgs &nargs) {
         auto uses = (int)args.size();
@@ -1971,59 +1996,54 @@ struct CodeGen  {
         natives_used[nf->idx] = nf;
         f_uses_sp = true;
         auto spref = cpp ? "sp" : "&sp";
-        auto sret = SretValues();
+        auto sret = SretValues(nf);
         #if RTT_ENABLED
-            auto checked = true;
+            auto checked = nf->ReturnsValue() && nf->RetKind() == BAK_VALUE;
         #else
             auto checked = false;
         #endif
         EmitNativeProfile(true, nf->idx);
         TrackUseDef(uses, defs);
         auto base = regso - uses;
-        auto stackrets = nf->pushrets || defs > 1;
         auto argstr = NativeArgList(base, nf, args, nargs);
-        if (stackrets) {
+        // The values the builtin does not return it pushes, which it needs a stack pointer to.
+        auto pushed = nf->ReturnsValue() ? defs - 1 : defs;
+        if (pushed) {
             f_uses_vals = true;
-            string s = "    ";
-            append(s, "sp = ", StackArray(), " + ", base, "; ");
-            if (nf->pushrets) {
-                append(s, nf->symbol, "(", spref, ", vm", argstr, ");");
-            } else {
-                f_uses_nret = true;
-                if (sret) append(s, nf->symbol, "(&nret, ", spref, ", vm", argstr, ");");
-                else append(s, "nret = ", nf->symbol, "(", spref, ", vm", argstr, ");");
-                auto last = rets.back();
-                append(s, " ", CopyValueText(StackSlot(base + defs - 1, last), Mem("nret", last)));
-                if (checked) {
-                    append(s, " ", cpp ? "vm.BCallRetCheck(" : "RtNativeRetCheckStack(vm, ",
-                           StackArray(), " + ", base + defs, ", ", nf->idx, ");");
-                }
-            }
-            cb += s;
+            append(cb, "    sp = ", StackArray(), " + ", base, ";\n");
+        }
+        auto call = cat(nf->symbol, "(", sret ? "&nret, " : "", spref, ", vm", argstr, ")");
+        // The value it returns lands in the last of the slots the call leaves behind.
+        auto ret = SlotVar(base + defs - 1, defs ? rets.back() : RTT_NIL);
+        if (!nf->ReturnsValue()) {
+            append(cb, "    ", call, ";");
             comment(nf->name);
-            for (int i = 0; i < defs; i++) {
-                CopyValue(cb, SlotVar(base + i, rets[i]), StackSlot(base + i, rets[i]));
+        } else if (sret || checked) {
+            f_uses_nret = true;
+            append(cb, "    ", sret ? call : cat("nret = ", call), ";");
+            if (checked) {
+                if (cpp) append(cb, " vm.BCallRetCheck(nret, ", nf->idx, ");");
+                else append(cb, " RtNativeRetCheck(vm, ", nf->idx, ", nret);");
             }
+            comment(nf->name);
+            SetValue(cb, ret, "nret");
         } else {
-            auto call = sret ? cat(nf->symbol, "(&nret, ", spref, ", vm", argstr, ")")
-                             : cat(nf->symbol, "(", spref, ", vm", argstr, ")");
-            if (sret || checked) {
-                f_uses_nret = true;
-                append(cb, "    ", sret ? call : cat("nret = ", call), ";");
-                if (checked) {
-                    if (cpp) append(cb, " vm.BCallRetCheck(nret, ", nf->idx, ");");
-                    else append(cb, " RtNativeRetCheck(vm, ", nf->idx, ", nret);");
-                }
-                if (defs) {
-                    cb += "\n";
-                    SetValue(cb, SlotVar(base, rets[0]), "nret", "");
-                }
-            } else if (defs) {
-                SetValue(cb, SlotVar(base, rets[0]), call, "");
-            } else {
-                append(cb, "    ", call, ";");
-            }
+            auto e = nf->RetKind() == BAK_VALUE ? Unbox(call, ret.k())
+                                                : CastAs(call, NativeRetKind(nf), ret.k());
+            Write(cb, ret, e, "");
             comment(nf->name);
+        }
+        // What it did push comes back out into the slots those values live in. Only the values
+        // pushed by a builtin that also returns one are checked: those of the V kind include
+        // the struct return values, whose slots hold their fields rather than the struct.
+        #if RTT_ENABLED
+            if (pushed && !nf->pushrets) {
+                append(cb, "    ", cpp ? "vm.BCallRetCheck(" : "RtNativeRetCheckStack(vm, ",
+                       StackArray(), " + ", base + pushed, ", ", nf->idx, ", ", pushed, ");\n");
+            }
+        #endif
+        for (int i = 0; i < pushed; i++) {
+            CopyValue(cb, SlotVar(base + i, rets[i]), StackSlot(base + i, rets[i]));
         }
         EmitNativeProfile(false, nf->idx);
     }

@@ -155,25 +155,25 @@ Mesh *CreatePolygon(VM &vm, Value vl, bool render) {
     }
 }
 
-Value SetUniform(VM &vm, Value name, const float *data, int len) {
+iint SetUniform(VM &vm, Value name, const float *data, int len) {
     TestGL(vm);
     gs->currentshader->Activate();
-    auto ok = gs->currentshader->SetUniform(name.sval()->strvnt(), data, len);
-    return Value(ok);
+    return gs->currentshader->SetUniform(name.sval()->strvnt(), data, len);
 }
 
-Value SetUniform(VM &vm, Value name, const int *data, int len) {
+iint SetUniform(VM &vm, Value name, const int *data, int len) {
     TestGL(vm);
     gs->currentshader->Activate();
-    auto ok = gs->currentshader->SetUniform(name.sval()->strvnt(), data, len);
-    return Value(ok);
+    return gs->currentshader->SetUniform(name.sval()->strvnt(), data, len);
 }
 
-Value UpdateBufferObjectResource(VM &vm, Value buf, const void *data, size_t len,
-                                 ptrdiff_t offset, bool ssbo, bool dyn, string_view name) {
+LResource *UpdateBufferObjectResource(VM &vm, Value buf, const void *data, size_t len,
+                                      ptrdiff_t offset, bool ssbo, bool dyn,
+                                      string_view name) {
     auto bo = buf.True() ? &GetBufferObject(buf) : nullptr;
     bo = UpdateBufferObject(bo, data, len, offset, ssbo, dyn, name);
-    return buf.True() ? buf : (bo ? Value(vm.NewResource(&buffer_object_type, bo)) : NilVal());
+    if (buf.True()) return (LResource *)buf.ref();
+    return bo ? vm.NewResource(&buffer_object_type, bo) : nullptr;
 }
 
 void BindBufferObjectResource(VM &vm, Value buf, string_view_nt name) {
@@ -236,12 +236,12 @@ BUILTIN(window, "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
     }
     if (!err.empty()) {
         LOG_INFO(err);
-        return Value(vm.NewString(err));
+        return vm.NewString(err);
     }
     GraphicsReset();
     vm.engine_shutdown = GraphicsShutDown;
     LOG_INFO("graphics fully initialized...");
-    return NilVal();
+    return nullptr;
 }
 
 BUILTIN(require_version, "major,minor", "II", "",
@@ -249,7 +249,6 @@ BUILTIN(require_version, "major,minor", "II", "",
             " Currently only works on win/nix, minimum is 3.2.")
 (StackPtr &, VM &, iint major, iint minor) {
     SDLRequireGLVersion((int)major, (int)minor);
-    return NilVal();
 }
 
 BUILTIN(load_materials, "materialdefs,inline,prefix", "SI?S?", "S?",
@@ -263,7 +262,7 @@ BUILTIN(load_materials, "materialdefs,inline,prefix", "SI?S?", "S?",
     auto err = (isinline != 0) ? ParseMaterialFile(fn->strv(), pf, vm)
                                : LoadMaterialFile(fn->strv(), pf, vm);
     ResetShader();
-    return err.empty() ? NilVal() : Value(vm.NewString(err));
+    return err.empty() ? nullptr : vm.NewString(err);
 }
 
 BUILTIN_V(scissor, "top_left,size", "I}:2I}:2", "I}:2I}:2",
@@ -299,7 +298,6 @@ BUILTIN(shutdown, "", "", "",
     " before the end of the program")
 (StackPtr &, VM &) {
     GraphicsShutDown();
-    return NilVal();
 }
 
 BUILTIN(window_title, "title", "S", "Sb",
@@ -315,7 +313,6 @@ BUILTIN(window_min_max, "dir", "I", "",
 (StackPtr &, VM &vm, iint dir) {
     TestGL(vm);
     SDLWindowMinMax((int)dir);
-    return NilVal();
 }
 
 BUILTIN(fullscreen, "mode", "I", "",
@@ -323,7 +320,6 @@ BUILTIN(fullscreen, "mode", "I", "",
 (StackPtr &, VM &vm, iint mode) {
     TestGL(vm);
     SDLSetFullscreen((InitFlags)(int)mode);
-    return NilVal();
 }
 
 BUILTIN_V_OVERLOAD(window_size_set, "window_size", "size", "I}:2", "",
@@ -338,7 +334,7 @@ BUILTIN(visible, "", "", "B",
     "checks if the window is currently visible (not minimized, or on mobile devices, in the"
     " foreground). If false, you should not render anything, nor run the frame's code.")
 (StackPtr &, VM &) {
-    return Value(!SDLIsMinimized());
+    return !SDLIsMinimized();
 }
 
 BUILTIN(cursor, "on", "B", "B",
@@ -346,14 +342,14 @@ BUILTIN(cursor, "on", "B", "B",
     " whether it was on before this call.")
 (StackPtr &, VM &vm, iint on) {
     TestGL(vm);
-    return Value(SDLCursor((on != 0)));
+    return SDLCursor((on != 0));
 }
 
 BUILTIN(grab, "on", "B", "B",
     "grabs the mouse when the window is active. return whether it's on.")
 (StackPtr &, VM &vm, iint on) {
     TestGL(vm);
-    return Value(SDLGrab(on != 0));
+    return SDLGrab(on != 0);
 }
 
 BUILTIN(button, "name", "S", "II",
@@ -367,21 +363,21 @@ BUILTIN(button, "name", "S", "II",
 (StackPtr &sp, VM &, LString *name) {
     auto ks = GetKS(name->strv());
     Push(sp, ks.first);
-    return Value(ks.second);
+    return ks.second;
 }
 
 BUILTIN(key_repeat, "name", "S", "B",
     "returns if a key was a key repeat (went down, or is down with a key repeat)")
 (StackPtr &, VM &, LString *name) {
     auto ks = GetKS(name->strv());
-    return Value(ks.first == 1 || (ks.first > 1 && KeyRepeat(name->strv())));
+    return ks.first == 1 || (ks.first > 1 && KeyRepeat(name->strv()));
 }
 
 BUILTIN(user_key, "name", "S", "S",
     "if name refers to a scancode key, returns the virtual key name, otherwise just"
     " the original name. Useful for showing users with non-US keyboards what keys to press")
 (StackPtr &, VM &vm, LString *name) {
-    return Value(vm.NewString(GetUserKey(name->strvnt())));
+    return vm.NewString(GetUserKey(name->strvnt()));
 }
 
 BUILTIN_V(start_text_input, "pos,size", "I}:2I}:2", "",
@@ -409,23 +405,21 @@ BUILTIN(set_text_input, "text", "S", "",
     "overwrites the current text string being accumulated")
 (StackPtr &, VM &, LString *text) {
     SDLTextInputSet(text->strv());
-    return NilVal();
 }
 
 BUILTIN(end_text_input, "", "", "",
     "stops accumulating text input")
 (StackPtr &, VM &) {
     SDLEndTextInput();
-    return NilVal();
 }
 
 BUILTIN(touchscreen, "", "", "B",
     "whether a you\'re getting input from a touch screen (as opposed to mouse & keyboard)")
 (StackPtr &, VM &) {
     #ifdef PLATFORM_TOUCH
-        return Value(true);
+        return true;
     #else
-        return Value(false);
+        return false;
     #endif
 }
 
@@ -433,7 +427,7 @@ BUILTIN(dpi, "screen", "I", "I",
     "the DPI of the screen. always returns a value for screen 0, any other screens may return"
     " 0 to indicate the screen doesn\'t exist")
 (StackPtr &, VM &, iint screen) {
-    return Value(SDLScreenDPI((int)screen));
+    return SDLScreenDPI((int)screen);
 }
 
 BUILTIN_V_OVERLOAD(window_size_get, "window_size", "", "", "I}:2",
@@ -484,14 +478,14 @@ BUILTIN_V(local_last_pos, "name,down", "SI", "F}:2",
 BUILTIN(mousewheel_delta, "", "", "I",
     "amount the mousewheel scrolled this frame, in number of notches")
 (StackPtr &, VM &) {
-    return Value(SDLWheelDelta());
+    return SDLWheelDelta();
 }
 
 BUILTIN(joy_axis, "i", "I", "F",
     "the current joystick orientation for axis i, as -1 to 1 value."
     " this gives you raw joystick values, prefer to use controller_axis()")
 (StackPtr &, VM &, iint i) {
-    return Value(GetJoyAxis((int)i));
+    return GetJoyAxis((int)i);
 }
 
 BUILTIN(controller_axis, "i", "I", "F",
@@ -500,40 +494,39 @@ BUILTIN(controller_axis, "i", "I", "F",
     " down/right have positive values."
     " make sure to call gl.init_controller_database()")
 (StackPtr &, VM &, iint i) {
-    return Value(GetControllerAxis((int)i));
+    return GetControllerAxis((int)i);
 }
 
 BUILTIN(delta_time, "", "", "F",
     "seconds since the last frame, updated only once per frame")
 (StackPtr &, VM &) {
-    return Value(SDLDeltaTime());
+    return SDLDeltaTime();
 }
 
 BUILTIN(delta_time_rolling, "n", "I", "F",
     "seconds since the last frame, updated only once per frame, as a rolling average over the last N frames (max 64)")
 (StackPtr &, VM &, iint n) {
-    return Value(SDLGetRollingAverage((size_t)n));
+    return SDLGetRollingAverage((size_t)n);
 }
 
 BUILTIN(set_target_delta_time, "delta_time", "F", "",
     "attempt to run at no more than the given delta_time (framerate cap). By default uncapped (only capped by vsync)")
 (StackPtr &, VM &, double ft) {
     SetTargetFrameTime(ft);
-    return NilVal();
 }
 
 BUILTIN(time, "", "", "F",
     "seconds since the start of the OpenGL subsystem, updated only once per frame (use"
     " seconds_elapsed() for continuous timing)")
 (StackPtr &, VM &) {
-    return Value(SDLTime());
+    return SDLTime();
 }
 
 BUILTIN(last_time, "name,down", "SI", "F",
     "time key/mousebutton/finger last went down (true) or up (false)")
 (StackPtr &, VM &, LString *name, iint on) {
     auto t = GetKeyTime(name->strv(), (int)on);
-    return Value(t);
+    return t;
 }
 
 BUILTIN_V(clear, "col", "F}:4", "",
@@ -556,7 +549,6 @@ BUILTIN(polygon, "vertlist", "F}]", "",
     " warning: gl.polygon creates a new mesh every time, gl.new_poly/gl.render_mesh is faster.")
 (StackPtr &, VM &vm, LVector *vl) {
     CreatePolygon(vm, vl, true);
-    return NilVal();
 }
 
 BUILTIN_V(rounded_rectangle, "size,segments,corner_ratio", "F}:2IF", "",
@@ -587,7 +579,6 @@ BUILTIN(circle, "radius,segments", "FI", "",
 (StackPtr &, VM &vm, double radius, iint segments) {
     TestGL(vm);
     geomcache->RenderCircle(gs->currentshader.get(), gs->polymode, max((int)segments, 3), (float)radius);
-    return NilVal();
 }
 
 BUILTIN(open_circle, "radius,segments,thickness", "FIF", "",
@@ -599,7 +590,6 @@ BUILTIN(open_circle, "radius,segments,thickness", "FIF", "",
     geomcache->RenderOpenCircle(gs->currentshader.get(), max((int)segments, 3), (float)radius,
                                 (float)thickness);
 
-    return NilVal();
 }
 
 BUILTIN(unit_cube, "insideout", "I?", "",
@@ -608,7 +598,6 @@ BUILTIN(unit_cube, "insideout", "I?", "",
 (StackPtr &, VM &vm, iint inside) {
     TestGL(vm);
     geomcache->RenderUnitCube(gs->currentshader.get(), (inside != 0));
-    return NilVal();
 }
 
 BUILTIN_V(rotate_x, "vec", "F}:2", "",
@@ -687,7 +676,7 @@ BUILTIN(model_view_projection, "", "", "F]",
     auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     auto mvp = view2clip * otransforms.object2view();
     for (int i = 0; i < 16; i++) v->AtSR(i) = mvp.data()[i];
-    return Value(v);
+    return v;
 }
 
 BUILTIN(model_view, "", "", "F]",
@@ -697,7 +686,7 @@ BUILTIN(model_view, "", "", "F]",
     auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     auto &mv = otransforms.object2view();
     for (int i = 0; i < 16; i++) v->AtSR(i) = mv.data()[i];
-    return Value(v);
+    return v;
 }
 
 BUILTIN(projection, "", "", "F]",
@@ -707,7 +696,7 @@ BUILTIN(projection, "", "", "F]",
     auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     auto p = view2clip;
     for (int i = 0; i < 16; i++) v->AtSR(i) = p.data()[i];
-    return Value(v);
+    return v;
 }
 
 BUILTIN_V(push_model_view, "", "", "",
@@ -719,7 +708,7 @@ BUILTIN_V(push_model_view, "", "", "",
 BUILTIN(pop_model_view, "", "", "B",
     "restore a previous state of the model view matrix. returns false if none")
 (StackPtr &, VM &) {
-    return Value(otransforms.pop());
+    return otransforms.pop();
 }
 
 BUILTIN(point_scale, "factor", "F", "",
@@ -728,7 +717,6 @@ BUILTIN(point_scale, "factor", "F", "",
     " the ideal size may also be FOV dependent.")
 (StackPtr &, VM &, double f) {
     custompointscale = (float)f;
-    return NilVal();
 }
 
 BUILTIN_V(line_mode, "on", "I", "I",
@@ -822,7 +810,6 @@ BUILTIN(unit_square, "centered", "I?", "",
 (StackPtr &, VM &vm, iint centered) {
     TestGL(vm);
     geomcache->RenderUnitSquare(gs->currentshader.get(), gs->polymode, (centered != 0));
-    return NilVal();
 }
 
 #define LINEW(W) \
@@ -865,7 +852,6 @@ BUILTIN(ortho, "rh,depth", "I?I?", "",
     " Pass true to depth to have depth testing/writing on.")
 (StackPtr &, VM &, iint rh, iint depth) {
     Set2DMode(GetFrameBufferSize(GetScreenSize()), (rh == 0), (depth != 0));
-    return NilVal();
 }
 
 BUILTIN_V(ortho3d, "center,extends", "F}:3F}:3", "",
@@ -883,7 +869,7 @@ BUILTIN(new_poly, "positions", "F}]", "R:mesh",
     " returns mesh id")
 (StackPtr &, VM &vm, LVector *positions) {
     auto m = CreatePolygon(vm, positions, false);
-    return Value(vm.NewResource(&mesh_type, m));
+    return vm.NewResource(&mesh_type, m);
 }
 
 BUILTIN(new_mesh, "format,positions,colors,normals,texcoords1,texcoords2,indices", "SF}:3]F}:4]F}:3]F}:2]F}:2]I]?", "R:mesh",
@@ -965,7 +951,7 @@ BUILTIN(new_mesh, "format,positions,colors,normals,texcoords1,texcoords2,indices
                       (indices != nullptr) ? PRIM_TRIS : PRIM_POINT);
     if (idxs.size()) m->surfs.push_back(new Surface("gl.new_mesh_idxs", span(idxs)));
     delete[] verts;
-    return Value(vm.NewResource(&mesh_type, m));
+    return vm.NewResource(&mesh_type, m);
 }
 
 BUILTIN(new_mesh_iqm, "filename", "S", "R:mesh?",
@@ -973,7 +959,7 @@ BUILTIN(new_mesh_iqm, "filename", "S", "R:mesh?",
 (StackPtr &, VM &vm, LString *fn) {
     TestGL(vm);
     auto m = LoadIQM(fn->strv());
-    return m ? Value(vm.NewResource(&mesh_type, m)) : NilVal();
+    return m ? vm.NewResource(&mesh_type, m) : nullptr;
 }
 
 BUILTIN(mesh_parts, "m", "R:mesh", "S]",
@@ -982,14 +968,14 @@ BUILTIN(mesh_parts, "m", "R:mesh", "S]",
     auto &m = GetMesh(i);
     auto v = (LVector *)vm.NewVec(0, (int)m.surfs.size(), TYPE_ELEM_VECTOR_OF_STRING);
     for (auto s : m.surfs) v->Push(vm, Value(vm.NewString(s->name)));
-    return Value(v);
+    return v;
 }
 
 BUILTIN(mesh_size, "m", "R:mesh", "I",
     "returns the number of verts in this mesh")
 (StackPtr &, VM &, LResource *i) {
     auto &m = GetMesh(i);
-    return Value((int)m.geom->nverts);
+    return (int)m.geom->nverts;
 }
 
 BUILTIN_V(mesh_bounds, "m", "R:mesh", "F}:3F}:3",
@@ -1006,7 +992,7 @@ BUILTIN(mesh_animations, "m", "R:mesh", "S]",
     auto &m = GetMesh(i);
     auto v = (LVector *)vm.NewVec(0, (int)m.animations.size(), TYPE_ELEM_VECTOR_OF_STRING);
     for (const auto &it : m.animations) v->Push(vm, Value(vm.NewString(it.first)));
-    return Value(v);
+    return v;
 }
 
 BUILTIN(mesh_animation_frames, "m,name", "R:meshS", "IIF",
@@ -1024,7 +1010,7 @@ BUILTIN(mesh_animation_frames, "m,name", "R:meshS", "IIF",
     }
     Push(sp, first_frame);
     Push(sp, num_frames);
-    return Value(framerate);
+    return framerate;
 }
 
 BUILTIN(animate_mesh, "m,frame", "R:meshF", "",
@@ -1033,7 +1019,6 @@ BUILTIN(animate_mesh, "m,frame", "R:meshF", "",
     auto &m = GetMesh(i);
     m.anim_frame1 = (float)f;
     m.anim_frame2 = -1.0;
-    return NilVal();
 }
 
 BUILTIN(animate_mesh_blend, "m,frame1,frame2,blending", "R:meshFFF", "",
@@ -1043,7 +1028,6 @@ BUILTIN(animate_mesh_blend, "m,frame1,frame2,blending", "R:meshFFF", "",
     m.anim_frame1 = (float)f1;
     m.anim_frame2 = (float)f2;
     m.anim_blending = (float)b;
-    return NilVal();
 }
 
 BUILTIN(render_mesh, "m", "R:mesh", "",
@@ -1051,7 +1035,6 @@ BUILTIN(render_mesh, "m", "R:mesh", "",
 (StackPtr &, VM &vm, LResource *i) {
     TestGL(vm);
     GetMesh(i).Render(gs->currentshader.get());
-    return NilVal();
 }
 
 BUILTIN(save_mesh, "m,name,format", "R:meshSI?", "S?",
@@ -1063,7 +1046,7 @@ BUILTIN(save_mesh, "m,name,format", "R:meshSI?", "S?",
 (StackPtr &, VM &vm, LResource *i, LString *name, iint format) {
     TestGL(vm);
     auto err = GetMesh(i).Save(name->strv(), (ModelFormat)(int)format);
-    return err.empty() ? NilVal() : Value(vm.NewString(err));
+    return err.empty() ? nullptr : vm.NewString(err);
 }
 
 BUILTIN(mesh_pointsize, "m,pointsize", "R:meshF", "",
@@ -1073,7 +1056,6 @@ BUILTIN(mesh_pointsize, "m,pointsize", "R:meshF", "",
 (StackPtr &, VM &, LResource *i, double ps) {
     auto &m = GetMesh(i);
     m.pointsize = (float)ps;
-    return NilVal();
 }
 
 BUILTIN_OVERLOAD(set_shader_name, "set_shader", "shader", "S", "",
@@ -1083,7 +1065,6 @@ BUILTIN_OVERLOAD(set_shader_name, "set_shader", "shader", "S", "",
     TestGL(vm);
     gs->currentshader = LookupShader(shader->strv());
     if (!gs->currentshader.get()) vm.BuiltinError("no such shader: " + shader->strv());
-    return NilVal();
 }
 
 BUILTIN_OVERLOAD(set_shader_resource, "set_shader", "shader", "R:shader", "",
@@ -1091,7 +1072,6 @@ BUILTIN_OVERLOAD(set_shader_resource, "set_shader", "shader", "R:shader", "",
 (StackPtr &, VM &vm, LResource *shader) {
     TestGL(vm);
     gs->currentshader = GetResourceRP<Shader>(shader, &shader_type, vm);
-    return NilVal();
 }
 
 BUILTIN(get_shader, "shader", "S", "R:shader",
@@ -1100,7 +1080,7 @@ BUILTIN(get_shader, "shader", "S", "R:shader",
     TestGL(vm);
     auto sh = LookupShader(shader->strv());
     if (!sh.get()) vm.BuiltinError("no such shader: " + shader->strv());
-    return Value(sh.move_lresource());
+    return sh.move_lresource();
 }
 
 #define SETUNIFORMW(sym, T, CT, ET, W) \
@@ -1148,7 +1128,7 @@ BUILTIN(set_uniform_array, "name,value", "SF}:4]", "B",
     gs->currentshader->Activate();
     auto ok = gs->currentshader->SetUniform(name->strvnt(), vals.data()->data(), 4,
                                         (int)vals.size());
-    return Value(ok);
+    return ok;
 }
 
 BUILTIN(set_uniform_matrix, "name,value,morerows", "SF]B?", "B",
@@ -1162,7 +1142,7 @@ BUILTIN(set_uniform_matrix, "name,value,morerows", "SF]B?", "B",
     gs->currentshader->Activate();
     auto ok = gs->currentshader->SetUniformMatrix(name->strvnt(), vals.data(),
                                               (int)vals.size(), 1, (morerows != 0));
-    return Value(ok);
+    return ok;
 }
 
 BUILTIN(update_buffer_object, "value,ssbo,offset,existing,dyn", "SIIRk:bufferobject?B", "R:bufferobject?",
@@ -1183,7 +1163,7 @@ BUILTIN(bind_buffer_object, "name,bo", "SR:bufferobject", "I",
     " returns false for error.")
 (StackPtr &, VM &vm, LString *name, LResource *buf) {
     TestGL(vm);
-    return Value(BindBufferObject(gs->currentshader.get(), &GetBufferObject(buf), name->strvnt()));
+    return BindBufferObject(gs->currentshader.get(), &GetBufferObject(buf), name->strvnt());
 }
 
 BUILTIN(copy_buffer_object, "source,destination,srcoffset,dstoffset,length", "R:bufferobjectR:bufferobjectIII", "",
@@ -1193,7 +1173,7 @@ BUILTIN(copy_buffer_object, "source,destination,srcoffset,dstoffset,length", "R:
     TestGL(vm);
     auto srco = &GetBufferObject(source);
     auto dsto = &GetBufferObject(destination);
-    return Value(CopyBufferObjects(srco, dsto, (int)srcoffset, (int)dstoffset, (int)length));
+    CopyBufferObjects(srco, dsto, (int)srcoffset, (int)dstoffset, (int)length);
 }
 
 BUILTIN(bind_mesh_to_compute, "mesh,name", "R:mesh?S", "",
@@ -1202,7 +1182,6 @@ BUILTIN(bind_mesh_to_compute, "mesh,name", "R:mesh?S", "",
 (StackPtr &, VM &vm, LResource *mesh, LString *name) {
     TestGL(vm);
     BindAsSSBO(gs->currentshader.get(), name->strvnt(), (mesh != nullptr) ? GetMesh(mesh).geom->vbo : 0);
-    return NilVal();
 }
 
 BUILTIN_V(dispatch_compute, "groups", "I}:3", "",
@@ -1221,7 +1200,6 @@ BUILTIN(auto_compute_barrier, "on", "B", "",
     " explicitly before each consumer instead, letting independent dispatches overlap.")
 (StackPtr &, VM &, iint on) {
     SetAutoComputeBarrier((on != 0));
-    return NilVal();
 }
 
 BUILTIN_V(compute_barrier, "", "", "",
@@ -1240,7 +1218,7 @@ BUILTIN(dump_shader, "filename,stripnonascii", "SB", "B",
     TestGL(vm);
     gs->currentshader->Activate();
     auto ok = gs->currentshader->DumpBinary(filename->strv(), (stripnonascii != 0));
-    return Value(ok);
+    return ok;
 }
 
 BUILTIN_V(blend, "on", "I", "I",
@@ -1260,7 +1238,7 @@ BUILTIN(load_texture, "name,textureformat", "SI?", "R:texture?",
 (StackPtr &, VM &vm, LString *name, iint tf) {
     TestGL(vm);
     auto tex = CreateTextureFromFile(name->strv(), (int)tf);
-    return tex.id ? vm.NewResource(&texture_type, new OwnedTexture(tex)) : NilVal();
+    return tex.id ? vm.NewResource(&texture_type, new OwnedTexture(tex)) : nullptr;
 }
 
 BUILTIN(save_texture, "tex,filename,flip", "R:textureSB?", "B",
@@ -1268,7 +1246,7 @@ BUILTIN(save_texture, "tex,filename,flip", "R:textureSB?", "B",
 (StackPtr &, VM &vm, LResource *t, LString *fn, iint flip) {
     TestGL(vm);
     auto ok = SaveTexture(GetTexture(t), fn->strvnt(), (flip != 0));
-    return Value(ok);
+    return ok;
 }
 
 BUILTIN(set_primitive_texture, "i,tex,tf", "IR:textureI?", "",
@@ -1280,7 +1258,6 @@ BUILTIN(set_primitive_texture, "i,tex,tf", "IR:textureI?", "",
     auto tex = GetTexture(id);
     SetTexture(GetSampler(vm, i), tex);
     if (tf != TF_DONTSET) SetFilterClampWrap(tf, tex.type);
-    return NilVal();
 }
 
 BUILTIN(set_mesh_texture, "mesh,part,i,texture", "R:meshIIR:texture", "",
@@ -1290,7 +1267,6 @@ BUILTIN(set_mesh_texture, "mesh,part,i,texture", "R:meshIIR:texture", "",
     if (part < 0 || part >= (iint)m.surfs.size())
         vm.BuiltinError("setmeshtexture: illegal part index");
     m.surfs[part]->Get(GetSampler(vm, i)) = GetTexture(id);
-    return NilVal();
 }
 
 BUILTIN(set_image_texture, "i,tex,level,accessflags", "IR:textureII?", "",
@@ -1299,7 +1275,6 @@ BUILTIN(set_image_texture, "i,tex,level,accessflags", "IR:textureII?", "",
 (StackPtr &, VM &vm, iint i, LResource *id, iint level, iint tf) {
     TestGL(vm);
     SetImageTexture(GetSampler(vm, i), GetTexture(id), (int)level, (int)tf);
-    return NilVal();
 }
 
 BUILTIN_V(unbind_all_textures, "", "", "",
@@ -1316,8 +1291,7 @@ BUILTIN(create_texture, "matrix,textureformat", "F}:4]]I?", "R:texture",
     " for a cubemap, pass an array that is 6x as big on x than y")
 (StackPtr &, VM &vm, LVector *matv, iint tf) {
     TestGL(vm);
-    return Value(
-        vm.NewResource(&texture_type, CreateTextureFromValues(matv, (int)tf)));
+    return vm.NewResource(&texture_type, CreateTextureFromValues(matv, (int)tf));
 }
 
 BUILTIN(create_texture_single_channel, "matrix,textureformat", "F]]I?", "R:texture",
@@ -1326,8 +1300,7 @@ BUILTIN(create_texture_single_channel, "matrix,textureformat", "F]]I?", "R:textu
     " for a cubemap, pass an array that is 6x as big on x than y")
 (StackPtr &, VM &vm, LVector *matv, iint tf) {
     TestGL(vm);
-    return Value(
-        vm.NewResource(&texture_type, CreateTextureFromValues(matv, (int)tf | TF_SINGLE_CHANNEL)));
+    return vm.NewResource(&texture_type, CreateTextureFromValues(matv, (int)tf | TF_SINGLE_CHANNEL));
 }
 
 BUILTIN_V(create_blank_texture, "size,textureformat", "I}:3I?", "R:texture",
@@ -1366,12 +1339,12 @@ BUILTIN(read_texture, "tex", "R:texture", "S?",
     TestGL(vm);
     auto tex = GetTexture(t);
     auto numpixels = tex.size.x * tex.size.y;
-    if (!numpixels) return NilVal();
+    if (!numpixels) return nullptr;
     auto buf = ReadTexture(tex);
-    if (!buf) return NilVal();
+    if (!buf) return nullptr;
     auto s = vm.NewString(string_view((char *)buf, numpixels * 4));
     delete[] buf;
-    return Value(s);
+    return s;
 }
 
 BUILTIN(generate_texture_mipmap, "tex", "R:texture?", "",
@@ -1380,7 +1353,6 @@ BUILTIN(generate_texture_mipmap, "tex", "R:texture?", "",
     TestGL(vm);
     auto tex = GetTexture(t);
     GenerateTextureMipMap(tex);
-    return NilVal();
 }
 
 BUILTIN(switch_to_framebuffer, "tex,hasdepth,multisampleformat,resolvetex,depthtex",
@@ -1395,9 +1367,9 @@ BUILTIN(switch_to_framebuffer, "tex,hasdepth,multisampleformat,resolvetex,deptht
 (StackPtr &, VM &vm, LResource *t, iint depth, iint tf, LResource *retex, LResource *depthtex) {
     TestGL(vm);
     auto tex = GetTexture(t);
-    return Value(SwitchToFrameBuffer(tex, GetScreenSize(),
+    return SwitchToFrameBuffer(tex, GetScreenSize(),
                                      (depth != 0), (int)tf, GetTexture(retex),
-                                     GetTexture(depthtex)));
+                                     GetTexture(depthtex));
 }
 
 BUILTIN_V(framebuffer_size, "", "", "I}:2",
@@ -1514,38 +1486,37 @@ BUILTIN(get_renderer_info_string, "", "", "S",
     "Get a string describing the renderer, typically OpenGL vendor - renderer - version")
 (StackPtr &, VM &vm) {
     TestGL(vm);
-    return Value(vm.NewString(OpenGLVendorStr()));
+    return vm.NewString(OpenGLVendorStr());
 }
 
 BUILTIN(dropped_file, "", "", "S",
     "if a file was dropped on the window this frame, the filename, otherwise empty")
 (StackPtr &, VM &vm) {
-    return Value(vm.NewString(GetDroppedFile()));
+    return vm.NewString(GetDroppedFile());
 }
 
 BUILTIN(create_time_query, "", "", "R:timequery",
     "creates a time query object used for profiling GPU events")
 (StackPtr &, VM &vm) {
     TestGL(vm);
-    return Value(vm.NewResource(&timequery_type, new TimeQuery()));
+    return vm.NewResource(&timequery_type, new TimeQuery());
 }
 
 BUILTIN(start_time_query, "tq", "R:timequery?", "",
     "starts the time query")
 (StackPtr &, VM &vm, LResource *tq) {
-    if (!(tq != nullptr)) return NilVal();
+    if (!(tq != nullptr)) return;
     TestGL(vm);
     GetTimeQuery(tq).Start();
-    return NilVal();
 }
 
 BUILTIN(stop_time_query, "tq", "R:timequery?", "F",
     "stops the time query and returns the result")
 (StackPtr &, VM &vm, LResource *tq) {
-    if (!(tq != nullptr)) return NilVal();
+    if (!(tq != nullptr)) return 0;
     TestGL(vm);
     GetTimeQuery(tq).Stop();
-    return Value(GetTimeQuery(tq).timing_average_result);
+    return GetTimeQuery(tq).timing_average_result;
 }
 
 BUILTIN(init_controller_database, "filename", "S", "S?",
@@ -1557,30 +1528,29 @@ BUILTIN(init_controller_database, "filename", "S", "S?",
     string dest;
     auto fnsv = fn->strv();
     if (LoadFile(fnsv, &dest) <= 0)
-        return Value(vm.NewString("could not load file: " + fnsv));
+        return vm.NewString("could not load file: " + fnsv);
     auto err = SDLControllerDataBase(dest);
     if (err)
-        return Value(vm.NewString(err));
-    return NilVal();
+        return vm.NewString(err);
+    return nullptr;
 }
 
 BUILTIN(open_url, "url", "S", "B",
     "Opens a URL in the system browser, returns true if successful")
 (StackPtr &, VM &, LString *url) {
     bool ok = SDLOpenURL(url->strv());
-    return Value(ok);
+    return ok;
 }
 
 BUILTIN(set_clipboard, "contents", "S", "",
     "Set the contents of the system clipboard")
 (StackPtr &, VM &, LString *contents) {
     SDLSetClipBoard(contents->data());
-    return NilVal();
 }
 
 BUILTIN(get_clipboard, "", "", "S",
     "Get the contents of the system clipboard")
 (StackPtr &, VM &vm) {
     auto contents = SDLGetClipBoard();
-    return Value(vm.NewString(contents));
+    return vm.NewString(contents);
 }

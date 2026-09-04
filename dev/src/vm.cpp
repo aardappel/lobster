@@ -709,15 +709,17 @@ string VM::ProperTypeName(const TypeInfo &ti) {
     return ti.is_nil ? r + "?" : r;
 }
 
-void VM::BCallRetCheck(StackPtr sp, int nfi) {
+// The first `n` return values of the builtin, which are the ones it pushed: it returns the
+// last one itself unless it is of the V kind, see the BUILTIN macros.
+void VM::BCallRetCheck(StackPtr sp, int nfi, int n) {
     #if RTT_ENABLED
         // See if any builtin function is lying about what type it returns
         // other function types return intermediary values that don't correspond to final return
         // values.
         auto nf = vma.nfr.nfuns[nfi];
-        for (size_t i = 0; i < nf->retvals.size(); i++) {
+        for (int i = 0; i < n; i++) {
             #ifndef NDEBUG
-            auto t = (TopPtr(sp) - nf->retvals.size() + i)->type;
+            auto t = (TopPtr(sp) - n + i)->type;
             auto u = nf->retvals[i].rttype;
             assert(t == u || u == RTT_INVALID || u == RTT_NIL || (u == RTT_VECTOR && RTIsUDT(t)));
             #endif
@@ -725,6 +727,7 @@ void VM::BCallRetCheck(StackPtr sp, int nfi) {
     #else
         (void)nfi;
         (void)sp;
+        (void)n;
     #endif
 }
 
@@ -1091,7 +1094,9 @@ static CValue ToC(Value v) {
 LString *CRtPushStr(VM *vm, int i) { return RtPushStr(*vm, i); }
 #if RTT_ENABLED
 void CRtNativeRetCheck(VM *vm, int nfi, Value v) { vm->BCallRetCheck(v, nfi); }
-void CRtNativeRetCheckStack(VM *vm, StackPtr sp, int nfi) { vm->BCallRetCheck(sp, nfi); }
+void CRtNativeRetCheckStack(VM *vm, StackPtr sp, int nfi, int n) {
+    vm->BCallRetCheck(sp, nfi, n);
+}
 #endif
 #if LOBSTER_NATIVE_PROFILE
 ___tracy_c_zone_context CRtNativeProfileStart(VM *vm, int nfi) { return RtNativeProfileStart(*vm, nfi); }

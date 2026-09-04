@@ -107,7 +107,7 @@ struct Voxels : lobster::Resource {
 
 namespace lobster {
 
-Value CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zoffset);
+LResource *CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zoffset);
 
 extern const unsigned int default_palette[256];
 

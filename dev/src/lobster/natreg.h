@@ -246,10 +246,22 @@ template<typename TIDS, size_t P> struct BuiltinParam {
                                       BuiltinArgWidthOf(TIDS::tids, (int)P)>::type type;
 };
 
+// What a builtin returns. The return type string has the same shape as the argument one, so
+// the kind of each return value comes out of the same parser. A builtin returns its last
+// return value as the type that kind implies, and pushes the ones before it, so one that has
+// none returns void, and so does one of the V kind, which pushes all of them.
+template<typename TIDS, bool PushRets> struct BuiltinRet {
+    static constexpr int n = BuiltinNumArgs(TIDS::rids);
+    typedef std::conditional_t<
+        PushRets || n == 0, void,
+        typename BuiltinParamType<BuiltinArgKindOf(TIDS::rids, n - 1),
+                                  BuiltinArgWidthOf(TIDS::rids, n - 1)>::type> type;
+};
+
 template<typename TIDS, bool PushRets, typename Params> struct BuiltinSigT;
 template<typename TIDS, bool PushRets, size_t... P>
 struct BuiltinSigT<TIDS, PushRets, std::index_sequence<P...>> {
-    typedef std::conditional_t<PushRets, void, Value> ret;
+    typedef typename BuiltinRet<TIDS, PushRets>::type ret;
     typedef ret type(StackPtr &, VM &, typename BuiltinParam<TIDS, P>::type...);
 };
 
@@ -308,21 +320,22 @@ struct BuiltinDef {
 // parameter list and body following it:
 //
 //     BUILTIN(set_shader, "shader", "S", "", "changes the current shader.")
-//     (StackPtr &, VM &vm, Value shader) {
+//     (StackPtr &, VM &vm, LString *shader) {
 //         ...
-//         return NilVal();
 //     }
 //
-// This defines extern "C" Value builtin_gl_set_shader(StackPtr &, VM &, Value), plus a
+// This defines extern "C" void builtin_gl_set_shader(StackPtr &, VM &, LString *), plus a
 // BuiltinDef global holding the metadata. The symbol is thus always "builtin_" followed by the
 // full Lobster name with a "_" for the ".", which RegisterGroup() below verifies, and it is
 // what the generated code calls the builtin by. The function is declared ahead of the
-// definition with the type the argument types given imply, see BuiltinSig, so a parameter list
-// that does not match them is a compile error. An argument that lives in a run of stack slots
-// (a numeric struct, or one that may be a struct) becomes two parameters: a pointer to those
-// slots and how many there are.
-// BUILTIN_V is for the kind of builtin that leaves its return values on the stack it is given
-// rather than returning them, which is what a struct or several of them take, and returns void.
+// definition with the type the argument and return types given imply, see BuiltinSig, so a
+// parameter list or return type that does not match them is a compile error. An argument that
+// lives in a run of stack slots (a numeric struct, or one that may be a struct) becomes a
+// vector of its width, or a pointer to those slots when its width is not fixed.
+// A builtin returns its last return value as the type its letter implies, or void when it has
+// none, and pushes the ones before it onto the stack it is given.
+// BUILTIN_V is for the kind of builtin that leaves all of its return values on that stack
+// rather than returning the last one, which is what a struct takes, and returns void.
 // The stack it gets starts where its arguments are, so those slots are what it writes its
 // return values into, and a builtin that takes a pointer to some of them must be done reading
 // it before it pushes anything. The _OVERLOAD variants take a distinct symbol name and the
@@ -334,20 +347,22 @@ struct BuiltinDef {
 #define BUILTIN_STR_(a) #a
 #define BUILTIN_STR(a) BUILTIN_STR_(a)
 #define BUILTIN_DEF_(sym, name, ids, typeids, rets, help, pushrets) \
-    struct BUILTIN_CAT(sym, _tids) { static constexpr const char *tids = typeids; }; \
+    struct BUILTIN_CAT(sym, _tids) { static constexpr const char *tids = typeids; \
+                                     static constexpr const char *rids = rets; }; \
     extern "C" lobster::BuiltinSig<BUILTIN_CAT(sym, _tids), pushrets>::type sym; \
     static lobster::BuiltinDef BUILTIN_CAT(sym, _def)( \
         BUILTIN_GROUP, BUILTIN_STR(sym), name, ids, typeids, rets, help, pushrets, \
         (const void *)sym)
+#define BUILTIN_RET_(sym) lobster::BuiltinSig<BUILTIN_CAT(sym, _tids), false>::ret
 #define BUILTIN(name, ids, typeids, rets, help) \
     BUILTIN_DEF_(BUILTIN_SYM(name), #name, ids, typeids, rets, help, false); \
-    extern "C" lobster::Value BUILTIN_SYM(name)
+    extern "C" BUILTIN_RET_(BUILTIN_SYM(name)) BUILTIN_SYM(name)
 #define BUILTIN_V(name, ids, typeids, rets, help) \
     BUILTIN_DEF_(BUILTIN_SYM(name), #name, ids, typeids, rets, help, true); \
     extern "C" void BUILTIN_SYM(name)
 #define BUILTIN_OVERLOAD(sym, name, ids, typeids, rets, help) \
     BUILTIN_DEF_(BUILTIN_SYM(sym), name, ids, typeids, rets, help, false); \
-    extern "C" lobster::Value BUILTIN_SYM(sym)
+    extern "C" BUILTIN_RET_(BUILTIN_SYM(sym)) BUILTIN_SYM(sym)
 #define BUILTIN_V_OVERLOAD(sym, name, ids, typeids, rets, help) \
     BUILTIN_DEF_(BUILTIN_SYM(sym), name, ids, typeids, rets, help, true); \
     extern "C" void BUILTIN_SYM(sym)
@@ -405,14 +420,13 @@ struct NativeFun : Named {
         }
     }
 
-    // The C++ type argument `i` reaches the builtin as, which must agree with what
-    // BuiltinArgKindOf makes of the type string it came from.
-    BuiltinArgKind ArgKind(size_t i) const {
-        auto &arg = args[i];
-        if (arg.flags & NF_PUSHVALUEWIDTH) return BAK_VALUEVEC;
-        if (arg.vttype->t == V_STRUCT_NUM)
-            return arg.vttype->ns->t == V_FLOAT ? BAK_FVEC : BAK_IVEC;
-        switch (arg.vttype->ElementIfNil()->t) {
+    // The kind the type of an argument or a return value belongs to, which must agree with
+    // what BuiltinArgKindOf makes of the type string it came from.
+    static BuiltinArgKind KindOf(const Narg &n) {
+        if (n.flags & NF_PUSHVALUEWIDTH) return BAK_VALUEVEC;
+        if (n.vttype->t == V_STRUCT_NUM)
+            return n.vttype->ns->t == V_FLOAT ? BAK_FVEC : BAK_IVEC;
+        switch (n.vttype->ElementIfNil()->t) {
             case V_VECTOR: return BAK_VECTOR;
             case V_INT:
             case V_TYPEID: return BAK_INT;
@@ -422,6 +436,14 @@ struct NativeFun : Named {
             default: return BAK_VALUE;
         }
     }
+
+    // The C++ type argument `i` reaches the builtin as.
+    BuiltinArgKind ArgKind(size_t i) const { return KindOf(args[i]); }
+
+    // The one the builtin returns its last return value as, see BuiltinRet. Of the V kind, or
+    // with nothing to return, it returns void, which has no kind of its own.
+    bool ReturnsValue() const { return !pushrets && !retvals.empty(); }
+    BuiltinArgKind RetKind() const { return KindOf(retvals.back()); }
     // How many values a numeric struct argument has, which its type says.
     int ArgWidth(size_t i) const { return args[i].vttype->ns->flen; }
     bool ArgIsVec(size_t i) const {

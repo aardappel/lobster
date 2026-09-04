@@ -643,17 +643,16 @@ Group *GetGroup() {
     return curgroup;
 }
 
-Value AddShape(ImplicitFunction *f) {
+void AddShape(ImplicitFunction *f) {
     f->size = cur.size;
     f->orig = cur.orig;
     f->rot  = cur.rot;
     f->material = cur.material;
     f->smoothmink = cur.smoothmink;
     GetGroup()->children.push_back(f);
-    return NilVal();
 }
 
-Value eval_and_polygonize(VM &vm, int targetgridsize, int zoffset, bool do_poly) {
+LResource *eval_and_polygonize(VM &vm, int targetgridsize, int zoffset, bool do_poly) {
     auto scenesize = GetGroup()->Size() * 2;
     float biggestdim = max(scenesize.x, max(scenesize.y, scenesize.z));
     // An empty scene has size 0, which would make gridscale infinite.
@@ -671,7 +670,7 @@ Value eval_and_polygonize(VM &vm, int targetgridsize, int zoffset, bool do_poly)
         auto mesh = polygonize_mc(gridsize, gridscale, gridtrans, distgrid, id_grid_to_world);
         MeshGenClear();
         extern ResourceType mesh_type;
-        return Value(vm.NewResource(&mesh_type, mesh));
+        return vm.NewResource(&mesh_type, mesh);
     } else {
         auto cg = CubesFromMeshGen(vm, *distgrid, targetgridsize, zoffset);
         MeshGenClear();
@@ -694,10 +693,10 @@ BUILTIN(sphere, "radius", "F", "",
 
 BUILTIN_V(cube, "extents", "F}:3", "",
     "a cube (extents are size from center)")
-(StackPtr &sp, VM &, double3 extents) {
+(StackPtr &, VM &, double3 extents) {
     auto c = new IFCube();
     c->extents = ToVec<float3>(extents);
-    Push(sp,  AddShape(c));
+    AddShape(c);
 }
 
 BUILTIN(cylinder, "radius,height", "FF", "",
@@ -769,7 +768,6 @@ BUILTIN(set_polygon_reduction, "polyreductionpasses,epsilon,maxtricornerdot", "I
     polyreductionpasses = (int)_polyreductionpasses;
     epsilon = (float)_epsilon;
     maxtricornerdot = (float)_maxtricornerdot;
-    return NilVal();
 }
 
 BUILTIN(set_color_noise, "noiseintensity,noisestretch", "FF", "",
@@ -778,7 +776,6 @@ BUILTIN(set_color_noise, "noiseintensity,noisestretch", "FF", "",
 (StackPtr &, VM &, double _noiseintensity, double _noisestretch) {
     noisestretch = (float)_noisestretch;
     noiseintensity = (float)_noiseintensity;
-    return NilVal();
 }
 
 BUILTIN(set_vertex_randomize, "factor", "F", "",
@@ -787,14 +784,12 @@ BUILTIN(set_vertex_randomize, "factor", "F", "",
     " likely counteract the polygon reduction algorithm")
 (StackPtr &, VM &, double factor) {
     randomizeverts = (float)factor;
-    return NilVal();
 }
 
 BUILTIN(set_point_mode, "on", "B", "",
     "generates a point mesh instead of polygons")
 (StackPtr &, VM &, iint aspoints) {
     pointmode = (aspoints != 0);
-    return NilVal();
 }
 
 BUILTIN(polygonize, "subdiv", "I", "R:mesh",

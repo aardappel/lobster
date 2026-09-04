@@ -1270,7 +1270,7 @@ struct VM : VMBase {
     void AssertFailed(int line, int fileidx, int stringidx);
     void IDXErr(iint i, iint n, const RefObj *v);
     void IDXErrS(iint i, iint n);
-    void BCallRetCheck(StackPtr sp, int nfi);
+    void BCallRetCheck(StackPtr sp, int nfi, int n);
     void BCallRetCheck(Value v, int nfi);
 
     string_view StructName(const TypeInfo &ti);
@@ -1520,20 +1520,20 @@ inline vector<string> ValueToVectorOfStrings(Value v) {
     return r;
 }
 
-inline Value ToValueOfVectorOfStrings(VM &vm, const vector<string> &in) {
+inline LVector *ToValueOfVectorOfStrings(VM &vm, const vector<string> &in) {
     auto v = vm.NewVec(0, ssize(in), TYPE_ELEM_VECTOR_OF_STRING);
     for (auto &a : in) v->Push(vm, vm.NewString(a));
-    return Value(v);
+    return v;
 }
 
-inline Value ToValueOfVectorOfStringsEmpty(VM &vm, const int2 &size, char init) {
+inline LVector *ToValueOfVectorOfStringsEmpty(VM &vm, const int2 &size, char init) {
     auto v = vm.NewVec(0, size.y, TYPE_ELEM_VECTOR_OF_STRING);
     for (int i = 0; i < size.y; i++) {
         auto s = vm.NewString(size.x);
         memset((char *)s->data(), init, size.x);
         v->Push(vm, s);
     }
-    return Value(v);
+    return v;
 }
 
 void EscapeAndQuote(string_view s, string &sd, bool cpp = false);

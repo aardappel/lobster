@@ -1111,14 +1111,12 @@ BUILTIN(init, "dark_style,flags,rounding,border", "B?I?F?F?", "",
 (StackPtr &, VM &vm, iint darkstyle, iint flags, double rounding, double border) {
     if (!IMGUIInit(flags, (darkstyle != 0), (float)rounding, (float)border))
         vm.BuiltinError("im.init: no window");
-    return NilVal();
 }
 
 BUILTIN(cleanup, "", "", "",
     "not required to be called, this is done automatically, but useful if you want to call im.init again")
 (StackPtr &, VM &) {
     IMGUICleanup();
-    return NilVal();
 }
 
 BUILTIN(add_font, "font_path,size,glyph_ranges", "SFS?", "B",
@@ -1126,8 +1124,8 @@ BUILTIN(add_font, "font_path,size,glyph_ranges", "SFS?", "B",
     " Default (most European languages), SimplifiedChinese, Chinese, Japanese, Korean, Cyrillic, Thai, Vietnamese, Greek, ..")
 (StackPtr &, VM &vm, LString *fontname, double size, LString *glyph_ranges) {
     IsInit(vm, { N_NONE, N_NONE });
-    return Value(LoadFont(fontname->strv(), (float)size,
-                          (glyph_ranges != nullptr) ? glyph_ranges->strv() : "Default"));
+    return LoadFont(fontname->strv(), (float)size,
+                          (glyph_ranges != nullptr) ? glyph_ranges->strv() : "Default");
 }
 
 BUILTIN_V(clear_fonts, "", "", "",
@@ -1228,7 +1226,7 @@ BUILTIN(window_demo, "", "", "B",
     IsInit(vm, { N_FRAME, N_NONE });
     bool show = true;
     ImGui::ShowDemoWindow(&show);
-    return Value(show);
+    return show;
 }
 
 BUILTIN_V(window_start, "title,flags,dock", "SII", "B",
@@ -1304,7 +1302,6 @@ BUILTIN(same_line, "", "", "", "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     ImGui::SameLine();
-    return NilVal();
 }
 
 BUILTIN_V(new_line, "", "", "", "")
@@ -1318,7 +1315,6 @@ BUILTIN(separator, "", "", "",
 (StackPtr &, VM &vm) {
     IsInit(vm);
     ImGui::Separator();
-    return NilVal();
 }
 
 BUILTIN(spacing, "", "", "",
@@ -1326,7 +1322,6 @@ BUILTIN(spacing, "", "", "",
 (StackPtr &, VM &vm) {
     IsInit(vm);
     ImGui::Spacing();
-    return NilVal();
 }
 
 BUILTIN_V(is_item_deactivated_after_edit, "", "", "B",
@@ -1486,7 +1481,6 @@ BUILTIN(text, "label", "S", "",
     IsInit(vm);
     auto &s = *text;
     Text(s.strv());
-    return NilVal();
 }
 
 BUILTIN(text_wrapped, "label", "S", "",
@@ -1495,7 +1489,6 @@ BUILTIN(text_wrapped, "label", "S", "",
     IsInit(vm);
     auto &s = *text;
     ImGui::TextWrapped("%s", s.strvnt().c_str());
-    return NilVal();
 }
 
 BUILTIN(text_bullet, "label", "S", "",
@@ -1504,7 +1497,6 @@ BUILTIN(text_bullet, "label", "S", "",
     IsInit(vm);
     auto &s = *text;
     ImGui::BulletText("%s", s.data());
-    return NilVal();
 }
 
 BUILTIN(text_markdown, "text", "S", "",
@@ -1513,7 +1505,6 @@ BUILTIN(text_markdown, "text", "S", "",
     IsInit(vm);
     auto &s = *text;
     Markdown(s.strv());
-    return NilVal();
 }
 
 BUILTIN_V(indent_start, "amount", "F", "",
@@ -1590,7 +1581,6 @@ BUILTIN(tooltip, "label", "S", "",
         ImGui::SetTooltip("%s", Label(vm, text));
         PopToolTipStyle();
     }
-    return NilVal();
 }
 
 BUILTIN_V(tooltip_multi_start, "", "", "B",
@@ -1628,14 +1618,14 @@ BUILTIN(checkbox, "label,bool", "SI", "I2",
     IsInit(vm);
     bool b = (boolval != 0);
     ImGui::Checkbox(Label(vm, text), &b);
-    return Value(b);
+    return b;
 }
 
 BUILTIN_OVERLOAD(input_text_plain, "input_text", "label,str", "SSk", "S",
     "")
 (StackPtr &, VM &vm, LString *text, LString *str) {
     IsInit(vm);
-    return Value(LStringInputText(vm, Label(vm, text), str).first);
+    return LStringInputText(vm, Label(vm, text), str).first;
 }
 
 BUILTIN_V_OVERLOAD(input_text_flags, "input_text", "label,str,flags", "SSkI", "SB",
@@ -1660,7 +1650,7 @@ BUILTIN(input_text_multi_line, "label,str,num_lines,flags", "SSkII?", "S",
     "")
 (StackPtr &, VM &vm, LString *text, LString *str, iint num_lines, iint flags) {
     IsInit(vm);
-    return Value(LStringInputText(vm, Label(vm, text), str, (int)num_lines, (int)flags).first);
+    return LStringInputText(vm, Label(vm, text), str, (int)num_lines, (int)flags).first;
 }
 
 BUILTIN_OVERLOAD(input_int_minmax, "input_int", "label,val,min,max", "SIII", "I",
@@ -1687,7 +1677,7 @@ BUILTIN(input_float, "label,val", "SF", "F",
     "")
 (StackPtr &, VM &vm, LString *text, double val) {
     IsInit(vm);
-    return Value(InputFloat(Label(vm, text), val));
+    return InputFloat(Label(vm, text), val);
 }
 
 BUILTIN(radio, "labels,active,horiz", "S]II", "I",
@@ -1701,7 +1691,7 @@ BUILTIN(radio, "labels,active,horiz", "S]II", "I",
         if (i && (horiz != 0)) ImGui::SameLine();
         ImGui::RadioButton(Label(vm, v->AtS(i)), &sel, (int)i);
     }
-    return Value(sel);
+    return sel;
 }
 
 BUILTIN_V(progress_bar, "fraction,size,overlay", "FF}:2S", "",
@@ -1727,7 +1717,7 @@ BUILTIN(combo, "label,labels,active", "SS]I", "I",
         items[i] = Label(vm, v->AtS(i));
     }
     ImGui::Combo(Label(vm, text), &sel, items.data(), (int)items.size());
-    return Value(sel);
+    return sel;
 }
 
 BUILTIN(listbox, "label,labels,active,height", "SS]II", "I",
@@ -1742,7 +1732,7 @@ BUILTIN(listbox, "label,labels,active,height", "SS]II", "I",
         items[i] = v->AtS(i).sval()->data();
     }
     ImGui::ListBox(Label(vm, text), &sel, items.data(), (int)items.size(), (int)height);
-    return Value(sel);
+    return sel;
 }
 
 BUILTIN(sliderint, "label,i,min,max", "SIII", "I",
@@ -1751,7 +1741,7 @@ BUILTIN(sliderint, "label,i,min,max", "SIII", "I",
     IsInit(vm);
     int i = (int)integer;
     ImGui::SliderInt(Label(vm, text), &i, (int)min, (int)max);
-    return Value(i);
+    return i;
 }
 
 BUILTIN(sliderfloat, "label,f,min,max", "SFFF", "F",
@@ -1760,7 +1750,7 @@ BUILTIN(sliderfloat, "label,f,min,max", "SFFF", "F",
     IsInit(vm);
     float f = (float)flt;
     ImGui::SliderFloat(Label(vm, text), &f, (float)min, (float)max);
-    return Value(f);
+    return f;
 }
 
 #define VECSLIDER(Type, type, VT, T, N)                                                   \
@@ -2265,19 +2255,18 @@ BUILTIN(text_table, "id,num_colums,labels", "SIS]", "", "")
     auto nc = (int)num_colums;
     // ImGui requires at least 1 column. Render nothing, rather than error out on
     // procedurally generated content.
-    if (nc <= 0) return NilVal();
+    if (nc <= 0) return;
     if (!ImGui::BeginTable(id->strvnt().c_str(), nc,
                            ImGuiTableFlags_SizingFixedFit |
                            ImGuiTableFlags_NoHostExtendX |
                            ImGuiTableFlags_Borders))
-        return NilVal();
+        return;
     for (iint i = 0; i < labels->len; i++) {
         if (!(i % nc)) ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(i % nc);
         Text(labels->AtS(i).sval()->strv());
     }
     ImGui::EndTable();
-    return NilVal();
 }
 
 BUILTIN(table_start, "id,num_colums,flags", "SII", "B",
@@ -2286,10 +2275,10 @@ BUILTIN(table_start, "id,num_colums,flags", "SII", "B",
     IsInit(vm);
     auto nc = (int)num_colums;
     // ImGui requires at least 1 column.
-    if (nc <= 0) return Value(false);
+    if (nc <= 0) return false;
     auto visible = ImGui::BeginTable(id->strvnt().c_str(), nc, (int)flags);
     if (visible) NPush(N_TABLE);
-    return Value(visible);
+    return visible;
 }
 
 BUILTIN(table_setup_column, "label,flags,init_width_or_weight", "SIF", "",
@@ -2305,7 +2294,6 @@ BUILTIN(table_setup_column, "label,flags,init_width_or_weight", "SIF", "",
         vm.BuiltinError("im.table_setup_column: can only set init width/height if flags require it");
     if (NTop() == N_TABLE)
         ImGui::TableSetupColumn(label->strvnt().c_str(), flags, init);
-    return NilVal();
 }
 
 BUILTIN_V(table_headers_row, "", "", "",
@@ -2361,7 +2349,6 @@ BUILTIN(graph, "label,values,ishistogram", "SF]I", "",
         ImGui::PlotLines(Label(vm, label), getter, vals->Elems(),
             (int)vals->len);
     }
-    return NilVal();
 }
 
 BUILTIN(show_flexbuffer, "value", "S", "",
@@ -2374,7 +2361,6 @@ BUILTIN(show_flexbuffer, "value", "S", "",
         vm.BuiltinError("im.show_flexbuffer: flexbuffer binary does not verify!");
     auto root = flexbuffers::GetRoot((const uint8_t *)sv.data(), sv.size());
     FlexBufferGUI(root, "Stack trace", false);
-    return NilVal();
 }
 
 BUILTIN(show_vars, "", "", "",
@@ -2382,7 +2368,6 @@ BUILTIN(show_vars, "", "", "",
 (StackPtr &, VM &vm) {
     IsInit(vm);
     VarsToGUI(vm);
-    return NilVal();
 }
 
 BUILTIN(show_engine_stats, "", "", "",
@@ -2390,7 +2375,6 @@ BUILTIN(show_engine_stats, "", "", "",
 (StackPtr &, VM &vm) {
     IsInit(vm);
     EngineStatsGUI();
-    return NilVal();
 }
 
 BUILTIN(show_debug_metrics_window, "", "", "",
@@ -2400,7 +2384,6 @@ BUILTIN(show_debug_metrics_window, "", "", "",
     // There is also ShowDebugLogWindow() and others, but all of these can be
     // opened from this window, so really only one needed:
     ImGui::ShowMetricsWindow();
-    return NilVal();
 }
 
 BUILTIN(show_profiling_stats, "num,histogram", "IB", "",
@@ -2421,7 +2404,7 @@ BUILTIN(show_profiling_stats, "num,histogram", "IB", "",
     if (!ImGui::BeginTable("show_profiling_stats", (histogram != 0) ? 6 : 5,
                            ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoHostExtendX |
                                ImGuiTableFlags_Borders))
-        return NilVal();
+        return;
     ImGui::TableSetupColumn("Function");
     ImGui::TableSetupColumn("AVG ms");
     ImGui::TableSetupColumn("HI ms");
@@ -2458,7 +2441,6 @@ BUILTIN(show_profiling_stats, "num,histogram", "IB", "",
     (void)i;
     (void)histogram;
     #endif
-    return NilVal();
 }
 
 #define IMGUI_STYLE_PARAMS(FV, VV, BV, DV) \
@@ -2539,7 +2521,6 @@ BUILTIN(set_style_param_slow, "name,vals", "SF]", "",
     #undef PARAM_VV
     #undef PARAM_BV
     #undef PARAM_DV
-    return NilVal();
 }
 
 BUILTIN(get_style_param_slow, "name,vals", "SF]", "",
@@ -2557,7 +2538,6 @@ BUILTIN(get_style_param_slow, "name,vals", "SF]", "",
     #undef PARAM_VV
     #undef PARAM_BV
     #undef PARAM_DV
-    return NilVal();
 }
 
 #undef BUILTIN_GROUP
@@ -2574,7 +2554,6 @@ BUILTIN_OVERLOAD(breakpoint_conditional, "breakpoint", "condition", "I", "",
         auto err = BreakPoint(vm, "Conditional breakpoint hit!", false);
         if (!err.empty()) vm.Error(err);
     }
-    return NilVal();
 }
 
 BUILTIN_OVERLOAD(breakpoint_always, "breakpoint", "", "", "",
@@ -2583,7 +2562,6 @@ BUILTIN_OVERLOAD(breakpoint_always, "breakpoint", "", "", "",
 (StackPtr &, VM &vm) {
     auto err = BreakPoint(vm, "Breakpoint hit!", false);
     if (!err.empty()) vm.Error(err);
-    return NilVal();
 }
 
 BUILTIN(write_debug_dump, "", "", "",
@@ -2591,5 +2569,4 @@ BUILTIN(write_debug_dump, "", "", "",
     " needs --runtime-stack-trace on.")
 (StackPtr &, VM &vm) {
     vm.DumpStackTraceMemory("called from write_debug_dump()");
-    return NilVal();
 }

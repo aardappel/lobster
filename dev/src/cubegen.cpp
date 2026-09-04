@@ -246,7 +246,7 @@ Voxels *NewWorld(const int3 &size, size_t palette_idx) {
     return v;
 }
 
-Value CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zoffset) {
+LResource *CubesFromMeshGen(VM &vm, const DistGrid &grid, int targetgridsize, int zoffset) {
     auto &v = *NewWorld(int3_1 * targetgridsize, default_palette_idx);
     auto off = (grid.dim - v.grid.dim) / 2;
     off.z += zoffset;
@@ -392,7 +392,7 @@ BUILTIN_V(palette_to_color, "block,paletteindex", "R:voxelsI", "F}:4",
 BUILTIN(get_palette, "world", "R:voxels", "I", "")
 (StackPtr &, VM &, LResource *world) {
     auto &w = GetVoxels(world);
-    return Value(w.palette_idx);
+    return w.palette_idx;
 }
 
 BUILTIN(set_palette, "world,palette_idx", "R:voxelsI", "", "")
@@ -401,7 +401,6 @@ BUILTIN(set_palette, "world,palette_idx", "R:voxelsI", "", "")
     auto i = (size_t)idx;
     if (i >= palettes.size()) vm.BuiltinError("set_palette: out of range");
     w.palette_idx = i;
-    return NilVal();
 }
 
 BUILTIN(load_palette, "act_palette_file", "S", "I", "")
@@ -419,7 +418,7 @@ BUILTIN(load_palette, "act_palette_file", "S", "I", "")
             : 0;    // 0 always transparency in MV.
         pal.push_back(p);
     }
-    return Value(NewPalette(pal.data()));
+    return NewPalette(pal.data());
 }
 
 BUILTIN(new_palette, "palette", "F}:4]", "I",
@@ -433,7 +432,7 @@ BUILTIN(new_palette, "palette", "F}:4]", "I",
         p.w = p.w > 0 ? 0x80 : 0;  // NOTE: does not allow setting material flags.
         pal.push_back(p);
     }
-    return Value(NewPalette(pal.data()));
+    return NewPalette(pal.data());
 }
 
 BUILTIN_V(get_palette_color, "palette_idx,entry", "II", "F}:4", "")
@@ -508,7 +507,7 @@ BUILTIN(sample_down, "scale,world,alpha_threshold", "IR:voxelsF", "R:voxels", ""
             }
         }
     }
-    return Value(NewVoxelResource(vm, *nw));
+    return NewVoxelResource(vm, *nw);
 }
 
 BUILTIN(scale_up, "scale,world", "IR:voxels", "R:voxels", "")
@@ -536,7 +535,7 @@ BUILTIN(scale_up, "scale,world", "IR:voxels", "R:voxels", "")
             }
         }
     }
-    return Value(NewVoxelResource(vm, d));
+    return NewVoxelResource(vm, d);
 }
 
 BUILTIN_V(stretch, "newsize,world", "I}:3R:voxels", "R:voxels", "")
@@ -651,7 +650,7 @@ BUILTIN(create_mesh, "block", "R:voxels", "R:mesh",
                       PRIM_TRIS);
     m->surfs.push_back(
         new Surface("cg.create_mesh_idxs", span(triangles), PRIM_TRIS));
-    return Value(vm.NewResource(&mesh_type, m));
+    return vm.NewResource(&mesh_type, m);
 }
 
 BUILTIN(create_3d_texture, "block,textureformat,monochrome", "R:voxelsII?", "R:texture",
@@ -716,7 +715,7 @@ BUILTIN(create_3d_texture, "block,textureformat,monochrome", "R:voxelsII?", "R:t
         TF_3D | /*TF_NEAREST_MAG | TF_NEAREST_MIN | TF_CLAMP |*/ TF_SINGLE_CHANNEL |
         TF_BUFFER_HAS_MIPS | (int)textureflags);
     delete[] buf;
-    return Value(vm.NewResource(&texture_type, new OwnedTexture(tex)));
+    return vm.NewResource(&texture_type, new OwnedTexture(tex));
 }
 
 // https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox.txt
@@ -736,7 +735,7 @@ BUILTIN(load_vox, "name,material_palette,file_contents,remap_palettes", "SB?S?B?
     auto errf = [&](string_view err) {
         // TODO: could clear voxvec elements if any?
         Push(sp, Value(voxvec));
-        return Value(vm.NewString(cat(namep, ": ", err)));
+        return vm.NewString(cat(namep, ": ", err));
     };
     auto erreof = [&]() {
         return errf("unexpected end of .vox file.");
@@ -1156,7 +1155,7 @@ BUILTIN(load_vox, "name,material_palette,file_contents,remap_palettes", "SB?S?B?
         voxels->palette_idx = NewPalette(palette.data());
     }
     Push(sp, Value(voxvec));
-    return NilVal();
+    return nullptr;
 }
 
 BUILTIN(load_vox_names, "name", "S", "S]S?",
@@ -1168,7 +1167,7 @@ BUILTIN(load_vox_names, "name", "S", "S]S?",
     auto errf = [&](string_view err) {
         // TODO: could clear namevec elements if any?
         Push(sp, Value(namevec));
-        return Value(vm.NewString(cat(namep, ": ", err)));
+        return vm.NewString(cat(namep, ": ", err));
     };
     auto erreof = [&]() {
         return errf("unexpected end of .vox file.");
@@ -1263,7 +1262,7 @@ BUILTIN(load_vox_names, "name", "S", "S]S?",
     }
 
     Push(sp, Value(namevec));
-    return NilVal();
+    return nullptr;
 }
 
 BUILTIN(save_vox, "blocks,names,flags", "R:voxels]S]I?", "S?",
@@ -1284,7 +1283,7 @@ BUILTIN(save_vox, "blocks,names,flags", "R:voxels]S]I?", "S?",
     auto palette_idx = GetVoxels(bvec->AtS(0)).palette_idx;
     for (iint i = 0; i < nblocks; i++) {
         auto &v = GetVoxels(bvec->AtS(i));
-        if (!all(v.grid.dim <= 256)) return NilVal();
+        if (!all(v.grid.dim <= 256)) return nullptr;
         if (v.palette_idx != palette_idx)
             vm.BuiltinError("save_vox: all bvec must use the same palette");
     }
@@ -1399,13 +1398,13 @@ BUILTIN(save_vox, "blocks,names,flags", "R:voxels]S]I?", "S?",
     }
     int childlen = (int)buf.size() - 20;  // All chunks that follow the MAIN chunk.
     memcpy(buf.data() + 16, &childlen, 4);
-    return Value(vm.NewString(buf));
+    return vm.NewString(buf);
 }
 
 BUILTIN(chunks_skipped, "block", "R:voxels", "B", "")
 (StackPtr &, VM &, LResource *wid) {
     auto &v = GetVoxels(wid);
-    return Value(v.chunks_skipped);
+    return v.chunks_skipped;
 }
 
 BUILTIN(get_buf, "block", "R:voxels", "S",
@@ -1414,7 +1413,7 @@ BUILTIN(get_buf, "block", "R:voxels", "S",
     auto &v = GetVoxels(wid);
     auto buf = vm.NewString(v.grid.dim.volume());
     v.grid.ToContinousGrid((uint8_t *)buf->strv().data());
-    return Value(buf);
+    return buf;
 }
 
 BUILTIN_V(set_buf, "block,indices,offset,size", "R:voxelsSI}:3I}:3", "",
@@ -1587,7 +1586,7 @@ BUILTIN(rotate, "block,n", "R:voxelsI", "R:voxels",
             }
         }
     }
-    return Value(NewVoxelResource(vm, d));
+    return NewVoxelResource(vm, d);
 }
 
 BUILTIN_V(simplex, "block,pos,size,spos,ssize,octaves,scale,persistence,solidcol,zscale,zbias", "R:voxelsI}:3I}:3F}:3F}:3IFFIFF", "",
@@ -1674,7 +1673,6 @@ BUILTIN(randomize, "world,rnd_range,cutoff,paletteindex,filter", "R:voxelsIIII",
             }
         }
     }
-    return NilVal();
 }
 
 BUILTIN(erode, "world,minsolid,maxsolid", "R:voxelsII", "R:voxels", "")
@@ -1709,7 +1707,7 @@ BUILTIN(erode, "world,minsolid,maxsolid", "R:voxelsII", "R:voxels", "")
             }
         }
     }
-    return Value(NewVoxelResource(vm, d));
+    return NewVoxelResource(vm, d);
 }
 
 BUILTIN_V(normal_indices, "block,radius,adjacents", "R:voxelsIF]", "R:voxels",
@@ -1851,7 +1849,7 @@ BUILTIN_V(palette_storage_index, "block", "R:voxels", "I", "")
 
 BUILTIN(get_palette_storage_len, "", "", "I", "")
 (StackPtr &, VM &) {
-    return Value(palettes.size());
+    return palettes.size();
 }
 
 BUILTIN(get_palette_storage_buf, "", "", "S", "")
@@ -1861,5 +1859,5 @@ BUILTIN(get_palette_storage_buf, "", "", "S", "")
         memcpy((uint8_t *)buf->strv().data() + i * palette_size, pal.colors.data(),
                palette_size);
     }
-    return Value(buf);
+    return buf;
 }

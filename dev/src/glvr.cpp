@@ -293,7 +293,7 @@ BuiltinGroup vr_builtins;
 BUILTIN(init, "", "", "B",
     "initializes VR mode. returns true if a hmd was found and initialized")
 (StackPtr &, VM &) {
-    return Value(VRInit());
+    return VRInit();
 }
 
 BUILTIN(start_eye, "isright,znear,zfar", "IFF", "",
@@ -301,21 +301,18 @@ BUILTIN(start_eye, "isright,znear,zfar", "IFF", "",
     " replaces gl.perspective")
 (StackPtr &, VM &, iint isright, double znear, double zfar) {
     VREye((isright != 0), (float)znear, (float)zfar);
-    return NilVal();
 }
 
 BUILTIN(start, "", "", "",
     "starts VR by updating hmd & controller poses")
 (StackPtr &, VM &) {
     VRStart();
-    return NilVal();
 }
 
 BUILTIN(finish, "", "", "",
     "finishes vr rendering by compositing (and distorting) both eye renders to the screen")
 (StackPtr &, VM &) {
     VRFinish();
-    return NilVal();
 }
 
 BUILTIN(set_eye_texture, "unit,isright", "II", "",
@@ -323,20 +320,19 @@ BUILTIN(set_eye_texture, "unit,isright", "II", "",
     " used to render the non-VR display")
 (StackPtr &, VM &vm, iint unit, iint isright) {
     SetTexture(GetSampler(vm, unit), retex[(isright != 0)]);
-    return NilVal();
 }
 
 BUILTIN(num_motion_controllers, "", "", "I",
     "returns the number of motion controllers in the system")
 (StackPtr &, VM &) {
-    return Value((int)motioncontrollers.size());
+    return (int)motioncontrollers.size();
 }
 
 BUILTIN(motioncontrollerstracking, "n", "I", "B",
     "returns if motion controller n is tracking")
 (StackPtr &, VM &, iint mc) {
     auto mcd = GetMC(mc);
-    return Value(mcd && mcd->tracking);
+    return mcd && mcd->tracking;
 }
 
 BUILTIN_V(motion_controller, "n", "I", "",
@@ -352,7 +348,7 @@ BUILTIN(create_motion_controller_mesh, "n", "I", "R:mesh?",
     "returns the mesh for motion controller n, or nil if not available")
 (StackPtr &, VM &vm, iint mc) {
     auto mcd = GetMC(mc);
-    return mcd ? Value(vm.NewResource(&mesh_type, VRCreateMesh(mcd->device))) : NilVal();
+    return mcd ? vm.NewResource(&mesh_type, VRCreateMesh(mcd->device)) : nullptr;
 }
 
 // TODO: make it return an "up" value much like gl.button, since this doesn't represent
@@ -365,12 +361,12 @@ BUILTIN(motion_controller_button, "n,button", "IS", "I",
     #ifdef PLATFORM_VR
         auto mcd = GetMC(mc);
         auto mask = ButtonMaskFromId(GetButtonId(vm, button));
-        if (!mcd) return Value(-1);
+        if (!mcd) return -1;
         auto masknow = mcd->state.ulButtonPressed & mask;
         auto maskbef = mcd->laststate.ulButtonPressed & mask;
-        return Value(int(masknow != 0) * 2 - int(!(maskbef != 0)));
+        return int(masknow != 0) * 2 - int(!(maskbef != 0));
     #else
-        return Value(0);
+        return 0;
     #endif
 }
 

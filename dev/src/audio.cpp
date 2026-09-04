@@ -33,7 +33,7 @@ BUILTIN(play_wav, "filename,loops,prio", "SI?I?", "I",
     " returns the assigned channel number (1..8) or 0 on error")
 (StackPtr &, VM &, LString *ins, iint loops, iint prio) {
     int ch = SDLPlaySound(ins->strv(), SOUND_WAV, 1.0, (int)loops, (int)prio);
-    return Value(ch);
+    return ch;
 }
 
 BUILTIN(load_wav, "filename", "S", "B",
@@ -41,7 +41,7 @@ BUILTIN(load_wav, "filename", "S", "B",
     " delays later. returns false on error")
 (StackPtr &, VM &, LString *ins) {
     int ok = SDLLoadSound(ins->strv(), SOUND_WAV);
-    return Value(ok);
+    return ok;
 }
 
 BUILTIN(play_sfxr, "filename,loops,prio", "SI?I?", "I",
@@ -53,7 +53,7 @@ BUILTIN(play_sfxr, "filename,loops,prio", "SI?I?", "I",
     " returns the assigned channel number (1..8) or 0 on error")
 (StackPtr &, VM &, LString *ins, iint loops, iint prio) {
     int ch = SDLPlaySound(ins->strv(), SOUND_SFXR, 1.0, (int)loops, (int)prio);
-    return Value(ch);
+    return ch;
 }
 
 BUILTIN(load_sfxr, "filename", "S", "B",
@@ -61,7 +61,7 @@ BUILTIN(load_sfxr, "filename", "S", "B",
     " delays later. returns false on error")
 (StackPtr &, VM &, LString *ins) {
     int ok = SDLLoadSound(ins->strv(), SOUND_SFXR);
-    return Value(ok);
+    return ok;
 }
 
 BUILTIN(play_ogg, "filename,loops,prio", "SI?I?", "I",
@@ -72,7 +72,7 @@ BUILTIN(play_ogg, "filename,loops,prio", "SI?I?", "I",
     " returns the assigned channel number (1..8) or 0 on error")
 (StackPtr &, VM &, LString *ins, iint loops, iint prio) {
     int ch = SDLPlaySound(ins->strv(), SOUND_OGG, 1.0, (int)loops, (int)prio);
-    return Value(ch);
+    return ch;
 }
 
 BUILTIN(load_ogg, "filename", "S", "B",
@@ -80,7 +80,7 @@ BUILTIN(load_ogg, "filename", "S", "B",
     " delays later. returns false on error")
 (StackPtr &, VM &, LString *ins) {
     int ok = SDLLoadSound(ins->strv(), SOUND_OGG);
-    return Value(ok);
+    return ok;
 }
 
 BUILTIN(play_audio_stream, "freq,channels,prio", "III?", "I",
@@ -91,7 +91,7 @@ BUILTIN(play_audio_stream, "freq,channels,prio", "III?", "I",
     " returns the assigned channel number (1..8) or 0 on error")
 (StackPtr &, VM &, iint freq, iint channels, iint prio) {
     auto ch = SDLPlayAudioStream((int)freq, (int)channels, 1.0, (int)prio);
-    return Value(ch);
+    return ch;
 }
 
 BUILTIN(put_audio_stream, "channel,data", "IF]", "B",
@@ -102,20 +102,20 @@ BUILTIN(put_audio_stream, "channel,data", "IF]", "B",
     for (int i = 0; i < vdata->len; i++)
         data.push_back(vdata->AtSt(i)->fltval());
     auto ok = SDLPutAudioStream((int)channel, std::move(data));
-    return Value(ok);
+    return ok;
 }
 
 BUILTIN(has_audio_stream, "channel", "I", "B",
     "returns whether the given channel has an audio stream")
 (StackPtr &, VM &, iint channel) {
-    return Value(SDLHasAudioStream((int)channel));
+    return SDLHasAudioStream((int)channel);
 }
 
 BUILTIN(audio_stream_available, "channel", "I", "I",
     "returns the number of samples available in the audio stream")
 (StackPtr &, VM &, iint channel) {
     auto ok = SDLAudioStreamAvailable((int)channel);
-    return Value(ok);
+    return ok;
 }
 
 BUILTIN(sound_status, "channel", "I", "I",
@@ -125,9 +125,9 @@ BUILTIN(sound_status, "channel", "I", "I",
 (StackPtr &, VM &, iint ch) {
     int ch_idx = (int)ch;
     if (ch_idx > 0) // we disallow 0 (which would then be -1; all channels in SDL_Mixer) because it is our error value!
-        return Value(SDLSoundStatus(ch_idx));
+        return SDLSoundStatus(ch_idx);
     else
-        return Value(-1);
+        return -1;
 }
 
 BUILTIN(sound_halt, "channel", "I", "",
@@ -136,7 +136,6 @@ BUILTIN(sound_halt, "channel", "I", "",
     int ch_idx = (int)ch;
     if (ch_idx > 0)
         SDLHaltSound(ch_idx);
-    return NilVal();
 }
 
 BUILTIN(sound_pause, "channel", "I", "",
@@ -145,7 +144,6 @@ BUILTIN(sound_pause, "channel", "I", "",
     int ch_idx = (int)ch;
     if (ch_idx > 0)
         SDLPauseSound(ch_idx);
-    return NilVal();
 }
 
 BUILTIN(sound_resume, "channel", "I", "",
@@ -154,7 +152,6 @@ BUILTIN(sound_resume, "channel", "I", "",
     int ch_idx = (int)ch;
     if (ch_idx > 0)
         SDLResumeSound(ch_idx);
-    return NilVal();
 }
 
 BUILTIN(sound_volume, "channel,volume", "IF", "",
@@ -163,7 +160,6 @@ BUILTIN(sound_volume, "channel,volume", "IF", "",
     int ch_idx = (int)ch;
     if (ch_idx > 0)
         SDLSetVolume(ch_idx, (float)vol);
-    return NilVal();
 }
 
 BUILTIN_V(sound_position, "channel,vecfromlistener,listenerfwd,attnscale", "IF}:3F}:3F", "",
@@ -190,21 +186,19 @@ BUILTIN(sound_time_length, "channel", "I", "F",
     "returns the length in seconds of the sound playing on this channel")
 (StackPtr &, VM &, iint ch_idx) {
     float length = SDLGetTimeLength((int)ch_idx);
-    return Value(length);
+    return length;
 }
 
 BUILTIN(text_to_speech, "text", "S", "",
     "Queues up text for async text to speech output. Currently on: win32")
 (StackPtr &, VM &, LString *text) {
     QueueTextToSpeech(text->strv());
-    return NilVal();
 }
 
 BUILTIN(text_to_speech_stop, "", "", "",
     "Stops current text to speech output and clears queue")
 (StackPtr &, VM &) {
     StopTextToSpeech();
-    return NilVal();
 }
 
 BUILTIN(play_music, "filename,loops", "SI?", "I",
@@ -213,70 +207,64 @@ BUILTIN(play_music, "filename,loops", "SI?", "I",
     " returns the music id or 0 on error")
 (StackPtr &, VM &, LString *ins, iint loops) {
     int mus_id = SDLPlayMusic(ins->strv(), (int)loops);
-    return Value(mus_id);
+    return mus_id;
 }
 
 BUILTIN(play_music_fade_in, "filename,ms,loops", "SII?", "I",
     "plays music while fading in over ms milliseconds. See play_music for more info.")
 (StackPtr &, VM &, LString *ins, iint ms, iint loops) {
     int mus_id = SDLFadeInMusic(ins->strv(), (int)loops, (int)ms);
-    return Value(mus_id);
+    return mus_id;
 }
 
 BUILTIN(play_music_cross_fade, "old_mus_id,new_filename,ms,loops", "ISII?", "I",
     "cross-fades new music with existing music over ms milliseconds. See play_music for more info.")
 (StackPtr &, VM &, iint old_mus_id, LString *new_ins, iint ms, iint loops) {
     int new_mus_id = SDLCrossFadeMusic((int)old_mus_id, new_ins->strv(), (int)loops, (int)ms);
-    return Value(new_mus_id);
+    return new_mus_id;
 }
 
 BUILTIN(music_fade_out, "mus_id,ms", "II", "",
     "fade out music over ms milliseconds.")
 (StackPtr &, VM &, iint mus_id, iint ms) {
     SDLFadeOutMusic((int)mus_id, (int)ms);
-    return NilVal();
 }
 
 BUILTIN(music_halt, "mus_id", "I", "",
     "stop music with the given id.")
 (StackPtr &, VM &, iint mus_id) {
     SDLHaltMusic((int)mus_id);
-    return NilVal();
 }
 
 BUILTIN(music_pause, "mus_id", "I", "",
     "pause music with the given id.")
 (StackPtr &, VM &, iint mus_id) {
     SDLPauseMusic((int)mus_id);
-    return NilVal();
 }
 
 BUILTIN(music_resume, "mus_id", "I", "",
     "resume music with the given id.")
 (StackPtr &, VM &, iint mus_id) {
     SDLResumeMusic((int)mus_id);
-    return NilVal();
 }
 
 BUILTIN(music_volume, "mus_id,vol", "IF", "",
     "set the music volume in the range 0..1.")
 (StackPtr &, VM &, iint mus_id, double vol) {
     SDLSetMusicVolume((int)mus_id, (float)vol);
-    return NilVal();
 }
 
 BUILTIN(music_is_playing, "mus_id", "I", "B",
     "returns whether the music with the given id has not yet finished. Paused music is still considered to be playing")
 (StackPtr &, VM &, iint mus_id) {
     auto is_playing = SDLMusicIsPlaying((int)mus_id);
-    return Value(is_playing);
+    return is_playing;
 }
 
 BUILTIN(music_set_general_volume, "vol", "F", "",
     "set the general music volume in the range 0..1.")
 (StackPtr &, VM &, double vol) {
     SDLSetGeneralMusicVolume((float)vol);
-    return NilVal();
 }
 
 BUILTIN_V(mic_devices, "", "", "I]S]",
@@ -300,14 +288,14 @@ BUILTIN(mic_start, "id,freq", "II", "I",
     "start recording audio from the given device id, at the given frequency. Returns a mic_id.")
 (StackPtr &, VM &, iint id, iint freq) {
     auto ok = SDLRecordingStart((int)id, (int)freq);
-    return Value(ok);
+    return ok;
 }
 
 BUILTIN(mic_stop, "id", "I", "B",
     "stop recording. Returns false if the mic_id is invalid")
 (StackPtr &, VM &, iint id) {
     auto ok = SDLRecordingStop((int)id);
-    return Value(ok);
+    return ok;
 }
 
 BUILTIN(mic_get, "id", "I", "F]",
@@ -316,6 +304,6 @@ BUILTIN(mic_get, "id", "I", "F]",
     auto data = SDLRecordingGet((int)id);
     auto vdata = (LVector *)vm.NewVec(0, (int)data.size(), TYPE_ELEM_VECTOR_OF_FLOAT);
     for (auto val : data) vdata->Push(vm, Value(val));
-    return Value(vdata);
+    return vdata;
 }
 

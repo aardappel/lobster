@@ -417,7 +417,7 @@ BUILTIN(flexbuffers_value_to_binary, "val,max_nesting,cycle_detection", "AI?B?",
             fbc.max_depth_hit);
     auto s = vm.NewString(
         string_view((const char *)fbc.builder.GetBuffer().data(), fbc.builder.GetSize()));
-    return Value(s);
+    return s;
 }
 
 BUILTIN_V(flexbuffers_binary_to_value, "typeid,flex", "TS", "A1?S?",
@@ -458,7 +458,7 @@ BUILTIN(flexbuffers_json_to_binary, "json,filename_for_errors", "SS?", "SS?",
 (StackPtr &sp, VM &vm, LString *json, LString *filename) {
     flexbuffers::Builder builder;
     flatbuffers::Parser parser;
-    auto err = NilVal();
+    LString *err = nullptr;
     auto fn = (filename != nullptr)
         ? filename->strvnt()
         : string_view_nt("{flexbuffers_json_to_binary}");
@@ -484,7 +484,7 @@ BUILTIN(lobster_value_to_binary, "val", "A", "S",
     // FIXME: since this is meant to be fast, worth seeing if this can be made 0-copy?
     auto s = vm.NewString(
         string_view((const char *)buf.data(), buf.size()));
-    return Value(s);
+    return s;
 }
 
 BUILTIN_V(lobster_binary_to_value, "typeid,bin", "TS", "A1?S?",
