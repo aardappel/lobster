@@ -119,6 +119,7 @@ int main(int argc, char* argv[]) {
             "--gen-builtins-names    Write builtin commands - just names.\n"
             #if LOBSTER_ENGINE
             "--non-interactive-test  Quit after running 1 frame.\n"
+            "--background            Open the window behind all others, without taking focus.\n"
             #endif
             "--tcc-out               Output tcc .o file instead of running.\n"
             "--mir [N]               JIT with MIR instead of libtcc, optionally at\n"
@@ -157,6 +158,7 @@ int main(int argc, char* argv[]) {
                 else if (a == "--full-error") { full_error = true; }
                 #if LOBSTER_ENGINE
                 else if (a == "--non-interactive-test") { non_interactive_test = true; SDLTestMode(); }
+                else if (a == "--background") { SDLStartInBackground(); }
                 #endif
                 else if (a == "--tcc-out") { tcc_out = true; }
                 else if (a == "--mir") {

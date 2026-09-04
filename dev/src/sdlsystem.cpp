@@ -19,6 +19,15 @@
 #include "lobster/sdlinterface.h"
 #include "lobster/glinterface.h"
 
+#ifdef _WIN32
+    #define VC_EXTRALEAN
+    #define WIN32_LEAN_AND_MEAN
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #include <windows.h>
+#endif
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #endif
@@ -145,6 +154,7 @@ int cursorx = 0, cursory = 0;
 bool landscape = true;
 bool minimized = false;
 bool noninteractivetestmode = false;
+bool startinbackground = false;
 
 const int MAXAXES = 16;
 float joyaxes[MAXAXES] = { 0 };
@@ -383,6 +393,12 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
     #endif
 
+    if (startinbackground) {
+        // Both this and the SetWindowPos below are needed: the hint stops the window from
+        // taking focus when shown, but it would still appear on top of everything.
+        SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN, "0");
+    }
+
     LOG_INFO("SDL about to figure out display mode...");
 
     // FIXME: for emscripten, this picks screen size, not browser window size, and doesn't resize.
@@ -473,6 +489,17 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
     timefreq = SDL_GetPerformanceFrequency();
 
     lasttime = -0.02f;    // ensure first frame doesn't get a crazy delta
+
+    #ifdef _WIN32
+        if (startinbackground) {
+            auto hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(_sdl_window),
+                                                     SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+            if (hwnd) {
+                SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0,
+                             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+            }
+        }
+    #endif
 
     return gl_err;
 }
@@ -1021,6 +1048,7 @@ bool ScreenShot(string_view_nt filename, int2 targetsize) {
 }
 
 void SDLTestMode() { noninteractivetestmode = true; }
+void SDLStartInBackground() { startinbackground = true; }
 
 int SDLScreenDPI(int screen) {
     // TODO(SDL3): "SDL_GetDisplayDPI() - not reliable across platforms,

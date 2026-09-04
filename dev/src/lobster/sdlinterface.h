@@ -106,6 +106,7 @@ extern int64_t SDLLoadFile(string_view_nt absfilename, string *dest, int64_t sta
 extern bool ScreenShot(string_view_nt filename, int2 targetsize);
 
 extern void SDLTestMode();
+extern void SDLStartInBackground();
 
 extern int SDLScreenDPI(int screen);
 

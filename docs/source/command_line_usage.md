@@ -88,6 +88,10 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
 -   `--non-interactive-test` : Quit after running 1 frame. Useful for running graphical
     programs as part of a test suite.
 
+-   `--background` : Open the window at the bottom of the z-order and without giving it
+    focus. Useful for benchmark or test runs that shouldn't interrupt whoever is using
+    the computer.
+
 -   `--query`: Ask the compiler to answer a query about definitions in the program being
     compiled. When is this mode, the compiler does not try to do a full compilation,
     but simply tries to answer the query, including ignoring errors or aborting half-way
