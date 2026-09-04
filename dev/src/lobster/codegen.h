@@ -1014,6 +1014,13 @@ struct CodeGen  {
                                        "vvalnil()", "ovalnil()" };
         return names[k];
     }
+    // The same for reading a value whose tag may still say nil, which is what a global holds
+    // before its initializer has run, see DefineFunction.
+    static const char *AccessorNil(VKind k) {
+        static const char *names[] = { "ivalnil()", "fvalnil()", "refany()", "ipnil()",
+                                       "svalnil()", "vvalnil()", "ovalnil()" };
+        return names[k];
+    }
 
     static Place Var(string s, RTType rtt) { return { std::move(s), rtt, true }; }
     static Place Var(string s, VKind k) { return Var(std::move(s), Rtt(k)); }
@@ -1121,6 +1128,13 @@ struct CodeGen  {
         if (cpp) return cat(p.s, ".", Accessor(p.k()));
         if (p.k() == VK_FUN) return cat("(fun_base_t)", p.s, ".ival");
         return cat(p.s, ".", Member(p.k()));
+    }
+
+    // The same where the value may still be a nil, which only the C++ backend asserts against,
+    // since the C one reads the union field without a tag check either way.
+    string ReadNil(const Place &p) {
+        if (!cpp || p.typed || HasPending(p.slot)) return Read(p);
+        return cat(p.s, ".", AccessorNil(p.k()));
     }
 
     // The same as a value of another kind, which for two kinds of reference is a cast.
@@ -2384,11 +2398,13 @@ struct CodeGen  {
             auto &p = f_arg_places[i];
             if (sids[varidx].used_as_freevar()) {
                 // The argument is the global for the duration of the call, whose old value the
-                // parameter holds meanwhile, to go back at the end.
+                // parameter holds meanwhile, to go back at the end. That old value is only
+                // ever put back, so it is read past the tag, which on the first call still
+                // says nil, the global not having been initialized yet.
                 auto t = Var("_t", p.rtt);
                 append(sd, "    { ", CType(p.k()), " _t; ", CopyValueText(t, p), " ",
-                       CopyValueText(p, Global(varidx)), " ", CopyValueText(Global(varidx), t),
-                       " }\n");
+                       WriteText(p, ReadNil(Global(varidx))), " ",
+                       CopyValueText(Global(varidx), t), " }\n");
             } else if (ShadowLocals()) {
                 CopyValue(sd, Shadow(var_to_local[varidx]), p);
             }

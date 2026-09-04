@@ -548,6 +548,11 @@ struct Value {
     VM_INLINEM RefObj     *refnil () const { TYPE_ASSERT(RTIsRefNil(type));                        return ref_;         }
     VM_INLINEM FunPtr      ip     () const { TYPE_ASSERT(type >= RTT_FUNCTION);                    return ip_;          }
     VM_INLINEM void       *any    () const {                                                       return ref_;         }
+    // A global still holds a nil before its initializer has run, which the code that only
+    // saves and restores one has to read past, see CodeGen::DefineFunction.
+    VM_INLINEM iint        ivalnil() const { TYPE_ASSERT(type == RTT_INT   || type == RTT_NIL);    return ival_;        }
+    VM_INLINEM double      fvalnil() const { TYPE_ASSERT(type == RTT_FLOAT || type == RTT_NIL);    return fval_;        }
+    VM_INLINEM FunPtr      ipnil  () const { TYPE_ASSERT(type >= RTT_FUNCTION || type == RTT_NIL); return ip_;          }
     // The whole payload without regard for what it holds, for comparing two structs slot by
     // slot: a struct can mix field types, so there is nothing to assert per slot.
     VM_INLINEM iint        bits   () const {                                                       return ival_;        }
