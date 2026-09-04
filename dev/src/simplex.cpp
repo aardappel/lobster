@@ -34,13 +34,13 @@ BuiltinGroup noise_builtins;
         "returns a simplex noise value [-1..1] given a 2D/3D location, the number of octaves" \
         " (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5)." \
         " This function is the same as calling fast_noise with simplex/fbm flags.") \
-    (StackPtr &sp, VM &, Value *pos, iint octaves, double scale, double persistence) { \
+    (StackPtr &sp, VM &, vec<double, W> pos, iint octaves, double scale, double persistence) { \
         auto state = fast_lite_default_noise_state; \
         state.gain = (float)persistence; \
         state.frequency = (float)scale; \
         state.octaves = (int)octaves; \
         state.fractal_type = FNL_FRACTAL_FBM; \
-        auto v = ToVec<vec<float, W>>(pos, W); \
+        auto v = ToVec<vec<float, W>>(pos); \
         Push(sp, NOISE##W##D(state, v)); \
     }
 SIMPLEXW(2) SIMPLEXW(3)
@@ -49,9 +49,9 @@ SIMPLEXW(2) SIMPLEXW(3)
 #define SIMPLEXRAWW(W) \
     BUILTIN_V_OVERLOAD(simplex_raw_f##W, "simplex_raw", "pos", "F}:" #W, "F", \
         "returns a simplex noise value [-1..1] given a 2D/3D location") \
-    (StackPtr &sp, VM &, Value *pos) { \
+    (StackPtr &sp, VM &, vec<double, W> pos) { \
         auto state = fast_lite_default_noise_state; \
-        auto v = ToVec<vec<float, W>>(pos, W); \
+        auto v = ToVec<vec<float, W>>(pos); \
         Push(sp, NOISE##W##D(state, v)); \
     }
 SIMPLEXRAWW(2) SIMPLEXRAWW(3)
@@ -63,7 +63,7 @@ SIMPLEXRAWW(2) SIMPLEXRAWW(3)
         "returns a noise value [-1..1] given a 2D/3Dlocation, the number of octaves" \
         " (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5)." \
         " see noise.lobster for constants for the type params.") \
-    (StackPtr &sp, VM &, Value *pos, iint octaves, double scale, double persistence, \
+    (StackPtr &sp, VM &, vec<double, W> pos, iint octaves, double scale, double persistence, \
      iint noise_type, iint fractal_type) { \
         auto state = fast_lite_default_noise_state; \
         state.fractal_type = (fnl_fractal_type)fractal_type; \
@@ -71,7 +71,7 @@ SIMPLEXRAWW(2) SIMPLEXRAWW(3)
         state.gain = (float)persistence; \
         state.frequency = (float)scale; \
         state.octaves = (int)octaves; \
-        auto v = ToVec<vec<float, W>>(pos, W); \
+        auto v = ToVec<vec<float, W>>(pos); \
         Push(sp, NOISE##W##D(state, v)); \
     }
 FASTNOISEW(2) FASTNOISEW(3)

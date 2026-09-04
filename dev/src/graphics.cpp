@@ -269,9 +269,9 @@ BUILTIN(load_materials, "materialdefs,inline,prefix", "SI?S?", "S?",
 BUILTIN_V(scissor, "top_left,size", "I}:2I}:2", "I}:2I}:2",
     "Sets the scissor testing, so only the pixels in the given rectangle can"
     "be written.  Returns the previous value of the scissor rectangle.")
-(StackPtr &sp, VM &vm, Value *top_left, Value *size_) {
-    auto size = ToVec<int2>(size_, 2);
-    auto topleft = ToVec<int2>(top_left, 2);
+(StackPtr &sp, VM &vm, iint2 top_left, iint2 size_) {
+    auto size = ToVec<int2>(size_);
+    auto topleft = ToVec<int2>(top_left);
     TestGL(vm);
     auto prev = pair{ int2_0, int2_0 };
     SetScissorRect(topleft, size, prev);
@@ -328,8 +328,8 @@ BUILTIN(fullscreen, "mode", "I", "",
 
 BUILTIN_V_OVERLOAD(window_size_set, "window_size", "size", "I}:2", "",
     "")
-(StackPtr &, VM &vm, Value *size_) {
-    auto size = ToVec<int2>(size_, 2);
+(StackPtr &, VM &vm, iint2 size_) {
+    auto size = ToVec<int2>(size_);
     TestGL(vm);
     SDLSetWindowSize(size);
 }
@@ -388,9 +388,9 @@ BUILTIN_V(start_text_input, "pos,size", "I}:2I}:2", "",
     "starts text input. unlike gl.button which gets you keyboard keys, this is for input of"
     " strings, that can deal with unicode IME etc. pos & size are a hint where the string"
     " being edited is being displayed, such that an IME can popup a box next to it, if needed.")
-(StackPtr &, VM &, Value *pos_, Value *size_) {
-    auto size = ToVec<int2>(size_, 2);
-    auto pos = ToVec<int2>(pos_, 2);
+(StackPtr &, VM &, iint2 pos_, iint2 size_) {
+    auto size = ToVec<int2>(size_);
+    auto pos = ToVec<int2>(pos_);
     SDLStartTextInput(pos, size);
 }
 
@@ -538,16 +538,16 @@ BUILTIN(last_time, "name,down", "SI", "F",
 
 BUILTIN_V(clear, "col", "F}:4", "",
     "clears the framebuffer (and depth buffer) to the given color")
-(StackPtr &, VM &vm, Value *col) {
+(StackPtr &, VM &vm, double4 col) {
     TestGL(vm);
-    ClearFrameBuffer(ToVec<float3>(col, 4));
+    ClearFrameBuffer(ToVec<float3>(col));
 }
 
 BUILTIN_V(color, "col", "F}:4", "F}:4",
     "sets the current color, returns previous one")
-(StackPtr &sp, VM &, Value *col) {
+(StackPtr &sp, VM &, double4 col) {
     auto oldcolor = curcolor;
-    curcolor = ToVec<float4>(col, 4);
+    curcolor = ToVec<float4>(col);
     PushVec(sp, oldcolor);
 }
 
@@ -561,22 +561,23 @@ BUILTIN(polygon, "vertlist", "F}]", "",
 
 BUILTIN_V(rounded_rectangle, "size,segments,corner_ratio", "F}:2IF", "",
     "renders a rounded rectangle, try segments 50, corner_ratio 0.2")
-(StackPtr &, VM &vm, Value *size_, iint segments_, double corner_ratio_) {
+(StackPtr &, VM &vm, double2 size_, iint segments_, double corner_ratio_) {
     TestGL(vm);
     auto corner_ratio = (float)corner_ratio_;
     auto segments = (int)segments_;
-    auto size = ToVec<float2>(size_, 2);
+    auto size = ToVec<float2>(size_);
     geomcache->RenderRoundedRectangle(gs->currentshader.get(), gs->polymode, max(segments, 12), size, corner_ratio);
 }
 
 BUILTIN_V(rounded_rectangle_border, "size,segments,corner_ratio,border_thickness", "F}:2IFF", "",
     "renders a rounded rectangle border, try segments 50, corner_ratio 0.2")
-(StackPtr &, VM &vm, Value *size_, iint segments_, double corner_ratio_, double border_thickness_) {
+(StackPtr &, VM &vm, double2 size_, iint segments_, double corner_ratio_,
+ double border_thickness_) {
     TestGL(vm);
     auto border_thickness = (float)border_thickness_;
     auto corner_ratio = (float)corner_ratio_;
     auto segments = (int)segments_;
-    auto size = ToVec<float2>(size_, 2);
+    auto size = ToVec<float2>(size_);
     geomcache->RenderRoundedRectangleBorder(gs->currentshader.get(), max(segments, 12), size,
                                             corner_ratio, border_thickness);
 }
@@ -612,38 +613,38 @@ BUILTIN(unit_cube, "insideout", "I?", "",
 
 BUILTIN_V(rotate_x, "vec", "F}:2", "",
     "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle")
-(StackPtr &, VM &, Value *vec) {
-    auto a = ToVec<float2>(vec, 2);
+(StackPtr &, VM &, double2 vec) {
+    auto a = ToVec<float2>(vec);
     otransforms.append_object2view(rotationX(a));
 }
 
 BUILTIN_V(rotate_y, "angle", "F}:2", "",
     "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle")
-(StackPtr &, VM &, Value *angle) {
-    auto a = ToVec<float2>(angle, 2);
+(StackPtr &, VM &, double2 angle) {
+    auto a = ToVec<float2>(angle);
     otransforms.append_object2view(rotationY(a));
 }
 
 BUILTIN_V(rotate_z, "angle", "F}:2", "",
     "rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector"
     " as angle")
-(StackPtr &, VM &, Value *angle) {
-    auto a = ToVec<float2>(angle, 2);
+(StackPtr &, VM &, double2 angle) {
+    auto a = ToVec<float2>(angle);
     otransforms.append_object2view(rotationZ(a));
 }
 
 // The 2D and 3D forms of the transform builtins, which the generated code passes the values of
 // a struct to in exactly as many stack slots, with no length to go with them.
-#define TRANSLATEW(sym, T, VT, W) \
+#define TRANSLATEW(sym, T, CT, W) \
     BUILTIN_V_OVERLOAD(sym##W, "translate", "vec", T "}:" #W, "", \
         "translates the current coordinate system along a vector") \
-    (StackPtr &, VM &, Value *vec) { \
-        otransforms.append_object2view(translation(float3(ToVec<VT>(vec, W)))); \
+    (StackPtr &, VM &, vec<CT, W> v) { \
+        otransforms.append_object2view(translation(ToVec<float3>(v))); \
     }
-TRANSLATEW(translate_fvec, "F", float3, 2)
-TRANSLATEW(translate_fvec, "F", float3, 3)
-TRANSLATEW(translate_ivec, "I", int3, 2)
-TRANSLATEW(translate_ivec, "I", int3, 3)
+TRANSLATEW(translate_fvec, "F", double, 2)
+TRANSLATEW(translate_fvec, "F", double, 3)
+TRANSLATEW(translate_ivec, "I", iint, 2)
+TRANSLATEW(translate_ivec, "I", iint, 3)
 #undef TRANSLATEW
 
 BUILTIN_V_OVERLOAD(scale_float, "scale", "factor", "F", "",
@@ -656,8 +657,8 @@ BUILTIN_V_OVERLOAD(scale_float, "scale", "factor", "F", "",
 #define SCALEW(W) \
     BUILTIN_V_OVERLOAD(scale_fvec##W, "scale", "factor", "F}:" #W, "", \
         "scales the current coordinate system using a vector") \
-    (StackPtr &, VM &, Value *factor) { \
-        auto v = ToVec<float3>(factor, W, 1); \
+    (StackPtr &, VM &, vec<double, W> factor) { \
+        auto v = ToVec<float3>(factor, 1); \
         otransforms.append_object2view(float4x4(float4(v, 1))); \
     }
 SCALEW(2) SCALEW(3)
@@ -777,8 +778,8 @@ static bool GLHit(const float3 &size, int i) {
         " transform (for touch screens only if the corresponding gl.isdown is true). Only true" \
         " if the last rectangle for which gl.hit was true last frame is of the same size as" \
         " this one (allows you to safely test in most cases of overlapping rendering)") \
-    (StackPtr &sp, VM &, Value *vec, iint i) { \
-        Push(sp, GLHit(ToVec<float3>(vec, W), (int)i)); \
+    (StackPtr &sp, VM &, vec<double, W> size, iint i) { \
+        Push(sp, GLHit(ToVec<float3>(size), (int)i)); \
     }
 HITW(2) HITW(3)
 #undef HITW
@@ -786,9 +787,9 @@ HITW(2) HITW(3)
 BUILTIN_V(rect, "size,centered", "F}:2I?", "",
     "renders a rectangle (0,0)..(1,1) (or (-1,-1)..(1,1) when centered), scaled by the given"
     " size.")
-(StackPtr &, VM &vm, Value *size, iint centered_) {
+(StackPtr &, VM &vm, double2 size, iint centered_) {
     auto centered = (centered_ != 0);
-    auto vec = ToVec<float2>(size, 2);
+    auto vec = ToVec<float2>(size);
     TestGL(vm);
     geomcache->RenderQuad(gs->currentshader.get(), gs->polymode, centered,
                           float4x4(float4(vec, 1)));
@@ -797,11 +798,11 @@ BUILTIN_V(rect, "size,centered", "F}:2I?", "",
 BUILTIN_V(rect_tc_col, "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
     "Like gl.rect renders a sized quad, but allows you to specify texture coordinates and"
     " optionally colors (empty list for all white). Slow.")
-(StackPtr &, VM &vm, Value *size, Value *tc, Value *tcsize, LVector *cols) {
+(StackPtr &, VM &vm, double2 size, double2 tc, double2 tcsize, LVector *cols) {
     TestGL(vm);
-    auto td = ToVec<float2>(tcsize, 2);
-    auto t = ToVec<float2>(tc, 2);
-    auto sz = ToVec<float2>(size, 2);
+    auto td = ToVec<float2>(tcsize);
+    auto t = ToVec<float2>(tc);
+    auto sz = ToVec<float2>(size);
     auto te = t + td;
     struct Vert { float x, y, z, u, v; byte4 c; };
     Vert vb_square[4] = {
@@ -827,11 +828,11 @@ BUILTIN(unit_square, "centered", "I?", "",
 #define LINEW(W) \
     BUILTIN_V_OVERLOAD(line_f##W, "line", "start,end,thickness", \
         "F}:" #W "F}:" #W "1F", "", "renders a line with the given thickness") \
-    (StackPtr &, VM &vm, Value *start, Value *end, double thickness_) { \
+    (StackPtr &, VM &vm, vec<double, W> start, vec<double, W> end, double thickness_) { \
         TestGL(vm); \
         auto thickness = (float)thickness_; \
-        auto v2 = ToVec<float3>(end, W); \
-        auto v1 = ToVec<float3>(start, W); \
+        auto v2 = ToVec<float3>(end); \
+        auto v1 = ToVec<float3>(start); \
         if (Is2DMode()) \
             geomcache->RenderLine2D(gs->currentshader.get(), gs->polymode, v1, v2, thickness); \
         else geomcache->RenderLine3D(gs->currentshader.get(), v1, v2, float3_0, thickness); \
@@ -843,11 +844,11 @@ BUILTIN_V(perspective, "fovy,znear,zfar,frame_buffer_size,frame_buffer_offset,no
     "changes from 2D mode (default) to 3D right handed perspective mode with vertical fov (try"
     " 60), far plane (furthest you want to be able to render, try 1000) and near plane (try"
     " 1). Optionally specify a framebuffer size to override the current gl.framebuffer_size")
-(StackPtr &, VM &, double fovy_, double znear_, double zfar_, Value *frame_buffer_size,
- Value *frame_buffer_offset, iint nodepth_) {
+(StackPtr &, VM &, double fovy_, double znear_, double zfar_, iint2 frame_buffer_size,
+ iint2 frame_buffer_offset, iint nodepth_) {
     auto nodepth = (nodepth_ != 0);
-    int2 fbo = ToVec<int2>(frame_buffer_offset, 2);
-    int2 fbs = ToVec<int2>(frame_buffer_size, 2);
+    int2 fbo = ToVec<int2>(frame_buffer_offset);
+    int2 fbs = ToVec<int2>(frame_buffer_size);
     if (fbs.x + fbs.y == 0)
         fbs = GetFrameBufferSize(GetScreenSize()) - fbo;
     auto zfar = (float)zfar_;
@@ -869,9 +870,9 @@ BUILTIN(ortho, "rh,depth", "I?I?", "",
 
 BUILTIN_V(ortho3d, "center,extends", "F}:3F}:3", "",
     "sets a custom ortho projection as 3D projection.")
-(StackPtr &, VM &, Value *center_, Value *extends_) {
-    auto extends = ToVec<float3>(extends_, 3);
-    auto center = ToVec<float3>(center_, 3);
+(StackPtr &, VM &, double3 center_, double3 extends_) {
+    auto extends = ToVec<float3>(extends_);
+    auto center = ToVec<float3>(center_);
     Set3DOrtho(GetFrameBufferSize(GetScreenSize()), center, extends);
 }
 
@@ -1102,17 +1103,17 @@ BUILTIN(get_shader, "shader", "S", "R:shader",
     return Value(sh.move_lresource());
 }
 
-#define SETUNIFORMW(sym, T, VT, CT, W) \
+#define SETUNIFORMW(sym, T, CT, ET, W) \
     BUILTIN_V_OVERLOAD(sym##W, "set_uniform", "name,value", "S" T "}:" #W, "B", \
         "set a uniform on the current shader. size of the vector must match the size of the" \
         " uniform in the shader. returns false on error.") \
-    (StackPtr &sp, VM &vm, LString *name, Value *value) { \
-        auto v = ToVec<VT>(value, W); \
+    (StackPtr &sp, VM &vm, LString *name, vec<CT, W> value) { \
+        auto v = ToVec<vec<ET, W>>(value); \
         Push(sp, SetUniform(vm, name, v.begin(), W)); \
     }
-SETUNIFORMW(set_uniform_fvec, "F", float4, float, 2)
-SETUNIFORMW(set_uniform_fvec, "F", float4, float, 3)
-SETUNIFORMW(set_uniform_fvec, "F", float4, float, 4)
+SETUNIFORMW(set_uniform_fvec, "F", double, float, 2)
+SETUNIFORMW(set_uniform_fvec, "F", double, float, 3)
+SETUNIFORMW(set_uniform_fvec, "F", double, float, 4)
 
 BUILTIN_OVERLOAD(set_uniform_float, "set_uniform", "name,value", "SF", "B",
     "set a uniform on the current shader. uniform"
@@ -1122,9 +1123,9 @@ BUILTIN_OVERLOAD(set_uniform_float, "set_uniform", "name,value", "SF", "B",
     return SetUniform(vm, name, &f, 1);
 }
 
-SETUNIFORMW(set_uniform_ivec, "I", int4, int, 2)
-SETUNIFORMW(set_uniform_ivec, "I", int4, int, 3)
-SETUNIFORMW(set_uniform_ivec, "I", int4, int, 4)
+SETUNIFORMW(set_uniform_ivec, "I", iint, int, 2)
+SETUNIFORMW(set_uniform_ivec, "I", iint, int, 3)
+SETUNIFORMW(set_uniform_ivec, "I", iint, int, 4)
 #undef SETUNIFORMW
 
 BUILTIN_OVERLOAD(set_uniform_int, "set_uniform", "name,value", "SI", "B",
@@ -1207,8 +1208,8 @@ BUILTIN(bind_mesh_to_compute, "mesh,name", "R:mesh?S", "",
 BUILTIN_V(dispatch_compute, "groups", "I}:3", "",
     "dispatches the currently set compute shader in groups of sizes of the specified x/y/z"
     " values.")
-(StackPtr &, VM &vm, Value *groups_) {
-    auto groups = ToVec<int3>(groups_, 3);
+(StackPtr &, VM &vm, iint3 groups_) {
+    auto groups = ToVec<int3>(groups_);
     TestGL(vm);
     gs->currentshader->Set();
     DispatchCompute(groups);
@@ -1332,10 +1333,10 @@ BUILTIN(create_texture_single_channel, "matrix,textureformat", "F]]I?", "R:textu
 BUILTIN_V(create_blank_texture, "size,textureformat", "I}:3I?", "R:texture",
     "creates a blank texture (for use as frame buffer or with compute shaders)."
     " see texture.lobster for texture format")
-(StackPtr &sp, VM &vm, Value *size_, iint textureformat) {
+(StackPtr &sp, VM &vm, iint3 size_, iint textureformat) {
     TestGL(vm);
     auto tf = (int)textureformat;
-    auto size = ToVec<int3>(size_, 3);
+    auto size = ToVec<int3>(size_);
     auto tex = CreateBlankTexture("gl.create_blank_texture", size, tf);
     Push(sp, vm.NewResource(&texture_type, new OwnedTexture(tex)));
 }
@@ -1343,11 +1344,11 @@ BUILTIN_V(create_blank_texture, "size,textureformat", "I}:3I?", "R:texture",
 BUILTIN_V(create_colored_texture, "size,color,textureformat", "I}:3F}:4I?", "R:texture",
     "creates a colored texture (for use as frame buffer or with compute shaders)."
     " see texture.lobster for texture format")
-(StackPtr &sp, VM &vm, Value *size_, Value *color, iint textureformat) {
+(StackPtr &sp, VM &vm, iint3 size_, double4 color, iint textureformat) {
     TestGL(vm);
     auto tf = (int)textureformat;
-    auto col = ToVec<float4>(color, 4);
-    auto size = ToVec<int3>(size_, 3);
+    auto col = ToVec<float4>(color);
+    auto size = ToVec<int3>(size_);
     auto tex = CreateColoredTexture("gl.create_colored_texture", size, col, tf);
     Push(sp, vm.NewResource(&texture_type, new OwnedTexture(tex)));
 }
@@ -1411,9 +1412,9 @@ BUILTIN_V(light, "pos,params", "F}:3F}:2", "",
     " camera transforms but before any object transforms (i.e. defined in \"worldspace\")."
     " params contains specular exponent in x (try 32/64/128 for different material looks) and"
     " the specular scale in y (try 1 for full intensity)")
-(StackPtr &, VM &, Value *pos_, Value *params_) {
-    auto params = ToVec<float2>(params_, 2);
-    auto pos = otransforms.object2view() * float4(ToVec<float3>(pos_, 3), 1);
+(StackPtr &, VM &, double3 pos_, double2 params_) {
+    auto params = ToVec<float2>(params_);
+    auto pos = otransforms.object2view() * float4(ToVec<float3>(pos_), 1);
     lights.push_back(Light{ pos, params });
 }
 
@@ -1423,10 +1424,10 @@ BUILTIN_V(render_tiles, "positions,tilecoords,mapsize,sizes,rotations", "F}:2]I}
     " the amount of tiles in the texture. rotations are optional (may be empty, faster if not specified). Tiles may overlap, they are drawn in order."
     " Before calling this, make sure to have the texture set and a textured shader."
     " If you want tile to use top-left as position, wrap this call in gl.translate float2_h:")
-(StackPtr &, VM &vm, LVector *positions, LVector *tile, Value *mapsize, LVector *sizes,
+(StackPtr &, VM &vm, LVector *positions, LVector *tile, iint2 mapsize, LVector *sizes,
  LVector *rotations) {
     TestGL(vm);
-    auto msize = float2(ToVec<int2>(mapsize, 2));
+    auto msize = float2(ToVec<int2>(mapsize));
     auto pos = positions;
     auto len = pos->len;
     if (len != tile->len)
@@ -1467,11 +1468,11 @@ BUILTIN_V(render_tiles, "positions,tilecoords,mapsize,sizes,rotations", "F}:2]I}
 BUILTIN_V(debug_grid, "num,dist,thickness", "I}:3F}:3F", "",
     "renders a grid in space for debugging purposes. num is the number of lines in all 3"
     " directions, and dist their spacing. thickness of the lines in the same units")
-(StackPtr &, VM &vm, Value *num_, Value *dist_, double thickness_) {
+(StackPtr &, VM &vm, iint3 num_, double3 dist_, double thickness_) {
     TestGL(vm);
     auto thickness = (float)thickness_;
-    auto dist = ToVec<float3>(dist_, 3);
-    auto num = ToVec<iint3>(num_, 3);
+    auto dist = ToVec<float3>(dist_);
+    auto num = ToVec<iint3>(num_);
     float3 cp = otransforms.camerapos();
     auto m = float3(num);
     auto step = dist;
@@ -1503,8 +1504,8 @@ BUILTIN_V(debug_grid, "num,dist,thickness", "I}:3F}:3F", "",
 BUILTIN_V(screenshot, "filename,resolution", "SI}:2?", "B",
     "saves a screenshot in .png format, returns true if succesful. resolution optionally gives a"
     " target size to resize the screenshot to; (0,0) or the current window size means no resizing")
-(StackPtr &sp, VM &, LString *fn, Value *resolution_) {
-    auto resolution = ToVec<int2>(resolution_, 2);
+(StackPtr &sp, VM &, LString *fn, iint2 resolution_) {
+    auto resolution = ToVec<int2>(resolution_);
     bool ok = ScreenShot(fn->strvnt(), resolution);
     Push(sp, Value(ok));
 }

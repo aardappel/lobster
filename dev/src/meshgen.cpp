@@ -694,9 +694,9 @@ BUILTIN(sphere, "radius", "F", "",
 
 BUILTIN_V(cube, "extents", "F}:3", "",
     "a cube (extents are size from center)")
-(StackPtr &sp, VM &, Value *extents) {
+(StackPtr &sp, VM &, double3 extents) {
     auto c = new IFCube();
-    c->extents = ToVec<float3>(extents, 3);
+    c->extents = ToVec<float3>(extents);
     Push(sp,  AddShape(c));
 }
 
@@ -722,30 +722,30 @@ BUILTIN(tapered_cylinder, "bot,top,height", "FFF", "",
 BUILTIN_V(superquadric, "exponents,scale", "F}:3F}:3", "",
     "a super quadric. specify an exponent of 2 for spherical, higher values for rounded"
     " squares")
-(StackPtr &, VM &, Value *exponents, Value *scale) {
+(StackPtr &, VM &, double3 exponents, double3 scale) {
     auto sq = new IFSuperQuadric();
-    sq->scale = ToVec<float3>(scale, 3);
-    sq->exp = ToVec<float3>(exponents, 3);
+    sq->scale = ToVec<float3>(scale);
+    sq->exp = ToVec<float3>(exponents);
     AddShape(sq);
 }
 
 BUILTIN_V(superquadric_non_uniform, "posexponents,negexponents,posscale,negscale", "F}:3F}:3F}:3F}:3", "",
     "a superquadric that allows you to specify exponents and sizes in all 6 directions"
     " independently for maximum modelling possibilities")
-(StackPtr &, VM &, Value *posexponents, Value *negexponents, Value *posscale, Value *negscale) {
+(StackPtr &, VM &, double3 posexponents, double3 negexponents, double3 posscale, double3 negscale) {
     auto sq = new IFSuperQuadricNonUniform();
-    sq->scaleneg = max(float3(0.01f), ToVec<float3>(negscale, 3));
-    sq->scalepos = max(float3(0.01f), ToVec<float3>(posscale, 3));
-    sq->expneg   = ToVec<float3>(negexponents, 3);
-    sq->exppos   = ToVec<float3>(posexponents, 3);
+    sq->scaleneg = max(float3(0.01f), ToVec<float3>(negscale));
+    sq->scalepos = max(float3(0.01f), ToVec<float3>(posscale));
+    sq->expneg   = ToVec<float3>(negexponents);
+    sq->exppos   = ToVec<float3>(posexponents);
     AddShape(sq);
 }
 
 BUILTIN_V(supertoroid, "R,exponents", "FF}:3", "",
     "a super toroid. R is the distance from the origin to the center of the ring.")
-(StackPtr &, VM &, double R, Value *exponents) {
+(StackPtr &, VM &, double R, double3 exponents) {
     auto t = new IFSuperToroid();
-    t->exp = ToVec<float3>(exponents, 3);
+    t->exp = ToVec<float3>(exponents);
     t->r = (float)R;
     AddShape(t);
 }
@@ -816,8 +816,8 @@ BUILTIN(convert_to_cubes, "subdiv,zoffset", "II", "R:voxels",
 
 BUILTIN_V(translate, "vec", "F}:3", "",
     "translates the current coordinate system along a vector")
-(StackPtr &, VM &, Value *vec) {
-    auto v = ToVec<float3>(vec, 3);
+(StackPtr &, VM &, double3 vec) {
+    auto v = ToVec<float3>(vec);
     // FIXME: not good enough if non-uniform scale, might as well forbid that before any trans
     cur.orig += cur.rot * (v * cur.size);
 }
@@ -831,24 +831,24 @@ BUILTIN_V(scale, "f", "F", "",
 
 BUILTIN_V(scale_vec, "vec", "F}:3", "",
     "non-unimformly scales the current coordinate system using individual factors per axis")
-(StackPtr &, VM &, Value *vec) {
-    auto v = ToVec<float3>(vec, 3);
+(StackPtr &, VM &, double3 vec) {
+    auto v = ToVec<float3>(vec);
     cur.size *= v;
 }
 
 BUILTIN_V(rotate, "axis,angle", "F}:3F", "",
     "rotates using axis/angle")
-(StackPtr &, VM &, Value *axis_, double angle_) {
+(StackPtr &, VM &, double3 axis_, double angle_) {
     auto angle = (float)angle_;
-    auto axis = ToVec<float3>(axis_, 3);
+    auto axis = ToVec<float3>(axis_);
     cur.rot *= float3x3(angle * RAD_F, axis);
 }
 
 BUILTIN_V(color, "color", "F}:4", "",
     "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"
     " substracts them (carves)")
-(StackPtr &, VM &, Value *color) {
-    auto v = ToVec<float4>(color, 4);
+(StackPtr &, VM &, double4 color) {
+    auto v = ToVec<float4>(color);
     cur.material = v;
 }
 

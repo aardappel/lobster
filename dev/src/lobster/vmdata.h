@@ -1381,14 +1381,14 @@ template<typename T, int N> void PushVec(StackPtr &sp, const vec<T, N> &v, int t
     for (int i = 0; i < l; i++) Push(sp, v[i]);
 }
 
-// The values of a struct a builtin was passed as a fixed size vector, with `def` for the
-// elements it does not have.
-template<typename T> T ToVec(const Value *vals, iint len, typename T::CTYPE def = 0) {
-    T v(def);
-    for (int i = 0; i < T::NUM_ELEMENTS; i++) {
-        v[i] = i < len ? vals[i].ifval<typename T::CTYPE>() : def;
+// The numeric struct a builtin was passed as a vector of another element type or width, with
+// `def` for the elements it does not have.
+template<typename T, typename U, int N> T ToVec(const vec<U, N> &v, typename T::CTYPE def = 0) {
+    T r(def);
+    for (int i = 0; i < std::min(N, (int)T::NUM_ELEMENTS); i++) {
+        r[i] = (typename T::CTYPE)v[i];
     }
-    return v;
+    return r;
 }
 
 inline int64_t Int64FromInts(int a, int b) {

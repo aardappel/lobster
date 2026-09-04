@@ -97,8 +97,8 @@ BUILTIN_V(set_font_size, "size,outlinesize,outlinecolor", "IF?F}:4?", "B",
     " an optional outlinesize will give the font an outline."
     " make sure to call this every frame."
     " returns true if success")
-(StackPtr &sp, VM &vm, iint size_, double outlinesize_, Value *outlinecolor) {
-    auto outlinecol = ToVec<float4>(outlinecolor, 4);
+(StackPtr &sp, VM &vm, iint size_, double outlinesize_, double4 outlinecolor) {
+    auto outlinecol = ToVec<float4>(outlinecolor);
     auto outlinesize = (float)outlinesize_;
     auto fontsize = (int)size_;
     if (!curface) vm.BuiltinError("gl.set_font_size: no current font set with gl.set_font_name");

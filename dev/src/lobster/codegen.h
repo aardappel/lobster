@@ -584,7 +584,9 @@ struct CodeGen  {
                 append(decls, "Value ", nf->symbol, "(StackPtr *, VMRef");
             }
             for (size_t i = 0; i < nf->args.size(); i++) {
-                append(decls, ", ", NativeArgCType(nf->ArgKind(i)));
+                auto kind = nf->ArgKind(i);
+                auto width = kind == BAK_IVEC || kind == BAK_FVEC ? nf->ArgWidth(i) : 0;
+                append(decls, ", ", NativeArgCType(kind, width));
             }
             decls += ");\n";
         }
@@ -804,6 +806,26 @@ struct CodeGen  {
                 "    Value *constant_strings_ptr;\n"
                 "    Value ret_buf[", MAX_RETURN_SLOTS, "];\n"
                 "} VMBase;\n");
+            // The numeric struct a builtin takes an argument of that type as, which mirrors the
+            // C++ vec of the same element type and width, so it is passed the same way, along
+            // with the helper that makes one, since C has no constructors.
+            // The fields are named rather than an array, since a C compiler may pass a struct
+            // holding an array differently from one holding the same fields by name, and the
+            // C++ side is the latter, see the vec union in geom.h.
+            static const char *fields[] = { "x", "y", "z", "w" };
+            for (auto isint : { true, false }) {
+                for (auto w = 1; w <= 4; w++) {
+                    auto elem = isint ? "long long" : "double";
+                    auto name = cat(isint ? "ivec" : "fvec", w);
+                    append(sd, "typedef struct { ", elem);
+                    for (auto i = 0; i < w; i++) append(sd, i ? ", " : " ", fields[i]);
+                    append(sd, "; } ", name, ";\nstatic ", name, " mk", name, "(");
+                    for (auto i = 0; i < w; i++) append(sd, i ? ", " : "", elem, " a", i);
+                    append(sd, ") { ", name, " r;");
+                    for (auto i = 0; i < w; i++) append(sd, " r.", fields[i], " = a", i, ";");
+                    sd += " return r; }\n";
+                }
+            }
             sd +=
                 "typedef Value *StackPtr;\n"
                 "typedef VMBase *VMRef;\n"
@@ -1859,35 +1881,49 @@ struct CodeGen  {
 
     // The types a builtin declares its arguments as, see BuiltinSig. The C side has no name
     // for a resource, whose fields it never reads, and holds a reference as a pointer to its
-    // header, hence the mirrors of the other three, see Prologue.
-    string NativeArgCType(BuiltinArgKind k) {
+    // header, hence the mirrors of the other three, see Prologue. A numeric struct becomes a
+    // vector of its width, which the C side has its own layout compatible type for.
+    string NativeArgCType(BuiltinArgKind k, int width) {
         switch (k) {
             case BAK_INT:      return cpp ? "iint" : "long long";
             case BAK_FLOAT:    return "double";
             case BAK_STRING:   return "LString *";
             case BAK_VECTOR:   return "LVector *";
             case BAK_RESOURCE: return cpp ? "LResource *" : "void *";
-            case BAK_VEC:      return "Value *";
+            case BAK_IVEC:     return cpp ? cat("vec<iint, ", width, ">") : cat("ivec", width);
+            case BAK_FVEC:     return cpp ? cat("vec<double, ", width, ">") : cat("fvec", width);
+            case BAK_VALUEVEC: return "Value *";
             default:           return "Value";
         }
     }
 
     // The arguments of a call to a builtin, whose values start at slot `base`. Each is the
-    // slot it lives in, as the type the builtin takes it as, except one whose values are a run
-    // of slots, which is a pointer to them: how many there are the builtin knows from the
-    // width its type has, so the slots are copied into the stack array to point at.
+    // slot it lives in, as the type the builtin takes it as. A numeric struct becomes a vector
+    // built from the slots its values are in; one that may be a struct of any width stays a
+    // pointer to them, so those slots are copied into the stack array to point at.
     string NativeArgList(int base, NativeFun *nf, const Types &args, const NativeArgs &nargs) {
         string s;
         auto slot = base;
         for (auto [i, len] : enumerate(nargs)) {
+            auto kind = nf->ArgKind(i);
             if (len >= 0) {
-                StageRange(slot, args, slot - base, len);
-                append(s, ", ", StackArray(), " + ", slot);
+                if (kind == BAK_VALUEVEC) {
+                    StageRange(slot, args, slot - base, len);
+                    append(s, ", ", StackArray(), " + ", slot);
+                } else {
+                    // C has no constructors, so it makes one thru a helper, see Prologue.
+                    auto ctor = NativeArgCType(kind, len);
+                    append(s, ", ", cpp ? ctor : "mk" + ctor, "(");
+                    for (auto k = 0; k < len; k++) {
+                        append(s, k ? ", " : "", Read(SlotVar(slot + k, args[slot + k - base])));
+                    }
+                    s += ")";
+                }
                 slot += len;
                 continue;
             }
             auto p = SlotVar(slot, args[slot - base]);
-            switch (nf->ArgKind(i)) {
+            switch (kind) {
                 case BAK_INT:
                 case BAK_FLOAT:    append(s, ", ", Read(p)); break;
                 case BAK_STRING:   append(s, ", ", ReadAs(p, VK_STRING)); break;

@@ -381,7 +381,7 @@ BUILTIN_OVERLOAD(any_vector, "any", "xs", "A]*", "B",
 // return value goes in the slots its arguments came in.
 #define VECBOOLW(sym, name, W, help, init, test) \
     BUILTIN_V_OVERLOAD(sym##W, name, "xs", "I}:" #W, "B", help) \
-    (StackPtr &sp, VM &, Value *elems) { \
+    (StackPtr &sp, VM &, vec<iint, W> v) { \
         auto r = init; \
         for (int i = 0; i < W; i++) if (test) r = !init; \
         Push(sp, r); \
@@ -394,7 +394,7 @@ BUILTIN_OVERLOAD(any_vector, "any", "xs", "A]*", "B",
 
 VECBOOL1234(any_ivec, "any",
     "returns whether any elements of the numeric struct are true values",
-    false, elems[i].True())
+    false, v[i] != 0)
 
 BUILTIN_OVERLOAD(all_vector, "all", "xs", "A]*", "B",
     "returns whether all elements of the vector are true values")
@@ -408,7 +408,7 @@ BUILTIN_OVERLOAD(all_vector, "all", "xs", "A]*", "B",
 
 VECBOOL1234(all_ivec, "all",
     "returns whether all elements of the numeric struct are true values",
-    true, !elems[i].True())
+    true, v[i] == 0)
 
 BUILTIN(substring, "s,start,size", "SII", "S",
     "returns a substring of size characters from index start."
@@ -682,37 +682,40 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
 }
 
 
-// An elementwise operation on a numeric struct, whose values are `elems`: `op` computes from
-// the element in `f` the one that replaces it. See VECBOOL1234 above for the widths.
-#define VECTOROPW(sym, name, ids, T, RT, W, help, op) \
+// An elementwise operation on a numeric struct `v`: `op` computes from the element in `f` the
+// one it becomes, of element type RCT. See VECBOOL1234 above for the widths.
+#define VECTOROPW(sym, name, ids, T, CT, RT, RCT, W, help, op) \
     BUILTIN_V_OVERLOAD(sym##W, name, ids, T "}:" #W, RT "}:" #W, help) \
-    (StackPtr &, VM &, Value *elems) { \
-        for (int i = 0; i < W; i++) { auto f = elems[i]; elems[i] = Value(op); } \
+    (StackPtr &sp, VM &, vec<CT, W> v) { \
+        vec<RCT, W> r((RCT)0); \
+        for (int i = 0; i < W; i++) { auto f = v[i]; r[i] = (RCT)(op); } \
+        PushVec(sp, r); \
     }
-#define VECTOROP1234(sym, name, ids, T, RT, help, op) \
-    VECTOROPW(sym, name, ids, T, RT, 1, help, op) \
-    VECTOROPW(sym, name, ids, T, RT, 2, help, op) \
-    VECTOROPW(sym, name, ids, T, RT, 3, help, op) \
-    VECTOROPW(sym, name, ids, T, RT, 4, help, op)
+#define VECTOROP1234(sym, name, ids, T, CT, RT, RCT, help, op) \
+    VECTOROPW(sym, name, ids, T, CT, RT, RCT, 1, help, op) \
+    VECTOROPW(sym, name, ids, T, CT, RT, RCT, 2, help, op) \
+    VECTOROPW(sym, name, ids, T, CT, RT, RCT, 3, help, op) \
+    VECTOROPW(sym, name, ids, T, CT, RT, RCT, 4, help, op)
 
 // The same with the VM available, which only the random one needs.
-#define VECTOROPVMW(sym, name, ids, T, RT, W, help, op) \
+#define VECTOROPVMW(sym, name, ids, T, CT, RT, RCT, W, help, op) \
     BUILTIN_V_OVERLOAD(sym##W, name, ids, T "}:" #W, RT "}:" #W, help) \
-    (StackPtr &, VM &vm, Value *elems) { \
-        for (int i = 0; i < W; i++) { auto f = elems[i]; elems[i] = Value(op); } \
+    (StackPtr &sp, VM &vm, vec<CT, W> v) { \
+        vec<RCT, W> r((RCT)0); \
+        for (int i = 0; i < W; i++) { auto f = v[i]; r[i] = (RCT)(op); } \
+        PushVec(sp, r); \
     }
-#define VECTOROPVM1234(sym, name, ids, T, RT, help, op) \
-    VECTOROPVMW(sym, name, ids, T, RT, 1, help, op) \
-    VECTOROPVMW(sym, name, ids, T, RT, 2, help, op) \
-    VECTOROPVMW(sym, name, ids, T, RT, 3, help, op) \
-    VECTOROPVMW(sym, name, ids, T, RT, 4, help, op)
+#define VECTOROPVM1234(sym, name, ids, T, CT, RT, RCT, help, op) \
+    VECTOROPVMW(sym, name, ids, T, CT, RT, RCT, 1, help, op) \
+    VECTOROPVMW(sym, name, ids, T, CT, RT, RCT, 2, help, op) \
+    VECTOROPVMW(sym, name, ids, T, CT, RT, RCT, 3, help, op) \
+    VECTOROPVMW(sym, name, ids, T, CT, RT, RCT, 4, help, op)
 
-// A builtin that works on the values of its numeric struct argument as a vector `v` of that
-// width: VECMATH pushes the single value `expr` makes of it, VECVEC a struct of the same width.
+// A builtin that works on its numeric struct argument as a vector `v` of that width: VECMATH
+// pushes the single value `expr` makes of it, VECVEC a struct of the same width.
 #define VECMATHW(sym, name, ids, T, CT, RT, W, help, expr) \
     BUILTIN_V_OVERLOAD(sym##W, name, ids, T "}:" #W, RT, help) \
-    (StackPtr &sp, VM &, Value *x) { \
-        auto v = ToVec<vec<CT, W>>(x, W); \
+    (StackPtr &sp, VM &, vec<CT, W> v) { \
         Push(sp, expr); \
     }
 #define VECMATH1234(sym, name, ids, T, CT, RT, help, expr) \
@@ -723,8 +726,7 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
 
 #define VECVECW(sym, name, ids, T, CT, W, help, expr) \
     BUILTIN_V_OVERLOAD(sym##W, name, ids, T "}:" #W, T "}:" #W, help) \
-    (StackPtr &sp, VM &, Value *x) { \
-        auto v = ToVec<vec<CT, W>>(x, W); \
+    (StackPtr &sp, VM &, vec<CT, W> v) { \
         PushVec(sp, expr); \
     }
 #define VECVEC1234(sym, name, ids, T, CT, help, expr) \
@@ -736,9 +738,7 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
 // The same for two numeric structs of that width, as vectors `a` and `b`.
 #define VEC2MATHW(sym, name, ids, T, CT, RT, W, help, expr) \
     BUILTIN_V_OVERLOAD(sym##W, name, ids, T "}:" #W T "}:" #W "1", RT, help) \
-    (StackPtr &sp, VM &, Value *x, Value *y) { \
-        auto a = ToVec<vec<CT, W>>(x, W); \
-        auto b = ToVec<vec<CT, W>>(y, W); \
+    (StackPtr &sp, VM &, vec<CT, W> a, vec<CT, W> b) { \
         Push(sp, expr); \
     }
 #define VEC2MATH1234(sym, name, ids, T, CT, RT, help, expr) \
@@ -749,9 +749,7 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
 
 #define VEC2VECW(sym, name, ids, T, CT, W, help, expr) \
     BUILTIN_V_OVERLOAD(sym##W, name, ids, T "}:" #W T "}:" #W "1", T "}:" #W, help) \
-    (StackPtr &sp, VM &, Value *x, Value *y) { \
-        auto a = ToVec<vec<CT, W>>(x, W); \
-        auto b = ToVec<vec<CT, W>>(y, W); \
+    (StackPtr &sp, VM &, vec<CT, W> a, vec<CT, W> b) { \
         PushVec(sp, expr); \
     }
 #define VEC2VEC1234(sym, name, ids, T, CT, help, expr) \
@@ -764,10 +762,7 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
 #define VEC3VECW(sym, name, ids, T, CT, W, help, expr) \
     BUILTIN_V_OVERLOAD(sym##W, name, ids, T "}:" #W T "}:" #W "1" T "}:" #W "1", \
                        T "}:" #W, help) \
-    (StackPtr &sp, VM &, Value *x, Value *y, Value *z) { \
-        auto a = ToVec<vec<CT, W>>(x, W); \
-        auto b = ToVec<vec<CT, W>>(y, W); \
-        auto c = ToVec<vec<CT, W>>(z, W); \
+    (StackPtr &sp, VM &, vec<CT, W> a, vec<CT, W> b, vec<CT, W> c) { \
         PushVec(sp, expr); \
     }
 #define VEC3VEC1234(sym, name, ids, T, CT, help, expr) \
@@ -789,8 +784,10 @@ BUILTIN_OVERLOAD(pow_float, "pow", "a,b", "FF", "F",
 #define POWW(W) \
     BUILTIN_V_OVERLOAD(pow_fvec##W, "pow", "a,b", "F}:" #W "F", "F}:" #W, \
         "struct elements raised to the power of b") \
-    (StackPtr &, VM &, Value *elems, double exp) { \
-        for (int i = 0; i < W; i++) elems[i] = Value(pow(elems[i].fval(), exp)); \
+    (StackPtr &sp, VM &, vec<double, W> a, double exp) { \
+        auto r = vec<double, W>(0.0); \
+        for (int i = 0; i < W; i++) r[i] = pow(a[i], exp); \
+        PushVec(sp, r); \
     }
 POWW(2) POWW(3) POWW(4)
 #undef POWW
@@ -810,63 +807,63 @@ BUILTIN(sqrt, "f", "F", "F",
 BUILTIN_OVERLOAD(ceiling_float, "ceiling", "f", "F", "I",
     "the nearest int >= f")
 (StackPtr &, VM &, double a) { return Value(fceil<iint>(a)); }
-VECTOROP1234(ceiling_fvec, "ceiling", "v", "F", "I",
+VECTOROP1234(ceiling_fvec, "ceiling", "v", "F", double, "I", iint,
     "the nearest ints >= each component of v",
-    iint(fceil<iint>(f.fval())))
+    iint(fceil<iint>(f)))
 
 BUILTIN_OVERLOAD(floor_float, "floor", "f", "F", "I",
     "the nearest int <= f")
 (StackPtr &, VM &, double a) { return Value(ffloor<iint>(a)); }
-VECTOROP1234(floor_fvec, "floor", "v", "F", "I",
+VECTOROP1234(floor_fvec, "floor", "v", "F", double, "I", iint,
     "the nearest ints <= each component of v",
-    ffloor<iint>(f.fval()))
+    ffloor<iint>(f))
 
 BUILTIN_OVERLOAD(int_float, "int", "f", "F", "I",
     "converts a float to an int by dropping the fraction")
 (StackPtr &, VM &, double a) { return Value(iint(a)); }
-VECTOROP1234(int_fvec, "int", "v", "F", "I",
+VECTOROP1234(int_fvec, "int", "v", "F", double, "I", iint,
     "converts a struct of floats to ints by dropping the fraction",
-    iint(f.fval()))
+    iint(f))
 
 BUILTIN_OVERLOAD(round_float, "round", "f", "F", "I",
     "converts a float to the closest int")
 (StackPtr &, VM &, double a) { return Value(iint(a + (double(a >= 0) - 0.5))); }
-VECTOROP1234(round_fvec, "round", "v", "F", "I",
+VECTOROP1234(round_fvec, "round", "v", "F", double, "I", iint,
     "converts a struct of floats to the closest ints",
-    iint(f.fval() + (double(f.fval() >= 0) - 0.5)))
+    iint(f + (double(f >= 0) - 0.5)))
 
 BUILTIN_OVERLOAD(fraction_float, "fraction", "f", "F", "F",
     "returns the fractional part of a float: short for f - floor(f)")
 (StackPtr &, VM &, double a) { return Value(a - floor(a)); }
-VECTOROP1234(fraction_fvec, "fraction", "v", "F", "F",
+VECTOROP1234(fraction_fvec, "fraction", "v", "F", double, "F", double,
     "returns the fractional part of a struct of floats",
-    f.fval() - floor(f.fval()))
+    f - floor(f))
 
 BUILTIN_OVERLOAD(float_int, "float", "i", "I", "F",
     "converts an int to float")
 (StackPtr &, VM &, iint a) { return Value(double(a)); }
-VECTOROP1234(float_ivec, "float", "v", "I", "F",
+VECTOROP1234(float_ivec, "float", "v", "I", iint, "F", double,
     "converts a struct of ints to floats",
-    double(f.ival()))
+    double(f))
 
 BUILTIN_OVERLOAD(sin_float, "sin", "angle", "F", "F",
     "the y coordinate of the normalized vector indicated by angle (in degrees)")
 (StackPtr &, VM &, double a) { return Value(sin(a * RAD_D)); }
-VECTOROP1234(sin_fvec, "sin", "angle", "F", "F",
+VECTOROP1234(sin_fvec, "sin", "angle", "F", double, "F", double,
     "the y coordinates of the normalized vector indicated by the angles (in degrees)",
-    sin(f.fval() * RAD_D))
+    sin(f * RAD_D))
 BUILTIN_OVERLOAD(cos_float, "cos", "angle", "F", "F",
     "the x coordinate of the normalized vector indicated by angle (in degrees)")
 (StackPtr &, VM &, double a) { return Value(cos(a * RAD_D)); }
-VECTOROP1234(cos_fvec, "cos", "angle", "F", "F",
+VECTOROP1234(cos_fvec, "cos", "angle", "F", double, "F", double,
     "the x coordinates of the normalized vector indicated by the angles (in degrees)",
-    cos(f.fval() * RAD_D))
+    cos(f * RAD_D))
 BUILTIN_OVERLOAD(tan_float, "tan", "angle", "F", "F",
     "the tangent of an angle (in degrees)")
 (StackPtr &, VM &, double a) { return Value(tan(a * RAD_D)); }
-VECTOROP1234(tan_fvec, "tan", "angle", "F", "F",
+VECTOROP1234(tan_fvec, "tan", "angle", "F", double, "F", double,
     "the tangents of the angles (in degrees)",
-    tan(f.fval() * RAD_D))
+    tan(f * RAD_D))
 
 BUILTIN_V(sincos, "angle", "F", "F}:2",
     "the normalized vector indicated by angle (in degrees), same as float2 { cos(angle), sin(angle) }")
@@ -893,8 +890,8 @@ BUILTIN(degrees, "angle", "F", "F",
 
 BUILTIN_V(atan2, "vec", "F}:2" , "F",
     "the angle (in degrees) corresponding to a normalized 2D vector")
-(StackPtr &sp, VM &, Value *vec) {
-    auto v = ToVec<double2>(vec, 2);
+(StackPtr &sp, VM &, double2 vec) {
+    auto v = ToVec<double2>(vec);
     Push(sp, atan2(v.y, v.x) / RAD_D);
 }
 
@@ -919,9 +916,9 @@ VECMATH1234(manhattan_i, "manhattan", "v", "I", iint, "I",
 
 BUILTIN_V(cross, "a,b", "F}:3F}:3", "F}:3",
     "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)")
-(StackPtr &sp, VM &, Value *a_, Value *b_) {
-    auto b = ToVec<double3>(b_, 3);
-    auto a = ToVec<double3>(a_, 3);
+(StackPtr &sp, VM &, double3 a_, double3 b_) {
+    auto b = ToVec<double3>(b_);
+    auto a = ToVec<double3>(a_);
     PushVec(sp, cross(a, b));
 }
 
@@ -937,9 +934,9 @@ BUILTIN_OVERLOAD(rnd_int, "rnd", "max", "I", "I",
     return Value(vm.rndx[vm.active_rng].rnd_int64(std::max((iint)1, a)));
 }
 
-VECTOROPVM1234(rnd_ivec, "rnd", "max", "I", "I",
+VECTOROPVM1234(rnd_ivec, "rnd", "max", "I", iint, "I", iint,
     "a random struct within the range of an input struct.",
-    vm.rndx[vm.active_rng].rnd_int64(std::max((iint)1, f.ival())))
+    vm.rndx[vm.active_rng].rnd_int64(std::max((iint)1, f)))
 
 BUILTIN(rnd_float, "", "", "F",
     "a random float [0..1)")
@@ -1027,9 +1024,8 @@ BUILTIN_OVERLOAD(in_range_float, "in_range", "x,range,bias", "FFF?", "B",
         T "}:" #W T "}:" #W "1" T "}:" #W "1?", "B", \
         "checks if a " #W "d " D " vector is >= bias and < bias + range." \
         " Bias defaults to 0.") \
-    (StackPtr &sp, VM &, Value *x, Value *range, Value *bias) { \
-        Push(sp, in_range(ToVec<vec<CT, W>>(x, W), ToVec<vec<CT, W>>(range, W), \
-                          ToVec<vec<CT, W>>(bias, W))); \
+    (StackPtr &sp, VM &, vec<CT, W> x, vec<CT, W> range, vec<CT, W> bias) { \
+        Push(sp, in_range(x, range, bias)); \
     }
 INRANGEW(in_range_ivec, "integer", "I", iint, 2)
 INRANGEW(in_range_ivec, "integer", "I", iint, 3)
@@ -1044,12 +1040,12 @@ BUILTIN_OVERLOAD(abs_int, "abs", "x", "I", "I",
 BUILTIN_OVERLOAD(abs_float, "abs", "x", "F", "F",
     "absolute value of a float")
 (StackPtr &, VM &, double a) { return Value(fabs(a)); }
-VECTOROP1234(abs_ivec, "abs", "x", "I", "I",
+VECTOROP1234(abs_ivec, "abs", "x", "I", iint, "I", iint,
     "absolute value of an int vector",
-    std::abs(f.ival()))
-VECTOROP1234(abs_fvec, "abs", "x", "F", "F",
+    std::abs(f))
+VECTOROP1234(abs_fvec, "abs", "x", "F", double, "F", double,
     "absolute value of a float vector",
-    fabs(f.fval()))
+    fabs(f))
 
 BUILTIN_OVERLOAD(sign_int, "sign", "x", "I", "I",
     "sign (-1, 0, 1) of an integer")
@@ -1057,12 +1053,12 @@ BUILTIN_OVERLOAD(sign_int, "sign", "x", "I", "I",
 BUILTIN_OVERLOAD(sign_float, "sign", "x", "F", "I",
     "sign (-1, 0, 1) of a float")
 (StackPtr &, VM &, double a) { return Value(signum(a)); }
-VECTOROP1234(sign_ivec, "sign", "x", "I", "I",
+VECTOROP1234(sign_ivec, "sign", "x", "I", iint, "I", iint,
     "signs of an int vector",
-    signum(f.ival()))
-VECTOROP1234(sign_fvec, "sign", "x", "F", "I",
+    signum(f))
+VECTOROP1234(sign_fvec, "sign", "x", "F", double, "I", iint,
     "signs of a float vector",
-    signum(f.fval()))
+    signum(f))
 
 #define VECSCALAROP(type, init, fun, len, at) \
     type v = init; \
@@ -1146,9 +1142,7 @@ BUILTIN_OVERLOAD(lerp_float, "lerp", "x,y,f", "FFF", "F",
 #define LERPW(W) \
     BUILTIN_V_OVERLOAD(lerp_fvec##W, "lerp", "a,b,f", "F}:" #W "F}:" #W "1F", "F}:" #W, \
         "linearly interpolates between a and b vectors with factor f [0..1]") \
-    (StackPtr &sp, VM &, Value *x, Value *y, double f) { \
-        auto a = ToVec<vec<double, W>>(x, W); \
-        auto b = ToVec<vec<double, W>>(y, W); \
+    (StackPtr &sp, VM &, vec<double, W> a, vec<double, W> b, double f) { \
         auto r = vec<double, W>(0.0); \
         for (int i = 0; i < W; i++) r.c[i] = mix(a.c[i], b.c[i], (float)f); \
         PushVec(sp, r); \
@@ -1158,10 +1152,10 @@ LERPW(2) LERPW(3) LERPW(4)
 
 BUILTIN_V(spherical_lerp, "a,b,f", "F}:4F}:4F", "F}:4",
     "spherically interpolates between a and b quaternions with factor f [0..1]")
-(StackPtr &sp, VM &, Value *a, Value *b, double f_) {
+(StackPtr &sp, VM &, double4 a, double4 b, double f_) {
     auto f = (float)f_;
-    auto y = ToVec<quat>(b, 4);
-    auto x = ToVec<quat>(a, 4);
+    auto y = ToVec<quat>(b);
+    auto x = ToVec<quat>(a);
     PushVec(sp, spherical_lerp(x, y, f));
 }
 
@@ -1194,9 +1188,10 @@ BUILTIN(smootherstep, "x", "F", "F",
         "F}:" #W "F}:" #W "1F}:" #W "1F}:" #W "1FF", "F}:" #W, \
         "computes the position between a and b with factor f [0..1], using z (before a) and c" \
         " (after b) to form a cardinal spline (tension at 0.5 is a good default)") \
-    (StackPtr &sp, VM &, Value *z, Value *a, Value *b, Value *c, double f, double t) { \
-        PushVec(sp, cardinal_spline(ToVec<double3>(z, W), ToVec<double3>(a, W), \
-                                    ToVec<double3>(b, W), ToVec<double3>(c, W), f, t), W); \
+    (StackPtr &sp, VM &, vec<double, W> z, vec<double, W> a, vec<double, W> b, \
+     vec<double, W> c, double f, double t) { \
+        PushVec(sp, cardinal_spline(ToVec<double3>(z), ToVec<double3>(a), \
+                                    ToVec<double3>(b), ToVec<double3>(c), f, t), W); \
     }
 CARDINALSPLINEW(2) CARDINALSPLINEW(3)
 #undef CARDINALSPLINEW
@@ -1204,11 +1199,11 @@ CARDINALSPLINEW(2) CARDINALSPLINEW(3)
 BUILTIN_V(line_intersect, "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "IF}:2",
     "computes if there is an intersection point between 2 line segments, with the point as"
     " second return value")
-(StackPtr &sp, VM &, Value *line1a, Value *line1b, Value *line2a, Value *line2b) {
-    auto l2b = ToVec<double2>(line2b, 2);
-    auto l2a = ToVec<double2>(line2a, 2);
-    auto l1b = ToVec<double2>(line1b, 2);
-    auto l1a = ToVec<double2>(line1a, 2);
+(StackPtr &sp, VM &, double2 line1a, double2 line1b, double2 line2a, double2 line2b) {
+    auto l2b = ToVec<double2>(line2b);
+    auto l2a = ToVec<double2>(line2a);
+    auto l1b = ToVec<double2>(line1b);
+    auto l1a = ToVec<double2>(line1a);
     double2 ipoint(0, 0);
     auto r = line_intersect(l1a, l1b, l2a, l2b, &ipoint);
     Push(sp,  r);
@@ -1227,8 +1222,8 @@ BUILTIN_V(circles_within_range, "dist,positions,radiuses,positions2,radiuses2,gr
     " Efficiency wise this algorithm is fastest if there is not too much variance in the radiuses of"
     " the second set and/or the second set has smaller radiuses than the first.")
 (StackPtr &sp, VM &vm, double qdist, LVector *positions1, LVector *radiuses1,
- LVector *positions2v, LVector *radiuses2v, Value *gridsize) {
-    auto ncelld = ToVec<iint2>(gridsize, 2);
+ LVector *positions2v, LVector *radiuses2v, iint2 gridsize) {
+    auto ncelld = ToVec<iint2>(gridsize);
     auto radiuses2 = radiuses2v;
     auto positions2 = positions2v;
     if (!radiuses2->len) radiuses2 = radiuses1;
@@ -1308,8 +1303,8 @@ BUILTIN_V(wave_function_collapse, "tilemap,size", "S]I}:2", "S]I",
     " the number of failed neighbor matches, this should"
     " ideally be 0, but can be non-0 for larger maps. Simply call this function"
     " repeatedly until it is 0")
-(StackPtr &sp, VM &vm, LVector *tilemap, Value *size) {
-    auto sz = ToVec<int2>(size, 2);
+(StackPtr &sp, VM &vm, LVector *tilemap, iint2 size) {
+    auto sz = ToVec<int2>(size);
     auto rows = tilemap->SLen();
     vector<const char *> inmap(rows);
     iint cols = 0;
@@ -1358,18 +1353,21 @@ BUILTIN_OVERLOAD(hash_float, "hash", "x", "F", "I",
     auto h = positive_bits(Value(a).Hash(vm, RTT_FLOAT));
     return Value(h);
 }
-#define HASHW(sym, T, CT, RTT, W) \
+// The same hash as a struct of these values on the stack would get, see Value::Hash.
+#define HASHW(sym, T, CT, W) \
     BUILTIN_V_OVERLOAD(sym##W, "hash", "v", T "}:" #W, "I", \
         "hashes a numeric struct into a positive int") \
-    (StackPtr &sp, VM &vm, Value *v) { \
-        Push(sp, positive_bits(ValueVec<CT>(v, W).Hash(vm, RTT))); \
+    (StackPtr &sp, VM &, vec<CT, W> v) { \
+        auto h = SplitMix64Hash((uint64_t)W); \
+        for (int i = 0; i < W; i++) h = h * 31 + SplitMix64Hash(ReadMem<uint64_t>(&v.c[i])); \
+        Push(sp, positive_bits(h)); \
     }
-HASHW(hash_ivec, "I", iint, RTT_INT, 2)
-HASHW(hash_ivec, "I", iint, RTT_INT, 3)
-HASHW(hash_ivec, "I", iint, RTT_INT, 4)
-HASHW(hash_fvec, "F", double, RTT_FLOAT, 2)
-HASHW(hash_fvec, "F", double, RTT_FLOAT, 3)
-HASHW(hash_fvec, "F", double, RTT_FLOAT, 4)
+HASHW(hash_ivec, "I", iint, 2)
+HASHW(hash_ivec, "I", iint, 3)
+HASHW(hash_ivec, "I", iint, 4)
+HASHW(hash_fvec, "F", double, 2)
+HASHW(hash_fvec, "F", double, 3)
+HASHW(hash_fvec, "F", double, 4)
 #undef HASHW
 
 BUILTIN(call_function_value, "x", "L", "",
@@ -1757,8 +1755,8 @@ BUILTIN(multiply, "a,b", "F]F]", "F]",
 
 BUILTIN_V(rotate_x, "angle", "F}:2", "F]",
     "")
-(StackPtr &sp, VM &vm, Value *angle_) {
-    auto angle = ToVec<double2>(angle_, 2);
+(StackPtr &sp, VM &vm, double2 angle_) {
+    auto angle = ToVec<double2>(angle_);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     InlineVec<double, 16> ivr(r->Elems(), false);
     (*(double4x4 *)ivr.vals) = rotationX(angle);
@@ -1768,8 +1766,8 @@ BUILTIN_V(rotate_x, "angle", "F}:2", "F]",
 
 BUILTIN_V(rotate_y, "angle", "F}:2", "F]",
     "")
-(StackPtr &sp, VM &vm, Value *angle_) {
-    auto angle = ToVec<double2>(angle_, 2);
+(StackPtr &sp, VM &vm, double2 angle_) {
+    auto angle = ToVec<double2>(angle_);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     InlineVec<double, 16> ivr(r->Elems(), false);
     (*(double4x4 *)ivr.vals) = rotationY(angle);
@@ -1779,8 +1777,8 @@ BUILTIN_V(rotate_y, "angle", "F}:2", "F]",
 
 BUILTIN_V(rotate_z, "angle", "F}:2", "F]",
     "")
-(StackPtr &sp, VM &vm, Value *angle_) {
-    auto angle = ToVec<double2>(angle_, 2);
+(StackPtr &sp, VM &vm, double2 angle_) {
+    auto angle = ToVec<double2>(angle_);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     InlineVec<double, 16> ivr(r->Elems(), false);
     (*(double4x4 *)ivr.vals) = rotationZ(angle);
@@ -1790,8 +1788,8 @@ BUILTIN_V(rotate_z, "angle", "F}:2", "F]",
 
 BUILTIN_V(translation, "trans", "F}:3", "F]",
     "")
-(StackPtr &sp, VM &vm, Value *trans_) {
-    auto trans = ToVec<double3>(trans_, 3);
+(StackPtr &sp, VM &vm, double3 trans_) {
+    auto trans = ToVec<double3>(trans_);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     InlineVec<double, 16> ivr(r->Elems(), false);
     (*(double4x4 *)ivr.vals) = translation(trans);
