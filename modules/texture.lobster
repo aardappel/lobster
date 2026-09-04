@@ -1,5 +1,6 @@
 import color
 import gl
+import vec
 
 // texture format constants
 

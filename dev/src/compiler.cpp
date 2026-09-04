@@ -233,6 +233,10 @@ string BuildPakFile(string &pakfile, string &metadata_buffer, set<string> &files
         auto l = LoadFile(filename, &buf);
         if (l >= 0) {
             add_file(buf, filename);
+        } else if (LoadFile("modules/" + filename, &buf) >= 0) {
+            // A source file a `pakfile` names is found the way an import is, see LoadedFile,
+            // and goes in under the name that found it, which is how it is looked up again.
+            add_file(buf, "modules/" + filename);
         } else {
             auto base = filename;
             auto pat = string{};
