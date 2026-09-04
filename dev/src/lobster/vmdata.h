@@ -1541,9 +1541,6 @@ void EscapeAndQuote(string_view s, string &sd, bool cpp = false);
 #define RANGECHECK(vm, I, BOUND, VEC) \
     if ((uint64_t)I >= (uint64_t)BOUND) vm.IDXErr(I, BOUND, VEC);
 
-#define RANGECHECKS(vm, I, BOUND) \
-    if ((uint64_t)I >= (uint64_t)BOUND) vm.IDXErrS(I, BOUND);
-
 }  // namespace lobster
 
 #endif  // LOBSTER_VMDATA

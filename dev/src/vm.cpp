@@ -1074,23 +1074,6 @@ void CRtEndProfile(___tracy_c_zone_context ctx) {
 }
 #endif
 
-// A Value as the C side sees it: the same bits as a plain struct, which is what makes a function
-// return one the way the C compiler expects. MSVC returns a class with constructors thru a
-// hidden pointer instead, while passing one in by value works the same for both.
-struct CValue {
-    int64_t bits;
-    #if RTT_ENABLED
-        int type;
-    #endif
-};
-static_assert(sizeof(CValue) == sizeof(Value), "CValue must mirror Value");
-
-static CValue ToC(Value v) {
-    CValue c;
-    memcpy(&c, &v, sizeof(c));
-    return c;
-}
-
 LString *CRtPushStr(VM *vm, int i) { return RtPushStr(*vm, i); }
 #if RTT_ENABLED
 void CRtNativeRetCheck(VM *vm, int nfi, Value v) { vm->BCallRetCheck(v, nfi); }
@@ -1126,7 +1109,6 @@ iint CRtSnNe(LString *a, LString *b) { return RtSnNe(a, b); }
 LString *CRtStrConcatN(VM *vm, Value *strs, int len) { return RtStrConcatN(*vm, strs, len); }
 LString *CRtToString(VM *vm, Value a, type_elem_t ti) { return RtToString(*vm, a, ti); }
 LString *CRtStructToString(VM *vm, Value *vals, type_elem_t ti) { return RtStructToString(*vm, vals, ti); }
-CValue CRtIndexStruct(VM *vm, Value *vals, iint i, int l) { return ToC(RtIndexStruct(*vm, vals, i, l)); }
 iint CRtIsSubType(VM *vm, LObject *v, int start, int end, int nilres) { return RtIsSubType(*vm, v, start, end, nilres); }
 fun_base_t CRtDynDispatch(VM *vm, LObject *self, int vtable_idx) { return RtDynDispatch(*vm, self, vtable_idx); }
 void CRtEnumRangeErr(VM *vm) { RtEnumRangeErr(*vm); }
@@ -1176,7 +1158,6 @@ const void *vm_ops_jit_table[] = {
     "RtStrConcatN", (void *)&CRtStrConcatN,
     "RtToString", (void *)&CRtToString,
     "RtStructToString", (void *)&CRtStructToString,
-    "RtIndexStruct", (void *)&CRtIndexStruct,
     "RtIsSubType", (void *)&CRtIsSubType,
     "RtDynDispatch", (void *)&CRtDynDispatch,
     "RtEnumRangeErr", (void *)&CRtEnumRangeErr,

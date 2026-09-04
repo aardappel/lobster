@@ -178,12 +178,6 @@ VM_INLINE LString *RtStructToString(VM &vm, Value *vals, type_elem_t ti) {
     return vm.StructToString(vals, vm.GetTypeInfo(ti));
 }
 
-// A struct indexed at runtime, which is why it has to be in memory.
-VM_INLINE Value RtIndexStruct(VM &vm, Value *vals, iint i, int l) {
-    RANGECHECKS(vm, i, l);
-    return vals[i];
-}
-
 VM_INLINE bool RtStaticSetThisFrame(VM &vm, int vidx) {
     auto &v = vm.fvars[vidx];
     auto jump = v.ival() < vm.frame_count;

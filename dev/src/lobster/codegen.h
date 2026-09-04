@@ -885,7 +885,6 @@ struct CodeGen  {
                 "LString *RtStrConcatN(VMRef, Value *, int);\n"
                 "LString *RtToString(VMRef, Value, type_elem_t);\n"
                 "LString *RtStructToString(VMRef, Value *, type_elem_t);\n"
-                "Value RtIndexStruct(VMRef, Value *, long long, int);\n"
                 "long long RtIsSubType(VMRef, LObject *, int, int, int);\n"
                 "fun_base_t RtDynDispatch(VMRef, LObject *, int);\n"
                 "void RtEnumRangeErr(VMRef);\n"
@@ -1874,9 +1873,9 @@ struct CodeGen  {
     }
 
     // Whether the C code gets a Value a builtin returns thru a pointer it passes as the first
-    // argument: MSVC returns a class with constructors that way, where C returns a struct of
-    // that size in a register, see CValue in vm.cpp. The C++ backend agrees with itself, and
-    // only the builtins that return an untyped Value are returned indirectly at all.
+    // argument: MSVC returns a class with constructors that way, where C returns the struct it
+    // mirrors Value with in a register. The C++ backend agrees with itself, and only the
+    // builtins that return an untyped Value are returned indirectly at all.
     bool SretValues(NativeFun *nf) {
         #ifdef _MSC_VER
             return !cpp && nf->ReturnsValue() && nf->RetKind() == BAK_VALUE;
@@ -3025,6 +3024,29 @@ struct CodeGen  {
         cb += "    }\n";
     }
 
+    // A numeric struct indexed with a value only known at runtime, which its fields have to be
+    // in memory for. All of them have the one type the struct is of, so that is what the array
+    // they go into is of, and the element comes out of it as itself rather than as a Value.
+    void EmitIndexStruct(TypeRef stype) {
+        auto width = ValWidth(stype);
+        auto etype = stype->udt->sametype;
+        assert(etype->Numeric());
+        auto rtt = RtTypeOf(etype);
+        auto uint = string(cpp ? "uint64_t" : "unsigned long long");
+        TrackUseDef(width + 1, 1);
+        auto base = regso - width - 1;
+        append(cb, "    {\n    ", CType(Kind(rtt)), " _s[", width, "];\n");
+        for (int i = 0; i < width; i++) {
+            append(cb, "    _s[", i, "] = ", Read(SlotVar(base + i, rtt)), ";\n");
+        }
+        append(cb, "    long long _i = ", Read(SlotVar(base + width, RTT_INT)), ";\n");
+        append(cb, "    if ((", uint, ")_i >= (", uint, ")", width, ") ",
+               cpp ? cat("vm.IDXErrS(_i, ", width, ");\n")
+                   : cat("IDXErrS(vm, _i, ", width, ");\n"));
+        Write(cb, SlotVar(base, rtt), "_s[_i]");
+        cb += "    }\n";
+    }
+
     // The same for a single level, or for a string. The object is read out into a local first,
     // since the element lands in the slot it came from.
     void GenPushIdx(bool str, TypeRef elemtype, int subwidth, int offset) {
@@ -3583,17 +3605,10 @@ struct CodeGen  {
                 else GenPushIdxNested(levels, etype, subwidth, suboffset);
                 break;
             }
-            case V_STRUCT_S: {
-                auto stype = object->exptype;
-                auto width = ValWidth(stype);
-                assert(index->exptype->t == V_INT && stype->udt->sametype->Numeric());
-                TrackUseDef(width + 1, 1);
-                auto vals = StageRange(regso - width - 1, TypesOf(stype, 1));
-                SetValue(cb, Slot(width + 1, stype->udt->sametype),
-                         cat("RtIndexStruct(vm, ", vals, ", ", Read(Slot(1, VK_INT)), ", ", width,
-                             ")"));
+            case V_STRUCT_S:
+                assert(index->exptype->t == V_INT);
+                EmitIndexStruct(object->exptype);
                 break;
-            }
             case V_STRING:
                 assert(index->exptype->t == V_INT);
                 GenPushIdx(true, type_int, 1, 0);
