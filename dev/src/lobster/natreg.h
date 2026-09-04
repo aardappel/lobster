@@ -26,6 +26,13 @@
     #pragma warning(disable: 4190)
 #endif
 
+// Whether the profilers wrap each call to a builtin in the generated code, see vmops.h.
+#if LOBSTER_FRAME_PROFILER_BUILTINS || LOBSTER_FRAME_PROFILER_GLOBAL
+    #define LOBSTER_NATIVE_PROFILE 1
+#else
+    #define LOBSTER_NATIVE_PROFILE 0
+#endif
+
 namespace lobster {
 
 enum NArgFlags {

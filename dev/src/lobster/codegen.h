@@ -92,6 +92,11 @@ struct CodeGen  {
     // reserved for them once it is known which they are.
     map<int, NativeFun *> natives_used;
     size_t natives_decl_offset = 0;
+    // Whether the function calls any builtin, which takes a stack pointer to hand it, one whose
+    // result lands in a Value first, and one that gets the profiler hooks, see EmitNativeCall.
+    bool f_uses_sp = false;
+    bool f_uses_nret = false;
+    bool f_uses_pctx = false;
     int regso = 0;
     int f_function_idx = -1;
     int f_regs_max = -1;
@@ -559,20 +564,24 @@ struct CodeGen  {
 
         Epilogue(c_codegen, custom_pre_init_name, src_hash);
 
-        // The builtins the code refers to by their symbol, see EmitNativeCall. The C++ side
-        // needs the exact signature, since it passes them as the function pointer they are,
-        // and their definition lives in another translation unit, whereas the C side only
-        // takes their address, see the prologue.
+        // The builtins the code calls by their symbol, see EmitNativeCall, whose definitions
+        // live in other translation units. The C side sees the references they take as
+        // pointers, and with MSVC gets a Value returned thru a pointer it passes first, see
+        // SretValues.
         string decls;
         for (auto [idx, nf] : natives_used) {
             if (cpp) {
                 append(decls, "extern \"C\" ", nf->vararg ? "void " : "Value ", nf->symbol,
                        "(StackPtr &, VMRef");
-                if (!nf->vararg) for (size_t i = 0; i < nf->args.size(); i++) decls += ", Value";
-                decls += ");\n";
+            } else if (nf->vararg) {
+                append(decls, "void ", nf->symbol, "(StackPtr *, VMRef");
+            } else if (SretValues()) {
+                append(decls, "void ", nf->symbol, "(Value *, StackPtr *, VMRef");
             } else {
-                append(decls, "BuiltinFun ", nf->symbol, ";\n");
+                append(decls, "Value ", nf->symbol, "(StackPtr *, VMRef");
             }
+            if (!nf->vararg) for (size_t i = 0; i < nf->args.size(); i++) decls += ", Value";
+            decls += ");\n";
         }
         if (!decls.empty()) c_codegen.insert(natives_decl_offset, decls + "\n");
     }
@@ -815,28 +824,15 @@ struct CodeGen  {
             // them as the type they are.
             sd +=
                 "LString *RtPushStr(VMRef, int);\n"
-                // A builtin, of which the generated code only takes the address to hand to
-                // the helpers below, since a call from here would not agree with the C++
-                // side on how a Value is returned, see CValue in vm.cpp. The ones the code
-                // uses are declared as this type, see natives_used.
-                "typedef void BuiltinFun(void);\n"
-                "void RtNativeCallV(VMRef, StackPtr, int, BuiltinFun *);\n"
-                "Value RtNativeCall0(VMRef, int, BuiltinFun *);\n"
-                "Value RtNativeCall1(VMRef, int, BuiltinFun *, Value);\n"
-                "Value RtNativeCall2(VMRef, int, BuiltinFun *, Value, Value);\n"
-                "Value RtNativeCall3(VMRef, int, BuiltinFun *, Value, Value, Value);\n"
-                "Value RtNativeCall4(VMRef, int, BuiltinFun *, Value, Value, Value, Value);\n"
-                "Value RtNativeCall5(VMRef, int, BuiltinFun *, Value, Value, Value, Value, Value);\n"
-                "Value RtNativeCall6(VMRef, int, BuiltinFun *, Value, Value, Value, Value, Value, Value);\n"
-                "Value RtNativeCall7(VMRef, int, BuiltinFun *, Value, Value, Value, Value, Value, Value, Value);\n"
-                "void RtNativeCall0Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
-                "void RtNativeCall1Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
-                "void RtNativeCall2Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
-                "void RtNativeCall3Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
-                "void RtNativeCall4Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
-                "void RtNativeCall5Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
-                "void RtNativeCall6Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
-                "void RtNativeCall7Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
+                // Around the calls to builtins, see EmitNativeCall.
+                #if RTT_ENABLED
+                "void RtNativeRetCheck(VMRef, int, Value);\n"
+                "void RtNativeRetCheckStack(VMRef, StackPtr, int);\n"
+                #endif
+                #if LOBSTER_NATIVE_PROFILE
+                "struct ___tracy_c_zone_context RtNativeProfileStart(VMRef, int);\n"
+                "void RtNativeProfileEnd(struct ___tracy_c_zone_context);\n"
+                #endif
                 "LVector *RtNewVec(VMRef, type_elem_t, int);\n"
                 "LObject *RtNewObject(VMRef, type_elem_t);\n"
                 "void RtExit(VMRef, Value, type_elem_t);\n"
@@ -1363,7 +1359,7 @@ struct CodeGen  {
             "span", "uint64_t", "int64_t", "memcpy", "memmove", "GLFrame", "Entry", "IDXErr",
             "IDXErrS", "BackupVar", "DecOwned", "DecDelete", "AssertFailed", "RefVal",
             "RestoreBackup", "GetTypeSwitchID", "PushFunId", "PopFunId", "StartProfile",
-            "EndProfile", "STRING_DATA", "OBJECT_FIELDS", "BuiltinFun",
+            "EndProfile", "STRING_DATA", "OBJECT_FIELDS", "sp", "nret", "pctx",
         };
         if (reserved.count(name)) return true;
         if (name[0] == '_' || name.substr(0, 2) == "Rt" || name.substr(0, 8) == "builtin_")
@@ -1829,11 +1825,37 @@ struct CodeGen  {
         return lab;
     }
 
-    // There is one helper per number of arguments a native takes, which get them by value and
-    // return the result, plus one that leaves its results on the stack for the natives that
-    // have several, and a V one for those that take a variable number, which is what a
-    // negative count asks for. They all get the builtin itself, which the code refers to by
-    // its symbol, along with its index for the checks and the profiler.
+    // Whether the C code gets a Value a builtin returns thru a pointer it passes as the first
+    // argument: MSVC returns a class with constructors that way, where C returns a struct of
+    // that size in a register, see CValue in vm.cpp. The C++ backend agrees with itself.
+    bool SretValues() {
+        #ifdef _MSC_VER
+            return !cpp;
+        #else
+            return false;
+        #endif
+    }
+
+    // The profiler hooks around a call to a builtin, when compiled in.
+    void EmitNativeProfile(bool start, int nfi) {
+        #if LOBSTER_NATIVE_PROFILE
+            f_uses_pctx = true;
+            auto ns = cpp ? "lobster::" : "";
+            if (start) append(cb, "    pctx = ", ns, "RtNativeProfileStart(vm, ", nfi, ");\n");
+            else append(cb, "    ", ns, "RtNativeProfileEnd(pctx);\n");
+        #else
+            (void)start;
+            (void)nfi;
+        #endif
+    }
+
+    // A call to a builtin, which the code makes directly by its symbol, declared in the
+    // prologue, see natives_used. The vararg kind (a negative count) and the ones that leave
+    // several values work on the stack: the former gets a pointer to the top, the latter one
+    // to its arguments, which it takes and leaves its results in place of, the last of them
+    // being what it returns, which goes behind the others. The rest get their arguments by
+    // value and return the result, and a stack pointer they have no use for. In a debug
+    // build the check of what a builtin returned follows the call, see VM::BCallRetCheck.
     void EmitNativeCall(int nargs, NativeFun *nf, const Types &args, const Types &rets) {
         auto uses = (int)args.size();
         auto defs = (int)rets.size();
@@ -1844,26 +1866,69 @@ struct CodeGen  {
             return;
         }
         natives_used[nf->idx] = nf;
+        f_uses_sp = true;
+        auto spref = cpp ? "sp" : "&sp";
+        auto sret = SretValues();
+        #if RTT_ENABLED
+            auto checked = true;
+        #else
+            auto checked = false;
+        #endif
+        EmitNativeProfile(true, nf->idx);
+        TrackUseDef(uses, defs);
+        auto base = regso - uses;
         if (nargs < 0 || defs > 1) {
-            GenStackCall(args, rets, [&](string_view sp) {
-                auto s = string("RtNativeCall");
-                if (nargs < 0) s += "V"; else append(s, nargs, "Rets");
-                return cat(s, "(vm, ", sp, ", ", nf->idx, ", ", nf->symbol, ")");
-            }, nf->name);
-            return;
+            f_uses_vals = true;
+            StageRange(base, args);
+            string s = "    ";
+            if (nargs < 0) {
+                append(s, "sp = ", StackArray(), " + ", regso, "; ", nf->symbol, "(", spref,
+                       ", vm);");
+            } else {
+                f_uses_nret = true;
+                append(s, "sp = ", StackArray(), " + ", base, "; ");
+                if (sret) append(s, nf->symbol, "(&nret, ", spref, ", vm");
+                else append(s, "nret = ", nf->symbol, "(", spref, ", vm");
+                for (int i = 0; i < nargs; i++) append(s, ", ", StackArray(), "[", base + i, "]");
+                auto last = rets.back();
+                append(s, "); ", CopyValueText(StackSlot(base + defs - 1, last), Mem("nret", last)));
+                if (checked) {
+                    append(s, " ", cpp ? "vm.BCallRetCheck(" : "RtNativeRetCheckStack(vm, ",
+                           StackArray(), " + ", base + defs, ", ", nf->idx, ");");
+                }
+            }
+            cb += s;
+            comment(nf->name);
+            for (int i = 0; i < defs; i++) {
+                CopyValue(cb, SlotVar(base + i, rets[i]), StackSlot(base + i, rets[i]));
+            }
         } else {
             assert(uses == nargs);
-            TrackUseDef(uses, defs);
-            auto base = regso - uses;
-            auto call = cat("RtNativeCall", nargs, "(vm, ", nf->idx, ", ", nf->symbol);
+            string argstr;
             for (int i = 0; i < nargs; i++) {
-                append(call, ", ", Box(base + i, SlotVar(base + i, args[i])));
+                append(argstr, ", ", Box(base + i, SlotVar(base + i, args[i])));
             }
-            call += ")";
-            if (defs) SetValue(cb, SlotVar(base, rets[0]), call, "");
-            else append(cb, "    ", call, ";");
+            auto call = sret ? cat(nf->symbol, "(&nret, ", spref, ", vm", argstr, ")")
+                             : cat(nf->symbol, "(", spref, ", vm", argstr, ")");
+            if (sret || checked) {
+                f_uses_nret = true;
+                append(cb, "    ", sret ? call : cat("nret = ", call), ";");
+                if (checked) {
+                    if (cpp) append(cb, " vm.BCallRetCheck(nret, ", nf->idx, ");");
+                    else append(cb, " RtNativeRetCheck(vm, ", nf->idx, ", nret);");
+                }
+                if (defs) {
+                    cb += "\n";
+                    SetValue(cb, SlotVar(base, rets[0]), "nret", "");
+                }
+            } else if (defs) {
+                SetValue(cb, SlotVar(base, rets[0]), call, "");
+            } else {
+                append(cb, "    ", call, ";");
+            }
+            comment(nf->name);
         }
-        comment(nf->name);
+        EmitNativeProfile(false, nf->idx);
     }
 
     // Keeps the reference at the given depth in a temporary of its type until the function
@@ -2223,6 +2288,9 @@ struct CodeGen  {
         if (f_uses_vals) {
             append(sd, "    Value vals[", std::max({ 1, f_regs_max, f_vals_max }), "];\n");
         }
+        if (f_uses_sp) sd += "    StackPtr sp;\n";
+        if (f_uses_nret) sd += "    Value nret;\n";
+        if (f_uses_pctx) append(sd, "    ", cpp ? "" : "struct ", "___tracy_c_zone_context pctx;\n");
         GenPlaceDecls(sd, keeps);
         GenPlaceDecls(sd, locals);
         if (ShadowLocals() && numlocals) append(sd, "    Value locals[", numlocals, "];\n");
@@ -2301,6 +2369,9 @@ struct CodeGen  {
         f_slot_kinds.clear();
         f_uses_vals = false;
         f_vals_max = 0;
+        f_uses_sp = false;
+        f_uses_nret = false;
+        f_uses_pctx = false;
         f_uses_lval = false;
         f_lval_kind = LVK_NONE;
         local_names.clear();

@@ -48,81 +48,32 @@ VM_INLINE void RtExitVoid(VM &vm) {
     vm.EndEval(NilVal(), vm.GetTypeInfo(TYPE_ELEM_ANY));
 }
 
-#if LOBSTER_FRAME_PROFILER_BUILTINS
-    #define BPROF_START(NFI) auto ctx = ___tracy_emit_zone_begin(&vm.vma.nfr.pre_allocated_function_locations[NFI], true)
-    #define BPROF_END() ___tracy_emit_zone_end(ctx)
-#else
-    #define BPROF_START(NFI)
-    #define BPROF_END()
+// The generated code calls builtins directly by their symbol, see CodeGen::EmitNativeCall,
+// which puts these around the call when they are compiled in, see LOBSTER_NATIVE_PROFILE. The
+// check of what a builtin returned that goes with them is VM::BCallRetCheck.
+#if LOBSTER_NATIVE_PROFILE
+VM_INLINE ___tracy_c_zone_context RtNativeProfileStart(VM &vm, int nfi) {
+    #if LOBSTER_FRAME_PROFILER_GLOBAL
+        g_builtin_locations.push_back(vm.vma.nfr.pre_allocated_function_locations[nfi]);
+    #endif
+    #if LOBSTER_FRAME_PROFILER_BUILTINS
+        return ___tracy_emit_zone_begin(&vm.vma.nfr.pre_allocated_function_locations[nfi], true);
+    #else
+        return ___tracy_c_zone_context();
+    #endif
+}
+
+VM_INLINE void RtNativeProfileEnd(___tracy_c_zone_context ctx) {
+    #if LOBSTER_FRAME_PROFILER_BUILTINS
+        ___tracy_emit_zone_end(ctx);
+    #else
+        (void)ctx;
+    #endif
+    #if LOBSTER_FRAME_PROFILER_GLOBAL
+        g_builtin_locations.pop_back();
+    #endif
+}
 #endif
-
-#if LOBSTER_FRAME_PROFILER_GLOBAL
-    #define GPROF_START(NFI) g_builtin_locations.push_back(vm.vma.nfr.pre_allocated_function_locations[NFI]);
-    #define GPROF_END() g_builtin_locations.pop_back();
-#else
-    #define GPROF_START(NFI)
-    #define GPROF_END()
-#endif
-
-// The calls to builtins. The generated code names the builtin `f` directly, see
-// CodeGen::EmitNativeCall, so with these inlined the C++ backend calls it directly, and the
-// index `nfi` only serves the checks and the profiler.
-
-// A native that takes a variable number of arguments works on the stack it is given.
-VM_INLINE void RtNativeCallV(VM &vm, StackPtr sp, int nfi, builtinfV f) {
-    BPROF_START(nfi);
-    GPROF_START(nfi);
-    f(sp, vm);
-    GPROF_END();
-    BPROF_END();
-    (void)nfi;
-}
-
-// One that takes a fixed number of them and leaves at most one value gets them by value and
-// returns it. It gets no stack, since it has no use for one.
-#define NATIVE_CALL(N, PARAMS, ARGS) \
-VM_INLINE Value RtNativeCall##N PARAMS { \
-    BPROF_START(nfi); \
-    GPROF_START(nfi); \
-    StackPtr sp = nullptr; \
-    Value v = f ARGS; \
-    GPROF_END(); \
-    BPROF_END(); \
-    vm.BCallRetCheck(v, nfi); \
-    return v; \
-}
-
-NATIVE_CALL(0, (VM &vm, int nfi, builtinf0 f), (sp, vm))
-NATIVE_CALL(1, (VM &vm, int nfi, builtinf1 f, Value a0), (sp, vm, a0))
-NATIVE_CALL(2, (VM &vm, int nfi, builtinf2 f, Value a0, Value a1), (sp, vm, a0, a1))
-NATIVE_CALL(3, (VM &vm, int nfi, builtinf3 f, Value a0, Value a1, Value a2), (sp, vm, a0, a1, a2))
-NATIVE_CALL(4, (VM &vm, int nfi, builtinf4 f, Value a0, Value a1, Value a2, Value a3), (sp, vm, a0, a1, a2, a3))
-NATIVE_CALL(5, (VM &vm, int nfi, builtinf5 f, Value a0, Value a1, Value a2, Value a3, Value a4), (sp, vm, a0, a1, a2, a3, a4))
-NATIVE_CALL(6, (VM &vm, int nfi, builtinf6 f, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5), (sp, vm, a0, a1, a2, a3, a4, a5))
-NATIVE_CALL(7, (VM &vm, int nfi, builtinf7 f, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5, Value a6), (sp, vm, a0, a1, a2, a3, a4, a5, a6))
-
-// And one that leaves several values pushes them on the stack it is given, the last of them
-// being what it returns.
-#define NATIVE_CALL_RETS(N, DECLS, ARGS) \
-VM_INLINE void RtNativeCall##N##Rets(VM &vm, StackPtr sp, int nfi, builtinf##N f) { \
-    BPROF_START(nfi); \
-    GPROF_START(nfi); \
-    DECLS; \
-    Value v = f ARGS; \
-    GPROF_END(); \
-    BPROF_END(); \
-    Push(sp, v); \
-    vm.BCallRetCheck(sp, nfi); \
-}
-
-NATIVE_CALL_RETS(0, {}, (sp, vm));
-NATIVE_CALL_RETS(1, auto a0 = Pop(sp), (sp, vm, a0));
-NATIVE_CALL_RETS(2, auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1));
-NATIVE_CALL_RETS(3, auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2));
-NATIVE_CALL_RETS(4, auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2, a3));
-NATIVE_CALL_RETS(5, auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2, a3, a4));
-NATIVE_CALL_RETS(6, auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2, a3, a4, a5));
-NATIVE_CALL_RETS(7, auto a6 = Pop(sp);auto a5 = Pop(sp);auto a4 = Pop(sp);auto a3 = Pop(sp);auto a2 = Pop(sp);auto a1 = Pop(sp);auto a0 = Pop(sp), (sp, vm, a0, a1, a2, a3, a4, a5, a6));
 
 // A vector or object with room for its elements, which the generated code writes itself.
 VM_INLINE LVector *RtNewVec(VM &vm, type_elem_t ti, int len) {

@@ -1089,28 +1089,14 @@ static CValue ToC(Value v) {
 }
 
 LString *CRtPushStr(VM *vm, int i) { return RtPushStr(*vm, i); }
-
-// A builtin as the C side passes it: it only takes its address, since a call from C would not
-// agree with the C++ side on how a Value is returned, see CValue, so the helpers do the call.
-typedef void (*CBuiltinFun)();
-
-void CRtNativeCallV(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCallV(*vm, sp, nfi, (builtinfV)f); }
-CValue CRtNativeCall0(VM *vm, int nfi, CBuiltinFun f) { return ToC(RtNativeCall0(*vm, nfi, (builtinf0)f)); }
-CValue CRtNativeCall1(VM *vm, int nfi, CBuiltinFun f, Value a0) { return ToC(RtNativeCall1(*vm, nfi, (builtinf1)f, a0)); }
-CValue CRtNativeCall2(VM *vm, int nfi, CBuiltinFun f, Value a0, Value a1) { return ToC(RtNativeCall2(*vm, nfi, (builtinf2)f, a0, a1)); }
-CValue CRtNativeCall3(VM *vm, int nfi, CBuiltinFun f, Value a0, Value a1, Value a2) { return ToC(RtNativeCall3(*vm, nfi, (builtinf3)f, a0, a1, a2)); }
-CValue CRtNativeCall4(VM *vm, int nfi, CBuiltinFun f, Value a0, Value a1, Value a2, Value a3) { return ToC(RtNativeCall4(*vm, nfi, (builtinf4)f, a0, a1, a2, a3)); }
-CValue CRtNativeCall5(VM *vm, int nfi, CBuiltinFun f, Value a0, Value a1, Value a2, Value a3, Value a4) { return ToC(RtNativeCall5(*vm, nfi, (builtinf5)f, a0, a1, a2, a3, a4)); }
-CValue CRtNativeCall6(VM *vm, int nfi, CBuiltinFun f, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5) { return ToC(RtNativeCall6(*vm, nfi, (builtinf6)f, a0, a1, a2, a3, a4, a5)); }
-CValue CRtNativeCall7(VM *vm, int nfi, CBuiltinFun f, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5, Value a6) { return ToC(RtNativeCall7(*vm, nfi, (builtinf7)f, a0, a1, a2, a3, a4, a5, a6)); }
-void CRtNativeCall0Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall0Rets(*vm, sp, nfi, (builtinf0)f); }
-void CRtNativeCall1Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall1Rets(*vm, sp, nfi, (builtinf1)f); }
-void CRtNativeCall2Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall2Rets(*vm, sp, nfi, (builtinf2)f); }
-void CRtNativeCall3Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall3Rets(*vm, sp, nfi, (builtinf3)f); }
-void CRtNativeCall4Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall4Rets(*vm, sp, nfi, (builtinf4)f); }
-void CRtNativeCall5Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall5Rets(*vm, sp, nfi, (builtinf5)f); }
-void CRtNativeCall6Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall6Rets(*vm, sp, nfi, (builtinf6)f); }
-void CRtNativeCall7Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall7Rets(*vm, sp, nfi, (builtinf7)f); }
+#if RTT_ENABLED
+void CRtNativeRetCheck(VM *vm, int nfi, Value v) { vm->BCallRetCheck(v, nfi); }
+void CRtNativeRetCheckStack(VM *vm, StackPtr sp, int nfi) { vm->BCallRetCheck(sp, nfi); }
+#endif
+#if LOBSTER_NATIVE_PROFILE
+___tracy_c_zone_context CRtNativeProfileStart(VM *vm, int nfi) { return RtNativeProfileStart(*vm, nfi); }
+void CRtNativeProfileEnd(___tracy_c_zone_context ctx) { RtNativeProfileEnd(ctx); }
+#endif
 LVector *CRtNewVec(VM *vm, type_elem_t ti, int len) { return RtNewVec(*vm, ti, len); }
 LObject *CRtNewObject(VM *vm, type_elem_t ti) { return RtNewObject(*vm, ti); }
 void CRtExit(VM *vm, Value ret, type_elem_t ti) { RtExit(*vm, ret, ti); }
@@ -1149,23 +1135,14 @@ extern "C" iint GLFrame(VM &vm);
 
 const void *vm_ops_jit_table[] = {
     "RtPushStr", (void *)&CRtPushStr,
-    "RtNativeCallV", (void *)&CRtNativeCallV,
-    "RtNativeCall0", (void *)&CRtNativeCall0,
-    "RtNativeCall1", (void *)&CRtNativeCall1,
-    "RtNativeCall2", (void *)&CRtNativeCall2,
-    "RtNativeCall3", (void *)&CRtNativeCall3,
-    "RtNativeCall4", (void *)&CRtNativeCall4,
-    "RtNativeCall5", (void *)&CRtNativeCall5,
-    "RtNativeCall6", (void *)&CRtNativeCall6,
-    "RtNativeCall7", (void *)&CRtNativeCall7,
-    "RtNativeCall0Rets", (void *)&CRtNativeCall0Rets,
-    "RtNativeCall1Rets", (void *)&CRtNativeCall1Rets,
-    "RtNativeCall2Rets", (void *)&CRtNativeCall2Rets,
-    "RtNativeCall3Rets", (void *)&CRtNativeCall3Rets,
-    "RtNativeCall4Rets", (void *)&CRtNativeCall4Rets,
-    "RtNativeCall5Rets", (void *)&CRtNativeCall5Rets,
-    "RtNativeCall6Rets", (void *)&CRtNativeCall6Rets,
-    "RtNativeCall7Rets", (void *)&CRtNativeCall7Rets,
+    #if RTT_ENABLED
+    "RtNativeRetCheck", (void *)&CRtNativeRetCheck,
+    "RtNativeRetCheckStack", (void *)&CRtNativeRetCheckStack,
+    #endif
+    #if LOBSTER_NATIVE_PROFILE
+    "RtNativeProfileStart", (void *)&CRtNativeProfileStart,
+    "RtNativeProfileEnd", (void *)&CRtNativeProfileEnd,
+    #endif
     "RtNewVec", (void *)&CRtNewVec,
     "RtNewObject", (void *)&CRtNewObject,
     "RtExit", (void *)&CRtExit,
