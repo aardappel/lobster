@@ -1308,12 +1308,11 @@ BUILTIN_V(p2p_get_connection_status, "ident", "S", "IFFFFFFIIIII",
     "remote quality, out packets/sec, out bytes/sec, in packets/sec, in bytes/sec, send rate bytes/sec, "
     "pending unreliable packets, pending reliable packets, sent unACKed reliable packets, and queue time in usec. "
     "See ISteamNetworkingSockets::GetConnectionRealTimeStatus() for more info.")
-(StackPtr &sp, VM &) {
+(StackPtr &sp, VM &, Value ident) {
     #ifdef PLATFORM_STEAMWORKS
         if (steam) {
-            auto ident = Pop(sp).sval()->strvnt();
             SteamNetConnectionRealTimeStatus_t status;
-            steam->GetConnectionRealTimeStatus(ident, &status);
+            steam->GetConnectionRealTimeStatus(ident.sval()->strvnt(), &status);
             Push(sp, Value(status.m_nPing));
             Push(sp, Value(status.m_flConnectionQualityLocal));
             Push(sp, Value(status.m_flConnectionQualityRemote));
@@ -1404,10 +1403,7 @@ BUILTIN(p2p_rename_peer, "ident,new_ident", "SS", "B", "use a different identifi
 }
 
 BUILTIN_V(p2p_send_message, "ident,data,reliable", "SSB", "BI", "send a reliable message to a given steam identity")
-(StackPtr &sp, VM &) {
-    auto reliable = Pop(sp);
-    auto data = Pop(sp);
-    auto ident = Pop(sp);
+(StackPtr &sp, VM &, Value ident, Value data, Value reliable) {
     #ifdef PLATFORM_STEAMWORKS
         EResult result = k_EResultNone;
         auto ok = steam && steam->SendMessage(ident.sval()->strvnt(), data.sval()->strv(), reliable.intval(), &result);
@@ -1571,8 +1567,7 @@ BUILTIN(lobby_get_data, "steam_id,key", "IS", "S",
 }
 
 BUILTIN_V(lobby_get_all_data, "steam_id", "I", "S]S]", "get all key-value pairs stored on this lobby")
-(StackPtr &sp, VM &vm) {
-    auto vsteam_id = Pop(sp);
+(StackPtr &sp, VM &vm, Value vsteam_id) {
     (void)vsteam_id;
     auto *key_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
     auto *value_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
@@ -1758,9 +1753,7 @@ BUILTIN_V(workshop_sync, "dest_dir,own_subdirs", "SB", "IS]",
     " installed and copied (nothing left to do), 1 = downloads still in progress, 2 = done"
     " but some items failed to download. Second return value is the files copied by this"
     " call (full paths), so the game can pick up new/updated content the moment it arrives.")
-(StackPtr &sp, VM &vm) {
-    auto own_subdirs = Pop(sp);
-    auto dest_dir = Pop(sp);
+(StackPtr &sp, VM &vm, Value dest_dir, Value own_subdirs) {
     auto *copied_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
     int status = -1;
     #ifdef PLATFORM_STEAMWORKS
@@ -1799,14 +1792,8 @@ BUILTIN_V(workshop_upload_start, "content_folder,title,description,metadata,chan
     " item. Empty title/description/metadata leave the existing values unchanged when"
     " updating. Returns false if the upload could not be started (e.g. one is already in"
     " progress).")
-(StackPtr &sp, VM &) {
-    auto existing_fileid = Pop(sp);
-    auto preview_image = Pop(sp);
-    auto changenote = Pop(sp);
-    auto metadata = Pop(sp);
-    auto description = Pop(sp);
-    auto title = Pop(sp);
-    auto content_folder = Pop(sp);
+(StackPtr &sp, VM &, Value content_folder, Value title, Value description, Value metadata,
+ Value changenote, Value preview_image, Value existing_fileid) {
     bool ok = false;
     #ifdef PLATFORM_STEAMWORKS
         if (steam) {

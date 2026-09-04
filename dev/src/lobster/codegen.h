@@ -109,6 +109,10 @@ struct CodeGen  {
     // The runtime type of each slot of a run of values, which says both the kind of variable it
     // is kept in and the tag it carries when it is written to memory, see RtTypeOf.
     typedef vector<RTType> Types;
+    // How each argument of a builtin reaches it, see EmitNativeCall: -1 for one that is a
+    // single value, otherwise how many values it has, which it is passed a pointer to, and
+    // which is 0 for an optional argument that was left out (a single nil).
+    typedef vector<int> NativeArgs;
     // Where a value lives: a variable of its kind, or a Value in memory, which is read thru the
     // field for the kind and written along with the tag its static type says it carries.
     struct Place {
@@ -571,16 +575,21 @@ struct CodeGen  {
         string decls;
         for (auto [idx, nf] : natives_used) {
             if (cpp) {
-                append(decls, "extern \"C\" ", nf->vararg ? "void " : "Value ", nf->symbol,
+                append(decls, "extern \"C\" ", nf->pushrets ? "void " : "Value ", nf->symbol,
                        "(StackPtr &, VMRef");
-            } else if (nf->vararg) {
+            } else if (nf->pushrets) {
                 append(decls, "void ", nf->symbol, "(StackPtr *, VMRef");
             } else if (SretValues()) {
                 append(decls, "void ", nf->symbol, "(Value *, StackPtr *, VMRef");
             } else {
                 append(decls, "Value ", nf->symbol, "(StackPtr *, VMRef");
             }
-            if (!nf->vararg) for (size_t i = 0; i < nf->args.size(); i++) decls += ", Value";
+            // An argument whose values are a run of stack slots takes a pointer to them plus
+            // how many there are, see BuiltinSig.
+            for (size_t i = 0; i < nf->args.size(); i++) {
+                if (!nf->ArgIsVec(i)) decls += ", Value";
+                else append(decls, ", Value *, ", cpp ? "iint" : "long long");
+            }
             decls += ");\n";
         }
         if (!decls.empty()) c_codegen.insert(natives_decl_offset, decls + "\n");
@@ -1450,13 +1459,15 @@ struct CodeGen  {
 
     // The operands of a helper that works on a run of values, copied into the stack array,
     // which is where it gets its pointer to them. Returns that pointer.
-    string StageRange(int first, const Types &ts) {
+    string StageRange(int first, const Types &ts, size_t off, size_t n) {
         f_uses_vals = true;
-        for (auto [i, t] : enumerate(ts)) {
+        for (size_t i = 0; i < n; i++) {
+            auto t = ts[off + i];
             CopyValue(cb, StackSlot(first + (int)i, t), SlotVar(first + (int)i, t));
         }
         return cat(StackArray(), " + ", first);
     }
+    string StageRange(int first, const Types &ts) { return StageRange(first, ts, 0, ts.size()); }
 
     // The same for the top values the current op consumes.
     string StageArgs(const Types &ts) { return StageRange(regso - (int)ts.size(), ts); }
@@ -1849,14 +1860,37 @@ struct CodeGen  {
         #endif
     }
 
+    // The arguments of a call to a builtin, whose values start at slot `base`. Each is one
+    // value, except one whose values are a run of slots, which is a pointer to them plus how
+    // many there are, and which the slot holding that number follows on the stack.
+    string NativeArgList(int base, const Types &args, const NativeArgs &nargs) {
+        string s;
+        auto slot = base;
+        for (auto len : nargs) {
+            if (len < 0) {
+                append(s, ", ", Box(slot, SlotVar(slot, args[slot - base])));
+                slot++;
+            } else {
+                // An argument that was left out is a single nil, of no elements.
+                auto nslots = std::max(len, 1);
+                StageRange(slot, args, slot - base, nslots);
+                append(s, ", ", StackArray(), " + ", slot, ", ", len);
+                slot += nslots + (len ? 1 : 0);
+            }
+        }
+        assert(slot - base == (int)args.size());
+        return s;
+    }
+
     // A call to a builtin, which the code makes directly by its symbol, declared in the
-    // prologue, see natives_used. The vararg kind (a negative count) and the ones that leave
-    // several values work on the stack: the former gets a pointer to the top, the latter one
-    // to its arguments, which it takes and leaves its results in place of, the last of them
-    // being what it returns, which goes behind the others. The rest get their arguments by
-    // value and return the result, and a stack pointer they have no use for. In a debug
-    // build the check of what a builtin returned follows the call, see VM::BCallRetCheck.
-    void EmitNativeCall(int nargs, NativeFun *nf, const Types &args, const Types &rets) {
+    // prologue, see natives_used. The V kind and the ones that leave several values work on
+    // the stack: both get a pointer to where their arguments are, the former leaving all of
+    // its return values there, the latter all but the last, which it returns, and which goes
+    // behind the others. The rest return their single value, and get a stack pointer they have
+    // no use for. In a debug build the check of what a builtin returned follows the call, see
+    // VM::BCallRetCheck.
+    void EmitNativeCall(NativeFun *nf, const Types &args, const Types &rets,
+                        const NativeArgs &nargs) {
         auto uses = (int)args.size();
         auto defs = (int)rets.size();
         if (nf->IsGLFrame()) {
@@ -1877,21 +1911,20 @@ struct CodeGen  {
         EmitNativeProfile(true, nf->idx);
         TrackUseDef(uses, defs);
         auto base = regso - uses;
-        if (nargs < 0 || defs > 1) {
+        auto stackrets = nf->pushrets || defs > 1;
+        auto argstr = NativeArgList(base, args, nargs);
+        if (stackrets) {
             f_uses_vals = true;
-            StageRange(base, args);
             string s = "    ";
-            if (nargs < 0) {
-                append(s, "sp = ", StackArray(), " + ", regso, "; ", nf->symbol, "(", spref,
-                       ", vm);");
+            append(s, "sp = ", StackArray(), " + ", base, "; ");
+            if (nf->pushrets) {
+                append(s, nf->symbol, "(", spref, ", vm", argstr, ");");
             } else {
                 f_uses_nret = true;
-                append(s, "sp = ", StackArray(), " + ", base, "; ");
-                if (sret) append(s, nf->symbol, "(&nret, ", spref, ", vm");
-                else append(s, "nret = ", nf->symbol, "(", spref, ", vm");
-                for (int i = 0; i < nargs; i++) append(s, ", ", StackArray(), "[", base + i, "]");
+                if (sret) append(s, nf->symbol, "(&nret, ", spref, ", vm", argstr, ");");
+                else append(s, "nret = ", nf->symbol, "(", spref, ", vm", argstr, ");");
                 auto last = rets.back();
-                append(s, "); ", CopyValueText(StackSlot(base + defs - 1, last), Mem("nret", last)));
+                append(s, " ", CopyValueText(StackSlot(base + defs - 1, last), Mem("nret", last)));
                 if (checked) {
                     append(s, " ", cpp ? "vm.BCallRetCheck(" : "RtNativeRetCheckStack(vm, ",
                            StackArray(), " + ", base + defs, ", ", nf->idx, ");");
@@ -1903,11 +1936,6 @@ struct CodeGen  {
                 CopyValue(cb, SlotVar(base + i, rets[i]), StackSlot(base + i, rets[i]));
             }
         } else {
-            assert(uses == nargs);
-            string argstr;
-            for (int i = 0; i < nargs; i++) {
-                append(argstr, ", ", Box(base + i, SlotVar(base + i, args[i])));
-            }
             auto call = sret ? cat(nf->symbol, "(&nret, ", spref, ", vm", argstr, ")")
                              : cat(nf->symbol, "(", spref, ", vm", argstr, ")");
             if (sret || checked) {
@@ -3756,6 +3784,7 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     // doing it all in call instruction?
     size_t numstructs = 0;
     CodeGen::Types args;
+    CodeGen::NativeArgs nargtypes;
     for (auto [i, c] : enumerate(children)) {
         auto before = cg.tstack_size;
         cg.Gen(c, 1);
@@ -3767,10 +3796,13 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
         } else {
             CodeGen::AddTypes(args, c->exptype);
         }
-        if ((IsStruct(c->exptype->t) ||
-             nf->args[i].flags & NF_PUSHVALUEWIDTH) &&
-            !Is<DefaultVal>(c)) {
+        if (!nf->ArgIsVec(i)) {
+            nargtypes.push_back(-1);
+        } else if (Is<DefaultVal>(c)) {
+            nargtypes.push_back(0);
+        } else {
             // FIXME: struct variable size.
+            nargtypes.push_back(ValWidth(c->exptype));
             cg.EmitPushInt(ValWidth(c->exptype));
             cg.temptypestack.push_back({ type_int, LT_ANY });
             args.push_back(RTT_INT);
@@ -3779,9 +3811,8 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     }
     size_t nargs = children.size();
     cg.TakeTemp(nargs + numstructs, true);
-    assert(nargs == nf->args.size() && (nf->vararg || nargs <= 7));
-    cg.EmitNativeCall(nf->vararg ? -1 : (int)nargs, nf, args,
-                      CodeGen::TypesOf(nattype, nattype->NumValues()));
+    assert(nargs == nf->args.size());
+    cg.EmitNativeCall(nf, args, CodeGen::TypesOf(nattype, nattype->NumValues()), nargtypes);
     if (nf->retvals.size() > 0) {
         assert(nf->retvals.size() == nattype->NumValues());
         for (size_t i = 0; i < nattype->NumValues(); i++) {

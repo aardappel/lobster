@@ -169,19 +169,20 @@ BUILTIN(sound_volume, "channel,volume", "IF", "",
 BUILTIN_V(sound_position, "channel,vecfromlistener,listenerfwd,attnscale", "IF}:3F}:3F", "",
     "sets the channel volume and panning according to sound in a game world relative to"
     " the listener.")
-(StackPtr &sp, VM &) {
-    auto scale = Pop(sp).fltval();
-    auto fwd = PopVec<float3>(sp);
-    auto src = PopVec<float3>(sp);
-    auto ch_idx = Pop(sp).intval();
+(StackPtr &, VM &, Value channel, Value *vecfromlistener, iint vecfromlistener_len,
+ Value *listenerfwd, iint listenerfwd_len, Value attnscale) {
+    auto scale = attnscale.fltval();
+    auto fwd = ToVec<float3>(listenerfwd, listenerfwd_len);
+    auto src = ToVec<float3>(vecfromlistener, vecfromlistener_len);
+    auto ch_idx = channel.intval();
     if (ch_idx > 0)
         SDLSetPosition(ch_idx, src, fwd, scale);
 }
 
 BUILTIN_V(sound_no_position, "channel", "I", "",
     "clears the channel position previously set by \"sound_position\"")
-(StackPtr &sp, VM &) {
-    auto ch_idx = Pop(sp).intval();
+(StackPtr &, VM &, Value channel) {
+    auto ch_idx = channel.intval();
     if (ch_idx > 0)
         SDLUnsetPosition(ch_idx);
 }

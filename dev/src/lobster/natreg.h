@@ -137,18 +137,6 @@ struct Narg {
     }
 };
 
-// The two kinds of builtin, see the BUILTIN macros below: one taking a fixed number of
-// arguments by value, and the V kind that works on the stack it is given.
-typedef void  (*builtinfV)(StackPtr &sp, VM &vm);
-typedef Value (*builtinf0)(StackPtr &sp, VM &vm);
-typedef Value (*builtinf1)(StackPtr &sp, VM &vm, Value);
-typedef Value (*builtinf2)(StackPtr &sp, VM &vm, Value, Value);
-typedef Value (*builtinf3)(StackPtr &sp, VM &vm, Value, Value, Value);
-typedef Value (*builtinf4)(StackPtr &sp, VM &vm, Value, Value, Value, Value);
-typedef Value (*builtinf5)(StackPtr &sp, VM &vm, Value, Value, Value, Value, Value);
-typedef Value (*builtinf6)(StackPtr &sp, VM &vm, Value, Value, Value, Value, Value, Value);
-typedef Value (*builtinf7)(StackPtr &sp, VM &vm, Value, Value, Value, Value, Value, Value, Value);
-
 // The number of arguments a builtin takes according to its argument type string: one per type
 // letter, see Narg::Set.
 constexpr int BuiltinNumArgs(const char *typeids) {
@@ -157,19 +145,78 @@ constexpr int BuiltinNumArgs(const char *typeids) {
     return n;
 }
 
-// The function type of a builtin taking N arguments, or of the V kind for -1. The BUILTIN
-// macros declare a builtin as this ahead of its definition, which checks the parameter list
-// of the definition against the argument types given, and makes its address available.
-template<int N> struct BuiltinSig;
-template<> struct BuiltinSig<-1> { typedef std::remove_pointer_t<builtinfV> type; };
-template<> struct BuiltinSig<0> { typedef std::remove_pointer_t<builtinf0> type; };
-template<> struct BuiltinSig<1> { typedef std::remove_pointer_t<builtinf1> type; };
-template<> struct BuiltinSig<2> { typedef std::remove_pointer_t<builtinf2> type; };
-template<> struct BuiltinSig<3> { typedef std::remove_pointer_t<builtinf3> type; };
-template<> struct BuiltinSig<4> { typedef std::remove_pointer_t<builtinf4> type; };
-template<> struct BuiltinSig<5> { typedef std::remove_pointer_t<builtinf5> type; };
-template<> struct BuiltinSig<6> { typedef std::remove_pointer_t<builtinf6> type; };
-template<> struct BuiltinSig<7> { typedef std::remove_pointer_t<builtinf7> type; };
+// Whether argument `arg` is one whose values live in a run of stack slots rather than in a
+// single one: a numeric struct ('}'), or one that may be passed a struct ('w'). The builtin
+// gets a pointer to them plus how many there are, see BuiltinParamKindOf. A ']' after the '}'
+// makes it a vector of structs, which is a single reference again.
+constexpr bool BuiltinArgIsVec(const char *typeids, int arg) {
+    auto n = -1;
+    auto isvec = false;
+    auto resource = false;
+    for (;; typeids++) {
+        auto c = *typeids;
+        if (!c || (c >= 'A' && c <= 'Z')) {
+            if (n == arg) return isvec;
+            if (!c) return false;
+            n++;
+            isvec = false;
+            resource = c == 'R';
+        } else if (resource && c == ':') {
+            // The name of the resource type follows, which is all lowercase, see Narg::Set.
+            while (typeids[1] >= 'a' && typeids[1] <= 'z') typeids++;
+        } else if (c == '}' || c == 'w') {
+            isvec = true;
+        } else if (c == ']') {
+            isvec = false;
+        }
+    }
+}
+
+// The parameters of a builtin: one per argument, except a vec one, which takes two.
+constexpr int BuiltinNumParams(const char *typeids) {
+    auto n = 0;
+    for (auto i = 0; i < BuiltinNumArgs(typeids); i++) n += BuiltinArgIsVec(typeids, i) ? 2 : 1;
+    return n;
+}
+
+enum BuiltinParamKind {
+    BPK_VALUE,     // A single value.
+    BPK_VALUEPTR,  // The values of a vec argument, in the stack slots they were passed in.
+    BPK_LEN        // How many of those there are, which follows the pointer to them.
+};
+
+constexpr BuiltinParamKind BuiltinParamKindOf(const char *typeids, int param) {
+    for (auto arg = 0;; arg++) {
+        if (BuiltinArgIsVec(typeids, arg)) {
+            if (!param) return BPK_VALUEPTR;
+            if (param == 1) return BPK_LEN;
+            param -= 2;
+        } else {
+            if (!param) return BPK_VALUE;
+            param--;
+        }
+    }
+}
+
+template<typename TIDS, size_t P> struct BuiltinParam {
+    static constexpr BuiltinParamKind kind = BuiltinParamKindOf(TIDS::tids, (int)P);
+    typedef std::conditional_t<kind == BPK_VALUEPTR, Value *,
+            std::conditional_t<kind == BPK_LEN, iint, Value>> type;
+};
+
+template<typename TIDS, bool PushRets, typename Params> struct BuiltinSigT;
+template<typename TIDS, bool PushRets, size_t... P>
+struct BuiltinSigT<TIDS, PushRets, std::index_sequence<P...>> {
+    typedef std::conditional_t<PushRets, void, Value> ret;
+    typedef ret type(StackPtr &, VM &, typename BuiltinParam<TIDS, P>::type...);
+};
+
+// The function type the argument types of a builtin imply, where TIDS is a type that carries
+// them as a `tids` member, see BUILTIN_DEF_. The BUILTIN macros declare a builtin as this ahead
+// of its definition, which checks the parameter list of the definition against the argument
+// types given, and makes its address available.
+template<typename TIDS, bool PushRets> using BuiltinSig =
+    BuiltinSigT<TIDS, PushRets, std::make_index_sequence<BuiltinNumParams(TIDS::tids)>>;
 
 struct BuiltinDef;
 
@@ -190,17 +237,17 @@ struct BuiltinDef {
     const char *typeids;
     const char *rets;
     const char *help;
-    bool vararg;         // Of the V kind, see builtinfV.
+    bool pushrets;       // Of the V kind, see the BUILTIN macros below.
     // Only for the JIT to link the generated code against, which calls the function by its
     // symbol, see CodeGen::EmitNativeCall and NativeRegistry::jit_imports.
     const void *address;
     BuiltinDef *next = nullptr;
 
     BuiltinDef(BuiltinGroup &group, const char *symbol, const char *name, const char *ids,
-               const char *typeids, const char *rets, const char *help, bool vararg,
+               const char *typeids, const char *rets, const char *help, bool pushrets,
                const void *address)
         : symbol(symbol), name(name), ids(ids), typeids(typeids), rets(rets), help(help),
-          vararg(vararg), address(address) {
+          pushrets(pushrets), address(address) {
         if (group.last) group.last->next = this;
         else group.first = this;
         group.last = this;
@@ -229,33 +276,38 @@ struct BuiltinDef {
 // full Lobster name with a "_" for the ".", which RegisterGroup() below verifies, and it is
 // what the generated code calls the builtin by. The function is declared ahead of the
 // definition with the type the argument types given imply, see BuiltinSig, so a parameter list
-// that does not match them is a compile error.
-// BUILTIN_V is for the vararg kind of builtin that pops its arguments and pushes its results
-// itself, and returns void. The _OVERLOAD variants take a distinct symbol name and the Lobster
-// name separately, for names that are defined more than once with different argument types.
-// The symbol must then still start with the plain one, followed by a distinguishing suffix.
+// that does not match them is a compile error. An argument that lives in a run of stack slots
+// (a numeric struct, or one that may be a struct) becomes two parameters: a pointer to those
+// slots and how many there are.
+// BUILTIN_V is for the kind of builtin that leaves its return values on the stack it is given
+// rather than returning them, which is what a struct or several of them take, and returns void.
+// The stack it gets starts where its arguments are, so those slots are what it writes its
+// return values into, and a builtin that takes a pointer to some of them must be done reading
+// it before it pushes anything. The _OVERLOAD variants take a distinct symbol name and the
+// Lobster name separately, for names that are defined more than once with different argument
+// types. The symbol must then still start with the plain one, followed by a distinguishing
+// suffix.
 #define BUILTIN_CAT_(a, b) a##b
 #define BUILTIN_CAT(a, b) BUILTIN_CAT_(a, b)
 #define BUILTIN_STR_(a) #a
 #define BUILTIN_STR(a) BUILTIN_STR_(a)
-#define BUILTIN_DEF_(sym, name, ids, typeids, rets, help, nargs) \
-    extern "C" lobster::BuiltinSig<nargs>::type sym; \
+#define BUILTIN_DEF_(sym, name, ids, typeids, rets, help, pushrets) \
+    struct BUILTIN_CAT(sym, _tids) { static constexpr const char *tids = typeids; }; \
+    extern "C" lobster::BuiltinSig<BUILTIN_CAT(sym, _tids), pushrets>::type sym; \
     static lobster::BuiltinDef BUILTIN_CAT(sym, _def)( \
-        BUILTIN_GROUP, BUILTIN_STR(sym), name, ids, typeids, rets, help, (nargs) < 0, \
+        BUILTIN_GROUP, BUILTIN_STR(sym), name, ids, typeids, rets, help, pushrets, \
         (const void *)sym)
 #define BUILTIN(name, ids, typeids, rets, help) \
-    BUILTIN_DEF_(BUILTIN_SYM(name), #name, ids, typeids, rets, help, \
-                 lobster::BuiltinNumArgs(typeids)); \
+    BUILTIN_DEF_(BUILTIN_SYM(name), #name, ids, typeids, rets, help, false); \
     extern "C" lobster::Value BUILTIN_SYM(name)
 #define BUILTIN_V(name, ids, typeids, rets, help) \
-    BUILTIN_DEF_(BUILTIN_SYM(name), #name, ids, typeids, rets, help, -1); \
+    BUILTIN_DEF_(BUILTIN_SYM(name), #name, ids, typeids, rets, help, true); \
     extern "C" void BUILTIN_SYM(name)
 #define BUILTIN_OVERLOAD(sym, name, ids, typeids, rets, help) \
-    BUILTIN_DEF_(BUILTIN_SYM(sym), name, ids, typeids, rets, help, \
-                 lobster::BuiltinNumArgs(typeids)); \
+    BUILTIN_DEF_(BUILTIN_SYM(sym), name, ids, typeids, rets, help, false); \
     extern "C" lobster::Value BUILTIN_SYM(sym)
 #define BUILTIN_V_OVERLOAD(sym, name, ids, typeids, rets, help) \
-    BUILTIN_DEF_(BUILTIN_SYM(sym), name, ids, typeids, rets, help, -1); \
+    BUILTIN_DEF_(BUILTIN_SYM(sym), name, ids, typeids, rets, help, true); \
     extern "C" void BUILTIN_SYM(sym)
 
 struct NativeFun : Named {
@@ -266,8 +318,8 @@ struct NativeFun : Named {
     // C linkage name of the function, which is how the generated code calls it.
     const char *symbol;
 
-    // Of the V kind, see builtinfV.
-    bool vararg;
+    // Of the V kind, which leaves its return values on the stack, see the BUILTIN macros.
+    bool pushrets;
 
     // See BuiltinDef::address.
     const void *address;
@@ -283,20 +335,15 @@ struct NativeFun : Named {
     };
 
     NativeFun(const char *ns, const char *nsname, const char *ids, const char *typeids,
-              const char *rets, const char *help, const char *symbol, bool vararg,
+              const char *rets, const char *help, const char *symbol, bool pushrets,
               const void *address)
         : Named(*ns ? cat(ns, ".", nsname) : nsname, 0),
           args(TypeLen(typeids)),
           retvals(TypeLen(rets)),
           help(help),
           symbol(symbol),
-          vararg(vararg),
+          pushrets(pushrets),
           address(address) {
-        auto StructArgsVararg = [&](const Narg &arg) {
-            if (arg.vttype->t == V_STRUCT_NUM && !vararg)
-                Error("struct types can only be used by vararg builtins");
-            (void)arg;
-        };
         for (auto [i, arg] : enumerate(args)) {
             const char *idend = strchr(ids, ',');
             if (!idend) {
@@ -307,12 +354,19 @@ struct NativeFun : Named {
             arg.name = string_view(ids, idend - ids);
             ids = idend + 1;
             arg.Set(typeids, LT_BORROW, this);
-            StructArgsVararg(arg);
         }
         for (auto &ret : retvals) {
             ret.Set(rets, LT_KEEP, this);
-            StructArgsVararg(ret);
+            // A struct takes more than one slot, which only the V kind has a way to return.
+            if (ret.vttype->t == V_STRUCT_NUM && !pushrets)
+                Error("struct types can only be returned by V builtins");
         }
+    }
+
+    // Whether argument `i` is passed as a pointer to its values on the stack plus how many
+    // there are, see BuiltinArgIsVec.
+    bool ArgIsVec(size_t i) const {
+        return args[i].vttype->t == V_STRUCT_NUM || (args[i].flags & NF_PUSHVALUEWIDTH);
     }
 
     bool IsGLFrame() {
@@ -397,7 +451,7 @@ struct NativeRegistry {
     void RegisterGroup(const BuiltinGroup &group) {
         for (auto def = group.first; def; def = def->next) {
             auto nf = new NativeFun(cur_ns, def->name, def->ids, def->typeids, def->rets,
-                                    def->help, def->symbol, def->vararg, def->address);
+                                    def->help, def->symbol, def->pushrets, def->address);
             // Catches a file whose BUILTIN_SYM doesn't match the namespace it is registered
             // under, which would make the symbol of its builtins unpredictable.
             auto expected = cat("builtin_", *cur_ns ? cat(cur_ns, "_") : string(), def->name);

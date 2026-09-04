@@ -395,9 +395,9 @@ BUILTIN_V(parse_data, "typeid,stringdata", "TS", "A1?S?",
     " current definitions, i.e. too many elements will be truncated, missing elements will be"
     " set to 0/nil if possible. useful for simple file formats. returns the value and an error"
     " string as second return value (or nil if no error)")
-(StackPtr &sp, VM &vm) {
-    auto ins = Pop(sp).sval();
-    auto type = Pop(sp).ival();
+(StackPtr &sp, VM &vm, Value type_id, Value stringdata) {
+    auto ins = stringdata.sval();
+    auto type = type_id.ival();
     ParseData(sp, vm, (type_elem_t)type, ins->strv());
 }
 
@@ -425,9 +425,9 @@ BUILTIN(flexbuffers_value_to_binary, "val,max_nesting,cycle_detection", "AI?B?",
 
 BUILTIN_V(flexbuffers_binary_to_value, "typeid,flex", "TS", "A1?S?",
     "turns a flexbuffer into a value")
-(StackPtr &sp, VM &vm) {
-    auto fsv = Pop(sp).sval()->strv();
-    auto id = Pop(sp).ival();
+(StackPtr &sp, VM &vm, Value type_id, Value flex) {
+    auto fsv = flex.sval()->strv();
+    auto id = type_id.ival();
     vector<uint8_t> reuse_buffer;
     if (flexbuffers::VerifyBuffer((const uint8_t *)fsv.data(), fsv.size(), &reuse_buffer)) {
         auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
@@ -440,10 +440,10 @@ BUILTIN_V(flexbuffers_binary_to_value, "typeid,flex", "TS", "A1?S?",
 
 BUILTIN_V(flexbuffers_binary_to_json, "flex,field_quotes,indent_string", "SBS", "S?S?",
     "turns a flexbuffer into a JSON string. If indent_string is empty, will be a single line string")
-(StackPtr &sp, VM &vm) {
-    auto indent_string = Pop(sp).sval()->strvnt();
-    auto quoted = Pop(sp).ival();
-    auto fsv = Pop(sp).sval()->strv();
+(StackPtr &sp, VM &vm, Value flex, Value field_quotes, Value indent_string_) {
+    auto indent_string = indent_string_.sval()->strvnt();
+    auto quoted = field_quotes.ival();
+    auto fsv = flex.sval()->strv();
     vector<uint8_t> reuse_buffer;
     if (flexbuffers::VerifyBuffer((const uint8_t *)fsv.data(), fsv.size(), &reuse_buffer)) {
         auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
@@ -494,9 +494,9 @@ BUILTIN(lobster_value_to_binary, "val", "A", "S",
 
 BUILTIN_V(lobster_binary_to_value, "typeid,bin", "TS", "A1?S?",
     "turns binary created by lobster_value_to_binary back into a value")
-(StackPtr &sp, VM &vm) {
-    auto fsv = Pop(sp).sval()->strv();
-    auto id = Pop(sp).ival();
+(StackPtr &sp, VM &vm, Value type_id, Value bin) {
+    auto fsv = bin.sval()->strv();
+    auto id = type_id.ival();
     ParseLobsterBinaryData(sp, vm, (type_elem_t)id, (const uint8_t *)fsv.data(), fsv.size());
 }
 

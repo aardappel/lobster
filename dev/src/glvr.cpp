@@ -343,8 +343,7 @@ BUILTIN_V(motion_controller, "n", "I", "",
     "sets up the transform ready to render controller n."
     " if there is no controller n (or it is currently not"
     " tracking) the identity transform is used")
-(StackPtr &sp, VM &) {
-    auto mc = Pop(sp);
+(StackPtr &, VM &, Value mc) {
     auto mcd = GetMC(mc);
     otransforms.append_object2view(mcd ? mcd->mat : float4x4_1);
 }
@@ -378,9 +377,8 @@ BUILTIN(motion_controller_button, "n,button", "IS", "I",
 BUILTIN_V(motion_controller_vec, "n,i", "II", "F}:3",
     "returns one of the vectors for motion controller n. 0 = left, 1 = up, 2 = fwd, 4 = pos."
     " These are in Y up space.")
-(StackPtr &sp, VM &vm) {
-    auto idx = Pop(sp);
-    auto mcd = GetMC(Pop(sp));
+(StackPtr &sp, VM &vm, Value n, Value idx) {
+    auto mcd = GetMC(n);
     if (!mcd) { PushVec(sp, float3_0); return; }
     auto i = RangeCheck(vm, idx, 4);
     PushVec(sp, mcd->mat[i].xyz());
@@ -389,8 +387,8 @@ BUILTIN_V(motion_controller_vec, "n,i", "II", "F}:3",
 BUILTIN_V(hmd_vec, "i", "I", "F}:3",
     "returns one of the vectors for hmd pose. 0 = left, 1 = up, 2 = fwd, 4 = pos."
     " These are in Y up space.")
-(StackPtr &sp, VM &vm) {
-    auto i = RangeCheck(vm, Pop(sp), 4);
+(StackPtr &sp, VM &vm, Value i_) {
+    auto i = RangeCheck(vm, i_, 4);
     PushVec(sp, hmdpose[i].xyz());
 }
 

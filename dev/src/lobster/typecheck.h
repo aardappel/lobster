@@ -4424,7 +4424,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
                 tc.Error(*this, "function does not support this struct type");
             }
         }
-        if (!nf->vararg && arg.vttype->t != V_STRUCT_NUM && !(arg.flags & NF_PUSHVALUEWIDTH))
+        if (arg.vttype->t != V_STRUCT_NUM && !(arg.flags & NF_PUSHVALUEWIDTH))
             tc.NoStruct(*c, nf->name);
         if (!typed) {
             tc.SubType(c, argtype, tc.ArgName(i), nf->name, cf_const);

@@ -97,10 +97,11 @@ BUILTIN_V(set_font_size, "size,outlinesize,outlinecolor", "IF?F}:4?", "B",
     " an optional outlinesize will give the font an outline."
     " make sure to call this every frame."
     " returns true if success")
-(StackPtr &sp, VM &vm) {
-    auto outlinecol = PopVec<float4>(sp);
-    auto outlinesize = Pop(sp).fltval();
-    auto fontsize = Pop(sp).intval();
+(StackPtr &sp, VM &vm, Value size_, Value outlinesize_, Value *outlinecolor,
+ iint outlinecolor_len) {
+    auto outlinecol = ToVec<float4>(outlinecolor, outlinecolor_len);
+    auto outlinesize = outlinesize_.fltval();
+    auto fontsize = size_.intval();
     if (!curface) vm.BuiltinError("gl.set_font_size: no current font set with gl.set_font_name");
     float osize = min(16.0f, max(0.0f, outlinesize));
     int size = max(1, fontsize);
@@ -162,10 +163,10 @@ BUILTIN(text, "text", "S", "Sb",
 
 BUILTIN_V(text_size, "text", "S", "I}:2",
     "the x/y size in pixels the given text would need")
-(StackPtr &sp, VM &vm) {
+(StackPtr &sp, VM &vm, Value text) {
     auto f = curfont;
     if (!f) vm.BuiltinError("gl.text_size: no font / font size set");
-    auto size = f->TextSize(Pop(sp).sval()->strv());
+    auto size = f->TextSize(text.sval()->strv());
     if (curfontsize > maxfontsize) {
         size = fceil<int>(float2(size) * float(curfontsize) / float(maxfontsize));
     }

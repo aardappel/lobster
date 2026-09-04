@@ -214,9 +214,9 @@ BUILTIN(equal, "a,b", "AA", "B",
 
 BUILTIN_V(push, "xs,x", "A]*Akw1", "Ab]1",
     "appends one element to a vector, returns existing vector")
-(StackPtr &sp, VM &vm) {
-    auto v = DangleVec<RefObjPtr>(sp);
-    auto l = Pop(sp).vval();
+(StackPtr &sp, VM &vm, Value xs, Value *x, iint x_len) {
+    auto v = ValueVec<RefObjPtr>(x, x_len);
+    auto l = xs.vval();
     assert(v.len == l->width);
     l->PushVW(vm, v.vals);
     Push(sp, l);
@@ -224,8 +224,8 @@ BUILTIN_V(push, "xs,x", "A]*Akw1", "Ab]1",
 
 BUILTIN_V(pop, "xs", "A]*", "A1",
     "removes last element from vector and returns it")
-(StackPtr &sp, VM &vm) {
-    auto l = Pop(sp).vval();
+(StackPtr &sp, VM &vm, Value xs) {
+    auto l = xs.vval();
     if (!l->len) vm.BuiltinError("pop: empty vector");
     l->PopVW(TopPtr(sp));
     PushN(sp, l->width);
@@ -233,8 +233,8 @@ BUILTIN_V(pop, "xs", "A]*", "A1",
 
 BUILTIN_V(top, "xs", "A]*", "Ab1",
     "returns last element from vector")
-(StackPtr &sp, VM &vm) {
-    auto l = Pop(sp).vval();
+(StackPtr &sp, VM &vm, Value xs) {
+    auto l = xs.vval();
     if (!l->len) vm.BuiltinError("top: empty vector");
     l->TopVW(TopPtr(sp));
     PushN(sp, l->width);
@@ -243,10 +243,10 @@ BUILTIN_V(top, "xs", "A]*", "Ab1",
 BUILTIN_V(insert, "xs,i,x", "A]*IAkw1", "Ab]1",
     "inserts a value into a vector at index i, existing elements shift upward,"
     " returns original vector")
-(StackPtr &sp, VM &vm) {
-    auto v = DangleVec<RefObjPtr>(sp);
-    auto i = Pop(sp).ival();
-    auto l = Pop(sp).vval();
+(StackPtr &sp, VM &vm, Value xs, Value i_, Value *x, iint x_len) {
+    auto v = ValueVec<RefObjPtr>(x, x_len);
+    auto i = i_.ival();
+    auto l = xs.vval();
     if (i < 0 || i > l->len)
         vm.BuiltinError("insert: index or n out of range");  // note: i==len is legal
     assert(v.len == l->width);
@@ -256,9 +256,9 @@ BUILTIN_V(insert, "xs,i,x", "A]*IAkw1", "Ab]1",
 
 BUILTIN_V(remove, "xs,i", "A]*I", "A1",
     "remove element at index i, following elements shift down. returns the element removed.")
-(StackPtr &sp, VM &vm) {
-    auto i = Pop(sp).ival();
-    auto l = Pop(sp).vval();
+(StackPtr &sp, VM &vm, Value xs, Value i_) {
+    auto i = i_.ival();
+    auto l = xs.vval();
     if (i < 0 || i >= l->len)
         vm.BuiltinError(cat("remove: index (", i, ") out of range (", l->len, ")"));
     l->RemovePush(sp, i);
@@ -266,10 +266,10 @@ BUILTIN_V(remove, "xs,i", "A]*I", "A1",
 
 BUILTIN_V(remove_range, "xs,i,n", "A]*II", "",
     "remove n elements at index i, following elements shift down.")
-(StackPtr &sp, VM &vm) {
-    auto amount = Pop(sp).ival();
-    auto i = Pop(sp).ival();
-    auto l = Pop(sp).vval();
+(StackPtr &, VM &vm, Value xs, Value i_, Value n) {
+    auto amount = n.ival();
+    auto i = i_.ival();
+    auto l = xs.vval();
     if (amount < 0 || amount > l->len || i < 0 || i > l->len - amount)
         vm.BuiltinError(
             cat("remove: index (", i, ") or n (", amount, ") out of range (", l->len, ")"));
@@ -291,9 +291,9 @@ BUILTIN(remove_obj, "xs,obj", "A]*A1", "Ab2",
 
 BUILTIN_V(truncate, "xs,i", "A]*I", "",
     "removes all elements starting from index i, does nothing if i >= len")
-(StackPtr &sp, VM &vm) {
-    auto i = Pop(sp).ival();
-    auto l = Pop(sp).vval();
+(StackPtr &, VM &vm, Value xs, Value i_) {
+    auto i = i_.ival();
+    auto l = xs.vval();
     if (i < 0 || i >= l->len) return;
     l->Truncate(vm, i);
 }
@@ -394,11 +394,10 @@ BUILTIN_OVERLOAD(any_vector, "any", "xs", "A]*", "B",
 
 BUILTIN_V_OVERLOAD(any_ivec, "any", "xs", "I}", "B",
     "returns whether any elements of the numeric struct are true values")
-(StackPtr &sp, VM &) {
+(StackPtr &sp, VM &, Value *elems, iint len) {
     auto r = false;
-    auto l = Pop(sp).ival();
-    for (iint i = 0; i < l; i++) {
-        if (Pop(sp).True()) r = true;
+    for (iint i = 0; i < len; i++) {
+        if (elems[i].True()) r = true;
     }
     Push(sp,  r);
 }
@@ -415,11 +414,10 @@ BUILTIN_OVERLOAD(all_vector, "all", "xs", "A]*", "B",
 
 BUILTIN_V_OVERLOAD(all_ivec, "all", "xs", "I}", "B",
     "returns whether all elements of the numeric struct are true values")
-(StackPtr &sp, VM &) {
+(StackPtr &sp, VM &, Value *elems, iint len) {
     auto r = true;
-    auto l = Pop(sp).ival();
-    for (iint i = 0; i < l; i++) {
-        if (!Pop(sp).True()) r = false;
+    for (iint i = 0; i < len; i++) {
+        if (!elems[i].True()) r = false;
     }
     Push(sp,  r);
 }
@@ -697,17 +695,15 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
 }
 
 
-#define VECTORVARS \
-    auto len = Pop(sp).ival(); \
-    auto elems = TopPtr(sp) - len;
-
+// These work on a numeric struct argument, whose values a builtin gets as `elems` and `len`,
+// and which is where its return value of the same width goes, see the BUILTIN macros.
 #define VECTOROPNR(op) \
     for (iint i = 0; i < len; i++) { \
         auto f = elems[i]; \
         op; \
     }
 
-#define VECTOROP(op) VECTORVARS VECTOROPNR(elems[i] = Value(op))
+#define VECTOROP(op) VECTOROPNR(elems[i] = Value(op))
 
 BUILTIN_OVERLOAD(pow_int, "pow", "a,b", "II", "I",
     "a raised to the power of b, for integers, using exponentiation by squaring")
@@ -721,8 +717,8 @@ BUILTIN_OVERLOAD(pow_float, "pow", "a,b", "FF", "F",
 
 BUILTIN_V_OVERLOAD(pow_fvec, "pow", "a,b", "F}F", "F}",
     "struct elements raised to the power of b")
-(StackPtr &sp, VM &) {
-    auto exp = Pop(sp).fval();
+(StackPtr &, VM &, Value *elems, iint len, Value b) {
+    auto exp = b.fval();
     VECTOROP(pow(f.fval(), exp));
 }
 
@@ -743,66 +739,68 @@ BUILTIN_OVERLOAD(ceiling_float, "ceiling", "f", "F", "I",
 (StackPtr &, VM &, Value a) { return Value(fceil<iint>(a.fval())); }
 BUILTIN_V_OVERLOAD(ceiling_fvec, "ceiling", "v", "F}", "I}",
     "the nearest ints >= each component of v")
-(StackPtr &sp, VM &) { VECTOROP(iint(fceil<iint>(f.fval()))); }
+(StackPtr &, VM &, Value *elems, iint len) { VECTOROP(iint(fceil<iint>(f.fval()))); }
 
 BUILTIN_OVERLOAD(floor_float, "floor", "f", "F", "I",
     "the nearest int <= f")
 (StackPtr &, VM &, Value a) { return Value(ffloor<iint>(a.fval())); }
 BUILTIN_V_OVERLOAD(floor_fvec, "floor", "v", "F}", "I}",
     "the nearest ints <= each component of v")
-(StackPtr &sp, VM &) { VECTOROP((ffloor<iint>(f.fval()))); }
+(StackPtr &, VM &, Value *elems, iint len) { VECTOROP((ffloor<iint>(f.fval()))); }
 
 BUILTIN_OVERLOAD(int_float, "int", "f", "F", "I",
     "converts a float to an int by dropping the fraction")
 (StackPtr &, VM &, Value a) { return Value(iint(a.fval())); }
 BUILTIN_V_OVERLOAD(int_fvec, "int", "v", "F}", "I}",
     "converts a struct of floats to ints by dropping the fraction")
-(StackPtr &sp, VM &) { VECTOROP(iint(f.fval())); }
+(StackPtr &, VM &, Value *elems, iint len) { VECTOROP(iint(f.fval())); }
 
 BUILTIN_OVERLOAD(round_float, "round", "f", "F", "I",
     "converts a float to the closest int")
 (StackPtr &, VM &, Value a) { return Value(iint(a.fval() + (double(a.fval() >= 0) - 0.5))); }
 BUILTIN_V_OVERLOAD(round_fvec, "round", "v", "F}", "I}",
     "converts a struct of floats to the closest ints")
-(StackPtr &sp, VM &) { VECTOROP(iint(f.fval() + (double(f.fval() >= 0) - 0.5))); }
+(StackPtr &, VM &, Value *elems, iint len) {
+    VECTOROP(iint(f.fval() + (double(f.fval() >= 0) - 0.5)));
+}
 
 BUILTIN_OVERLOAD(fraction_float, "fraction", "f", "F", "F",
     "returns the fractional part of a float: short for f - floor(f)")
 (StackPtr &, VM &, Value a) { return Value(a.fval() - floor(a.fval())); }
 BUILTIN_V_OVERLOAD(fraction_fvec, "fraction", "v", "F}", "F}",
     "returns the fractional part of a struct of floats")
-(StackPtr &sp, VM &) { VECTOROP(f.fval() - floor(f.fval())); }
+(StackPtr &, VM &, Value *elems, iint len) { VECTOROP(f.fval() - floor(f.fval())); }
 
 BUILTIN_OVERLOAD(float_int, "float", "i", "I", "F",
     "converts an int to float")
 (StackPtr &, VM &, Value a) { return Value(double(a.ival())); }
 BUILTIN_V_OVERLOAD(float_ivec, "float", "v", "I}", "F}",
     "converts a struct of ints to floats")
-(StackPtr &sp, VM &) { VECTOROP(double(f.ival())); }
+(StackPtr &, VM &, Value *elems, iint len) { VECTOROP(double(f.ival())); }
 
 BUILTIN_OVERLOAD(sin_float, "sin", "angle", "F", "F",
     "the y coordinate of the normalized vector indicated by angle (in degrees)")
 (StackPtr &, VM &, Value a) { return Value(sin(a.fval() * RAD_D)); }
 BUILTIN_V_OVERLOAD(sin_fvec, "sin", "angle", "F}", "F}",
     "the y coordinates of the normalized vector indicated by the angles (in degrees)")
-(StackPtr &sp, VM &) { VECTOROP(sin(f.fval() * RAD_D)); }
+(StackPtr &, VM &, Value *elems, iint len) { VECTOROP(sin(f.fval() * RAD_D)); }
 BUILTIN_OVERLOAD(cos_float, "cos", "angle", "F", "F",
     "the x coordinate of the normalized vector indicated by angle (in degrees)")
 (StackPtr &, VM &, Value a) { return Value(cos(a.fval() * RAD_D)); }
 BUILTIN_V_OVERLOAD(cos_fvec, "cos", "angle", "F}", "F}",
     "the x coordinates of the normalized vector indicated by the angles (in degrees)")
-(StackPtr &sp, VM &) { VECTOROP(cos(f.fval() * RAD_D)); }
+(StackPtr &, VM &, Value *elems, iint len) { VECTOROP(cos(f.fval() * RAD_D)); }
 BUILTIN_OVERLOAD(tan_float, "tan", "angle", "F", "F",
     "the tangent of an angle (in degrees)")
 (StackPtr &, VM &, Value a) { return Value(tan(a.fval() * RAD_D)); }
 BUILTIN_V_OVERLOAD(tan_fvec, "tan", "angle", "F}", "F}",
     "the tangents of the angles (in degrees)")
-(StackPtr &sp, VM &) { VECTOROP(tan(f.fval() * RAD_D)); }
+(StackPtr &, VM &, Value *elems, iint len) { VECTOROP(tan(f.fval() * RAD_D)); }
 
 BUILTIN_V(sincos, "angle", "F", "F}:2",
     "the normalized vector indicated by angle (in degrees), same as float2 { cos(angle), sin(angle) }")
-(StackPtr &sp, VM &) {
-    auto a = Pop(sp).fval();
+(StackPtr &sp, VM &, Value angle) {
+    auto a = angle.fval();
     PushVec(sp, double2(cos(a * RAD_D), sin(a * RAD_D)));
 }
 
@@ -825,16 +823,15 @@ BUILTIN(degrees, "angle", "F", "F",
 
 BUILTIN_V(atan2, "vec", "F}:2" , "F",
     "the angle (in degrees) corresponding to a normalized 2D vector")
-(StackPtr &sp, VM &) {
-    auto v = PopVec<double2>(sp);
+(StackPtr &sp, VM &, Value *vec, iint vec_len) {
+    auto v = ToVec<double2>(vec, vec_len);
     Push(sp, atan2(v.y, v.x) / RAD_D);
 }
 
 BUILTIN_V(normalize, "vec",  "F}" , "F}",
     "returns a vector of unit length")
-(StackPtr &sp, VM &) {
+(StackPtr &, VM &, Value *elems, iint len) {
     double sql = 0.0;
-    VECTORVARS;
     VECTOROPNR(sql += f.fval() * f.fval());
     double m = sqrt(sql);
     if (m == 0.0) {
@@ -846,57 +843,57 @@ BUILTIN_V(normalize, "vec",  "F}" , "F}",
 
 BUILTIN_V(dot, "a,b", "F}F}1", "F",
     "the length of vector a when projected onto b (or vice versa)")
-(StackPtr &sp, VM &) {
-    auto b = DangleVec<double>(sp);
-    auto a = DangleVec<double>(sp);
+(StackPtr &sp, VM &, Value *a_, iint a_len, Value *b_, iint b_len) {
+    auto b = ValueVec<double>(b_, b_len);
+    auto a = ValueVec<double>(a_, a_len);
     Push(sp, a.dot(b));
 }
 
 BUILTIN_V(magnitude, "v", "F}", "F",
     "the geometric length of a vector")
-(StackPtr &sp, VM &) {
-    auto a = DangleVec<double>(sp);
+(StackPtr &sp, VM &, Value *v, iint v_len) {
+    auto a = ValueVec<double>(v, v_len);
     Push(sp, a.length());
 }
 
 BUILTIN_V_OVERLOAD(magnitude_squared_fvec, "magnitude_squared", "v", "F}", "F",
     "the geometric length of a vector squared")
-(StackPtr &sp, VM &) {
-    auto a = DangleVec<double>(sp);
+(StackPtr &sp, VM &, Value *v, iint v_len) {
+    auto a = ValueVec<double>(v, v_len);
     Push(sp, a.length_squared());
 }
 
 BUILTIN_V_OVERLOAD(magnitude_squared_ivec, "magnitude_squared", "v", "I}", "I",
     "the geometric length of a vector squared")
-(StackPtr &sp, VM &) {
-    auto a = DangleVec<iint>(sp);
+(StackPtr &sp, VM &, Value *v, iint v_len) {
+    auto a = ValueVec<iint>(v, v_len);
     Push(sp, a.length_squared());
 }
 
 BUILTIN_V(manhattan, "v", "I}", "I",
     "the manhattan distance of a vector")
-(StackPtr &sp, VM &) {
-    auto a = DangleVec<iint>(sp);
+(StackPtr &sp, VM &, Value *v, iint v_len) {
+    auto a = ValueVec<iint>(v, v_len);
     Push(sp, a.manhattan());
 }
 
 BUILTIN_V(cross, "a,b", "F}:3F}:3", "F}:3",
     "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)")
-(StackPtr &sp, VM &) {
-    auto b = PopVec<double3>(sp);
-    auto a = PopVec<double3>(sp);
+(StackPtr &sp, VM &, Value *a_, iint a_len, Value *b_, iint b_len) {
+    auto b = ToVec<double3>(b_, b_len);
+    auto a = ToVec<double3>(a_, a_len);
     PushVec(sp, cross(a, b));
 }
 
 BUILTIN_V_OVERLOAD(volume_fvec, "volume", "v", "F}", "F", "the volume of the area spanned by the vector")
-(StackPtr &sp, VM &) {
-    auto a = DangleVec<double>(sp);
+(StackPtr &sp, VM &, Value *v, iint v_len) {
+    auto a = ValueVec<double>(v, v_len);
     Push(sp, a.volume());
 }
 
 BUILTIN_V_OVERLOAD(volume_ivec, "volume", "v", "I}", "I", "the volume of the area spanned by the vector")
-(StackPtr &sp, VM &) {
-    auto a = DangleVec<iint>(sp);
+(StackPtr &sp, VM &, Value *v, iint v_len) {
+    auto a = ValueVec<iint>(v, v_len);
     Push(sp, a.volume());
 }
 
@@ -908,7 +905,7 @@ BUILTIN_OVERLOAD(rnd_int, "rnd", "max", "I", "I",
 
 BUILTIN_V_OVERLOAD(rnd_ivec, "rnd", "max", "I}", "I}",
     "a random struct within the range of an input struct.")
-(StackPtr &sp, VM &vm) {
+(StackPtr &, VM &vm, Value *elems, iint len) {
     VECTOROP(vm.rndx[vm.active_rng].rnd_int64(std::max((iint)1, f.ival())));
 }
 
@@ -975,19 +972,19 @@ BUILTIN_OVERLOAD(clamp_float, "clamp", "x,min,max", "FFF", "F",
 
 BUILTIN_V_OVERLOAD(clamp_ivec, "clamp", "x,min,max", "I}I}1I}1", "I}",
     "forces an integer struct to be in the range between min and max (inclusive)")
-(StackPtr &sp, VM &) {
-    auto c = DangleVec<iint>(sp);
-    auto b = DangleVec<iint>(sp);
-    auto a = ResultVec<iint>(sp);
+(StackPtr &, VM &, Value *x, iint x_len, Value *min, iint min_len, Value *max, iint max_len) {
+    auto c = ValueVec<iint>(max, max_len);
+    auto b = ValueVec<iint>(min, min_len);
+    auto a = ValueVec<iint>(x, x_len);
     a.clamp(b, c);
 }
 
 BUILTIN_V_OVERLOAD(clamp_fvec, "clamp", "x,min,max", "F}F}1F}1", "F}",
     "forces a float struct to be in the range between min and max (inclusive)")
-(StackPtr &sp, VM &) {
-    auto c = DangleVec<double>(sp);
-    auto b = DangleVec<double>(sp);
-    auto a = DangleVec<double>(sp);
+(StackPtr &, VM &, Value *x, iint x_len, Value *min, iint min_len, Value *max, iint max_len) {
+    auto c = ValueVec<double>(max, max_len);
+    auto b = ValueVec<double>(min, min_len);
+    auto a = ValueVec<double>(x, x_len);
     a.clamp(b, c);
 }
 
@@ -1005,35 +1002,39 @@ BUILTIN_OVERLOAD(in_range_float, "in_range", "x,range,bias", "FFF?", "B",
 
 BUILTIN_V_OVERLOAD(in_range_ivec2, "in_range", "x,range,bias", "I}:2I}:2I}:2?", "B",
     "checks if a 2d integer vector is >= bias and < bias + range. Bias defaults to 0.")
-(StackPtr &sp, VM &) {
-    auto bias = DangleVec<iint>(sp);
-    auto range = DangleVec<iint>(sp);
-    auto x = DangleVec<iint>(sp);
+(StackPtr &sp, VM &, Value *x_, iint x_len, Value *range_, iint range_len, Value *bias_,
+ iint bias_len) {
+    auto bias = ValueVec<iint>(bias_, bias_len);
+    auto range = ValueVec<iint>(range_, range_len);
+    auto x = ValueVec<iint>(x_, x_len);
     Push(sp, x.in_range(range, bias));
 }
 BUILTIN_V_OVERLOAD(in_range_ivec3, "in_range", "x,range,bias", "I}:3I}:3I}:3?", "B",
     "checks if a 3d integer vector is >= bias and < bias + range. Bias defaults to 0.")
-(StackPtr &sp, VM &) {
-    auto bias = DangleVec<iint>(sp);
-    auto range = DangleVec<iint>(sp);
-    auto x = DangleVec<iint>(sp);
+(StackPtr &sp, VM &, Value *x_, iint x_len, Value *range_, iint range_len, Value *bias_,
+ iint bias_len) {
+    auto bias = ValueVec<iint>(bias_, bias_len);
+    auto range = ValueVec<iint>(range_, range_len);
+    auto x = ValueVec<iint>(x_, x_len);
     Push(sp, x.in_range(range, bias));
 }
 
 BUILTIN_V_OVERLOAD(in_range_fvec2, "in_range", "x,range,bias", "F}:2F}:2F}:2?", "B",
     "checks if a 2d float vector is >= bias and < bias + range. Bias defaults to 0.")
-(StackPtr &sp, VM &) {
-    auto bias = DangleVec<double>(sp);
-    auto range = DangleVec<double>(sp);
-    auto x = DangleVec<double>(sp);
+(StackPtr &sp, VM &, Value *x_, iint x_len, Value *range_, iint range_len, Value *bias_,
+ iint bias_len) {
+    auto bias = ValueVec<double>(bias_, bias_len);
+    auto range = ValueVec<double>(range_, range_len);
+    auto x = ValueVec<double>(x_, x_len);
     Push(sp, x.in_range(range, bias));
 }
 BUILTIN_V_OVERLOAD(in_range_fvec3, "in_range", "x,range,bias", "F}:3F}:3F}:3?", "B",
     "checks if a 2d float vector is >= bias and < bias + range. Bias defaults to 0.")
-(StackPtr &sp, VM &) {
-    auto bias = DangleVec<double>(sp);
-    auto range = DangleVec<double>(sp);
-    auto x = DangleVec<double>(sp);
+(StackPtr &sp, VM &, Value *x_, iint x_len, Value *range_, iint range_len, Value *bias_,
+ iint bias_len) {
+    auto bias = ValueVec<double>(bias_, bias_len);
+    auto range = ValueVec<double>(range_, range_len);
+    auto x = ValueVec<double>(x_, x_len);
     Push(sp, x.in_range(range, bias));
 }
 
@@ -1046,10 +1047,10 @@ BUILTIN_OVERLOAD(abs_float, "abs", "x", "F", "F",
 (StackPtr &, VM &, Value a) { return Value(fabs(a.fval())); }
 BUILTIN_V_OVERLOAD(abs_ivec, "abs", "x", "I}", "I}",
     "absolute value of an int vector")
-(StackPtr &sp, VM &) { VECTOROP(std::abs(f.ival())); }
+(StackPtr &, VM &, Value *elems, iint len) { VECTOROP(std::abs(f.ival())); }
 BUILTIN_V_OVERLOAD(abs_fvec, "abs", "x", "F}", "F}",
     "absolute value of a float vector")
-(StackPtr &sp, VM &) { VECTOROP(fabs(f.fval())); }
+(StackPtr &, VM &, Value *elems, iint len) { VECTOROP(fabs(f.fval())); }
 
 BUILTIN_OVERLOAD(sign_int, "sign", "x", "I", "I",
     "sign (-1, 0, 1) of an integer")
@@ -1059,10 +1060,10 @@ BUILTIN_OVERLOAD(sign_float, "sign", "x", "F", "I",
 (StackPtr &, VM &, Value a) { return Value(signum(a.fval())); }
 BUILTIN_V_OVERLOAD(sign_ivec, "sign", "x", "I}", "I}",
     "signs of an int vector")
-(StackPtr &sp, VM &) { VECTOROP(signum(f.ival())); }
+(StackPtr &, VM &, Value *elems, iint len) { VECTOROP(signum(f.ival())); }
 BUILTIN_V_OVERLOAD(sign_fvec, "sign", "x", "F}", "I}",
     "signs of a float vector")
-(StackPtr &sp, VM &) { VECTOROP(signum(f.fval())); }
+(StackPtr &, VM &, Value *elems, iint len) { VECTOROP(signum(f.fval())); }
 
 #define VECSCALAROP(type, init, fun, acc, len, at) \
     type v = init; \
@@ -1075,9 +1076,8 @@ BUILTIN_V_OVERLOAD(sign_fvec, "sign", "x", "F}", "I}",
 
 #define STSCALAROP(type, init, fun) \
     type v = init; \
-    auto l = Pop(sp).ival(); \
-    for (iint i = 0; i < l; i++) { \
-        auto f = Pop(sp); \
+    for (iint i = 0; i < len; i++) { \
+        auto f = elems[i]; \
         fun; \
     } \
     Push(sp,  v);
@@ -1094,26 +1094,26 @@ BUILTIN_OVERLOAD(min_float, "min", "x,y", "FF", "F",
 }
 BUILTIN_V_OVERLOAD(min_ivec, "min", "x,y", "I}I}1", "I}",
     "smallest components of 2 int vectors")
-(StackPtr &sp, VM &) {
-    auto y = DangleVec<iint>(sp);
-    auto x = ResultVec<iint>(sp);
+(StackPtr &, VM &, Value *x_, iint x_len, Value *y_, iint y_len) {
+    auto y = ValueVec<iint>(y_, y_len);
+    auto x = ValueVec<iint>(x_, x_len);
     x.min_assign(y);
 }
 BUILTIN_V_OVERLOAD(min_fvec, "min", "x,y", "F}F}1", "F}",
     "smallest components of 2 float vectors")
-(StackPtr &sp, VM &) {
-    auto y = DangleVec<double>(sp);
-    auto x = ResultVec<double>(sp);
+(StackPtr &, VM &, Value *x_, iint x_len, Value *y_, iint y_len) {
+    auto y = ValueVec<double>(y_, y_len);
+    auto x = ValueVec<double>(x_, x_len);
     x.min_assign(y);
 }
 BUILTIN_V_OVERLOAD(min_of_ivec, "min", "v", "I}", "I",
     "smallest component of a int vector.")
-(StackPtr &sp, VM &) {
+(StackPtr &sp, VM &, Value *elems, iint len) {
     STSCALAROP(iint, INT64_MAX, v = std::min(v, f.ival()))
 }
 BUILTIN_V_OVERLOAD(min_of_fvec, "min", "v", "F}", "F",
     "smallest component of a float vector.")
-(StackPtr &sp, VM &) {
+(StackPtr &sp, VM &, Value *elems, iint len) {
     STSCALAROP(double, DBL_MAX, v = std::min(v, f.fval()))
 }
 BUILTIN_OVERLOAD(min_of_int_vector, "min", "v", "I]", "I",
@@ -1139,26 +1139,26 @@ BUILTIN_OVERLOAD(max_float, "max", "x,y", "FF", "F",
 }
 BUILTIN_V_OVERLOAD(max_ivec, "max", "x,y", "I}I}1", "I}",
     "largest components of 2 int vectors")
-(StackPtr &sp, VM &) {
-    auto y = DangleVec<iint>(sp);
-    auto x = ResultVec<iint>(sp);
+(StackPtr &, VM &, Value *x_, iint x_len, Value *y_, iint y_len) {
+    auto y = ValueVec<iint>(y_, y_len);
+    auto x = ValueVec<iint>(x_, x_len);
     x.max_assign(y);
 }
 BUILTIN_V_OVERLOAD(max_fvec, "max", "x,y", "F}F}1", "F}",
     "largest components of 2 float vectors")
-(StackPtr &sp, VM &) {
-    auto y = DangleVec<double>(sp);
-    auto x = ResultVec<double>(sp);
+(StackPtr &, VM &, Value *x_, iint x_len, Value *y_, iint y_len) {
+    auto y = ValueVec<double>(y_, y_len);
+    auto x = ValueVec<double>(x_, x_len);
     x.max_assign(y);
 }
 BUILTIN_V_OVERLOAD(max_of_ivec, "max", "v", "I}", "I",
     "largest component of a int vector.")
-(StackPtr &sp, VM &) {
+(StackPtr &sp, VM &, Value *elems, iint len) {
     STSCALAROP(iint, INT64_MIN, v = std::max(v, f.ival()))
 }
 BUILTIN_V_OVERLOAD(max_of_fvec, "max", "v", "F}", "F",
     "largest component of a float vector.")
-(StackPtr &sp, VM &) {
+(StackPtr &sp, VM &, Value *elems, iint len) {
     STSCALAROP(double, -DBL_MAX, v = std::max(v, f.fval()))
 }
 BUILTIN_OVERLOAD(max_of_int_vector, "max", "v", "I]", "I",
@@ -1186,19 +1186,19 @@ BUILTIN_OVERLOAD(lerp_float, "lerp", "x,y,f", "FFF", "F",
 
 BUILTIN_V_OVERLOAD(lerp_fvec, "lerp", "a,b,f", "F}F}1F", "F}",
     "linearly interpolates between a and b vectors with factor f [0..1]")
-(StackPtr &sp, VM &) {
-    auto f = Pop(sp).fltval();
-    auto y = DangleVec<double>(sp);
-    auto x = ResultVec<double>(sp);
+(StackPtr &, VM &, Value *a, iint a_len, Value *b, iint b_len, Value f_) {
+    auto f = f_.fltval();
+    auto y = ValueVec<double>(b, b_len);
+    auto x = ValueVec<double>(a, a_len);
     x.mix(y, f);
 }
 
 BUILTIN_V(spherical_lerp, "a,b,f", "F}:4F}:4F", "F}:4",
     "spherically interpolates between a and b quaternions with factor f [0..1]")
-(StackPtr &sp, VM &) {
-    auto f = Pop(sp).fltval();
-    auto y = PopVec<quat>(sp);
-    auto x = PopVec<quat>(sp);
+(StackPtr &sp, VM &, Value *a, iint a_len, Value *b, iint b_len, Value f_) {
+    auto f = f_.fltval();
+    auto y = ToVec<quat>(b, b_len);
+    auto x = ToVec<quat>(a, a_len);
     PushVec(sp, spherical_lerp(x, y, f));
 }
 
@@ -1229,25 +1229,24 @@ BUILTIN(smootherstep, "x", "F", "F",
 BUILTIN_V(cardinal_spline, "z,a,b,c,f,tension", "F}F}1F}1F}1FF", "F}",
     "computes the position between a and b with factor f [0..1], using z (before a) and c"
     " (after b) to form a cardinal spline (tension at 0.5 is a good default)")
-(StackPtr &sp, VM &) {
-    auto t = Pop(sp).fval();
-    auto f = Pop(sp).fval();
-    auto numelems = Top(sp).intval();
-    auto c = PopVec<double3>(sp);
-    auto b = PopVec<double3>(sp);
-    auto a = PopVec<double3>(sp);
-    auto z = PopVec<double3>(sp);
-    PushVec(sp, cardinal_spline(z, a, b, c, f, t), numelems);
+(StackPtr &sp, VM &, Value *z, iint z_len, Value *a, iint a_len, Value *b, iint b_len, Value *c,
+ iint c_len, Value f_, Value tension) {
+    auto t = tension.fval();
+    auto f = f_.fval();
+    PushVec(sp, cardinal_spline(ToVec<double3>(z, z_len), ToVec<double3>(a, a_len),
+                                ToVec<double3>(b, b_len), ToVec<double3>(c, c_len), f, t),
+            (int)z_len);
 }
 
 BUILTIN_V(line_intersect, "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "IF}:2",
     "computes if there is an intersection point between 2 line segments, with the point as"
     " second return value")
-(StackPtr &sp, VM &) {
-    auto l2b = PopVec<double2>(sp);
-    auto l2a = PopVec<double2>(sp);
-    auto l1b = PopVec<double2>(sp);
-    auto l1a = PopVec<double2>(sp);
+(StackPtr &sp, VM &, Value *line1a, iint line1a_len, Value *line1b, iint line1b_len, Value *line2a,
+ iint line2a_len, Value *line2b, iint line2b_len) {
+    auto l2b = ToVec<double2>(line2b, line2b_len);
+    auto l2a = ToVec<double2>(line2a, line2a_len);
+    auto l1b = ToVec<double2>(line1b, line1b_len);
+    auto l1a = ToVec<double2>(line1a, line1a_len);
     double2 ipoint(0, 0);
     auto r = line_intersect(l1a, l1b, l2a, l2b, &ipoint);
     Push(sp,  r);
@@ -1265,15 +1264,16 @@ BUILTIN_V(circles_within_range, "dist,positions,radiuses,positions2,radiuses2,gr
     " each dimension, e.g. 100 elements would use a 20x20 grid."
     " Efficiency wise this algorithm is fastest if there is not too much variance in the radiuses of"
     " the second set and/or the second set has smaller radiuses than the first.")
-(StackPtr &sp, VM &vm) {
-    auto ncelld = PopVec<iint2>(sp);
-    auto radiuses2 = Pop(sp).vval();
-    auto positions2 = Pop(sp).vval();
-    auto radiuses1 = Pop(sp).vval();
-    auto positions1 = Pop(sp).vval();
+(StackPtr &sp, VM &vm, Value dist, Value positions, Value radiuses, Value positions2v,
+ Value radiuses2v, Value *gridsize, iint gridsize_len) {
+    auto ncelld = ToVec<iint2>(gridsize, gridsize_len);
+    auto radiuses2 = radiuses2v.vval();
+    auto positions2 = positions2v.vval();
+    auto radiuses1 = radiuses.vval();
+    auto positions1 = positions.vval();
     if (!radiuses2->len) radiuses2 = radiuses1;
     if (!positions2->len) positions2 = positions1;
-    auto qdist = Pop(sp).fval();
+    auto qdist = dist.fval();
     if (ncelld.x <= 0 || ncelld.y <= 0)
         ncelld = iint2((iint)sqrtf(float(positions2->len + 1) * 4));
     if (radiuses1->len != positions1->len || radiuses2->len != positions2->len)
@@ -1349,9 +1349,8 @@ BUILTIN_V(wave_function_collapse, "tilemap,size", "S]I}:2", "S]I",
     " the number of failed neighbor matches, this should"
     " ideally be 0, but can be non-0 for larger maps. Simply call this function"
     " repeatedly until it is 0")
-(StackPtr &sp, VM &vm) {
-    auto sz = PopVec<int2>(sp);
-    auto tilemap = Pop(sp);
+(StackPtr &sp, VM &vm, Value tilemap, Value *size, iint size_len) {
+    auto sz = ToVec<int2>(size, size_len);
     auto rows = tilemap.vval()->SLen();
     vector<const char *> inmap(rows);
     iint cols = 0;
@@ -1402,14 +1401,14 @@ BUILTIN_OVERLOAD(hash_float, "hash", "x", "F", "I",
 }
 BUILTIN_V_OVERLOAD(hash_ivec, "hash", "v", "I}", "I",
     "hashes a int struct into a positive int")
-(StackPtr &sp, VM &vm) {
-    auto a = DangleVec<iint>(sp);
+(StackPtr &sp, VM &vm, Value *v, iint v_len) {
+    auto a = ValueVec<iint>(v, v_len);
     Push(sp, positive_bits(a.Hash(vm, RTT_INT)));
 }
 BUILTIN_V_OVERLOAD(hash_fvec, "hash", "v", "F}", "I",
     "hashes a float struct into a positive int")
-(StackPtr &sp, VM &vm) {
-    auto a = DangleVec<double>(sp);
+(StackPtr &sp, VM &vm, Value *v, iint v_len) {
+    auto a = ValueVec<double>(v, v_len);
     Push(sp, positive_bits(a.Hash(vm, RTT_FLOAT)));
 }
 
@@ -1426,22 +1425,19 @@ BUILTIN_V(type_id, "ref", "A", "I",
     " this is the same as typeof, except dynamic (accounts for subtypes of the static type)."
     " useful to compare the types of objects quickly."
     " specializations of a generic type will result in different ids.")
-(StackPtr &sp, VM &) {
-    auto a = Pop(sp);
+(StackPtr &sp, VM &, Value a) {
     Push(sp, a.ref()->tti);
 }
 
 BUILTIN_V(type_string, "ref", "A", "S",
     "string representing the type of the given reference (object/vector/string/resource)")
-(StackPtr &sp, VM &vm) {
-    auto a = Pop(sp);
+(StackPtr &sp, VM &vm, Value a) {
     Push(sp, vm.NewString(a.ref()->TypeName(vm)));
 }
 
 BUILTIN_V(type_element_string, "v", "A]*", "S",
     "string representing the type of the elements of a vector")
-(StackPtr &sp, VM &vm) {
-    auto a = Pop(sp);
+(StackPtr &sp, VM &vm, Value a) {
     auto &ti = a.vval()->ti(vm);
     string sd;
     vm.GetTypeInfo(ti.subt).Print(vm, sd, nullptr);
@@ -1450,17 +1446,15 @@ BUILTIN_V(type_element_string, "v", "A]*", "S",
 
 BUILTIN_V(type_field_count, "obj", "A", "I",
     "number of fields in an object, or 0 for other reference types")
-(StackPtr &sp, VM &vm) {
-    auto a = Pop(sp);
+(StackPtr &sp, VM &vm, Value a) {
     auto &ti = a.ref()->ti(vm);
     Push(sp, RTIsUDT(ti.t) ? ti.len : 0);
 }
 
 BUILTIN_V(type_field_string, "obj,idx", "AI", "S",
     "string representing the type of a field in an object, or empty for other reference types")
-(StackPtr &sp, VM &vm) {
-    auto i = Pop(sp).ival();
-    auto a = Pop(sp);
+(StackPtr &sp, VM &vm, Value a, Value idx) {
+    auto i = idx.ival();
     auto &ti = a.ref()->ti(vm);
     string sd;
     if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
@@ -1471,9 +1465,8 @@ BUILTIN_V(type_field_string, "obj,idx", "AI", "S",
 
 BUILTIN_V(type_field_name, "obj,idx", "AI", "S",
     "name of a field in an object, or empty for other reference types")
-(StackPtr &sp, VM &vm) {
-    auto i = Pop(sp).intval();
-    auto a = Pop(sp);
+(StackPtr &sp, VM &vm, Value a, Value idx) {
+    auto i = idx.intval();
     auto &ti = a.ref()->ti(vm);
     string sd;
     if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
@@ -1484,9 +1477,8 @@ BUILTIN_V(type_field_name, "obj,idx", "AI", "S",
 
 BUILTIN_V(type_field_value, "obj,idx", "AI", "S",
     "string representing the value of a field in an object, or empty for other reference types")
-(StackPtr &sp, VM &vm) {
-    auto i = Pop(sp).ival();
-    auto a = Pop(sp);
+(StackPtr &sp, VM &vm, Value a, Value idx) {
+    auto i = idx.ival();
     auto &ti = a.ref()->ti(vm);
     if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
         auto &sti = vm.GetTypeInfo(ti.elemtypes[i].type);
@@ -1498,9 +1490,9 @@ BUILTIN_V(type_field_value, "obj,idx", "AI", "S",
 
 BUILTIN_V(type_enum_value_name, "enum_type_id,idx", "TI", "S",
     "string representing the name of an enum value, belonging to the enum (use typeof)")
-(StackPtr &sp, VM &vm) {
-    auto i = Pop(sp).ival();
-    auto id = Pop(sp).ival();
+(StackPtr &sp, VM &vm, Value enum_type_id, Value idx) {
+    auto i = idx.ival();
+    auto id = enum_type_id.ival();
     auto &ti = vm.GetTypeInfo((type_elem_t)id);
     string sd;
     if (ti.t == RTT_INT && ti.enumidx >= 0) {
@@ -1515,9 +1507,9 @@ BUILTIN_V(type_enum_value_valid, "enum_type_id,idx", "TI", "B",
     " to range check a value that may come from elsewhere (such as a file written by a newer"
     " version of the program) before switching on it. For an enum_flags, any combination of"
     " declared bits is a value, so this is true for more values than a switch on it has cases")
-(StackPtr &sp, VM &vm) {
-    auto i = Pop(sp).ival();
-    auto id = Pop(sp).ival();
+(StackPtr &sp, VM &vm, Value enum_type_id, Value idx) {
+    auto i = idx.ival();
+    auto id = enum_type_id.ival();
     auto &ti = vm.GetTypeInfo((type_elem_t)id);
     Push(sp, Value(ti.t == RTT_INT && ti.enumidx >= 0 && vm.EnumValueValid(i, ti.enumidx)));
 }
@@ -1814,8 +1806,8 @@ BUILTIN(multiply, "a,b", "F]F]", "F]",
 
 BUILTIN_V(rotate_x, "angle", "F}:2", "F]",
     "")
-(StackPtr &sp, VM &vm) {
-    auto angle = PopVec<double2>(sp);
+(StackPtr &sp, VM &vm, Value *angle_, iint angle_len) {
+    auto angle = ToVec<double2>(angle_, angle_len);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     InlineVec<double, 16> ivr(r->Elems(), false);
     (*(double4x4 *)ivr.vals) = rotationX(angle);
@@ -1825,8 +1817,8 @@ BUILTIN_V(rotate_x, "angle", "F}:2", "F]",
 
 BUILTIN_V(rotate_y, "angle", "F}:2", "F]",
     "")
-(StackPtr &sp, VM &vm) {
-    auto angle = PopVec<double2>(sp);
+(StackPtr &sp, VM &vm, Value *angle_, iint angle_len) {
+    auto angle = ToVec<double2>(angle_, angle_len);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     InlineVec<double, 16> ivr(r->Elems(), false);
     (*(double4x4 *)ivr.vals) = rotationY(angle);
@@ -1836,8 +1828,8 @@ BUILTIN_V(rotate_y, "angle", "F}:2", "F]",
 
 BUILTIN_V(rotate_z, "angle", "F}:2", "F]",
     "")
-(StackPtr &sp, VM &vm) {
-    auto angle = PopVec<double2>(sp);
+(StackPtr &sp, VM &vm, Value *angle_, iint angle_len) {
+    auto angle = ToVec<double2>(angle_, angle_len);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     InlineVec<double, 16> ivr(r->Elems(), false);
     (*(double4x4 *)ivr.vals) = rotationZ(angle);
@@ -1847,8 +1839,8 @@ BUILTIN_V(rotate_z, "angle", "F}:2", "F]",
 
 BUILTIN_V(translation, "trans", "F}:3", "F]",
     "")
-(StackPtr &sp, VM &vm) {
-    auto trans = PopVec<double3>(sp);
+(StackPtr &sp, VM &vm, Value *trans_, iint trans_len) {
+    auto trans = ToVec<double3>(trans_, trans_len);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     InlineVec<double, 16> ivr(r->Elems(), false);
     (*(double4x4 *)ivr.vals) = translation(trans);

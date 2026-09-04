@@ -27,15 +27,15 @@ BUILTIN_V(simplex, "pos,octaves,scale,persistence", "F}IFF", "F",
     "returns a simplex noise value [-1..1] given a 2D/3D location, the number of octaves"
     " (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5)."
     " This function is the same as calling fast_noise with simplex/fbm flags.")
-(StackPtr &sp, VM &vm) {
+(StackPtr &sp, VM &vm, Value *pos, iint pos_len, Value octaves, Value scale,
+ Value persistence) {
     auto state = fast_lite_default_noise_state;
-    state.gain = Pop(sp).fltval();
-    state.frequency = Pop(sp).fltval();
-    state.octaves = Pop(sp).intval();
-    auto len = Top(sp).ival();
-    auto v = PopVec<float4>(sp);
+    state.gain = persistence.fltval();
+    state.frequency = scale.fltval();
+    state.octaves = octaves.intval();
+    auto v = ToVec<float4>(pos, pos_len);
     state.fractal_type = FNL_FRACTAL_FBM;
-    switch (len) {
+    switch (pos_len) {
         case 2:
             Push(sp, fnlGetNoise2D(&state, v.x, v.y));
             break;
@@ -49,11 +49,10 @@ BUILTIN_V(simplex, "pos,octaves,scale,persistence", "F}IFF", "F",
 
 BUILTIN_V(simplex_raw, "pos", "F}", "F",
     "returns a simplex noise value [-1..1] given a 2D/3D location")
-(StackPtr &sp, VM &vm) {
+(StackPtr &sp, VM &vm, Value *pos, iint pos_len) {
     auto state = fast_lite_default_noise_state;
-    auto len = Top(sp).ival();
-    auto v = PopVec<float4>(sp);
-    switch (len) {
+    auto v = ToVec<float4>(pos, pos_len);
+    switch (pos_len) {
         case 2:
             Push(sp, fnlGetNoise2D(&state, v.x, v.y));
             break;
@@ -69,16 +68,16 @@ BUILTIN_V(fast_noise, "pos,octaves,scale,persistence,noise_type,fractal_type", "
     "returns a noise value [-1..1] given a 2D/3Dlocation, the number of octaves"
     " (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5)."
     " see noise.lobster for constants for the type params.")
-(StackPtr &sp, VM &vm) {
+(StackPtr &sp, VM &vm, Value *pos, iint pos_len, Value octaves, Value scale, Value persistence,
+ Value noise_type, Value fractal_type) {
     auto state = fast_lite_default_noise_state;
-    state.fractal_type = (fnl_fractal_type)Pop(sp).ival();
-    state.noise_type = (fnl_noise_type)Pop(sp).ival();
-    state.gain = Pop(sp).fltval();
-    state.frequency = Pop(sp).fltval();
-    state.octaves = Pop(sp).intval();
-    auto len = Top(sp).ival();
-    auto v = PopVec<float4>(sp);
-    switch (len) {
+    state.fractal_type = (fnl_fractal_type)fractal_type.ival();
+    state.noise_type = (fnl_noise_type)noise_type.ival();
+    state.gain = persistence.fltval();
+    state.frequency = scale.fltval();
+    state.octaves = octaves.intval();
+    auto v = ToVec<float4>(pos, pos_len);
+    switch (pos_len) {
         case 2:
             Push(sp, fnlGetNoise2D(&state, v.x, v.y));
             break;

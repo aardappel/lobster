@@ -694,9 +694,9 @@ BUILTIN(sphere, "radius", "F", "",
 
 BUILTIN_V(cube, "extents", "F}:3", "",
     "a cube (extents are size from center)")
-(StackPtr &sp, VM &) {
+(StackPtr &sp, VM &, Value *extents, iint extents_len) {
     auto c = new IFCube();
-    c->extents = PopVec<float3>(sp);
+    c->extents = ToVec<float3>(extents, extents_len);
     Push(sp,  AddShape(c));
 }
 
@@ -722,31 +722,32 @@ BUILTIN(tapered_cylinder, "bot,top,height", "FFF", "",
 BUILTIN_V(superquadric, "exponents,scale", "F}:3F}:3", "",
     "a super quadric. specify an exponent of 2 for spherical, higher values for rounded"
     " squares")
-(StackPtr &sp, VM &) {
+(StackPtr &, VM &, Value *exponents, iint exponents_len, Value *scale, iint scale_len) {
     auto sq = new IFSuperQuadric();
-    sq->scale = PopVec<float3>(sp);
-    sq->exp = PopVec<float3>(sp);
+    sq->scale = ToVec<float3>(scale, scale_len);
+    sq->exp = ToVec<float3>(exponents, exponents_len);
     AddShape(sq);
 }
 
 BUILTIN_V(superquadric_non_uniform, "posexponents,negexponents,posscale,negscale", "F}:3F}:3F}:3F}:3", "",
     "a superquadric that allows you to specify exponents and sizes in all 6 directions"
     " independently for maximum modelling possibilities")
-(StackPtr &sp, VM &) {
+(StackPtr &, VM &, Value *posexponents, iint posexponents_len, Value *negexponents,
+ iint negexponents_len, Value *posscale, iint posscale_len, Value *negscale, iint negscale_len) {
     auto sq = new IFSuperQuadricNonUniform();
-    sq->scaleneg = max(float3(0.01f), PopVec<float3>(sp));
-    sq->scalepos = max(float3(0.01f), PopVec<float3>(sp));
-    sq->expneg   = PopVec<float3>(sp);
-    sq->exppos   = PopVec<float3>(sp);
+    sq->scaleneg = max(float3(0.01f), ToVec<float3>(negscale, negscale_len));
+    sq->scalepos = max(float3(0.01f), ToVec<float3>(posscale, posscale_len));
+    sq->expneg   = ToVec<float3>(negexponents, negexponents_len);
+    sq->exppos   = ToVec<float3>(posexponents, posexponents_len);
     AddShape(sq);
 }
 
 BUILTIN_V(supertoroid, "R,exponents", "FF}:3", "",
     "a super toroid. R is the distance from the origin to the center of the ring.")
-(StackPtr &sp, VM &) {
+(StackPtr &, VM &, Value R, Value *exponents, iint exponents_len) {
     auto t = new IFSuperToroid();
-    t->exp = PopVec<float3>(sp);
-    t->r = Pop(sp).fltval();
+    t->exp = ToVec<float3>(exponents, exponents_len);
+    t->r = R.fltval();
     AddShape(t);
 }
 
@@ -817,47 +818,47 @@ BUILTIN(convert_to_cubes, "subdiv,zoffset", "II", "R:voxels",
 
 BUILTIN_V(translate, "vec", "F}:3", "",
     "translates the current coordinate system along a vector")
-(StackPtr &sp, VM &) {
-    auto v = PopVec<float3>(sp);
+(StackPtr &, VM &, Value *vec, iint vec_len) {
+    auto v = ToVec<float3>(vec, vec_len);
     // FIXME: not good enough if non-uniform scale, might as well forbid that before any trans
     cur.orig += cur.rot * (v * cur.size);
 }
 
 BUILTIN_V(scale, "f", "F", "",
     "scales the current coordinate system by the given factor")
-(StackPtr &sp, VM &) {
-    auto f = Pop(sp).fltval();
+(StackPtr &, VM &, Value f_) {
+    auto f = f_.fltval();
     cur.size *= f;
 }
 
 BUILTIN_V(scale_vec, "vec", "F}:3", "",
     "non-unimformly scales the current coordinate system using individual factors per axis")
-(StackPtr &sp, VM &) {
-    auto v = PopVec<float3>(sp);
+(StackPtr &, VM &, Value *vec, iint vec_len) {
+    auto v = ToVec<float3>(vec, vec_len);
     cur.size *= v;
 }
 
 BUILTIN_V(rotate, "axis,angle", "F}:3F", "",
     "rotates using axis/angle")
-(StackPtr &sp, VM &) {
-    auto angle = Pop(sp).fltval();
-    auto axis = PopVec<float3>(sp);
+(StackPtr &, VM &, Value *axis_, iint axis_len, Value angle_) {
+    auto angle = angle_.fltval();
+    auto axis = ToVec<float3>(axis_, axis_len);
     cur.rot *= float3x3(angle * RAD_F, axis);
 }
 
 BUILTIN_V(color, "color", "F}:4", "",
     "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"
     " substracts them (carves)")
-(StackPtr &sp, VM &) {
-    auto v = PopVec<float4>(sp);
+(StackPtr &, VM &, Value *color, iint color_len) {
+    auto v = ToVec<float4>(color, color_len);
     cur.material = v;
 }
 
 BUILTIN_V(smooth, "smooth", "F", "",
     "sets the smoothness in terms of the range of distance from the shape smoothing happens,"
     " defaults to 1.0")
-(StackPtr &sp, VM &) {
-    auto smooth = Pop(sp).fltval();
+(StackPtr &, VM &, Value smooth_) {
+    auto smooth = smooth_.fltval();
     cur.smoothmink = smooth;
 }
 

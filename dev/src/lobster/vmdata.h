@@ -1455,28 +1455,12 @@ template<typename T, int N> void PushVec(StackPtr &sp, const vec<T, N> &v, int t
     for (int i = 0; i < l; i++) Push(sp, v[i]);
 }
 
-// Returns a reference to a struct on the stack that can only be
-// referred to before the next push.
-template<typename T> ValueVec<T> DangleVec(StackPtr &sp) {
-    auto l = Pop(sp).ival();
-    PopN(sp, l);
-    return ValueVec<T>(TopPtr(sp), l);
-}
-
-// Returns a reference to a struct on the stack that that can be
-// overwritten to become the return value (which doesn't need the
-// length field on the stack.
-template<typename T> ValueVec<T> ResultVec(StackPtr &sp) {
-    auto l = Pop(sp).ival();
-    return ValueVec<T>(TopPtr(sp) - l, l);
-}
-
-template<typename T> T PopVec(StackPtr &sp, typename T::CTYPE def = 0) {
+// The values of a struct a builtin was passed as a fixed size vector, with `def` for the
+// elements it does not have.
+template<typename T> T ToVec(const Value *vals, iint len, typename T::CTYPE def = 0) {
     T v(def);
-    auto l = Pop(sp).intval();
-    if (l > T::NUM_ELEMENTS) PopN(sp, l - T::NUM_ELEMENTS);
-    for (int i = T::NUM_ELEMENTS - 1; i >= 0; i--) {
-        v[i] = i < l ? Pop(sp).ifval<typename T::CTYPE>() : def;
+    for (int i = 0; i < T::NUM_ELEMENTS; i++) {
+        v[i] = i < len ? vals[i].ifval<typename T::CTYPE>() : def;
     }
     return v;
 }

@@ -264,9 +264,8 @@ BUILTIN(exists_file, "file", "S", "B", "checks whether a file exists.")
 BUILTIN_V(launch_subprocess, "commandline,stdin", "S]S?", "IS",
     "launches a sub process, with optionally a stdin for the process, and returns its"
     " return code (or -1 if it couldn't launch at all), and any output")
-(StackPtr &sp, VM &vm) {
-    auto stdins = Pop(sp);
-    auto commandline = Pop(sp).vval();
+(StackPtr &sp, VM &vm, Value commandline_, Value stdins) {
+    auto commandline = commandline_.vval();
     vector<const char *> cmdl;
     for (iint i = 0; i < commandline->len; i++) {
         cmdl.push_back(commandline->AtS(i).sval()->data());
