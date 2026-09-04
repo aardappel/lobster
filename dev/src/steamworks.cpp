@@ -1177,7 +1177,7 @@ BUILTIN(init, "appid,allowscreenshots,initrelay", "IBB", "I",
     return SteamInit(appid, (ss != 0), (relay != 0));
 }
 
-BUILTIN_V(shutdown, "", "", "",
+BUILTIN(shutdown, "", "", "",
     "")
 (StackPtr &, VM &) { SteamShutDown(); }
 
@@ -1227,7 +1227,7 @@ BUILTIN(read_file, "file", "S", "S?",
     return s;
 }
 
-BUILTIN_V(update, "", "", "",
+BUILTIN(update, "", "", "",
     "you must call this function in your game loop when using most steam APIs")
 (StackPtr &, VM &) {
     SteamUpdate();
@@ -1705,7 +1705,7 @@ BUILTIN(lobby_set_game_server, "lobby_id,server_id", "II", "B",
         steam->SetLobbyGameServer(SteamIDFromValue(lobby_id), SteamIDFromValue(server_id)));
 }
 
-BUILTIN_V(workshop_open_page, "", "", "",
+BUILTIN(workshop_open_page, "", "", "",
     "opens this game's steam workshop page in the steam overlay web browser, where the user"
     " can browse and (un)subscribe to content. Use workshop_sync() to get subscribed content"
     " into the game.")
@@ -1726,7 +1726,7 @@ BUILTIN(workshop_open_item_page, "fileid", "I", "",
     #endif
 }
 
-BUILTIN_V(workshop_open_legal_agreement, "", "", "",
+BUILTIN(workshop_open_legal_agreement, "", "", "",
     "opens the steam workshop legal agreement page in the steam overlay. A user must accept"
     " this agreement (once) before workshop content they upload can become publicly visible,"
     " see workshop_upload_status().")

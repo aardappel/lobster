@@ -1281,12 +1281,12 @@ struct VM : VMBase {
 
     double Time() { return SecondsSinceStart(); }
 
-    Value ToString(Value a, const TypeInfo &ti) {
+    LString *ToString(Value a, const TypeInfo &ti) {
         s_reuse.clear();
         a.ToString(*this, s_reuse, ti, programprintprefs);
         return NewString(s_reuse);
     }
-    Value StructToString(const Value *elems, const TypeInfo &ti) {
+    LString *StructToString(const Value *elems, const TypeInfo &ti) {
         s_reuse.clear();
         StructToString(s_reuse, programprintprefs, ti, elems);
         return NewString(s_reuse);

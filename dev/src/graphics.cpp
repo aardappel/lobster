@@ -278,15 +278,15 @@ BUILTIN_V(scissor, "top_left,size", "I}:2I}:2", "I}:2I}:2",
     PushVec(sp, prev.second);
 }
 
-BUILTIN_V(frame, "", "", "B",
+BUILTIN(frame, "", "", "B",
     "advances rendering by one frame, swaps buffers, and collects new input events."
     " returns false if the closebutton on the window was pressed")
-(StackPtr &sp, VM &vm) {
+(StackPtr &, VM &vm) {
     // Native backends call this directly rather than going thru the function pointer.
-    Push(sp, Value(GLFrame(vm)));
+    return GLFrame(vm);
 }
 
-BUILTIN_V(frame_counter, "delta", "I", "",
+BUILTIN(frame_counter, "delta", "I", "",
     "gl.frame advances the frame counter by 1, which affects features like member_frame."
     " this function allows you insert extra frames or remove them")
 (StackPtr &, VM &vm, iint delta) {
@@ -322,7 +322,7 @@ BUILTIN(fullscreen, "mode", "I", "",
     SDLSetFullscreen((InitFlags)(int)mode);
 }
 
-BUILTIN_V_OVERLOAD(window_size_set, "window_size", "size", "I}:2", "",
+BUILTIN_OVERLOAD(window_size_set, "window_size", "size", "I}:2", "",
     "")
 (StackPtr &, VM &vm, iint2 size_) {
     auto size = ToVec<int2>(size_);
@@ -380,7 +380,7 @@ BUILTIN(user_key, "name", "S", "S",
     return vm.NewString(GetUserKey(name->strvnt()));
 }
 
-BUILTIN_V(start_text_input, "pos,size", "I}:2I}:2", "",
+BUILTIN(start_text_input, "pos,size", "I}:2I}:2", "",
     "starts text input. unlike gl.button which gets you keyboard keys, this is for input of"
     " strings, that can deal with unicode IME etc. pos & size are a hint where the string"
     " being edited is being displayed, such that an IME can popup a box next to it, if needed.")
@@ -529,7 +529,7 @@ BUILTIN(last_time, "name,down", "SI", "F",
     return t;
 }
 
-BUILTIN_V(clear, "col", "F}:4", "",
+BUILTIN(clear, "col", "F}:4", "",
     "clears the framebuffer (and depth buffer) to the given color")
 (StackPtr &, VM &vm, double4 col) {
     TestGL(vm);
@@ -551,7 +551,7 @@ BUILTIN(polygon, "vertlist", "F}]", "",
     CreatePolygon(vm, vl, true);
 }
 
-BUILTIN_V(rounded_rectangle, "size,segments,corner_ratio", "F}:2IF", "",
+BUILTIN(rounded_rectangle, "size,segments,corner_ratio", "F}:2IF", "",
     "renders a rounded rectangle, try segments 50, corner_ratio 0.2")
 (StackPtr &, VM &vm, double2 size_, iint segments_, double corner_ratio_) {
     TestGL(vm);
@@ -561,7 +561,7 @@ BUILTIN_V(rounded_rectangle, "size,segments,corner_ratio", "F}:2IF", "",
     geomcache->RenderRoundedRectangle(gs->currentshader.get(), gs->polymode, max(segments, 12), size, corner_ratio);
 }
 
-BUILTIN_V(rounded_rectangle_border, "size,segments,corner_ratio,border_thickness", "F}:2IFF", "",
+BUILTIN(rounded_rectangle_border, "size,segments,corner_ratio,border_thickness", "F}:2IFF", "",
     "renders a rounded rectangle border, try segments 50, corner_ratio 0.2")
 (StackPtr &, VM &vm, double2 size_, iint segments_, double corner_ratio_,
  double border_thickness_) {
@@ -600,21 +600,21 @@ BUILTIN(unit_cube, "insideout", "I?", "",
     geomcache->RenderUnitCube(gs->currentshader.get(), (inside != 0));
 }
 
-BUILTIN_V(rotate_x, "vec", "F}:2", "",
+BUILTIN(rotate_x, "vec", "F}:2", "",
     "rotates the yz plane around the x axis, using a 2D vector normalized vector as angle")
 (StackPtr &, VM &, double2 vec) {
     auto a = ToVec<float2>(vec);
     otransforms.append_object2view(rotationX(a));
 }
 
-BUILTIN_V(rotate_y, "angle", "F}:2", "",
+BUILTIN(rotate_y, "angle", "F}:2", "",
     "rotates the xz plane around the y axis, using a 2D vector normalized vector as angle")
 (StackPtr &, VM &, double2 angle) {
     auto a = ToVec<float2>(angle);
     otransforms.append_object2view(rotationY(a));
 }
 
-BUILTIN_V(rotate_z, "angle", "F}:2", "",
+BUILTIN(rotate_z, "angle", "F}:2", "",
     "rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector"
     " as angle")
 (StackPtr &, VM &, double2 angle) {
@@ -636,7 +636,7 @@ TRANSLATEW(translate_ivec, "I", iint, 2)
 TRANSLATEW(translate_ivec, "I", iint, 3)
 #undef TRANSLATEW
 
-BUILTIN_V_OVERLOAD(scale_float, "scale", "factor", "F", "",
+BUILTIN_OVERLOAD(scale_float, "scale", "factor", "F", "",
     "scales the current coordinate system using a numerical factor")
 (StackPtr &, VM &, double f) {
     auto v = (float)f * float3_1;
@@ -699,7 +699,7 @@ BUILTIN(projection, "", "", "F]",
     return v;
 }
 
-BUILTIN_V(push_model_view, "", "", "",
+BUILTIN(push_model_view, "", "", "",
     "save the current state of the model view matrix (gl.translate, gl.rotate etc)")
 (StackPtr &, VM &) {
     otransforms.push();
@@ -719,23 +719,23 @@ BUILTIN(point_scale, "factor", "F", "",
     custompointscale = (float)f;
 }
 
-BUILTIN_V(line_mode, "on", "I", "I",
+BUILTIN(line_mode, "on", "I", "I",
     "set line mode (true == on), returns previous mode")
-(StackPtr &sp, VM &vm, iint on) {
+(StackPtr &, VM &vm, iint on) {
     TestGL(vm);
     auto oldmode = gs->polymode;
     gs->polymode = on ? PRIM_LOOP : PRIM_FAN;
-    Push(sp, oldmode == PRIM_LOOP);
+    return oldmode == PRIM_LOOP;
 }
 
-BUILTIN_V(cull_front, "on", "B", "B",
+BUILTIN(cull_front, "on", "B", "B",
     "set culling front (true) or back (false), returns previous value.")
-(StackPtr &sp, VM &vm, iint on) {
+(StackPtr &, VM &vm, iint on) {
     TestGL(vm);
     auto oldmode = gs->cull_front;
     gs->cull_front = (on != 0);
     CullFront(gs->cull_front);
-    Push(sp, oldmode);
+    return oldmode;
 }
 
 static bool GLHit(const float3 &size, int i) {
@@ -772,7 +772,7 @@ static bool GLHit(const float3 &size, int i) {
 HITW(2) HITW(3)
 #undef HITW
 
-BUILTIN_V(rect, "size,centered", "F}:2I?", "",
+BUILTIN(rect, "size,centered", "F}:2I?", "",
     "renders a rectangle (0,0)..(1,1) (or (-1,-1)..(1,1) when centered), scaled by the given"
     " size.")
 (StackPtr &, VM &vm, double2 size, iint centered_) {
@@ -783,7 +783,7 @@ BUILTIN_V(rect, "size,centered", "F}:2I?", "",
                           float4x4(float4(vec, 1)));
 }
 
-BUILTIN_V(rect_tc_col, "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
+BUILTIN(rect_tc_col, "size,tc,tcsize,cols", "F}:2F}:2F}:2F}:4]", "",
     "Like gl.rect renders a sized quad, but allows you to specify texture coordinates and"
     " optionally colors (empty list for all white). Slow.")
 (StackPtr &, VM &vm, double2 size, double2 tc, double2 tcsize, LVector *cols) {
@@ -827,7 +827,7 @@ BUILTIN(unit_square, "centered", "I?", "",
 LINEW(2) LINEW(3)
 #undef LINEW
 
-BUILTIN_V(perspective, "fovy,znear,zfar,frame_buffer_size,frame_buffer_offset,nodepth", "FFFI}:2?I}:2?I?", "",
+BUILTIN(perspective, "fovy,znear,zfar,frame_buffer_size,frame_buffer_offset,nodepth", "FFFI}:2?I}:2?I?", "",
     "changes from 2D mode (default) to 3D right handed perspective mode with vertical fov (try"
     " 60), far plane (furthest you want to be able to render, try 1000) and near plane (try"
     " 1). Optionally specify a framebuffer size to override the current gl.framebuffer_size")
@@ -854,7 +854,7 @@ BUILTIN(ortho, "rh,depth", "I?I?", "",
     Set2DMode(GetFrameBufferSize(GetScreenSize()), (rh == 0), (depth != 0));
 }
 
-BUILTIN_V(ortho3d, "center,extends", "F}:3F}:3", "",
+BUILTIN(ortho3d, "center,extends", "F}:3F}:3", "",
     "sets a custom ortho projection as 3D projection.")
 (StackPtr &, VM &, double3 center_, double3 extends_) {
     auto extends = ToVec<float3>(extends_);
@@ -1184,7 +1184,7 @@ BUILTIN(bind_mesh_to_compute, "mesh,name", "R:mesh?S", "",
     BindAsSSBO(gs->currentshader.get(), name->strvnt(), (mesh != nullptr) ? GetMesh(mesh).geom->vbo : 0);
 }
 
-BUILTIN_V(dispatch_compute, "groups", "I}:3", "",
+BUILTIN(dispatch_compute, "groups", "I}:3", "",
     "dispatches the currently set compute shader in groups of sizes of the specified x/y/z"
     " values.")
 (StackPtr &, VM &vm, iint3 groups_) {
@@ -1202,7 +1202,7 @@ BUILTIN(auto_compute_barrier, "on", "B", "",
     SetAutoComputeBarrier((on != 0));
 }
 
-BUILTIN_V(compute_barrier, "", "", "",
+BUILTIN(compute_barrier, "", "", "",
     "makes imageStore/SSBO writes of preceding dispatches visible to subsequent commands."
     " Only needed with gl.auto_compute_barrier(false).")
 (StackPtr &, VM &vm) {
@@ -1221,12 +1221,12 @@ BUILTIN(dump_shader, "filename,stripnonascii", "SB", "B",
     return ok;
 }
 
-BUILTIN_V(blend, "on", "I", "I",
+BUILTIN(blend, "on", "I", "I",
     "changes the blending mode (use blending constants from texture.lobster), returns old mode")
-(StackPtr &sp, VM &vm, iint mode) {
+(StackPtr &, VM &vm, iint mode) {
     TestGL(vm);
     BlendMode old = SetBlendMode((BlendMode)mode);
-    Push(sp, old);
+    return old;
 }
 
 BUILTIN(load_texture, "name,textureformat", "SI?", "R:texture?",
@@ -1277,7 +1277,7 @@ BUILTIN(set_image_texture, "i,tex,level,accessflags", "IR:textureII?", "",
     SetImageTexture(GetSampler(vm, i), GetTexture(id), (int)level, (int)tf);
 }
 
-BUILTIN_V(unbind_all_textures, "", "", "",
+BUILTIN(unbind_all_textures, "", "", "",
     "unbinds all textures set thru any set texture calls. typically not needed to call this manually, "
     "but may sometimes be needed when reusing textures across draw/compute calls")
 (StackPtr &, VM &vm) {
@@ -1303,27 +1303,27 @@ BUILTIN(create_texture_single_channel, "matrix,textureformat", "F]]I?", "R:textu
     return vm.NewResource(&texture_type, CreateTextureFromValues(matv, (int)tf | TF_SINGLE_CHANNEL));
 }
 
-BUILTIN_V(create_blank_texture, "size,textureformat", "I}:3I?", "R:texture",
+BUILTIN(create_blank_texture, "size,textureformat", "I}:3I?", "R:texture",
     "creates a blank texture (for use as frame buffer or with compute shaders)."
     " see texture.lobster for texture format")
-(StackPtr &sp, VM &vm, iint3 size_, iint textureformat) {
+(StackPtr &, VM &vm, iint3 size_, iint textureformat) {
     TestGL(vm);
     auto tf = (int)textureformat;
     auto size = ToVec<int3>(size_);
     auto tex = CreateBlankTexture("gl.create_blank_texture", size, tf);
-    Push(sp, vm.NewResource(&texture_type, new OwnedTexture(tex)));
+    return vm.NewResource(&texture_type, new OwnedTexture(tex));
 }
 
-BUILTIN_V(create_colored_texture, "size,color,textureformat", "I}:3F}:4I?", "R:texture",
+BUILTIN(create_colored_texture, "size,color,textureformat", "I}:3F}:4I?", "R:texture",
     "creates a colored texture (for use as frame buffer or with compute shaders)."
     " see texture.lobster for texture format")
-(StackPtr &sp, VM &vm, iint3 size_, double4 color, iint textureformat) {
+(StackPtr &, VM &vm, iint3 size_, double4 color, iint textureformat) {
     TestGL(vm);
     auto tf = (int)textureformat;
     auto col = ToVec<float4>(color);
     auto size = ToVec<int3>(size_);
     auto tex = CreateColoredTexture("gl.create_colored_texture", size, col, tf);
-    Push(sp, vm.NewResource(&texture_type, new OwnedTexture(tex)));
+    return vm.NewResource(&texture_type, new OwnedTexture(tex));
 }
 
 BUILTIN_V(texture_size, "tex", "R:texture", "I}:2",
@@ -1379,7 +1379,7 @@ BUILTIN_V(framebuffer_size, "", "", "I}:2",
     PushVec(sp, GetFrameBufferSize(GetScreenSize()));
 }
 
-BUILTIN_V(light, "pos,params", "F}:3F}:2", "",
+BUILTIN(light, "pos,params", "F}:3F}:2", "",
     "sets up a light at the given position for this frame. make sure to call this after your"
     " camera transforms but before any object transforms (i.e. defined in \"worldspace\")."
     " params contains specular exponent in x (try 32/64/128 for different material looks) and"
@@ -1390,7 +1390,7 @@ BUILTIN_V(light, "pos,params", "F}:3F}:2", "",
     lights.push_back(Light{ pos, params });
 }
 
-BUILTIN_V(render_tiles, "positions,tilecoords,mapsize,sizes,rotations", "F}:2]I}:2]I}:2F]F]", "",
+BUILTIN(render_tiles, "positions,tilecoords,mapsize,sizes,rotations", "F}:2]I}:2]I}:2F]F]", "",
     "Renders a list of tiles from a tilemap. Each tile rendered is 0.5 in radius (1x1 square around pos) unless the optional sizes vector is specified (may be empty)."
     " Positions may be anywhere. tilecoords are indices into the map (0..mapsize-1), mapsize is"
     " the amount of tiles in the texture. rotations are optional (may be empty, faster if not specified). Tiles may overlap, they are drawn in order."
@@ -1437,7 +1437,7 @@ BUILTIN_V(render_tiles, "positions,tilecoords,mapsize,sizes,rotations", "F}:2]I}
     RenderArraySlow("gl.render_tiles", PRIM_TRIS, span(vbuf), "pT");
 }
 
-BUILTIN_V(debug_grid, "num,dist,thickness", "I}:3F}:3F", "",
+BUILTIN(debug_grid, "num,dist,thickness", "I}:3F}:3F", "",
     "renders a grid in space for debugging purposes. num is the number of lines in all 3"
     " directions, and dist their spacing. thickness of the lines in the same units")
 (StackPtr &, VM &vm, iint3 num_, double3 dist_, double thickness_) {
@@ -1473,13 +1473,13 @@ BUILTIN_V(debug_grid, "num,dist,thickness", "I}:3F}:3F", "",
     curcolor = oldcolor;
 }
 
-BUILTIN_V(screenshot, "filename,resolution", "SI}:2?", "B",
+BUILTIN(screenshot, "filename,resolution", "SI}:2?", "B",
     "saves a screenshot in .png format, returns true if succesful. resolution optionally gives a"
     " target size to resize the screenshot to; (0,0) or the current window size means no resizing")
-(StackPtr &sp, VM &, LString *fn, iint2 resolution_) {
+(StackPtr &, VM &, LString *fn, iint2 resolution_) {
     auto resolution = ToVec<int2>(resolution_);
     bool ok = ScreenShot(fn->strvnt(), resolution);
-    Push(sp, Value(ok));
+    return ok;
 }
 
 BUILTIN(get_renderer_info_string, "", "", "S",

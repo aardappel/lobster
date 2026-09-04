@@ -211,11 +211,11 @@ BUILTIN(equal, "a,b", "AA", "B",
     return eq;
 }
 
-BUILTIN_V(push, "xs,x", "A]*Akw1", "Ab]1",
+BUILTIN(push, "xs,x", "A]*Akw1", "Ab]1",
     "appends one element to a vector, returns existing vector")
-(StackPtr &sp, VM &vm, LVector *l, Value *x) {
+(StackPtr &, VM &vm, LVector *l, Value *x) {
     l->PushVW(vm, x);
-    Push(sp, l);
+    return l;
 }
 
 BUILTIN_V(pop, "xs", "A]*", "A1",
@@ -234,14 +234,14 @@ BUILTIN_V(top, "xs", "A]*", "Ab1",
     PushN(sp, l->width);
 }
 
-BUILTIN_V(insert, "xs,i,x", "A]*IAkw1", "Ab]1",
+BUILTIN(insert, "xs,i,x", "A]*IAkw1", "Ab]1",
     "inserts a value into a vector at index i, existing elements shift upward,"
     " returns original vector")
-(StackPtr &sp, VM &vm, LVector *l, iint i, Value *x) {
+(StackPtr &, VM &vm, LVector *l, iint i, Value *x) {
     if (i < 0 || i > l->len)
         vm.BuiltinError("insert: index or n out of range");  // note: i==len is legal
     l->Insert(vm, x, i);
-    Push(sp, l);
+    return l;
 }
 
 BUILTIN_V(remove, "xs,i", "A]*I", "A1",
@@ -252,7 +252,7 @@ BUILTIN_V(remove, "xs,i", "A]*I", "A1",
     l->RemovePush(sp, i);
 }
 
-BUILTIN_V(remove_range, "xs,i,n", "A]*II", "",
+BUILTIN(remove_range, "xs,i,n", "A]*II", "",
     "remove n elements at index i, following elements shift down.")
 (StackPtr &, VM &vm, LVector *l, iint i, iint amount) {
     if (amount < 0 || amount > l->len || i < 0 || i > l->len - amount)
@@ -274,7 +274,7 @@ BUILTIN(remove_obj, "xs,obj", "A]*A1", "Ab2",
     return o;
 }
 
-BUILTIN_V(truncate, "xs,i", "A]*I", "",
+BUILTIN(truncate, "xs,i", "A]*I", "",
     "removes all elements starting from index i, does nothing if i >= len")
 (StackPtr &, VM &vm, LVector *l, iint i) {
     if (i < 0 || i >= l->len) return;
@@ -885,11 +885,11 @@ BUILTIN(degrees, "angle", "F", "F",
     "converts an angle in radians to degrees")
 (StackPtr &, VM &, double a) { return a / RAD_D; }
 
-BUILTIN_V(atan2, "vec", "F}:2" , "F",
+BUILTIN(atan2, "vec", "F}:2" , "F",
     "the angle (in degrees) corresponding to a normalized 2D vector")
-(StackPtr &sp, VM &, double2 vec) {
+(StackPtr &, VM &, double2 vec) {
     auto v = ToVec<double2>(vec);
-    Push(sp, atan2(v.y, v.x) / RAD_D);
+    return atan2(v.y, v.x) / RAD_D;
 }
 
 VECVEC1234(normalize_f, "normalize", "vec", "F", double,
@@ -1205,7 +1205,7 @@ BUILTIN_V(line_intersect, "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "IF
     PushVec(sp, ipoint);
 }
 
-BUILTIN_V(circles_within_range, "dist,positions,radiuses,positions2,radiuses2,gridsize", "FF}:2]F]F}:2]F]I}:2", "I]]",
+BUILTIN(circles_within_range, "dist,positions,radiuses,positions2,radiuses2,gridsize", "FF}:2]F]F}:2]F]I}:2", "I]]",
     "Given a vector of 2D positions (and same size vectors of radiuses), returns a vector of"
     " vectors of indices (to the second set of positions and radiuses) of the circles that are"
     " within dist of eachothers radius. If the second set are [], the first set is used for"
@@ -1216,7 +1216,7 @@ BUILTIN_V(circles_within_range, "dist,positions,radiuses,positions2,radiuses2,gr
     " each dimension, e.g. 100 elements would use a 20x20 grid."
     " Efficiency wise this algorithm is fastest if there is not too much variance in the radiuses of"
     " the second set and/or the second set has smaller radiuses than the first.")
-(StackPtr &sp, VM &vm, double qdist, LVector *positions1, LVector *radiuses1,
+(StackPtr &, VM &vm, double qdist, LVector *positions1, LVector *radiuses1,
  LVector *positions2v, LVector *radiuses2v, iint2 gridsize) {
     auto ncelld = ToVec<iint2>(gridsize);
     auto radiuses2 = radiuses2v;
@@ -1289,7 +1289,7 @@ BUILTIN_V(circles_within_range, "dist,positions,radiuses,positions2,radiuses2,gr
     }
     auto rvec = (LVector *)vm.NewVec(0, positions1->len, TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT);
     for (auto vec : results) rvec->Push(vm, Value(vec));
-    Push(sp,  rvec);
+    return rvec;
 }
 
 BUILTIN_V(wave_function_collapse, "tilemap,size", "S]I}:2", "S]I",
@@ -1372,92 +1372,89 @@ BUILTIN(call_function_value, "x", "L", "",
     vm.CallFunctionValue(f);
 }
 
-BUILTIN_V(type_id, "ref", "A", "I",
+BUILTIN(type_id, "ref", "A", "I",
     "int uniquely representing the type of the given reference (object/vector/string/resource)."
     " this is the same as typeof, except dynamic (accounts for subtypes of the static type)."
     " useful to compare the types of objects quickly."
     " specializations of a generic type will result in different ids.")
-(StackPtr &sp, VM &, Value a) {
-    Push(sp, a.ref()->tti);
+(StackPtr &, VM &, Value a) {
+    return a.ref()->tti;
 }
 
-BUILTIN_V(type_string, "ref", "A", "S",
+BUILTIN(type_string, "ref", "A", "S",
     "string representing the type of the given reference (object/vector/string/resource)")
-(StackPtr &sp, VM &vm, Value a) {
-    Push(sp, vm.NewString(a.ref()->TypeName(vm)));
+(StackPtr &, VM &vm, Value a) {
+    return vm.NewString(a.ref()->TypeName(vm));
 }
 
-BUILTIN_V(type_element_string, "v", "A]*", "S",
+BUILTIN(type_element_string, "v", "A]*", "S",
     "string representing the type of the elements of a vector")
-(StackPtr &sp, VM &vm, LVector *a) {
+(StackPtr &, VM &vm, LVector *a) {
     auto &ti = a->ti(vm);
     string sd;
     vm.GetTypeInfo(ti.subt).Print(vm, sd, nullptr);
-    Push(sp, vm.NewString(sd));
+    return vm.NewString(sd);
 }
 
-BUILTIN_V(type_field_count, "obj", "A", "I",
+BUILTIN(type_field_count, "obj", "A", "I",
     "number of fields in an object, or 0 for other reference types")
-(StackPtr &sp, VM &vm, Value a) {
+(StackPtr &, VM &vm, Value a) {
     auto &ti = a.ref()->ti(vm);
-    Push(sp, RTIsUDT(ti.t) ? ti.len : 0);
+    return RTIsUDT(ti.t) ? ti.len : 0;
 }
 
-BUILTIN_V(type_field_string, "obj,idx", "AI", "S",
+BUILTIN(type_field_string, "obj,idx", "AI", "S",
     "string representing the type of a field in an object, or empty for other reference types")
-(StackPtr &sp, VM &vm, Value a, iint i) {
+(StackPtr &, VM &vm, Value a, iint i) {
     auto &ti = a.ref()->ti(vm);
     string sd;
     if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
         vm.GetTypeInfo(ti.elemtypes[i].type).Print(vm, sd, nullptr);
     }
-    Push(sp, vm.NewString(sd));
+    return vm.NewString(sd);
 }
 
-BUILTIN_V(type_field_name, "obj,idx", "AI", "S",
+BUILTIN(type_field_name, "obj,idx", "AI", "S",
     "name of a field in an object, or empty for other reference types")
-(StackPtr &sp, VM &vm, Value a, iint idx) {
+(StackPtr &, VM &vm, Value a, iint idx) {
     auto i = (int)idx;
     auto &ti = a.ref()->ti(vm);
     string sd;
     if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
         sd = vm.LookupFieldByOffset(ti.structidx, i);
     }
-    Push(sp, vm.NewString(sd));
+    return vm.NewString(sd);
 }
 
-BUILTIN_V(type_field_value, "obj,idx", "AI", "S",
+BUILTIN(type_field_value, "obj,idx", "AI", "S",
     "string representing the value of a field in an object, or empty for other reference types")
-(StackPtr &sp, VM &vm, Value a, iint i) {
+(StackPtr &, VM &vm, Value a, iint i) {
     auto &ti = a.ref()->ti(vm);
-    if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
-        auto &sti = vm.GetTypeInfo(ti.elemtypes[i].type);
-        Push(sp, vm.ToString(a.oval()->At(i), sti));
-    } else {
-        Push(sp, vm.NewString(0));
-    }
+    if (!RTIsUDT(ti.t) || i < 0 || i >= ti.len) return vm.NewString(0);
+    auto &sti = vm.GetTypeInfo(ti.elemtypes[i].type);
+    return vm.ToString(a.oval()->At(i), sti);
 }
 
-BUILTIN_V(type_enum_value_name, "enum_type_id,idx", "TI", "S",
+BUILTIN(type_enum_value_name, "enum_type_id,idx", "TI", "S",
     "string representing the name of an enum value, belonging to the enum (use typeof)")
-(StackPtr &sp, VM &vm, iint id, iint i) {
+(StackPtr &, VM &vm, iint id, iint i) {
     auto &ti = vm.GetTypeInfo((type_elem_t)id);
     string sd;
     if (ti.t == RTT_INT && ti.enumidx >= 0) {
         vm.EnumName(sd, i, ti.enumidx);
     }
-    Push(sp, vm.NewString(sd));
+    return vm.NewString(sd);
 }
 
-BUILTIN_V(type_enum_value_valid, "enum_type_id,idx", "TI", "B",
+BUILTIN(type_enum_value_valid, "enum_type_id,idx", "TI", "B",
     "whether an integer is a value of the given enum (use typeof), i.e. whether"
     " type_enum_value_name would give it a name, but without allocating a string. Cheap enough"
     " to range check a value that may come from elsewhere (such as a file written by a newer"
     " version of the program) before switching on it. For an enum_flags, any combination of"
     " declared bits is a value, so this is true for more values than a switch on it has cases")
-(StackPtr &sp, VM &vm, iint id, iint i) {
+(StackPtr &, VM &vm, iint id, iint i) {
     auto &ti = vm.GetTypeInfo((type_elem_t)id);
-    Push(sp, Value(ti.t == RTT_INT && ti.enumidx >= 0 && vm.EnumValueValid(i, ti.enumidx)));
+    return ti.t == RTT_INT && ti.enumidx >= 0 && vm.EnumValueValid(i, ti.enumidx);
 }
 
 BUILTIN(program_name, "", "", "S",
@@ -1654,7 +1651,7 @@ BUILTIN(thread_wake, "type", "T", "",
     vm.WorkerWake((type_elem_t)t);
 }
 
-BUILTIN_V(crash_test_cpp_nullptr_exception, "", "", "",
+BUILTIN(crash_test_cpp_nullptr_exception, "", "", "",
     "only for testing crash dump functionality, don\'t use! :)")
 (StackPtr &, VM &) {
     char *volatile crash = nullptr;
@@ -1737,48 +1734,48 @@ BUILTIN(multiply, "a,b", "F]F]", "F]",
     return r;
 }
 
-BUILTIN_V(rotate_x, "angle", "F}:2", "F]",
+BUILTIN(rotate_x, "angle", "F}:2", "F]",
     "")
-(StackPtr &sp, VM &vm, double2 angle_) {
+(StackPtr &, VM &vm, double2 angle_) {
     auto angle = ToVec<double2>(angle_);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     InlineVec<double, 16> ivr(r->Elems(), false);
     (*(double4x4 *)ivr.vals) = rotationX(angle);
     ivr.CopyBack(r->Elems());
-    Push(sp, r);
+    return r;
 }
 
-BUILTIN_V(rotate_y, "angle", "F}:2", "F]",
+BUILTIN(rotate_y, "angle", "F}:2", "F]",
     "")
-(StackPtr &sp, VM &vm, double2 angle_) {
+(StackPtr &, VM &vm, double2 angle_) {
     auto angle = ToVec<double2>(angle_);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     InlineVec<double, 16> ivr(r->Elems(), false);
     (*(double4x4 *)ivr.vals) = rotationY(angle);
     ivr.CopyBack(r->Elems());
-    Push(sp, r);
+    return r;
 }
 
-BUILTIN_V(rotate_z, "angle", "F}:2", "F]",
+BUILTIN(rotate_z, "angle", "F}:2", "F]",
     "")
-(StackPtr &sp, VM &vm, double2 angle_) {
+(StackPtr &, VM &vm, double2 angle_) {
     auto angle = ToVec<double2>(angle_);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     InlineVec<double, 16> ivr(r->Elems(), false);
     (*(double4x4 *)ivr.vals) = rotationZ(angle);
     ivr.CopyBack(r->Elems());
-    Push(sp, r);
+    return r;
 }
 
-BUILTIN_V(translation, "trans", "F}:3", "F]",
+BUILTIN(translation, "trans", "F}:3", "F]",
     "")
-(StackPtr &sp, VM &vm, double3 trans_) {
+(StackPtr &, VM &vm, double3 trans_) {
     auto trans = ToVec<double3>(trans_);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     InlineVec<double, 16> ivr(r->Elems(), false);
     (*(double4x4 *)ivr.vals) = translation(trans);
     ivr.CopyBack(r->Elems());
-    Push(sp, r);
+    return r;
 }
 
 }

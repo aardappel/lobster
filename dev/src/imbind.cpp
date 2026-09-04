@@ -1128,7 +1128,7 @@ BUILTIN(add_font, "font_path,size,glyph_ranges", "SFS?", "B",
                           (glyph_ranges != nullptr) ? glyph_ranges->strv() : "Default");
 }
 
-BUILTIN_V(clear_fonts, "", "", "",
+BUILTIN(clear_fonts, "", "", "",
     "allows you to restart your add_font calls")
 (StackPtr &, VM &vm) {
     IsInit(vm,  { N_NONE, N_NONE });
@@ -1136,7 +1136,7 @@ BUILTIN_V(clear_fonts, "", "", "",
     //ImGui_ImplOpenGL3_DestroyFontsTexture();
 }
 
-BUILTIN_V(set_style_color, "i,color", "IF}:4", "",
+BUILTIN(set_style_color, "i,color", "IF}:4", "",
     "")
 (StackPtr &, VM &vm, iint i_, double4 color) {
     IsInit(vm,  { N_NONE, N_NONE });
@@ -1146,7 +1146,7 @@ BUILTIN_V(set_style_color, "i,color", "IF}:4", "",
     ImGui::GetStyle().Colors[i] = ImVec4(c.x, c.y, c.z, c.w);
 }
 
-BUILTIN_V(set_style_spacing, "spacing", "F}:2", "",
+BUILTIN(set_style_spacing, "spacing", "F}:2", "",
     "")
 (StackPtr &, VM &vm, double2 spacing) {
     IsInit(vm,  { N_NONE, N_NONE });
@@ -1154,7 +1154,7 @@ BUILTIN_V(set_style_spacing, "spacing", "F}:2", "",
     ImGui::GetStyle().ItemSpacing = ImVec2(s.x, s.y);
 }
 
-BUILTIN_V(set_style_inner_spacing, "spacing", "F}:2", "",
+BUILTIN(set_style_inner_spacing, "spacing", "F}:2", "",
     "")
 (StackPtr &, VM &vm, double2 spacing) {
     IsInit(vm,  { N_NONE, N_NONE });
@@ -1162,7 +1162,7 @@ BUILTIN_V(set_style_inner_spacing, "spacing", "F}:2", "",
     ImGui::GetStyle().ItemInnerSpacing = ImVec2(s.x, s.y);
 }
 
-BUILTIN_V(set_style_window_padding, "spacing", "F}:2", "",
+BUILTIN(set_style_window_padding, "spacing", "F}:2", "",
     "")
 (StackPtr &, VM &vm, double2 spacing) {
     IsInit(vm,  { N_NONE, N_NONE });
@@ -1170,7 +1170,7 @@ BUILTIN_V(set_style_window_padding, "spacing", "F}:2", "",
     ImGui::GetStyle().WindowPadding = ImVec2(s.x, s.y);
 }
 
-BUILTIN_V(set_style_frame_padding, "spacing", "F}:2", "",
+BUILTIN(set_style_frame_padding, "spacing", "F}:2", "",
     "")
 (StackPtr &, VM &vm, double2 spacing) {
     IsInit(vm,  { N_NONE, N_NONE });
@@ -1178,7 +1178,7 @@ BUILTIN_V(set_style_frame_padding, "spacing", "F}:2", "",
     ImGui::GetStyle().FramePadding = ImVec2(s.x, s.y);
 }
 
-BUILTIN_V(set_style_tabs_extra_padding, "spacing", "F}:2", "",
+BUILTIN(set_style_tabs_extra_padding, "spacing", "F}:2", "",
     "")
 (StackPtr &, VM &vm, double2 spacing) {
     IsInit(vm,  { N_NONE, N_NONE });
@@ -1186,7 +1186,7 @@ BUILTIN_V(set_style_tabs_extra_padding, "spacing", "F}:2", "",
     tabs_extra_padding = ImVec2(s.x, s.y);
 }
 
-BUILTIN_V(frame_start, "", "", "",
+BUILTIN(frame_start, "", "", "",
     "(use im.frame instead)")
 (StackPtr &, VM &vm) {
     IsInit(vm, { N_NONE, N_NONE });
@@ -1198,7 +1198,7 @@ BUILTIN_V(frame_start, "", "", "",
     imgui_frame++;
 }
 
-BUILTIN_V(frame_end, "", "", "",
+BUILTIN(frame_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm, { N_NONE, N_NONE });
@@ -1212,7 +1212,7 @@ BUILTIN_V(frame_end, "", "", "",
     }
 }
 
-BUILTIN_V(dockspace_over_viewport, "", "", "",
+BUILTIN(dockspace_over_viewport, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm, { N_FRAME, N_NONE });
@@ -1229,9 +1229,9 @@ BUILTIN(window_demo, "", "", "B",
     return show;
 }
 
-BUILTIN_V(window_start, "title,flags,dock", "SII", "B",
+BUILTIN(window_start, "title,flags,dock", "SII", "B",
     "(use im.window instead)")
-(StackPtr &sp, VM &vm, LString *title, iint flags, iint dock) {
+(StackPtr &, VM &vm, LString *title, iint flags, iint dock) {
     IsInit(vm, { N_FRAME, N_NONE });
     if ((dock != 0) && ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable) {
         ImGui::SetNextWindowDockID(last_dock_id, ImGuiCond_FirstUseEver);
@@ -1243,19 +1243,19 @@ BUILTIN_V(window_start, "title,flags,dock", "SII", "B",
         ImGui::DockSpace(last_dock_id);
     }
     */
-    Push(sp, open);
     // Unlike other begin/end pairs, we must always call end unconditionally, so we always push this.
     NPush(N_WIN);
+    return open;
 }
 
-BUILTIN_V(window_end, "", "", "",
+BUILTIN(window_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm, { N_FRAME, N_NONE });
     NPop(vm, N_WIN);
 }
 
-BUILTIN_V(next_window_size, "size,cond", "F}:2I", "",
+BUILTIN(next_window_size, "size,cond", "F}:2I", "",
     "size in pixels")
 (StackPtr &, VM &vm, double2 size_, iint cond) {
     IsInit(vm, { N_FRAME, N_NONE });
@@ -1263,7 +1263,7 @@ BUILTIN_V(next_window_size, "size,cond", "F}:2I", "",
     ImGui::SetNextWindowSize(ImVec2(size.x, size.y), (ImGuiCond)cond);
 }
 
-BUILTIN_V(next_window_pos, "pos,pivot,cond", "F}:2F}:2I", "",
+BUILTIN(next_window_pos, "pos,pivot,cond", "F}:2F}:2I", "",
     "pos in pixels, pivot values 0..1 relative to pos")
 (StackPtr &, VM &vm, double2 pos_, double2 pivot_, iint cond) {
     IsInit(vm, { N_FRAME, N_NONE });
@@ -1272,30 +1272,30 @@ BUILTIN_V(next_window_pos, "pos,pivot,cond", "F}:2F}:2I", "",
     ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y), (ImGuiCond)cond, ImVec2(pivot.x, pivot.y));
 }
 
-BUILTIN_V(button, "label,size", "SF}:2?", "B",
+BUILTIN(button, "label,size", "SF}:2?", "B",
     "")
-(StackPtr &sp, VM &vm, LString *title, double2 size_) {
+(StackPtr &, VM &vm, LString *title, double2 size_) {
     IsInit(vm);
     auto size = ToVec<float2>(size_);
     auto press = ImGui::Button(Label(vm, title), ImVec2(size.x, size.y));
-    Push(sp, press);
+    return press;
 }
 
-BUILTIN_V(button_small, "label", "S", "B",
+BUILTIN(button_small, "label", "S", "B",
     "")
-(StackPtr &sp, VM &vm, LString *title) {
+(StackPtr &, VM &vm, LString *title) {
     IsInit(vm);
     auto press = ImGui::SmallButton(Label(vm, title));
-    Push(sp, press);
+    return press;
 }
 
-BUILTIN_V(selectable, "label,selected", "SB?", "B",
+BUILTIN(selectable, "label,selected", "SB?", "B",
     "")
-(StackPtr &sp, VM &vm, LString *title, iint selected_) {
+(StackPtr &, VM &vm, LString *title, iint selected_) {
     IsInit(vm);
     auto selected = (selected_ != 0);
     auto press = ImGui::Selectable(Label(vm, title), selected);
-    Push(sp, press);
+    return press;
 }
 
 BUILTIN(same_line, "", "", "", "")
@@ -1304,7 +1304,7 @@ BUILTIN(same_line, "", "", "", "")
     ImGui::SameLine();
 }
 
-BUILTIN_V(new_line, "", "", "", "")
+BUILTIN(new_line, "", "", "", "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     ImGui::NewLine();
@@ -1324,48 +1324,48 @@ BUILTIN(spacing, "", "", "",
     ImGui::Spacing();
 }
 
-BUILTIN_V(is_item_deactivated_after_edit, "", "", "B",
+BUILTIN(is_item_deactivated_after_edit, "", "", "B",
     "returns true if the last item was made inactive and made a value change when it was active")
-(StackPtr &sp, VM &vm) {
+(StackPtr &, VM &vm) {
     IsInit(vm);
     auto result = ImGui::IsItemDeactivatedAfterEdit();
-    Push(sp, result);
+    return result;
 }
 
-BUILTIN_V(is_item_focused, "", "", "B",
+BUILTIN(is_item_focused, "", "", "B",
     "returns true if the last item is focused")
-(StackPtr &sp, VM &vm) {
+(StackPtr &, VM &vm) {
     IsInit(vm);
     auto result = ImGui::IsItemFocused();
-    Push(sp, result);
+    return result;
 }
 
-BUILTIN_V(set_item_default_focus, "", "", "", "sets the last item created to have focus")
+BUILTIN(set_item_default_focus, "", "", "", "sets the last item created to have focus")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     ImGui::SetItemDefaultFocus();
 }
 
-BUILTIN_V(set_keyboard_focus_here, "", "", "", "sets the last item to have keyboard focus")
+BUILTIN(set_keyboard_focus_here, "", "", "", "sets the last item to have keyboard focus")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     // TODO: allow offset parameter?
     ImGui::SetKeyboardFocusHere(-1);
 }
 
-BUILTIN_V(get_scroll_y, "", "", "F", "get the y scroll amount in the range [0, get_scroll_max_y()]")
-(StackPtr &sp, VM &vm) {
+BUILTIN(get_scroll_y, "", "", "F", "get the y scroll amount in the range [0, get_scroll_max_y()]")
+(StackPtr &, VM &vm) {
     IsInit(vm);
-    Push(sp, ImGui::GetScrollY());
+    return ImGui::GetScrollY();
 }
 
-BUILTIN_V(get_scroll_max_y, "", "", "F", "get the maximum y scroll amount")
-(StackPtr &sp, VM &vm) {
+BUILTIN(get_scroll_max_y, "", "", "F", "get the maximum y scroll amount")
+(StackPtr &, VM &vm) {
     IsInit(vm);
-    Push(sp, ImGui::GetScrollMaxY());
+    return ImGui::GetScrollMaxY();
 }
 
-BUILTIN_V(set_scroll_here_x, "center_x_ratio", "F", "",
+BUILTIN(set_scroll_here_x, "center_x_ratio", "F", "",
     "scroll the pane in the X dimension so the imgui cursor is visible. Use 0.5 to center the pane on the item")
 (StackPtr &, VM &vm, double center_x_ratio_) {
     IsInit(vm);
@@ -1373,7 +1373,7 @@ BUILTIN_V(set_scroll_here_x, "center_x_ratio", "F", "",
     ImGui::SetScrollHereX(center_x_ratio);
 }
 
-BUILTIN_V(set_scroll_here_y, "center_y_ratio", "F", "",
+BUILTIN(set_scroll_here_y, "center_y_ratio", "F", "",
     "scroll the pane in the Y dimension so the imgui cursor is visible. Use 0.5 to center the pane on the item")
 (StackPtr &, VM &vm, double center_y_ratio_) {
     IsInit(vm);
@@ -1381,12 +1381,12 @@ BUILTIN_V(set_scroll_here_y, "center_y_ratio", "F", "",
     ImGui::SetScrollHereY(center_y_ratio);
 }
 
-BUILTIN_V(want_capture_mouse, "", "", "B",
+BUILTIN(want_capture_mouse, "", "", "B",
     "returns true if imgui wants to capture the mouse")
-(StackPtr &sp, VM &vm) {
+(StackPtr &, VM &vm) {
     IsInit(vm, { N_NONE, N_NONE });
     auto result = ImGui::GetIO().WantCaptureMouse;
-    Push(sp, result);
+    return result;
 }
 
 BUILTIN_V(get_modifiers, "", "", "BBB",
@@ -1405,7 +1405,7 @@ BUILTIN_V(get_layout_pos, "", "", "F}:2", "")
     PushVec(sp, float2(pos.x, pos.y));
 }
 
-BUILTIN_V(set_layout_pos, "pos", "F}:2", "", "")
+BUILTIN(set_layout_pos, "pos", "F}:2", "", "")
 (StackPtr &, VM &vm, double2 pos_) {
     IsInit(vm);
     auto pos = ToVec<float2>(pos_);
@@ -1419,7 +1419,7 @@ BUILTIN_V(get_layout_screen_pos, "", "", "F}:2", "")
     PushVec(sp, float2(pos.x, pos.y));
 }
 
-BUILTIN_V(set_layout_screen_pos, "pos", "F}:2", "", "")
+BUILTIN(set_layout_screen_pos, "pos", "F}:2", "", "")
 (StackPtr &, VM &vm, double2 pos_) {
     IsInit(vm);
     auto pos = ToVec<float2>(pos_);
@@ -1443,9 +1443,9 @@ BUILTIN_V(calc_text_size, "text", "S", "F}:2",
     PushVec(sp, float2(size.x, size.y));
 }
 
-BUILTIN_V(calc_word_wrap_position, "text,width", "SF", "I",
+BUILTIN(calc_word_wrap_position, "text,width", "SF", "I",
     "returns the wrap point of the given text in the current font. If width is 0 then use the current region's available width")
-(StackPtr &sp, VM &vm, LString *text_, double width_) {
+(StackPtr &, VM &vm, LString *text_, double width_) {
     IsInit(vm);
     auto width = (float)width_;
     auto &text = *text_;
@@ -1457,22 +1457,22 @@ BUILTIN_V(calc_word_wrap_position, "text,width", "SF", "I",
         width = ImGui::GetContentRegionAvail().x;
     }
     auto *wrap_ctext = ImGui::GetFont()->CalcWordWrapPosition(font_size, ctext, ctext_end, width);
-    Push(sp, wrap_ctext - ctext);
+    return wrap_ctext - ctext;
 }
 
-BUILTIN_V(calc_item_width, "", "", "F",
+BUILTIN(calc_item_width, "", "", "F",
     "returns the width of an item given the current cursor position")
-(StackPtr &sp, VM &vm) {
+(StackPtr &, VM &vm) {
     IsInit(vm);
     auto width = ImGui::CalcItemWidth();
-    Push(sp, width);
+    return width;
 }
 
-BUILTIN_V(mouse_clicked, "button", "I", "B",
+BUILTIN(mouse_clicked, "button", "I", "B",
     "returns whether the given mouse button was clicked anywhere")
-(StackPtr &sp, VM &vm, iint button) {
+(StackPtr &, VM &vm, iint button) {
     IsInit(vm);
-    Push(sp, Value(ImGui::IsMouseClicked((ImGuiMouseButton)button)));
+    return ImGui::IsMouseClicked((ImGuiMouseButton)button);
 }
 
 BUILTIN(text, "label", "S", "",
@@ -1507,7 +1507,7 @@ BUILTIN(text_markdown, "text", "S", "",
     Markdown(s.strv());
 }
 
-BUILTIN_V(indent_start, "amount", "F", "",
+BUILTIN(indent_start, "amount", "F", "",
     "(use im.indent instead)")
 (StackPtr &, VM &vm, double amount_) {
     IsInit(vm);
@@ -1517,14 +1517,14 @@ BUILTIN_V(indent_start, "amount", "F", "",
     indent_stack.push_back(amount);
 }
 
-BUILTIN_V(indent_end, "", "", "",
+BUILTIN(indent_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_INDENT);
 }
 
-BUILTIN_V(font_start, "font_idx", "I", "",
+BUILTIN(font_start, "font_idx", "I", "",
     "(use im.font instead)")
 (StackPtr &, VM &vm, iint font_idx) {
     IsInit(vm);
@@ -1533,14 +1533,14 @@ BUILTIN_V(font_start, "font_idx", "I", "",
     NPush(N_FONT);
 }
 
-BUILTIN_V(font_end, "", "", "",
+BUILTIN(font_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_FONT);
 }
 
-BUILTIN_V(font_size_start, "size", "F", "",
+BUILTIN(font_size_start, "size", "F", "",
     "(use im.font_size instead)")
 (StackPtr &, VM &vm, double size) {
     IsInit(vm);
@@ -1549,14 +1549,14 @@ BUILTIN_V(font_size_start, "size", "F", "",
     NPush(N_FONT);
 }
 
-BUILTIN_V(font_size_end, "", "", "",
+BUILTIN(font_size_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_FONT);
 }
 
-BUILTIN_V(color_start, "color", "F}:4", "",
+BUILTIN(color_start, "color", "F}:4", "",
     "(use im.color instead)")
 (StackPtr &, VM &vm, double4 color) {
     IsInit(vm);
@@ -1565,7 +1565,7 @@ BUILTIN_V(color_start, "color", "F}:4", "",
     NPush(N_COLOR);
 }
 
-BUILTIN_V(color_end, "", "", "",
+BUILTIN(color_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
@@ -1583,28 +1583,25 @@ BUILTIN(tooltip, "label", "S", "",
     }
 }
 
-BUILTIN_V(tooltip_multi_start, "", "", "B",
+BUILTIN(tooltip_multi_start, "", "", "B",
     "(use im.tooltip_multi instead)")
-(StackPtr &sp, VM &vm) {
+(StackPtr &, VM &vm) {
     IsInit(vm);
-    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-        PushToolTipStyle();
-        ImGui::BeginTooltip();  // The bool it returns is currently always true?
-        Push(sp, true);
-        NPush(N_TOOLTIP);
-    } else {
-        Push(sp, false);
-    }
+    if (!ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) return false;
+    PushToolTipStyle();
+    ImGui::BeginTooltip();  // The bool it returns is currently always true?
+    NPush(N_TOOLTIP);
+    return true;
 }
 
-BUILTIN_V(tooltip_multi_end, "", "", "",
+BUILTIN(tooltip_multi_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_TOOLTIP);
 }
 
-BUILTIN_V(tooltip_style, "font_size,frame_size", "FF}:2", "",
+BUILTIN(tooltip_style, "font_size,frame_size", "FF}:2", "",
     "")
 (StackPtr &, VM &, double font_size, double2 frame_size) {
     auto sz = ToVec<float2>(frame_size);
@@ -1694,7 +1691,7 @@ BUILTIN(radio, "labels,active,horiz", "S]II", "I",
     return sel;
 }
 
-BUILTIN_V(progress_bar, "fraction,size,overlay", "FF}:2S", "",
+BUILTIN(progress_bar, "fraction,size,overlay", "FF}:2S", "",
     "display progress bar filled up to the given fraction. size.x < 0 to use all available space, "
     " size.x > 0 for a specific pixel width")
 (StackPtr &, VM &vm, double fraction_, double2 size_, LString *overlay_) {
@@ -1783,7 +1780,7 @@ VECSLIDER(Float, float, double, F, 4)
 COLOREDITW(3) COLOREDITW(4)
 #undef COLOREDITW
 
-BUILTIN_V(image, "tex,size,flip", "R:textureF}:2B?", "",
+BUILTIN(image, "tex,size,flip", "R:textureF}:2B?", "",
     "")
 (StackPtr &, VM &vm, LResource *tex, double2 size, iint flip_) {
     IsInit(vm);
@@ -1794,9 +1791,9 @@ BUILTIN_V(image, "tex,size,flip", "R:textureF}:2B?", "",
                                                                 ImVec2(1.0f, flip ? 1.0f : 0.0f));
 }
 
-BUILTIN_V(image_button, "label,tex,size,bgcol,flip", "SR:textureF}:2F}:4?B?", "B",
+BUILTIN(image_button, "label,tex,size,bgcol,flip", "SR:textureF}:2F}:4?B?", "B",
     "")
-(StackPtr &sp, VM &vm, LString *label, LResource *tex, double2 size, double4 bgcol_, iint flip_) {
+(StackPtr &, VM &vm, LString *label, LResource *tex, double2 size, double4 bgcol_, iint flip_) {
     IsInit(vm);
     auto flip = (flip_ != 0);
     auto bgcol = ToVec<float4>(bgcol_);
@@ -1807,7 +1804,7 @@ BUILTIN_V(image_button, "label,tex,size,bgcol,flip", "SR:textureF}:2F}:4?B?", "B
                            ImVec2(0.0f, flip ? 0.0f : 1.0f),
                            ImVec2(1.0f, flip ? 1.0f : 0.0f),
                            ImVec4(bgcol.x, bgcol.y, bgcol.z, bgcol.w));
-    Push(sp, press);
+    return press;
 }
 
 BUILTIN_V(image_mouseclick, "tex,size", "R:textureF}:2", "F}:2I",
@@ -1834,7 +1831,7 @@ BUILTIN_V(image_mouseclick, "tex,size", "R:textureF}:2", "F}:2I",
     }
 }
 
-BUILTIN_V(rect, "min,max,color,rounding,thickness", "F}:2F}:2F}:4FF", "",
+BUILTIN(rect, "min,max,color,rounding,thickness", "F}:2F}:2F}:4FF", "",
     "")
 (StackPtr &, VM &vm, double2 min_, double2 max_, double4 color_, double rounding_,
  double thickness_) {
@@ -1855,7 +1852,7 @@ BUILTIN_V(rect, "min,max,color,rounding,thickness", "F}:2F}:2F}:4FF", "",
     );
 }
 
-BUILTIN_V(rect_filled, "min,max,color,rounding", "F}:2F}:2F}:4F", "",
+BUILTIN(rect_filled, "min,max,color,rounding", "F}:2F}:2F}:4F", "",
     "")
 (StackPtr &, VM &vm, double2 min_, double2 max_, double4 color_, double rounding_) {
     IsInit(vm);
@@ -1873,20 +1870,19 @@ BUILTIN_V(rect_filled, "min,max,color,rounding", "F}:2F}:2F}:4F", "",
     );
 }
 
-BUILTIN_V(set_next_item_open, "is_open,cond", "BI", "", "Set the open state of the next treenode")
+BUILTIN(set_next_item_open, "is_open,cond", "BI", "", "Set the open state of the next treenode")
 (StackPtr &, VM &vm, iint is_open_, iint cond) {
     IsInit(vm);
     auto is_open = (is_open_ != 0);
     ImGui::SetNextItemOpen(is_open, (ImGuiCond)cond);
 }
 
-BUILTIN_V(treenode_start, "label,flags", "SI", "B",
+BUILTIN(treenode_start, "label,flags", "SI", "B",
     "(use im.treenode instead)")
-(StackPtr &sp, VM &vm, LString *title, iint flags_) {
+(StackPtr &, VM &vm, LString *title, iint flags_) {
     IsInit(vm);
     auto flags = (ImGuiTreeNodeFlags)(int)flags_;
     bool open = ImGui::TreeNodeEx(Label(vm, title), flags);
-    Push(sp, open);
     if (open) {
         NPush(N_TREE);
         if (!(flags & ImGuiTreeNodeFlags_IndentHalf)) {
@@ -1895,9 +1891,10 @@ BUILTIN_V(treenode_start, "label,flags", "SI", "B",
             ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing() / 2.0f);
         }
     }
+    return open;
 }
 
-BUILTIN_V(treenode_end, "flags", "I", "",
+BUILTIN(treenode_end, "flags", "I", "",
     "")
 (StackPtr &, VM &vm, iint flags_) {
     IsInit(vm);
@@ -1908,27 +1905,27 @@ BUILTIN_V(treenode_end, "flags", "I", "",
     NPop(vm, N_TREE);
 }
 
-BUILTIN_V(tab_bar_start, "label", "S", "B",
+BUILTIN(tab_bar_start, "label", "S", "B",
     "(use im.tab_bar instead)")
-(StackPtr &sp, VM &vm, LString *title) {
+(StackPtr &, VM &vm, LString *title) {
     IsInit(vm);
     //ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, tabs_extra_padding);
     ImGui::GetStyle().FramePadding += tabs_extra_padding;
     bool open = ImGui::BeginTabBar(Label(vm, title), 0);
     ImGui::GetStyle().FramePadding -= tabs_extra_padding;
     //ImGui::PopStyleVar();
-    Push(sp, open);
     if (open) NPush(N_TAB_BAR);
+    return open;
 }
 
-BUILTIN_V(tab_bar_end, "", "", "",
+BUILTIN(tab_bar_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_TAB_BAR);
 }
 
-BUILTIN_V(tab_select, "label", "S", "",
+BUILTIN(tab_select, "label", "S", "",
     "call before any tabs to make a tab other than the first selected")
 (StackPtr &, VM &vm, LString *label) {
     IsInit(vm);
@@ -1938,36 +1935,36 @@ BUILTIN_V(tab_select, "label", "S", "",
     ImGui::TabBarQueueFocus(tb, title.data());
 }
 
-BUILTIN_V(tab_start, "label,flags", "SI", "B",
+BUILTIN(tab_start, "label,flags", "SI", "B",
     "(use im.tab instead)")
-(StackPtr &sp, VM &vm, LString *title, iint flags_) {
+(StackPtr &, VM &vm, LString *title, iint flags_) {
     IsInit(vm);
     auto flags = (int)flags_;
     ImGui::GetStyle().FramePadding += tabs_extra_padding;
     bool open = ImGui::BeginTabItem(Label(vm, title), nullptr, (ImGuiTabItemFlags)flags);
     ImGui::GetStyle().FramePadding -= tabs_extra_padding;
-    Push(sp, open);
     if (open) NPush(N_TAB);
+    return open;
 }
 
-BUILTIN_V(tab_end, "", "", "",
+BUILTIN(tab_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_TAB);
 }
 
-BUILTIN_V(menu_bar_start, "main", "B", "B",
+BUILTIN(menu_bar_start, "main", "B", "B",
     "(use im.menu_bar instead)")
-(StackPtr &sp, VM &vm, iint main_) {
+(StackPtr &, VM &vm, iint main_) {
     IsInit(vm, { N_FRAME, N_NONE });
     auto main = (main_ != 0);
     bool open = main ? ImGui::BeginMainMenuBar() : ImGui::BeginMenuBar();
-    Push(sp, open);
     if (open) NPush(main ? N_MAIN_MENU_BAR: N_MENU_BAR);
+    return open;
 }
 
-BUILTIN_V(menu_bar_end, "main", "B", "",
+BUILTIN(menu_bar_end, "main", "B", "",
     "")
 (StackPtr &, VM &vm, iint main_) {
     IsInit(vm, { N_FRAME, N_NONE });
@@ -1975,18 +1972,18 @@ BUILTIN_V(menu_bar_end, "main", "B", "",
     NPop(vm, main ? N_MAIN_MENU_BAR: N_MENU_BAR);
 }
 
-BUILTIN_V(menu_start, "label,disabled", "SB?", "B",
+BUILTIN(menu_start, "label,disabled", "SB?", "B",
     "(use im.menu instead)")
-(StackPtr &sp, VM &vm, LString *title, iint disabled_) {
+(StackPtr &, VM &vm, LString *title, iint disabled_) {
     IsInit(vm, {});
     RequireMenuNesting(vm);
     auto disabled = (disabled_ != 0);
     bool open = ImGui::BeginMenu(Label(vm, title), !disabled);
-    Push(sp, open);
     if (open) NPush(N_MENU);
+    return open;
 }
 
-BUILTIN_V(menu_end, "", "", "",
+BUILTIN(menu_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm, {});
@@ -1994,29 +1991,29 @@ BUILTIN_V(menu_end, "", "", "",
     NPop(vm, N_MENU);
 }
 
-BUILTIN_V(menu_item, "label,shortcut,disabled", "SS?B?", "B",
+BUILTIN(menu_item, "label,shortcut,disabled", "SS?B?", "B",
     "")
-(StackPtr &sp, VM &vm, LString *title, LString *shortcut, iint disabled_) {
+(StackPtr &, VM &vm, LString *title, LString *shortcut, iint disabled_) {
     IsInit(vm, { N_MENU, N_POPUP });
     auto disabled = (disabled_ != 0);
     auto press = ImGui::MenuItem(Label(vm, title),
                                  (shortcut != nullptr) ? shortcut->data() : nullptr,
                                  false,
                                  !disabled);
-    Push(sp, press);
+    return press;
 }
 
-BUILTIN_V(menu_item_toggle, "label,selected,disabled", "SB?B?", "B",
+BUILTIN(menu_item_toggle, "label,selected,disabled", "SB?B?", "B",
     "")
-(StackPtr &sp, VM &vm, LString *title, iint selected_, iint disabled_) {
+(StackPtr &, VM &vm, LString *title, iint selected_, iint disabled_) {
     IsInit(vm, { N_MENU, N_POPUP });
     auto disabled = (disabled_ != 0);
     auto selected = (selected_ != 0);
     ImGui::MenuItem(Label(vm, title), nullptr, &selected, !disabled);
-    Push(sp, selected);
+    return selected;
 }
 
-BUILTIN_V_OVERLOAD(id_start_string, "id_start", "label", "Ss", "",
+BUILTIN_OVERLOAD(id_start_string, "id_start", "label", "Ss", "",
     "an invisble group around some widgets, useful to ensure these widgets are unique"
     " (if they have the same label as widgets in another group that has a different group"
     " label). Use im.id instead")
@@ -2026,7 +2023,7 @@ BUILTIN_V_OVERLOAD(id_start_string, "id_start", "label", "Ss", "",
     NPush(N_ID);
 }
 
-BUILTIN_V_OVERLOAD(id_start_int, "id_start", "label", "I", "",
+BUILTIN_OVERLOAD(id_start_int, "id_start", "label", "I", "",
     "(integer version)")
 (StackPtr &, VM &vm, iint i) {
     IsInit(vm);
@@ -2034,7 +2031,7 @@ BUILTIN_V_OVERLOAD(id_start_int, "id_start", "label", "I", "",
     NPush(N_ID);
 }
 
-BUILTIN_V_OVERLOAD(id_start_ref, "id_start", "label", "A", "",
+BUILTIN_OVERLOAD(id_start_ref, "id_start", "label", "A", "",
     "(reference version)")
 (StackPtr &, VM &vm, Value r) {
     IsInit(vm);
@@ -2042,32 +2039,32 @@ BUILTIN_V_OVERLOAD(id_start_ref, "id_start", "label", "A", "",
     NPush(N_ID);
 }
 
-BUILTIN_V(id_end, "", "", "",
+BUILTIN(id_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_ID);
 }
 
-BUILTIN_V(child_start, "title,size,flags", "SF}:2I", "B",
+BUILTIN(child_start, "title,size,flags", "SF}:2I", "B",
     "create a self-contained scrolling/clipping region with a window. use im.child instead")
-(StackPtr &sp, VM &vm, LString *title, double2 size, iint flags) {
+(StackPtr &, VM &vm, LString *title, double2 size, iint flags) {
     IsInit(vm);
     auto sz = ToVec<float2>(size);
     bool open = ImGui::BeginChild(Label(vm, title), ImVec2(sz.x, sz.y), false, (ImGuiWindowFlags)flags);
-    Push(sp, open);
     // Unlike other begin/end pairs, we must always call end unconditionally, so we always push this.
     NPush(N_CHILD);
+    return open;
 }
 
-BUILTIN_V(child_end, "", "", "",
+BUILTIN(child_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_CHILD);
 }
 
-BUILTIN_V(group_start, "", "", "",
+BUILTIN(group_start, "", "", "",
     "lock the horizontal starting position, and capture all contained widgets"
     " into one item. Use im.group instead")
 (StackPtr &, VM &vm) {
@@ -2076,57 +2073,57 @@ BUILTIN_V(group_start, "", "", "",
     NPush(N_VGROUP);
 }
 
-BUILTIN_V(group_end, "", "", "",
+BUILTIN(group_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_VGROUP);
 }
 
-BUILTIN_V(popup_start, "label,winflags,rmbprevitem", "SIB?", "B",
+BUILTIN(popup_start, "label,winflags,rmbprevitem", "SIB?", "B",
     "(use im.popup instead)")
-(StackPtr &sp, VM &vm, LString *title, iint winflags, iint rmbprevitem) {
+(StackPtr &, VM &vm, LString *title, iint winflags, iint rmbprevitem) {
     IsInit(vm, { N_FRAME, N_NONE });
     auto rmb = (rmbprevitem != 0);
     auto flags = (ImGuiWindowFlags)(int)winflags;
     bool open = rmb ? ImGui::BeginPopupContextItem(Label(vm, title))
         : ImGui::BeginPopup(Label(vm, title), flags);
-    Push(sp, open);
     if (open) NPush(N_POPUP);
+    return open;
 }
 
-BUILTIN_V(popup_modal_start, "label,winflags", "SI", "B",
+BUILTIN(popup_modal_start, "label,winflags", "SI", "B",
     "(use im.popup_modal instead)")
-(StackPtr &sp, VM &vm, LString *title, iint winflags) {
+(StackPtr &, VM &vm, LString *title, iint winflags) {
     IsInit(vm, { N_FRAME, N_NONE });
     auto flags = (ImGuiWindowFlags)(int)winflags;
     bool open = ImGui::BeginPopupModal(Label(vm, title), nullptr, flags);
-    Push(sp, open);
     if (open) NPush(N_POPUP);
+    return open;
 }
 
-BUILTIN_V(popup_end, "", "", "",
+BUILTIN(popup_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_POPUP);
 }
 
-BUILTIN_V(popup_open, "label", "S", "",
+BUILTIN(popup_open, "label", "S", "",
     "")
 (StackPtr &, VM &vm, LString *title) {
     IsInit(vm, { N_FRAME, N_NONE });
     ImGui::OpenPopup(Label(vm, title));
 }
 
-BUILTIN_V(close_current_popup, "", "", "",
+BUILTIN(close_current_popup, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     ImGui::CloseCurrentPopup();
 }
 
-BUILTIN_V(disabled_start, "disabled", "B", "",
+BUILTIN(disabled_start, "disabled", "B", "",
     "(use im.disabled instead)")
 (StackPtr &, VM &vm, iint disabled_) {
     IsInit(vm);
@@ -2135,14 +2132,14 @@ BUILTIN_V(disabled_start, "disabled", "B", "",
     NPush(N_DISABLED);
 }
 
-BUILTIN_V(disabled_end, "", "", "",
+BUILTIN(disabled_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_DISABLED);
 }
 
-BUILTIN_V(button_repeat_start, "repeat", "B", "",
+BUILTIN(button_repeat_start, "repeat", "B", "",
     "(use im.button_repeat instead)")
 (StackPtr &, VM &vm, iint repeat_) {
     IsInit(vm);
@@ -2150,14 +2147,14 @@ BUILTIN_V(button_repeat_start, "repeat", "B", "",
     ImGui::PushButtonRepeat(repeat);
 }
 
-BUILTIN_V(button_repeat_end, "", "", "",
+BUILTIN(button_repeat_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     ImGui::PopButtonRepeat();
 }
 
-BUILTIN_V(dummy, "size", "F}:2", "",
+BUILTIN(dummy, "size", "F}:2", "",
     "add a dummy item of a given size")
 (StackPtr &, VM &vm, double2 size_) {
     IsInit(vm);
@@ -2165,24 +2162,24 @@ BUILTIN_V(dummy, "size", "F}:2", "",
     ImGui::Dummy(ImVec2(size.x, size.y));
 }
 
-BUILTIN_V(drag_drop_source_start, "flags", "I", "B",
+BUILTIN(drag_drop_source_start, "flags", "I", "B",
     "(use im.drag_drop_source instead)")
-(StackPtr &sp, VM &vm, iint flags_) {
+(StackPtr &, VM &vm, iint flags_) {
     IsInit(vm);
     const auto flags = (int)flags_;
     bool open = ImGui::BeginDragDropSource(flags);
-    Push(sp, open);
     if (open) NPush(N_DRAG_DROP_SOURCE);
+    return open;
 }
 
-BUILTIN_V(drag_drop_source_end, "", "", "",
+BUILTIN(drag_drop_source_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_DRAG_DROP_SOURCE);
 }
 
-BUILTIN_V(set_drag_drop_payload, "type,data", "SS", "",
+BUILTIN(set_drag_drop_payload, "type,data", "SS", "",
     "")
 (StackPtr &, VM &vm, LString *type_, LString *data_) {
     IsInit(vm);
@@ -2191,49 +2188,46 @@ BUILTIN_V(set_drag_drop_payload, "type,data", "SS", "",
     ImGui::SetDragDropPayload(type.c_str(), data.data(), data.size());
 }
 
-BUILTIN_V(drag_drop_target_start, "", "", "B",
+BUILTIN(drag_drop_target_start, "", "", "B",
     "(use im.drag_drop_target instead)")
-(StackPtr &sp, VM &vm) {
+(StackPtr &, VM &vm) {
     IsInit(vm);
     bool open = ImGui::BeginDragDropTarget();
-    Push(sp, open);
     if (open) NPush(N_DRAG_DROP_TARGET);
+    return open;
 }
 
-BUILTIN_V(drag_drop_main_viewport_target_start, "", "", "B",
+BUILTIN(drag_drop_main_viewport_target_start, "", "", "B",
     "(use im.drag_drop_main_viewport_target instead)")
-(StackPtr &sp, VM &vm) {
+(StackPtr &, VM &vm) {
     IsInit(vm);
     // See: https://github.com/ocornut/imgui/issues/5204
     auto viewport = ImGui::GetMainViewport();
     bool open = !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
                 ImGui::BeginDragDropTargetViewport(viewport);
-    Push(sp, open);
     if (open) NPush(N_DRAG_DROP_TARGET);
+    return open;
 }
 
-BUILTIN_V(drag_drop_target_end, "", "", "",
+BUILTIN(drag_drop_target_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_DRAG_DROP_TARGET);
 }
 
-BUILTIN_V(accept_drag_drop_payload, "type,flags", "SI", "S?",
+BUILTIN(accept_drag_drop_payload, "type,flags", "SI", "S?",
     "")
-(StackPtr &sp, VM &vm, LString *type_, iint flags_) {
+(StackPtr &, VM &vm, LString *type_, iint flags_) {
     IsInit(vm);
     const auto flags = (int)flags_;
     auto type = type_->strvnt();
     auto *payload = ImGui::AcceptDragDropPayload(type.c_str(), flags);
-    if (payload) {
-        Push(sp, vm.NewString(string_view { (const char*)payload->Data, (size_t)payload->DataSize }));
-    } else {
-        Push(sp, NilVal());
-    }
+    if (!payload) return nullptr;
+    return vm.NewString(string_view { (const char*)payload->Data, (size_t)payload->DataSize });
 }
 
-BUILTIN_V(width_start, "width", "F", "",
+BUILTIN(width_start, "width", "F", "",
     "Sets the width of an item: 0 = default, -1 = use full width without label,"
     " any other value is custom width. Use im.width instead")
 (StackPtr &, VM &vm, double width_) {
@@ -2243,7 +2237,7 @@ BUILTIN_V(width_start, "width", "F", "",
     NPush(N_WIDTH);
 }
 
-BUILTIN_V(width_end, "", "", "", "")
+BUILTIN(width_end, "", "", "", "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     NPop(vm, N_WIDTH);
@@ -2296,28 +2290,28 @@ BUILTIN(table_setup_column, "label,flags,init_width_or_weight", "SIF", "",
         ImGui::TableSetupColumn(label->strvnt().c_str(), flags, init);
 }
 
-BUILTIN_V(table_headers_row, "", "", "",
+BUILTIN(table_headers_row, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     if (NTop() == N_TABLE) ImGui::TableHeadersRow();
 }
 
-BUILTIN_V(table_next_row, "", "", "",
+BUILTIN(table_next_row, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     if (ImGui::TableGetColumnCount()) ImGui::TableNextRow();
 }
 
-BUILTIN_V(table_next_column, "", "", "",
+BUILTIN(table_next_column, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);
     if (ImGui::TableGetColumnCount()) ImGui::TableNextColumn();
 }
 
-BUILTIN_V(table_end, "", "", "",
+BUILTIN(table_end, "", "", "",
     "")
 (StackPtr &, VM &vm) {
     IsInit(vm);

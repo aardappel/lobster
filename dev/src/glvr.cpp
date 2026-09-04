@@ -335,7 +335,7 @@ BUILTIN(motioncontrollerstracking, "n", "I", "B",
     return mcd && mcd->tracking;
 }
 
-BUILTIN_V(motion_controller, "n", "I", "",
+BUILTIN(motion_controller, "n", "I", "",
     "sets up the transform ready to render controller n."
     " if there is no controller n (or it is currently not"
     " tracking) the identity transform is used")

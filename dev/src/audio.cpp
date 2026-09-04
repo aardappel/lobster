@@ -162,7 +162,7 @@ BUILTIN(sound_volume, "channel,volume", "IF", "",
         SDLSetVolume(ch_idx, (float)vol);
 }
 
-BUILTIN_V(sound_position, "channel,vecfromlistener,listenerfwd,attnscale", "IF}:3F}:3F", "",
+BUILTIN(sound_position, "channel,vecfromlistener,listenerfwd,attnscale", "IF}:3F}:3F", "",
     "sets the channel volume and panning according to sound in a game world relative to"
     " the listener.")
 (StackPtr &, VM &, iint channel, double3 vecfromlistener, double3 listenerfwd, double attnscale) {
@@ -174,7 +174,7 @@ BUILTIN_V(sound_position, "channel,vecfromlistener,listenerfwd,attnscale", "IF}:
         SDLSetPosition(ch_idx, src, fwd, scale);
 }
 
-BUILTIN_V(sound_no_position, "channel", "I", "",
+BUILTIN(sound_no_position, "channel", "I", "",
     "clears the channel position previously set by \"sound_position\"")
 (StackPtr &, VM &, iint channel) {
     auto ch_idx = (int)channel;

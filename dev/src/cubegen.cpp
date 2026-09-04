@@ -287,14 +287,14 @@ BuiltinGroup cubegen_builtins;
 #define BUILTIN_GROUP cubegen_builtins
 #define BUILTIN_SYM(name) builtin_cg_##name
 
-BUILTIN_V(init, "size", "I}:3", "R:voxels",
+BUILTIN(init, "size", "I}:3", "R:voxels",
     "initializes a new, empty 3D cube block. 1 byte per cell, careful with big sizes :)"
     " returns the block")
-(StackPtr &sp, VM &vm, iint3 size_) {
+(StackPtr &, VM &vm, iint3 size_) {
     auto size = ToVec<int3>(size_);
     CheckWorldSize(vm, size);
     auto v = NewWorld(size, default_palette_idx);
-    Push(sp, NewVoxelResource(vm, *v));
+    return NewVoxelResource(vm, *v);
 }
 
 BUILTIN_V(size, "block", "R:voxels", "I}:3",
@@ -303,10 +303,10 @@ BUILTIN_V(size, "block", "R:voxels", "I}:3",
     PushVec(sp, GetVoxels(block).grid.dim);
 }
 
-BUILTIN_V(name, "block", "R:voxels", "S",
+BUILTIN(name, "block", "R:voxels", "S",
     "returns the current block name")
-(StackPtr &sp, VM &vm, LResource *block) {
-    Push(sp, vm.NewString(GetVoxels(block).name));
+(StackPtr &, VM &vm, LResource *block) {
+    return vm.NewString(GetVoxels(block).name);
 }
 
 BUILTIN_V(offset, "block", "R:voxels", "I}:3",
@@ -315,7 +315,7 @@ BUILTIN_V(offset, "block", "R:voxels", "I}:3",
     PushVec(sp, GetVoxels(block).offset);
 }
 
-BUILTIN_V(set, "block,pos,size,paletteindex", "R:voxelsI}:3I}:3I", "",
+BUILTIN(set, "block,pos,size,paletteindex", "R:voxelsI}:3I}:3I", "",
     "sets a range of cubes to palette index. index 0 is considered empty space."
     "Coordinates automatically clipped to the size of the grid")
 (StackPtr &, VM &, LResource *res, iint3 pos_, iint3 size_, iint color) {
@@ -324,17 +324,17 @@ BUILTIN_V(set, "block,pos,size,paletteindex", "R:voxelsI}:3I}:3I", "",
     GetVoxels(res).Set(pos, size, (uint8_t)color);
 }
 
-BUILTIN_V(get, "block,pos", "R:voxelsI}:3", "I",
+BUILTIN(get, "block,pos", "R:voxelsI}:3", "I",
     "returns the palette index of a single cube. index 0 is considered empty space."
     " coordinates outside of the grid also read as 0, which allows callers to sample"
     " neighbours without having to bounds check themselves")
-(StackPtr &sp, VM &, LResource *res, iint3 pos_) {
+(StackPtr &, VM &, LResource *res, iint3 pos_) {
     auto pos = ToVec<int3>(pos_);
     auto &v = GetVoxels(res);
-    Push(sp, all(pos >= 0) && all(pos < v.grid.dim) ? v.grid.Get(pos) : transparant);
+    return all(pos >= 0) && all(pos < v.grid.dim) ? v.grid.Get(pos) : transparant;
 }
 
-BUILTIN_V(copy, "block,pos,size,dest,flip", "R:voxelsI}:3I}:3I}:3I}:3", "",
+BUILTIN(copy, "block,pos,size,dest,flip", "R:voxelsI}:3I}:3I}:3I}:3", "",
     "copy a range of cubes from pos to dest. flip can be 1 (regular copy), or -1 (mirror)for"
     " each component, indicating the step from dest."
     " Coordinates automatically clipped to the size of the grid")
@@ -346,7 +346,7 @@ BUILTIN_V(copy, "block,pos,size,dest,flip", "R:voxelsI}:3I}:3I}:3I}:3", "",
     GetVoxels(res).Copy(p, sz, d, fl);
 }
 
-BUILTIN_V(blit, "dst,src,dst_pos,src_pos,size,flip", "R:voxelsR:voxelsI}:3I}:3I}:3I}:3", "",
+BUILTIN(blit, "dst,src,dst_pos,src_pos,size,flip", "R:voxelsR:voxelsI}:3I}:3I}:3I}:3", "",
     "copy a range of solid cubes from src to dst starting at src_pos and dst_pos, respectively."
     " flip can be 1 (regular copy), or -1 (mirror)for each component, indicating the step from dest."
     " Coordinates automatically clipped to the size of the grids")
@@ -361,25 +361,25 @@ BUILTIN_V(blit, "dst,src,dst_pos,src_pos,size,flip", "R:voxelsR:voxelsI}:3I}:3I}
     dst.Blit(src, dst_pos, src_pos, size, fl);
 }
 
-BUILTIN_V(clone, "block,pos,size", "R:voxelsI}:3I}:3", "R:voxels",
+BUILTIN(clone, "block,pos,size", "R:voxelsI}:3I}:3", "R:voxels",
     "clone a range of cubes from pos to a new block."
     " Coordinates automatically clipped to the size of the grid")
-(StackPtr &sp, VM &vm, LResource *res, iint3 pos, iint3 size) {
+(StackPtr &, VM &vm, LResource *res, iint3 pos, iint3 size) {
     auto sz = ToVec<int3>(size);
     auto p = ToVec<int3>(pos);
     auto &v = GetVoxels(res);
     CheckWorldSize(vm, sz);
     auto nw = NewWorld(sz, v.palette_idx);
     v.Clone(p, sz, nw);
-    Push(sp, NewVoxelResource(vm, *nw));
+    return NewVoxelResource(vm, *nw);
 }
 
-BUILTIN_V(color_to_palette, "block,color", "R:voxelsF}:4", "I",
+BUILTIN(color_to_palette, "block,color", "R:voxelsF}:4", "I",
     "converts a color to a palette index. alpha < 0.5 is considered empty space."
     " note: this is fast for the default palette, slow otherwise.")
-(StackPtr &sp, VM &, LResource *res, double4 color_) {
+(StackPtr &, VM &, LResource *res, double4 color_) {
     auto color = ToVec<float4>(color_);
-    Push(sp, GetVoxels(res).Color2Palette(color));
+    return GetVoxels(res).Color2Palette(color);
 }
 
 BUILTIN_V(palette_to_color, "block,paletteindex", "R:voxelsI", "F}:4",
@@ -538,8 +538,8 @@ BUILTIN(scale_up, "scale,world", "IR:voxels", "R:voxels", "")
     return NewVoxelResource(vm, d);
 }
 
-BUILTIN_V(stretch, "newsize,world", "I}:3R:voxels", "R:voxels", "")
-(StackPtr &sp, VM &vm, iint3 newsize, LResource *world) {
+BUILTIN(stretch, "newsize,world", "I}:3R:voxels", "R:voxels", "")
+(StackPtr &, VM &vm, iint3 newsize, LResource *world) {
     auto &v = GetVoxels(world);
     auto ns = ToVec<int3>(newsize);
     if (!(all(v.grid.dim <= ns)) || !(all(ns < 256)))
@@ -561,7 +561,7 @@ BUILTIN_V(stretch, "newsize,world", "I}:3R:voxels", "R:voxels", "")
             }
         }
     }
-    Push(sp, Value(NewVoxelResource(vm, d)));
+    return NewVoxelResource(vm, d);
 }
 
 BUILTIN(create_mesh, "block", "R:voxels", "R:mesh",
@@ -1416,7 +1416,7 @@ BUILTIN(get_buf, "block", "R:voxels", "S",
     return buf;
 }
 
-BUILTIN_V(set_buf, "block,indices,offset,size", "R:voxelsSI}:3I}:3", "",
+BUILTIN(set_buf, "block,indices,offset,size", "R:voxelsSI}:3I}:3", "",
     "sets the data as a string of all palette indices, in z-major order")
 (StackPtr &, VM &vm, LResource *block, LString *indices, iint3 offset_, iint3 size_) {
     auto size = ToVec<int3>(size_);
@@ -1479,10 +1479,10 @@ BUILTIN_V(average_surface_color, "world", "R:voxels", "F}:3III}:3I}:3", "")
 		PushVec(sp, bmax + 1);
 	}
 
-BUILTIN_V(average_face_colors, "world", "R:voxels", "F]",
+BUILTIN(average_face_colors, "world", "R:voxels", "F]",
     "returns a vector of 8 elements with 4 floats per face: color and alpha."
     "last element contains the total average color and the average + max alpha in the last channel")
-(StackPtr &sp, VM &vm, LResource *world) {
+(StackPtr &, VM &vm, LResource *world) {
 		auto &v = GetVoxels(world);
     auto vec = vm.NewVec(0, 8 * 4, TYPE_ELEM_VECTOR_OF_FLOAT);
     auto &palette = palettes[v.palette_idx].colors;
@@ -1539,11 +1539,11 @@ BUILTIN_V(average_face_colors, "world", "R:voxels", "F]",
     vec->Push(vm, 0.0);
     vec->Push(vm, total_min_alpha);
     vec->Push(vm, total_max_alpha);
-    Push(sp, vec);
+    return vec;
 	}
 
-BUILTIN_V(num_solid, "world", "R:voxels", "I", "")
-(StackPtr &sp, VM &, LResource *world) {
+BUILTIN(num_solid, "world", "R:voxels", "I", "")
+(StackPtr &, VM &, LResource *world) {
     auto &v = GetVoxels(world);
     int nvol = 0;
     for (int x = 0; x < v.grid.dim.x; x++) {
@@ -1555,7 +1555,7 @@ BUILTIN_V(num_solid, "world", "R:voxels", "I", "")
             }
         }
     }
-    Push(sp, nvol);
+    return nvol;
 }
 
 BUILTIN(rotate, "block,n", "R:voxelsI", "R:voxels",
@@ -1589,7 +1589,7 @@ BUILTIN(rotate, "block,n", "R:voxelsI", "R:voxels",
     return NewVoxelResource(vm, d);
 }
 
-BUILTIN_V(simplex, "block,pos,size,spos,ssize,octaves,scale,persistence,solidcol,zscale,zbias", "R:voxelsI}:3I}:3F}:3F}:3IFFIFF", "",
+BUILTIN(simplex, "block,pos,size,spos,ssize,octaves,scale,persistence,solidcol,zscale,zbias", "R:voxelsI}:3I}:3F}:3F}:3IFFIFF", "",
     "")
 (StackPtr &, VM &, LResource *res, iint3 pos, iint3 size, double3 spos_, double3 ssize_,
  iint octaves_, double scale_, double persistence_, iint solidcol_, double zscale_,
@@ -1710,12 +1710,12 @@ BUILTIN(erode, "world,minsolid,maxsolid", "R:voxelsII", "R:voxels", "")
     return NewVoxelResource(vm, d);
 }
 
-BUILTIN_V(normal_indices, "block,radius,adjacents", "R:voxelsIF]", "R:voxels",
+BUILTIN(normal_indices, "block,radius,adjacents", "R:voxelsIF]", "R:voxels",
     "creates a new block with normal indices based on voxel surface shape."
     "the indices refer to the associated pallette."
     "empty voxels will have a 0 length normal."
     "2 is a good radius that balances speed/quality, use 1 for speed, 3 for max quality")
-(StackPtr &sp, VM &vm, LResource *res, iint radius_, LVector *adjacents) {
+(StackPtr &, VM &vm, LResource *res, iint radius_, LVector *adjacents) {
     auto radius = (int)radius_;
     auto &v = GetVoxels(res);
     auto have_adjacents = adjacents->len == 27;
@@ -1784,14 +1784,14 @@ BUILTIN_V(normal_indices, "block,radius,adjacents", "R:voxelsIF]", "R:voxels",
             }
         }
     }
-    Push(sp, NewVoxelResource(vm, *nw));
+    return NewVoxelResource(vm, *nw);
 }
 
 
-BUILTIN_V(load_image, "name,depth,edge,numtiles", "SIII}:2", "R:voxels]",
+BUILTIN(load_image, "name,depth,edge,numtiles", "SIII}:2", "R:voxels]",
     "loads an image file (same formats as gl.load_texture) and turns it into blocks."
     " returns blocks or [] if file failed to load")
-(StackPtr &sp, VM &vm, LString *name_, iint depth_, iint edge_, iint2 numtiles_) {
+(StackPtr &, VM &vm, LString *name_, iint depth_, iint edge_, iint2 numtiles_) {
     auto numtiles = ToVec<int2>(numtiles_);
     auto edge = (int)edge_;
     auto depth = (int)depth_;
@@ -1839,12 +1839,12 @@ BUILTIN_V(load_image, "name,depth,edge,numtiles", "SIII}:2", "R:voxels]",
         }
         FreeImageFromFile(buf);
     }
-    Push(sp, vec);
+    return vec;
 }
 
-BUILTIN_V(palette_storage_index, "block", "R:voxels", "I", "")
-(StackPtr &sp, VM &, LResource *res) {
-    Push(sp, GetVoxels(res).palette_idx);
+BUILTIN(palette_storage_index, "block", "R:voxels", "I", "")
+(StackPtr &, VM &, LResource *res) {
+    return GetVoxels(res).palette_idx;
 }
 
 BUILTIN(get_palette_storage_len, "", "", "I", "")

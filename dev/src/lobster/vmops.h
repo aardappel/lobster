@@ -150,11 +150,11 @@ VM_INLINE iint RtSnNe(LString *a, LString *b) {
 }
 
 VM_INLINE LString *RtToString(VM &vm, Value a, type_elem_t ti) {
-    return vm.ToString(a, vm.GetTypeInfo(ti)).sval();
+    return vm.ToString(a, vm.GetTypeInfo(ti));
 }
 
 VM_INLINE LString *RtStructToString(VM &vm, Value *vals, type_elem_t ti) {
-    return vm.StructToString(vals, vm.GetTypeInfo(ti)).sval();
+    return vm.StructToString(vals, vm.GetTypeInfo(ti));
 }
 
 // A struct indexed at runtime, which is why it has to be in memory.

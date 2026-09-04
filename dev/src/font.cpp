@@ -90,14 +90,14 @@ BUILTIN(set_font_name, "filename", "S", "B",
     }
 }
 
-BUILTIN_V(set_font_size, "size,outlinesize,outlinecolor", "IF?F}:4?", "B",
+BUILTIN(set_font_size, "size,outlinesize,outlinecolor", "IF?F}:4?", "B",
     "sets the font for rendering into this fontsize (in pixels). caches into a texture first"
     " time this size is used, flushes from cache if this size is not used an entire frame. font"
     " rendering will look best if using 1:1 pixels (careful with gl.scale/gl.translate)."
     " an optional outlinesize will give the font an outline."
     " make sure to call this every frame."
     " returns true if success")
-(StackPtr &sp, VM &vm, iint size_, double outlinesize_, double4 outlinecolor) {
+(StackPtr &, VM &vm, iint size_, double outlinesize_, double4 outlinecolor) {
     auto outlinecol = ToVec<float4>(outlinecolor);
     auto outlinesize = (float)outlinesize_;
     auto fontsize = (int)size_;
@@ -121,7 +121,7 @@ BUILTIN_V(set_font_size, "size,outlinesize,outlinecolor", "IF?F}:4?", "B",
         curfont = new BitmapFont(curface, csize, osize, quantizec(outlinecol));
         fontcache.insert({ fontname, curfont });
     }
-    Push(sp, Value(true));
+    return true;
 }
 
 BUILTIN(set_max_font_size, "size", "I", "",
