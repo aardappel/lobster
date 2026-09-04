@@ -133,7 +133,8 @@ def misc_tests():
     // reachable, so source related checks here and below are JIT-only.
     let compiled = vm_compiled_mode()
     if not compiled:
-        test_true(program_name().find_string(".lobster") >= 0)
+        // A program run from a pakfile has no source file name either.
+        test_true(program_name() == "" or program_name().find_string(".lobster") >= 0)
     test_eq(command_line_arguments().length, 0)
     // seconds_elapsed is monotonic.
     let t1 = seconds_elapsed()
