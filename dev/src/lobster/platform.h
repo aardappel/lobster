@@ -123,6 +123,10 @@ extern void MakeDPIAware();
 
 extern string GetDateTime();
 
+// The address of a symbol the running executable exports, or nullptr if there is none by that
+// name. See BUILTIN_EXPORT in natreg.h for what exporting one takes.
+extern const void *FindExecutableSymbol(const char *name);
+
 extern void SetConsole(bool on);
 
 #if defined(__IOS__) || defined(__ANDROID__) || defined(__EMSCRIPTEN__)

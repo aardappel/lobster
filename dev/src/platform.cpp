@@ -31,6 +31,7 @@
     #include <comdef.h>
 #else
     #include <sys/time.h>
+    #include <dlfcn.h>
     #define FILESEP '/'
 #endif
 
@@ -567,6 +568,14 @@ void MakeDPIAware() {
 
         if (user32) FreeLibrary(user32);
         if (shcore) FreeLibrary(shcore);
+    #endif
+}
+
+const void *FindExecutableSymbol(const char *name) {
+    #ifdef _WIN32
+        return (const void *)GetProcAddress(GetModuleHandle(nullptr), name);
+    #else
+        return dlsym(RTLD_DEFAULT, name);
     #endif
 }
 

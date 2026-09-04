@@ -141,332 +141,332 @@ Renderable &GetRenderable(VM &, Value id) {
 }
 
 extern int GetSampler(VM &vm, Value i);  // from graphics
+extern Texture GetTexture(Value res);
 
-void AddPhysics(NativeRegistry &nfr) {
+BuiltinGroup physics_builtins;
+#define BUILTIN_GROUP physics_builtins
+#define BUILTIN_SYM(name) builtin_ph_##name
 
-nfr("initialize", "gravityvector", "F}:2", "",
-    "initializes or resets the physical world, gravity typically [0, -10].",
-    [](StackPtr &sp, VM &) {
-        InitPhysics(PopVec<float2>(sp));
-    });
+BUILTIN_V(initialize, "gravityvector", "F}:2", "",
+    "initializes or resets the physical world, gravity typically [0, -10].")
+(StackPtr &sp, VM &) {
+    InitPhysics(PopVec<float2>(sp));
+}
 
-nfr("create_box", "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?R:fixture?", "R:fixture",
+BUILTIN_V(create_box, "position,size,offset,rotation,attachto", "F}:2F}:2F}:2?F?R:fixture?", "R:fixture",
     "creates a physical box shape in the world at position, with size the half-extends around"
     " the center, offset from the center if needed, at a particular rotation (in degrees)."
     " attachto is a previous physical object to attach this one to, to become a combined"
-    " physical body.",
-    [](StackPtr &sp, VM &vm) {
-        auto other_id = Pop(sp);
-        auto rot = Pop(sp).fltval();
-        auto offset = OptionalOffset(sp);
-        auto sz = PopVec<float2>(sp);
-        auto wp = PopVec<float2>(sp);
-        auto &body = GetBody(sp, vm, other_id, wp);
-        b2PolygonShape shape;
-        shape.SetAsBox(sz.x, sz.y, offset, rot * RAD_F);
-        Push(sp, CreateFixture(vm, body, shape));
-    });
+    " physical body.")
+(StackPtr &sp, VM &vm) {
+    auto other_id = Pop(sp);
+    auto rot = Pop(sp).fltval();
+    auto offset = OptionalOffset(sp);
+    auto sz = PopVec<float2>(sp);
+    auto wp = PopVec<float2>(sp);
+    auto &body = GetBody(sp, vm, other_id, wp);
+    b2PolygonShape shape;
+    shape.SetAsBox(sz.x, sz.y, offset, rot * RAD_F);
+    Push(sp, CreateFixture(vm, body, shape));
+}
 
-nfr("create_circle", "position,radius,offset,attachto", "F}:2FF}:2?R:fixture?", "R:fixture",
+BUILTIN_V(create_circle, "position,radius,offset,attachto", "F}:2FF}:2?R:fixture?", "R:fixture",
     "creates a physical circle shape in the world at position, with the given radius, offset"
     " from the center if needed. attachto is a previous physical object to attach this one to,"
-    " to become a combined physical body.",
-    [](StackPtr &sp, VM &vm) {
-        auto other_id = Pop(sp);
-        auto offset = OptionalOffset(sp);
-        auto radius = Pop(sp).fltval();
-        auto wp = PopVec<float2>(sp);
-        auto &body = GetBody(sp, vm, other_id, wp);
-        b2CircleShape shape;
-        shape.m_p.Set(offset.x, offset.y);
-        shape.m_radius = radius;
-        Push(sp, CreateFixture(vm, body, shape));
-    });
+    " to become a combined physical body.")
+(StackPtr &sp, VM &vm) {
+    auto other_id = Pop(sp);
+    auto offset = OptionalOffset(sp);
+    auto radius = Pop(sp).fltval();
+    auto wp = PopVec<float2>(sp);
+    auto &body = GetBody(sp, vm, other_id, wp);
+    b2CircleShape shape;
+    shape.m_p.Set(offset.x, offset.y);
+    shape.m_radius = radius;
+    Push(sp, CreateFixture(vm, body, shape));
+}
 
-nfr("create_polygon", "position,vertices,attachto", "F}:2F}:2]R:fixture?", "R:fixture",
+BUILTIN_V(create_polygon, "position,vertices,attachto", "F}:2F}:2]R:fixture?", "R:fixture",
     "creates a polygon circle shape in the world at position, with the given list of vertices."
     " attachto is a previous physical object to attach this one to, to become a combined"
-    " physical body.",
-    [](StackPtr &sp, VM &vm) {
-        auto other_id = Pop(sp);
-        auto vertices = Pop(sp).vval();
-        auto wp = PopVec<float2>(sp);
-        if (vertices->len < 3 || vertices->len > b2_maxPolygonVertices)
-            vm.BuiltinError(cat("ph.create_polygon: illegal number of vertices: ", vertices->len,
-                                " (must be 3..", b2_maxPolygonVertices, ")"));
-        auto &body = GetBody(sp, vm, other_id, wp);
-        b2PolygonShape shape;
-        auto verts = new b2Vec2[vertices->len];
-        for (int i = 0; i < vertices->len; i++) {
-            auto vert = ValueToFLT<2>(vertices->AtSt(i), vertices->width);
-            verts[i] = Float2ToB2(vert);
-        }
-        shape.Set(verts, (int)vertices->len);
-        delete[] verts;
-        Push(sp, CreateFixture(vm, body, shape));
-    });
+    " physical body.")
+(StackPtr &sp, VM &vm) {
+    auto other_id = Pop(sp);
+    auto vertices = Pop(sp).vval();
+    auto wp = PopVec<float2>(sp);
+    if (vertices->len < 3 || vertices->len > b2_maxPolygonVertices)
+        vm.BuiltinError(cat("ph.create_polygon: illegal number of vertices: ", vertices->len,
+                            " (must be 3..", b2_maxPolygonVertices, ")"));
+    auto &body = GetBody(sp, vm, other_id, wp);
+    b2PolygonShape shape;
+    auto verts = new b2Vec2[vertices->len];
+    for (int i = 0; i < vertices->len; i++) {
+        auto vert = ValueToFLT<2>(vertices->AtSt(i), vertices->width);
+        verts[i] = Float2ToB2(vert);
+    }
+    shape.Set(verts, (int)vertices->len);
+    delete[] verts;
+    Push(sp, CreateFixture(vm, body, shape));
+}
 
-nfr("dynamic", "shape,on", "R:fixtureB", "",
-    "makes a shape dynamic (on = true) or not.",
-    [](StackPtr &, VM &, Value fixture_id, Value on) {
-        CheckPhysics();
-        GetObject(fixture_id)
-            .fixture->GetBody()
-            ->SetType(on.ival() ? b2_dynamicBody : b2_staticBody);
-        return NilVal();
-    });
+BUILTIN(dynamic, "shape,on", "R:fixtureB", "",
+    "makes a shape dynamic (on = true) or not.")
+(StackPtr &, VM &, Value fixture_id, Value on) {
+    CheckPhysics();
+    GetObject(fixture_id)
+        .fixture->GetBody()
+        ->SetType(on.ival() ? b2_dynamicBody : b2_staticBody);
+    return NilVal();
+}
 
-nfr("set_linear_velocity", "id,velocity", "R:fixtureF}:2", "",
-    "sets the linear velocity of a shape's center of mass.",
-    [](StackPtr &sp, VM &) {
-        CheckPhysics();
-        auto vel = PopB2(sp);
-        auto id = Pop(sp);
-        GetObject(id)
-            .fixture->GetBody()
-            ->SetLinearVelocity(vel);
-    });
+BUILTIN_V(set_linear_velocity, "id,velocity", "R:fixtureF}:2", "",
+    "sets the linear velocity of a shape's center of mass.")
+(StackPtr &sp, VM &) {
+    CheckPhysics();
+    auto vel = PopB2(sp);
+    auto id = Pop(sp);
+    GetObject(id)
+        .fixture->GetBody()
+        ->SetLinearVelocity(vel);
+}
 
-nfr("apply_linear_impulse_to_center", "id,impulse", "R:fixtureF}:2", "",
-    "applies a linear impulse to a shape at its center of mass.",
-    [](StackPtr &sp, VM &) {
-        CheckPhysics();
-        auto imp = PopB2(sp);
-        auto id = Pop(sp);
-        auto body = GetObject(id).fixture->GetBody();
-        body->ApplyLinearImpulse(imp, body->GetWorldCenter(), true);
-    });
+BUILTIN_V(apply_linear_impulse_to_center, "id,impulse", "R:fixtureF}:2", "",
+    "applies a linear impulse to a shape at its center of mass.")
+(StackPtr &sp, VM &) {
+    CheckPhysics();
+    auto imp = PopB2(sp);
+    auto id = Pop(sp);
+    auto body = GetObject(id).fixture->GetBody();
+    body->ApplyLinearImpulse(imp, body->GetWorldCenter(), true);
+}
 
-nfr("set_color", "id,color", "R:fixture?F}:4", "",
-    "sets a shape (or nil for particles) to be rendered with a particular color.",
-    [](StackPtr &sp, VM &vm) {
-        auto c = PopVec<float4>(sp);
-        auto id = Pop(sp);
-        auto &r = GetRenderable(vm, id);
-        r.color = c;
-    });
+BUILTIN_V(set_color, "id,color", "R:fixture?F}:4", "",
+    "sets a shape (or nil for particles) to be rendered with a particular color.")
+(StackPtr &sp, VM &vm) {
+    auto c = PopVec<float4>(sp);
+    auto id = Pop(sp);
+    auto &r = GetRenderable(vm, id);
+    r.color = c;
+}
 
-nfr("set_shader", "id,shadername", "R:fixture?S", "",
-    "sets a shape (or nil for particles) to be rendered with a particular shader.",
-    [](StackPtr &, VM &vm, Value fixture_id, Value shader) {
-        auto &r = GetRenderable(vm, fixture_id);
-        auto sh = LookupShader(shader.sval()->strv());
-        if (sh.get()) r.sh = sh;
-        return NilVal();
-    });
+BUILTIN(set_shader, "id,shadername", "R:fixture?S", "",
+    "sets a shape (or nil for particles) to be rendered with a particular shader.")
+(StackPtr &, VM &vm, Value fixture_id, Value shader) {
+    auto &r = GetRenderable(vm, fixture_id);
+    auto sh = LookupShader(shader.sval()->strv());
+    if (sh.get()) r.sh = sh;
+    return NilVal();
+}
 
-nfr("set_texture", "id,tex,texunit", "R:fixture?R:textureI?", "",
+BUILTIN(set_texture, "id,tex,texunit", "R:fixture?R:textureI?", "",
     "sets a shape (or nil for particles) to be rendered with a particular texture"
-    " (assigned to a texture unit, default 0).",
-    [](StackPtr &, VM &vm, Value fixture_id, Value tex, Value tex_unit) {
-        auto &r = GetRenderable(vm, fixture_id);
-        extern Texture GetTexture(Value res);
-        r.Get(GetSampler(vm, tex_unit)) = GetTexture(tex);
-        return NilVal();
-    });
+    " (assigned to a texture unit, default 0).")
+(StackPtr &, VM &vm, Value fixture_id, Value tex, Value tex_unit) {
+    auto &r = GetRenderable(vm, fixture_id);
+    r.Get(GetSampler(vm, tex_unit)) = GetTexture(tex);
+    return NilVal();
+}
 
-nfr("get_position", "id", "R:fixture", "F}:2",
-    "gets a shape's position.",
-    [](StackPtr &sp, VM &) {
-        auto id = Pop(sp);
-        PushVec(sp, GetObject(id).Pos());
-    });
+BUILTIN_V(get_position, "id", "R:fixture", "F}:2",
+    "gets a shape's position.")
+(StackPtr &sp, VM &) {
+    auto id = Pop(sp);
+    PushVec(sp, GetObject(id).Pos());
+}
 
-nfr("get_mass", "id", "R:fixture", "F",
-    "gets a shape's mass.",
-    [](StackPtr &sp, VM &) {
-        auto id = Pop(sp);
-        Push(sp, GetObject(id).fixture->GetBody()->GetMass());
-    });
+BUILTIN_V(get_mass, "id", "R:fixture", "F",
+    "gets a shape's mass.")
+(StackPtr &sp, VM &) {
+    auto id = Pop(sp);
+    Push(sp, GetObject(id).fixture->GetBody()->GetMass());
+}
 
-nfr("create_particle", "position,velocity,color,flags", "F}:2F}:2F}:4I?", "I",
-    "creates an individual particle. For flags, see include/physics.lobster",
-    [](StackPtr &sp, VM &) {
-        CheckParticles();
-        b2ParticleDef pd;
-        pd.flags = Pop(sp).intval();
-        auto c = PopVec<float3>(sp);
-        pd.color.Set(b2Color(c.x, c.y, c.z));
-        pd.velocity = PopB2(sp);
-        pd.position = PopB2(sp);
-        Push(sp,  particlesystem->CreateParticle(pd));
-    });
+BUILTIN_V(create_particle, "position,velocity,color,flags", "F}:2F}:2F}:4I?", "I",
+    "creates an individual particle. For flags, see include/physics.lobster")
+(StackPtr &sp, VM &) {
+    CheckParticles();
+    b2ParticleDef pd;
+    pd.flags = Pop(sp).intval();
+    auto c = PopVec<float3>(sp);
+    pd.color.Set(b2Color(c.x, c.y, c.z));
+    pd.velocity = PopB2(sp);
+    pd.position = PopB2(sp);
+    Push(sp,  particlesystem->CreateParticle(pd));
+}
 
-nfr("create_particle_circle", "position,radius,color,flags", "F}:2FF}:4I?", "",
-    "creates a circle filled with particles. For flags, see include/physics.lobster",
-    [](StackPtr &sp, VM &) {
-        CheckParticles();
-        b2ParticleGroupDef pgd;
-        b2CircleShape shape;
-        pgd.shape = &shape;
-        pgd.flags = Pop(sp).intval();
-        auto c = PopVec<float3>(sp);
-        pgd.color.Set(b2Color(c.x, c.y, c.z));
-        shape.m_radius = Pop(sp).fltval();
-        pgd.position = PopB2(sp);
-        particlesystem->CreateParticleGroup(pgd);
-    });
+BUILTIN_V(create_particle_circle, "position,radius,color,flags", "F}:2FF}:4I?", "",
+    "creates a circle filled with particles. For flags, see include/physics.lobster")
+(StackPtr &sp, VM &) {
+    CheckParticles();
+    b2ParticleGroupDef pgd;
+    b2CircleShape shape;
+    pgd.shape = &shape;
+    pgd.flags = Pop(sp).intval();
+    auto c = PopVec<float3>(sp);
+    pgd.color.Set(b2Color(c.x, c.y, c.z));
+    shape.m_radius = Pop(sp).fltval();
+    pgd.position = PopB2(sp);
+    particlesystem->CreateParticleGroup(pgd);
+}
 
-nfr("initialize_particles", "radius", "F", "",
-    "initializes the particle system with a given particle radius.",
-    [](StackPtr &, VM &, Value size) {
-        CheckParticles(size.fltval());
-        return NilVal();
-    });
+BUILTIN(initialize_particles, "radius", "F", "",
+    "initializes the particle system with a given particle radius.")
+(StackPtr &, VM &, Value size) {
+    CheckParticles(size.fltval());
+    return NilVal();
+}
 
-nfr("step", "seconds,viter,piter", "FII", "",
+BUILTIN(step, "seconds,viter,piter", "FII", "",
     "simulates the physical world for the given period (try: gl.delta_time()). You can specify"
     " the amount of velocity/position iterations per step, more means more accurate but also"
-    " more expensive computationally (try 8 and 3).",
-    [](StackPtr &, VM &, Value delta, Value viter, Value piter) {
-        CheckPhysics();
-        world->Step(min(delta.fltval(), 0.1f), viter.intval(), piter.intval());
-        if (particlesystem) {
-            for (b2Body *body = world->GetBodyList(); body; body = body->GetNext()) {
-                for (b2Fixture *fixture = body->GetFixtureList(); fixture;
-                     fixture = fixture->GetNext()) {
-                    auto pc = ((PhysicsObject *)fixture->GetUserData())->particle_contacts;
-                    if (pc) pc->clear();
-                }
-            }
-            auto contacts = particlesystem->GetBodyContacts();
-            for (int i = 0; i < particlesystem->GetBodyContactCount(); i++) {
-                auto &c = contacts[i];
-                auto pc = ((PhysicsObject *)c.fixture->GetUserData())->particle_contacts;
-                if (pc) pc->push_back(c.index);
-            }
-        }
-        return NilVal();
-    });
-
-nfr("particle_contacts", "id", "R:fixture", "I]",
-    "gets the particle indices that are currently contacting a giving physics object."
-    " Call after step(). Indices may be invalid after next step().",
-    [](StackPtr &, VM &vm, Value id) {
-        CheckPhysics();
-        auto &po = GetObject(id);
-        if (!po.particle_contacts) po.particle_contacts = new vector<int>();
-        auto numelems = (int)po.particle_contacts->size();
-        auto v = vm.NewVec(numelems, numelems, TYPE_ELEM_VECTOR_OF_INT);
-        for (int i = 0; i < numelems; i++) v->AtSR(i) = Value((*po.particle_contacts)[i]);
-        return Value(v);
-    });
-
-nfr("raycast", "p1,p2,n", "F}:2F}:2I", "I]",
-    "returns a vector of the first n particle ids that intersect a ray from p1 to p2,"
-    " not including particles that overlap p1.",
-    [](StackPtr &sp, VM &vm) {
-        CheckPhysics();
-        auto n = Pop(sp).ival();
-        auto p2v = PopB2(sp);
-        auto p1v = PopB2(sp);
-        auto v = vm.NewVec(0, max(n, 1_L64), TYPE_ELEM_VECTOR_OF_INT);
-        if (!particlesystem) { Push(sp,  v); return; }
-        struct callback : b2RayCastCallback {
-            LVector *v;
-            VM &vm;
-            float ReportParticle(const b2ParticleSystem *, int i, const b2Vec2 &, const b2Vec2 &,
-                                 float) {
-                v->Push(vm, Value(i));
-                return v->len == v->maxl ? -1.0f : 1.0f;
-            }
-            float ReportFixture(b2Fixture *, const b2Vec2 &, const b2Vec2 &, float) {
-                return -1.0f;
-            }
-            callback(LVector *_v, VM &vm) : v(_v), vm(vm) {}
-        } cb(v, vm);
-        particlesystem->RayCast(&cb, p1v, p2v);
-        Push(sp,  v);
-    });
-
-nfr("delete_particle", "i", "I", "",
-    "deletes given particle. Deleting particles causes indices to be invalidated at next"
-    " step().",
-    [](StackPtr &, VM &, Value i) {
-        CheckPhysics();
-        // CheckPhysics only creates the world, not the particle system.
-        if (!particlesystem) return NilVal();
-        auto idx = i.intval();
-        if (idx < 0 || idx >= particlesystem->GetParticleCount()) return NilVal();
-        particlesystem->DestroyParticle(idx);
-        return NilVal();
-    });
-
-nfr("getparticle_position", "i", "I", "F}:2",
-    "gets a particle's position, or 0 if there is no such particle.",
-    [](StackPtr &sp, VM &) {
-        CheckPhysics();
-        auto idx = Pop(sp).ival();
-        auto pos = float2_0;
-        if (particlesystem && idx >= 0 && idx < particlesystem->GetParticleCount())
-            pos = B2ToFloat2(particlesystem->GetPositionBuffer()[idx]);
-        PushVec(sp, pos);
-    });
-
-nfr("render", "", "", "",
-    "renders all rigid body objects.",
-    [](StackPtr &, VM &) {
-        CheckPhysics();
-        auto oldcolor = curcolor;
+    " more expensive computationally (try 8 and 3).")
+(StackPtr &, VM &, Value delta, Value viter, Value piter) {
+    CheckPhysics();
+    world->Step(min(delta.fltval(), 0.1f), viter.intval(), piter.intval());
+    if (particlesystem) {
         for (b2Body *body = world->GetBodyList(); body; body = body->GetNext()) {
-            auto pos = body->GetPosition();
-            auto mat = translation(float3(pos.x, pos.y, 0)) * rotationZ(body->GetAngle());
-            otransforms.push();
-            otransforms.append_object2view(mat);
             for (b2Fixture *fixture = body->GetFixtureList(); fixture;
                  fixture = fixture->GetNext()) {
-                auto shapetype = fixture->GetType();
-                auto &r = ((PhysicsObject *)fixture->GetUserData())->r;
-                curcolor = r.color;
-                switch (shapetype) {
-                    case b2Shape::e_polygon: {
-                        r.Set();
-                        auto polyshape = (b2PolygonShape *)fixture->GetShape();
-                        // We also have polyshape->m_normals (2D normals, supported by fmt "n") but the current "color"
-                        // shader doesn't use them. If we wanted them, we'd have to interleave the vertex data here.
-                        RenderArraySlow("ph.render", PRIM_FAN, span(polyshape->m_vertices, polyshape->m_count), "p");
-                        break;
-                    }
-                    case b2Shape::e_circle: {
-                        r.sh->SetTextures(r.textures);  // FIXME
-                        auto polyshape = (b2CircleShape *)fixture->GetShape();
-                        Transform(translation(float3(B2ToFloat2(polyshape->m_p), 0)), [&]() {
-                            geomcache->RenderCircle(r.sh.get(), PRIM_FAN, 20, polyshape->m_radius);
-                        });
-                        break;
-                    }
-                    case b2Shape::e_edge:
-                    case b2Shape::e_chain:
-                    case b2Shape::e_typeCount: assert(0); break;
-                }
+                auto pc = ((PhysicsObject *)fixture->GetUserData())->particle_contacts;
+                if (pc) pc->clear();
             }
-            otransforms.pop();
         }
-        curcolor = oldcolor;
-        return NilVal();
-    });
-
-nfr("render_particles", "scale", "F", "",
-    "render all particles, with the given scale.",
-    [](StackPtr &, VM &, Value particlescale) {
-        CheckPhysics();
-        if (!particlesystem) return NilVal();
-        auto num = particlesystem->GetParticleCount();
-        // LOG_DEBUG("rendering particles: ", num);
-        auto verts = (float2 *)particlesystem->GetPositionBuffer();
-        auto colors = (byte4 *)particlesystem->GetColorBuffer();
-        auto scale = length(otransforms.object2view()[0].xy());
-        SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fltval());
-        particlematerial->Set();
-        struct Vert { float2 p; byte4 c; };
-        vector<Vert> interleaved;
-        interleaved.reserve(num);
-        for (int i = 0; i < num; i++) {
-            interleaved.push_back({ verts[i], colors[i] });
+        auto contacts = particlesystem->GetBodyContacts();
+        for (int i = 0; i < particlesystem->GetBodyContactCount(); i++) {
+            auto &c = contacts[i];
+            auto pc = ((PhysicsObject *)c.fixture->GetUserData())->particle_contacts;
+            if (pc) pc->push_back(c.index);
         }
-        RenderArraySlow("ph.render_particles", PRIM_POINT, span(interleaved),
-                        "pC");
-        return NilVal();
-    });
+    }
+    return NilVal();
+}
 
-}  // AddPhysics
+BUILTIN(particle_contacts, "id", "R:fixture", "I]",
+    "gets the particle indices that are currently contacting a giving physics object."
+    " Call after step(). Indices may be invalid after next step().")
+(StackPtr &, VM &vm, Value id) {
+    CheckPhysics();
+    auto &po = GetObject(id);
+    if (!po.particle_contacts) po.particle_contacts = new vector<int>();
+    auto numelems = (int)po.particle_contacts->size();
+    auto v = vm.NewVec(numelems, numelems, TYPE_ELEM_VECTOR_OF_INT);
+    for (int i = 0; i < numelems; i++) v->AtSR(i) = Value((*po.particle_contacts)[i]);
+    return Value(v);
+}
+
+BUILTIN_V(raycast, "p1,p2,n", "F}:2F}:2I", "I]",
+    "returns a vector of the first n particle ids that intersect a ray from p1 to p2,"
+    " not including particles that overlap p1.")
+(StackPtr &sp, VM &vm) {
+    CheckPhysics();
+    auto n = Pop(sp).ival();
+    auto p2v = PopB2(sp);
+    auto p1v = PopB2(sp);
+    auto v = vm.NewVec(0, max(n, 1_L64), TYPE_ELEM_VECTOR_OF_INT);
+    if (!particlesystem) { Push(sp,  v); return; }
+    struct callback : b2RayCastCallback {
+        LVector *v;
+        VM &vm;
+        float ReportParticle(const b2ParticleSystem *, int i, const b2Vec2 &, const b2Vec2 &,
+                             float) {
+            v->Push(vm, Value(i));
+            return v->len == v->maxl ? -1.0f : 1.0f;
+        }
+        float ReportFixture(b2Fixture *, const b2Vec2 &, const b2Vec2 &, float) {
+            return -1.0f;
+        }
+        callback(LVector *_v, VM &vm) : v(_v), vm(vm) {}
+    } cb(v, vm);
+    particlesystem->RayCast(&cb, p1v, p2v);
+    Push(sp,  v);
+}
+
+BUILTIN(delete_particle, "i", "I", "",
+    "deletes given particle. Deleting particles causes indices to be invalidated at next"
+    " step().")
+(StackPtr &, VM &, Value i) {
+    CheckPhysics();
+    // CheckPhysics only creates the world, not the particle system.
+    if (!particlesystem) return NilVal();
+    auto idx = i.intval();
+    if (idx < 0 || idx >= particlesystem->GetParticleCount()) return NilVal();
+    particlesystem->DestroyParticle(idx);
+    return NilVal();
+}
+
+BUILTIN_V(getparticle_position, "i", "I", "F}:2",
+    "gets a particle's position, or 0 if there is no such particle.")
+(StackPtr &sp, VM &) {
+    CheckPhysics();
+    auto idx = Pop(sp).ival();
+    auto pos = float2_0;
+    if (particlesystem && idx >= 0 && idx < particlesystem->GetParticleCount())
+        pos = B2ToFloat2(particlesystem->GetPositionBuffer()[idx]);
+    PushVec(sp, pos);
+}
+
+BUILTIN(render, "", "", "",
+    "renders all rigid body objects.")
+(StackPtr &, VM &) {
+    CheckPhysics();
+    auto oldcolor = curcolor;
+    for (b2Body *body = world->GetBodyList(); body; body = body->GetNext()) {
+        auto pos = body->GetPosition();
+        auto mat = translation(float3(pos.x, pos.y, 0)) * rotationZ(body->GetAngle());
+        otransforms.push();
+        otransforms.append_object2view(mat);
+        for (b2Fixture *fixture = body->GetFixtureList(); fixture;
+             fixture = fixture->GetNext()) {
+            auto shapetype = fixture->GetType();
+            auto &r = ((PhysicsObject *)fixture->GetUserData())->r;
+            curcolor = r.color;
+            switch (shapetype) {
+                case b2Shape::e_polygon: {
+                    r.Set();
+                    auto polyshape = (b2PolygonShape *)fixture->GetShape();
+                    // We also have polyshape->m_normals (2D normals, supported by fmt "n") but the current "color"
+                    // shader doesn't use them. If we wanted them, we'd have to interleave the vertex data here.
+                    RenderArraySlow("ph.render", PRIM_FAN, span(polyshape->m_vertices, polyshape->m_count), "p");
+                    break;
+                }
+                case b2Shape::e_circle: {
+                    r.sh->SetTextures(r.textures);  // FIXME
+                    auto polyshape = (b2CircleShape *)fixture->GetShape();
+                    Transform(translation(float3(B2ToFloat2(polyshape->m_p), 0)), [&]() {
+                        geomcache->RenderCircle(r.sh.get(), PRIM_FAN, 20, polyshape->m_radius);
+                    });
+                    break;
+                }
+                case b2Shape::e_edge:
+                case b2Shape::e_chain:
+                case b2Shape::e_typeCount: assert(0); break;
+            }
+        }
+        otransforms.pop();
+    }
+    curcolor = oldcolor;
+    return NilVal();
+}
+
+BUILTIN(render_particles, "scale", "F", "",
+    "render all particles, with the given scale.")
+(StackPtr &, VM &, Value particlescale) {
+    CheckPhysics();
+    if (!particlesystem) return NilVal();
+    auto num = particlesystem->GetParticleCount();
+    // LOG_DEBUG("rendering particles: ", num);
+    auto verts = (float2 *)particlesystem->GetPositionBuffer();
+    auto colors = (byte4 *)particlesystem->GetColorBuffer();
+    auto scale = length(otransforms.object2view()[0].xy());
+    SetPointSprite(scale * particlesystem->GetRadius() * particlescale.fltval());
+    particlematerial->Set();
+    struct Vert { float2 p; byte4 c; };
+    vector<Vert> interleaved;
+    interleaved.reserve(num);
+    for (int i = 0; i < num; i++) {
+        interleaved.push_back({ verts[i], colors[i] });
+    }
+    RenderArraySlow("ph.render_particles", PRIM_POINT, span(interleaved),
+                    "pC");
+    return NilVal();
+}

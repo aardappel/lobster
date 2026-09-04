@@ -680,198 +680,198 @@ Value eval_and_polygonize(VM &vm, int targetgridsize, int zoffset, bool do_poly)
     }
 }
 
-void AddMeshGen(NativeRegistry &nfr) {
+BuiltinGroup meshgen_builtins;
+#define BUILTIN_GROUP meshgen_builtins
+#define BUILTIN_SYM(name) builtin_mg_##name
 
-nfr("sphere", "radius", "F", "",
-    "a sphere",
-    [](StackPtr &, VM &, Value rad) {
-        auto s = new IFSphere();
-        s->rad = rad.fltval();
-        return AddShape(s);
-    });
+BUILTIN(sphere, "radius", "F", "",
+    "a sphere")
+(StackPtr &, VM &, Value rad) {
+    auto s = new IFSphere();
+    s->rad = rad.fltval();
+    return AddShape(s);
+}
 
-nfr("cube", "extents", "F}:3", "",
-    "a cube (extents are size from center)",
-    [](StackPtr &sp, VM &) {
-        auto c = new IFCube();
-        c->extents = PopVec<float3>(sp);
-        Push(sp,  AddShape(c));
-    });
+BUILTIN_V(cube, "extents", "F}:3", "",
+    "a cube (extents are size from center)")
+(StackPtr &sp, VM &) {
+    auto c = new IFCube();
+    c->extents = PopVec<float3>(sp);
+    Push(sp,  AddShape(c));
+}
 
-nfr("cylinder", "radius,height", "FF", "",
-    "a unit cylinder (height is from center)",
-    [](StackPtr &, VM &, Value radius, Value height) {
-        auto c = new IFCylinder();
-        c->radius = radius.fltval();
-        c->height = height.fltval();
-        return AddShape(c);
-    });
+BUILTIN(cylinder, "radius,height", "FF", "",
+    "a unit cylinder (height is from center)")
+(StackPtr &, VM &, Value radius, Value height) {
+    auto c = new IFCylinder();
+    c->radius = radius.fltval();
+    c->height = height.fltval();
+    return AddShape(c);
+}
 
-nfr("tapered_cylinder", "bot,top,height", "FFF", "",
-    "a cyclinder where you specify the top and bottom radius (height is from center)",
-    [](StackPtr &, VM &, Value bot, Value top, Value height) {
-        auto tc = new IFTaperedCylinder();
-        tc->bot = bot.fltval();
-        tc->top = top.fltval();
-        tc->height = height.fltval();
-        return AddShape(tc);
-    });
+BUILTIN(tapered_cylinder, "bot,top,height", "FFF", "",
+    "a cyclinder where you specify the top and bottom radius (height is from center)")
+(StackPtr &, VM &, Value bot, Value top, Value height) {
+    auto tc = new IFTaperedCylinder();
+    tc->bot = bot.fltval();
+    tc->top = top.fltval();
+    tc->height = height.fltval();
+    return AddShape(tc);
+}
 
-nfr("superquadric", "exponents,scale", "F}:3F}:3", "",
+BUILTIN_V(superquadric, "exponents,scale", "F}:3F}:3", "",
     "a super quadric. specify an exponent of 2 for spherical, higher values for rounded"
-    " squares",
-    [](StackPtr &sp, VM &) {
-        auto sq = new IFSuperQuadric();
-        sq->scale = PopVec<float3>(sp);
-        sq->exp = PopVec<float3>(sp);
-        AddShape(sq);
-    });
+    " squares")
+(StackPtr &sp, VM &) {
+    auto sq = new IFSuperQuadric();
+    sq->scale = PopVec<float3>(sp);
+    sq->exp = PopVec<float3>(sp);
+    AddShape(sq);
+}
 
-nfr("superquadric_non_uniform", "posexponents,negexponents,posscale,negscale", "F}:3F}:3F}:3F}:3", "",
+BUILTIN_V(superquadric_non_uniform, "posexponents,negexponents,posscale,negscale", "F}:3F}:3F}:3F}:3", "",
     "a superquadric that allows you to specify exponents and sizes in all 6 directions"
-    " independently for maximum modelling possibilities",
-    [](StackPtr &sp, VM &) {
-        auto sq = new IFSuperQuadricNonUniform();
-        sq->scaleneg = max(float3(0.01f), PopVec<float3>(sp));
-        sq->scalepos = max(float3(0.01f), PopVec<float3>(sp));
-        sq->expneg   = PopVec<float3>(sp);
-        sq->exppos   = PopVec<float3>(sp);
-        AddShape(sq);
-    });
+    " independently for maximum modelling possibilities")
+(StackPtr &sp, VM &) {
+    auto sq = new IFSuperQuadricNonUniform();
+    sq->scaleneg = max(float3(0.01f), PopVec<float3>(sp));
+    sq->scalepos = max(float3(0.01f), PopVec<float3>(sp));
+    sq->expneg   = PopVec<float3>(sp);
+    sq->exppos   = PopVec<float3>(sp);
+    AddShape(sq);
+}
 
-nfr("supertoroid", "R,exponents", "FF}:3", "",
-    "a super toroid. R is the distance from the origin to the center of the ring.",
-    [](StackPtr &sp, VM &) {
-        auto t = new IFSuperToroid();
-        t->exp = PopVec<float3>(sp);
-        t->r = Pop(sp).fltval();
-        AddShape(t);
-    });
+BUILTIN_V(supertoroid, "R,exponents", "FF}:3", "",
+    "a super toroid. R is the distance from the origin to the center of the ring.")
+(StackPtr &sp, VM &) {
+    auto t = new IFSuperToroid();
+    t->exp = PopVec<float3>(sp);
+    t->r = Pop(sp).fltval();
+    AddShape(t);
+}
 
-nfr("landscape", "zscale,xyscale", "FF", "",
-    "a simplex landscape of unit size",
-    [](StackPtr &, VM &, Value zscale, Value xyscale) {
-        auto ls = new IFLandscape();
-        ls->zscale = zscale.fltval();
-        ls->xyscale = xyscale.fltval();
-        return AddShape(ls);
-    });
+BUILTIN(landscape, "zscale,xyscale", "FF", "",
+    "a simplex landscape of unit size")
+(StackPtr &, VM &, Value zscale, Value xyscale) {
+    auto ls = new IFLandscape();
+    ls->zscale = zscale.fltval();
+    ls->xyscale = xyscale.fltval();
+    return AddShape(ls);
+}
 
-nfr("set_polygon_reduction", "polyreductionpasses,epsilon,maxtricornerdot", "IFF", "",
+BUILTIN(set_polygon_reduction, "polyreductionpasses,epsilon,maxtricornerdot", "IFF", "",
     "controls the polygon reduction algorithm. set polyreductionpasses to 0 for off, 100 for"
     " max compression, or low values for generation speed or to keep the mesh uniform. epsilon"
     " determines how flat adjacent triangles must be to be reduced, use 0.98 as a good"
     " tradeoff, lower to get more compression. maxtricornerdot avoid very thin triangles, use"
-    " 0.95 as a good tradeoff, up to 0.99 to get more compression",
-    [](StackPtr &, VM &, Value _polyreductionpasses, Value _epsilon,
-                                        Value _maxtricornerdot) {
-        polyreductionpasses = _polyreductionpasses.intval();
-        epsilon = _epsilon.fltval();
-        maxtricornerdot = _maxtricornerdot.fltval();
-        return NilVal();
-    });
+    " 0.95 as a good tradeoff, up to 0.99 to get more compression")
+(StackPtr &, VM &, Value _polyreductionpasses, Value _epsilon,
+    Value _maxtricornerdot) {
+    polyreductionpasses = _polyreductionpasses.intval();
+    epsilon = _epsilon.fltval();
+    maxtricornerdot = _maxtricornerdot.fltval();
+    return NilVal();
+}
 
-nfr("set_color_noise", "noiseintensity,noisestretch", "FF", "",
+BUILTIN(set_color_noise, "noiseintensity,noisestretch", "FF", "",
     "applies simplex noise to the colors of the model. try 0.3 for intensity."
-    " stretch scales the pattern over the model",
-    [](StackPtr &, VM &, Value _noiseintensity, Value _noisestretch) {
-        noisestretch = _noisestretch.fltval();
-        noiseintensity = _noiseintensity.fltval();
-        return NilVal();
-    });
+    " stretch scales the pattern over the model")
+(StackPtr &, VM &, Value _noiseintensity, Value _noisestretch) {
+    noisestretch = _noisestretch.fltval();
+    noiseintensity = _noiseintensity.fltval();
+    return NilVal();
+}
 
-nfr("set_vertex_randomize", "factor", "F", "",
+BUILTIN(set_vertex_randomize, "factor", "F", "",
     "randomizes all verts produced to give a more organic look and to hide the inherent messy"
     " polygons produced by the algorithm. try 0.15. note that any setting other than 0 will"
-    " likely counteract the polygon reduction algorithm",
-    [](StackPtr &, VM &, Value factor) {
-        randomizeverts = factor.fltval();
-        return NilVal();
-    });
+    " likely counteract the polygon reduction algorithm")
+(StackPtr &, VM &, Value factor) {
+    randomizeverts = factor.fltval();
+    return NilVal();
+}
 
-nfr("set_point_mode", "on", "B", "",
-    "generates a point mesh instead of polygons",
-    [](StackPtr &, VM &, Value aspoints) {
-        pointmode = aspoints.True();
-        return NilVal();
-    });
+BUILTIN(set_point_mode, "on", "B", "",
+    "generates a point mesh instead of polygons")
+(StackPtr &, VM &, Value aspoints) {
+    pointmode = aspoints.True();
+    return NilVal();
+}
 
-nfr("polygonize", "subdiv", "I", "R:mesh",
+BUILTIN(polygonize, "subdiv", "I", "R:mesh",
     "returns a generated mesh from past mg commands."
     " subdiv determines detail and number of polygons (relative to the largest dimension of the"
     " model), try 30.. 300 depending on the subject."
-    " values much higher than that will likely make you run out of memory (or take very long).",
-    [](StackPtr &, VM &vm, Value subdiv) {
-        return eval_and_polygonize(vm, subdiv.intval(), 0, true);
-    });
+    " values much higher than that will likely make you run out of memory (or take very long).")
+(StackPtr &, VM &vm, Value subdiv) {
+    return eval_and_polygonize(vm, subdiv.intval(), 0, true);
+}
 
-nfr("convert_to_cubes", "subdiv,zoffset", "II", "R:voxels",
+BUILTIN(convert_to_cubes, "subdiv,zoffset", "II", "R:voxels",
     "returns a cubegen block (see cg_ functions) from past mg commands."
     " subdiv determines detail and number of cubes (relative to the largest dimension of the"
-    " model).",
-    [](StackPtr &, VM &vm, Value subdiv, Value zoffset) {
-        return eval_and_polygonize(vm, subdiv.intval(), zoffset.intval(), false);
-    });
+    " model).")
+(StackPtr &, VM &vm, Value subdiv, Value zoffset) {
+    return eval_and_polygonize(vm, subdiv.intval(), zoffset.intval(), false);
+}
 
-nfr("translate", "vec", "F}:3", "",
-    "translates the current coordinate system along a vector",
-    [](StackPtr &sp, VM &) {
-        auto v = PopVec<float3>(sp);
-        // FIXME: not good enough if non-uniform scale, might as well forbid that before any trans
-        cur.orig += cur.rot * (v * cur.size);
-    });
+BUILTIN_V(translate, "vec", "F}:3", "",
+    "translates the current coordinate system along a vector")
+(StackPtr &sp, VM &) {
+    auto v = PopVec<float3>(sp);
+    // FIXME: not good enough if non-uniform scale, might as well forbid that before any trans
+    cur.orig += cur.rot * (v * cur.size);
+}
 
-nfr("scale", "f", "F", "",
-    "scales the current coordinate system by the given factor",
-    [](StackPtr &sp, VM &) {
-        auto f = Pop(sp).fltval();
-        cur.size *= f;
-    });
+BUILTIN_V(scale, "f", "F", "",
+    "scales the current coordinate system by the given factor")
+(StackPtr &sp, VM &) {
+    auto f = Pop(sp).fltval();
+    cur.size *= f;
+}
 
-nfr("scale_vec", "vec", "F}:3", "",
-    "non-unimformly scales the current coordinate system using individual factors per axis",
-    [](StackPtr &sp, VM &) {
-        auto v = PopVec<float3>(sp);
-        cur.size *= v;
-    });
+BUILTIN_V(scale_vec, "vec", "F}:3", "",
+    "non-unimformly scales the current coordinate system using individual factors per axis")
+(StackPtr &sp, VM &) {
+    auto v = PopVec<float3>(sp);
+    cur.size *= v;
+}
 
-nfr("rotate", "axis,angle", "F}:3F", "",
-    "rotates using axis/angle",
-    [](StackPtr &sp, VM &) {
-        auto angle = Pop(sp).fltval();
-        auto axis = PopVec<float3>(sp);
-        cur.rot *= float3x3(angle * RAD_F, axis);
-    });
+BUILTIN_V(rotate, "axis,angle", "F}:3F", "",
+    "rotates using axis/angle")
+(StackPtr &sp, VM &) {
+    auto angle = Pop(sp).fltval();
+    auto axis = PopVec<float3>(sp);
+    cur.rot *= float3x3(angle * RAD_F, axis);
+}
 
-nfr("color", "color", "F}:4", "",
+BUILTIN_V(color, "color", "F}:4", "",
     "sets the color, where an alpha of 1 means to add shapes to the scene (union), and 0"
-    " substracts them (carves)",
-    [](StackPtr &sp, VM &) {
-        auto v = PopVec<float4>(sp);
-        cur.material = v;
-    });
+    " substracts them (carves)")
+(StackPtr &sp, VM &) {
+    auto v = PopVec<float4>(sp);
+    cur.material = v;
+}
 
-nfr("smooth", "smooth", "F", "",
+BUILTIN_V(smooth, "smooth", "F", "",
     "sets the smoothness in terms of the range of distance from the shape smoothing happens,"
-    " defaults to 1.0",
-    [](StackPtr &sp, VM &) {
-        auto smooth = Pop(sp).fltval();
-        cur.smoothmink = smooth;
-    });
+    " defaults to 1.0")
+(StackPtr &sp, VM &) {
+    auto smooth = Pop(sp).fltval();
+    cur.smoothmink = smooth;
+}
 
-nfr("push_transform", "", "", "",
-    "save the current state of the transform",
-    [](StackPtr &, VM &) {
-        fstack.push_back(cur);
-    });
+BUILTIN_V(push_transform, "", "", "",
+    "save the current state of the transform")
+(StackPtr &, VM &) {
+    fstack.push_back(cur);
+}
 
-nfr("pop_transform", "", "", "",
-    "restore a previous state of the transform",
-    [](StackPtr &, VM &) {
-        if (!fstack.empty()) {
-            cur = fstack.back();
-            fstack.pop_back();
-        }
-    });
-
-}  // AddMeshGen
+BUILTIN_V(pop_transform, "", "", "",
+    "restore a previous state of the transform")
+(StackPtr &, VM &) {
+    if (!fstack.empty()) {
+        cur = fstack.back();
+        fstack.pop_back();
+    }
+}

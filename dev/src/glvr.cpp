@@ -284,113 +284,113 @@ vr::EVRButtonId GetButtonId(VM &vm, Value button) {
 
 #endif  // PLATFORM_VR
 
-void AddVR(NativeRegistry &nfr) {
+extern int GetSampler(VM &vm, Value i);
 
-nfr("init", "", "", "B",
-    "initializes VR mode. returns true if a hmd was found and initialized",
-    [](StackPtr &, VM &) {
-        return Value(VRInit());
-    });
+BuiltinGroup vr_builtins;
+#define BUILTIN_GROUP vr_builtins
+#define BUILTIN_SYM(name) builtin_vr_##name
 
-nfr("start_eye", "isright,znear,zfar", "IFF", "",
+BUILTIN(init, "", "", "B",
+    "initializes VR mode. returns true if a hmd was found and initialized")
+(StackPtr &, VM &) {
+    return Value(VRInit());
+}
+
+BUILTIN(start_eye, "isright,znear,zfar", "IFF", "",
     "starts rendering for an eye. call for each eye, followed by drawing the world as normal."
-    " replaces gl.perspective",
-    [](StackPtr &, VM &, Value isright, Value znear, Value zfar) {
-        VREye(isright.True(), znear.fltval(), zfar.fltval());
-        return NilVal();
-    });
+    " replaces gl.perspective")
+(StackPtr &, VM &, Value isright, Value znear, Value zfar) {
+    VREye(isright.True(), znear.fltval(), zfar.fltval());
+    return NilVal();
+}
 
-nfr("start", "", "", "",
-    "starts VR by updating hmd & controller poses",
-    [](StackPtr &, VM &) {
-        VRStart();
-        return NilVal();
-    });
+BUILTIN(start, "", "", "",
+    "starts VR by updating hmd & controller poses")
+(StackPtr &, VM &) {
+    VRStart();
+    return NilVal();
+}
 
-nfr("finish", "", "", "",
-    "finishes vr rendering by compositing (and distorting) both eye renders to the screen",
-    [](StackPtr &, VM &) {
-        VRFinish();
-        return NilVal();
-    });
+BUILTIN(finish, "", "", "",
+    "finishes vr rendering by compositing (and distorting) both eye renders to the screen")
+(StackPtr &, VM &) {
+    VRFinish();
+    return NilVal();
+}
 
-nfr("set_eye_texture", "unit,isright", "II", "",
+BUILTIN(set_eye_texture, "unit,isright", "II", "",
     "sets the texture for an eye (like gl.set_primitive_texture). call after vr.finish. can be"
-    " used to render the non-VR display",
-    [](StackPtr &, VM &vm, Value unit, Value isright) {
-        extern int GetSampler(VM &vm, Value i);
-        SetTexture(GetSampler(vm, unit), retex[isright.True()]);
-        return NilVal();
-    });
+    " used to render the non-VR display")
+(StackPtr &, VM &vm, Value unit, Value isright) {
+    SetTexture(GetSampler(vm, unit), retex[isright.True()]);
+    return NilVal();
+}
 
-nfr("num_motion_controllers", "", "", "I",
-    "returns the number of motion controllers in the system",
-    [](StackPtr &, VM &) {
-        return Value((int)motioncontrollers.size());
-    });
+BUILTIN(num_motion_controllers, "", "", "I",
+    "returns the number of motion controllers in the system")
+(StackPtr &, VM &) {
+    return Value((int)motioncontrollers.size());
+}
 
-nfr("motioncontrollerstracking", "n", "I", "B",
-    "returns if motion controller n is tracking",
-    [](StackPtr &, VM &, Value mc) {
-        auto mcd = GetMC(mc);
-        return Value(mcd && mcd->tracking);
-    });
+BUILTIN(motioncontrollerstracking, "n", "I", "B",
+    "returns if motion controller n is tracking")
+(StackPtr &, VM &, Value mc) {
+    auto mcd = GetMC(mc);
+    return Value(mcd && mcd->tracking);
+}
 
-nfr("motion_controller", "n", "I", "",
+BUILTIN_V(motion_controller, "n", "I", "",
     "sets up the transform ready to render controller n."
     " if there is no controller n (or it is currently not"
-    " tracking) the identity transform is used",
-    [](StackPtr &sp, VM &) {
-        auto mc = Pop(sp);
-        auto mcd = GetMC(mc);
-        otransforms.append_object2view(mcd ? mcd->mat : float4x4_1);
-    });
+    " tracking) the identity transform is used")
+(StackPtr &sp, VM &) {
+    auto mc = Pop(sp);
+    auto mcd = GetMC(mc);
+    otransforms.append_object2view(mcd ? mcd->mat : float4x4_1);
+}
 
-nfr("create_motion_controller_mesh", "n", "I", "R:mesh?",
-    "returns the mesh for motion controller n, or nil if not available",
-    [](StackPtr &, VM &vm, Value mc) {
-        auto mcd = GetMC(mc);
-        extern ResourceType mesh_type;
-        return mcd ? Value(vm.NewResource(&mesh_type, VRCreateMesh(mcd->device))) : NilVal();
-    });
+BUILTIN(create_motion_controller_mesh, "n", "I", "R:mesh?",
+    "returns the mesh for motion controller n, or nil if not available")
+(StackPtr &, VM &vm, Value mc) {
+    auto mcd = GetMC(mc);
+    return mcd ? Value(vm.NewResource(&mesh_type, VRCreateMesh(mcd->device))) : NilVal();
+}
 
 // TODO: make it return an "up" value much like gl.button, since this doesn't represent
 // down+up in the same frame.
-nfr("motion_controller_button", "n,button", "IS", "I",
+BUILTIN(motion_controller_button, "n,button", "IS", "I",
     "returns the button state for motion controller n."
     " isdown: >= 1, wentdown: == 1, wentup: == 0, isup: <= 0."
-    " buttons are: system, menu, grip, trigger, touchpad",
-    [](StackPtr &, VM &vm, Value mc, Value button) {
-        #ifdef PLATFORM_VR
-            auto mcd = GetMC(mc);
-            auto mask = ButtonMaskFromId(GetButtonId(vm, button));
-            if (!mcd) return Value(-1);
-            auto masknow = mcd->state.ulButtonPressed & mask;
-            auto maskbef = mcd->laststate.ulButtonPressed & mask;
-            return Value(int(masknow != 0) * 2 - int(!(maskbef != 0)));
-        #else
-            return Value(0);
-        #endif
-    });
+    " buttons are: system, menu, grip, trigger, touchpad")
+(StackPtr &, VM &vm, Value mc, Value button) {
+    #ifdef PLATFORM_VR
+        auto mcd = GetMC(mc);
+        auto mask = ButtonMaskFromId(GetButtonId(vm, button));
+        if (!mcd) return Value(-1);
+        auto masknow = mcd->state.ulButtonPressed & mask;
+        auto maskbef = mcd->laststate.ulButtonPressed & mask;
+        return Value(int(masknow != 0) * 2 - int(!(maskbef != 0)));
+    #else
+        return Value(0);
+    #endif
+}
 
-nfr("motion_controller_vec", "n,i", "II", "F}:3",
+BUILTIN_V(motion_controller_vec, "n,i", "II", "F}:3",
     "returns one of the vectors for motion controller n. 0 = left, 1 = up, 2 = fwd, 4 = pos."
-    " These are in Y up space.",
-    [](StackPtr &sp, VM &vm) {
-        auto idx = Pop(sp);
-        auto mcd = GetMC(Pop(sp));
-        if (!mcd) { PushVec(sp, float3_0); return; }
-        auto i = RangeCheck(vm, idx, 4);
-        PushVec(sp, mcd->mat[i].xyz());
-    });
+    " These are in Y up space.")
+(StackPtr &sp, VM &vm) {
+    auto idx = Pop(sp);
+    auto mcd = GetMC(Pop(sp));
+    if (!mcd) { PushVec(sp, float3_0); return; }
+    auto i = RangeCheck(vm, idx, 4);
+    PushVec(sp, mcd->mat[i].xyz());
+}
 
-nfr("hmd_vec", "i", "I", "F}:3",
+BUILTIN_V(hmd_vec, "i", "I", "F}:3",
     "returns one of the vectors for hmd pose. 0 = left, 1 = up, 2 = fwd, 4 = pos."
-    " These are in Y up space.",
-    [](StackPtr &sp, VM &vm) {
-        auto i = RangeCheck(vm, Pop(sp), 4);
-        PushVec(sp, hmdpose[i].xyz());
-    });
-
-}  // AddVR
+    " These are in Y up space.")
+(StackPtr &sp, VM &vm) {
+    auto i = RangeCheck(vm, Pop(sp), 4);
+    PushVec(sp, hmdpose[i].xyz());
+}
 

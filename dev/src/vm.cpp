@@ -30,7 +30,6 @@ VM::VM(VMArgs &&vmargs)
     : vma(std::move(vmargs)) {
 
     typetable = vma.meta->type_table.data();
-    native_funs = vma.nfr.nfun_ptrs.data();
     // Allocated up front rather than on first use, so that pushing one is a load rather than a
     // load and a branch. They are owned by the VM for its entire lifetime, see EndEval.
     constant_strings.reserve(vma.meta->stringtable.size());
@@ -1090,23 +1089,28 @@ static CValue ToC(Value v) {
 }
 
 LString *CRtPushStr(VM *vm, int i) { return RtPushStr(*vm, i); }
-void CRtNativeCallV(VM *vm, StackPtr sp, int nfi) { RtNativeCallV(*vm, sp, nfi); }
-CValue CRtNativeCall0(VM *vm, int nfi) { return ToC(RtNativeCall0(*vm, nfi)); }
-CValue CRtNativeCall1(VM *vm, int nfi, Value a0) { return ToC(RtNativeCall1(*vm, nfi, a0)); }
-CValue CRtNativeCall2(VM *vm, int nfi, Value a0, Value a1) { return ToC(RtNativeCall2(*vm, nfi, a0, a1)); }
-CValue CRtNativeCall3(VM *vm, int nfi, Value a0, Value a1, Value a2) { return ToC(RtNativeCall3(*vm, nfi, a0, a1, a2)); }
-CValue CRtNativeCall4(VM *vm, int nfi, Value a0, Value a1, Value a2, Value a3) { return ToC(RtNativeCall4(*vm, nfi, a0, a1, a2, a3)); }
-CValue CRtNativeCall5(VM *vm, int nfi, Value a0, Value a1, Value a2, Value a3, Value a4) { return ToC(RtNativeCall5(*vm, nfi, a0, a1, a2, a3, a4)); }
-CValue CRtNativeCall6(VM *vm, int nfi, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5) { return ToC(RtNativeCall6(*vm, nfi, a0, a1, a2, a3, a4, a5)); }
-CValue CRtNativeCall7(VM *vm, int nfi, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5, Value a6) { return ToC(RtNativeCall7(*vm, nfi, a0, a1, a2, a3, a4, a5, a6)); }
-void CRtNativeCall0Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall0Rets(*vm, sp, nfi); }
-void CRtNativeCall1Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall1Rets(*vm, sp, nfi); }
-void CRtNativeCall2Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall2Rets(*vm, sp, nfi); }
-void CRtNativeCall3Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall3Rets(*vm, sp, nfi); }
-void CRtNativeCall4Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall4Rets(*vm, sp, nfi); }
-void CRtNativeCall5Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall5Rets(*vm, sp, nfi); }
-void CRtNativeCall6Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall6Rets(*vm, sp, nfi); }
-void CRtNativeCall7Rets(VM *vm, StackPtr sp, int nfi) { RtNativeCall7Rets(*vm, sp, nfi); }
+
+// A builtin as the C side passes it: it only takes its address, since a call from C would not
+// agree with the C++ side on how a Value is returned, see CValue, so the helpers do the call.
+typedef void (*CBuiltinFun)();
+
+void CRtNativeCallV(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCallV(*vm, sp, nfi, (builtinfV)f); }
+CValue CRtNativeCall0(VM *vm, int nfi, CBuiltinFun f) { return ToC(RtNativeCall0(*vm, nfi, (builtinf0)f)); }
+CValue CRtNativeCall1(VM *vm, int nfi, CBuiltinFun f, Value a0) { return ToC(RtNativeCall1(*vm, nfi, (builtinf1)f, a0)); }
+CValue CRtNativeCall2(VM *vm, int nfi, CBuiltinFun f, Value a0, Value a1) { return ToC(RtNativeCall2(*vm, nfi, (builtinf2)f, a0, a1)); }
+CValue CRtNativeCall3(VM *vm, int nfi, CBuiltinFun f, Value a0, Value a1, Value a2) { return ToC(RtNativeCall3(*vm, nfi, (builtinf3)f, a0, a1, a2)); }
+CValue CRtNativeCall4(VM *vm, int nfi, CBuiltinFun f, Value a0, Value a1, Value a2, Value a3) { return ToC(RtNativeCall4(*vm, nfi, (builtinf4)f, a0, a1, a2, a3)); }
+CValue CRtNativeCall5(VM *vm, int nfi, CBuiltinFun f, Value a0, Value a1, Value a2, Value a3, Value a4) { return ToC(RtNativeCall5(*vm, nfi, (builtinf5)f, a0, a1, a2, a3, a4)); }
+CValue CRtNativeCall6(VM *vm, int nfi, CBuiltinFun f, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5) { return ToC(RtNativeCall6(*vm, nfi, (builtinf6)f, a0, a1, a2, a3, a4, a5)); }
+CValue CRtNativeCall7(VM *vm, int nfi, CBuiltinFun f, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5, Value a6) { return ToC(RtNativeCall7(*vm, nfi, (builtinf7)f, a0, a1, a2, a3, a4, a5, a6)); }
+void CRtNativeCall0Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall0Rets(*vm, sp, nfi, (builtinf0)f); }
+void CRtNativeCall1Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall1Rets(*vm, sp, nfi, (builtinf1)f); }
+void CRtNativeCall2Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall2Rets(*vm, sp, nfi, (builtinf2)f); }
+void CRtNativeCall3Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall3Rets(*vm, sp, nfi, (builtinf3)f); }
+void CRtNativeCall4Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall4Rets(*vm, sp, nfi, (builtinf4)f); }
+void CRtNativeCall5Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall5Rets(*vm, sp, nfi, (builtinf5)f); }
+void CRtNativeCall6Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall6Rets(*vm, sp, nfi, (builtinf6)f); }
+void CRtNativeCall7Rets(VM *vm, StackPtr sp, int nfi, CBuiltinFun f) { RtNativeCall7Rets(*vm, sp, nfi, (builtinf7)f); }
 LVector *CRtNewVec(VM *vm, type_elem_t ti, int len) { return RtNewVec(*vm, ti, len); }
 LObject *CRtNewObject(VM *vm, type_elem_t ti) { return RtNewObject(*vm, ti); }
 void CRtExit(VM *vm, Value ret, type_elem_t ti) { RtExit(*vm, ret, ti); }

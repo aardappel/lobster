@@ -384,119 +384,120 @@ static void ParseLobsterBinaryData(StackPtr &sp, VM &vm, type_elem_t typeoff, co
     #endif
 }
 
-void AddReader(NativeRegistry &nfr) {
+BuiltinGroup parsedata_builtins;
+#define BUILTIN_GROUP parsedata_builtins
+#define BUILTIN_SYM(name) builtin_##name
 
-nfr("parse_data", "typeid,stringdata", "TS", "A1?S?",
+BUILTIN_V(parse_data, "typeid,stringdata", "TS", "A1?S?",
     "parses a string containing a data structure in lobster syntax (what you get if you convert"
     " an arbitrary data structure to a string) back into a data structure. supports"
     " int/float/string/vector and classes. classes will be forced to be compatible with their "
     " current definitions, i.e. too many elements will be truncated, missing elements will be"
     " set to 0/nil if possible. useful for simple file formats. returns the value and an error"
-    " string as second return value (or nil if no error)",
-    [](StackPtr &sp, VM &vm) {
-        auto ins = Pop(sp).sval();
-        auto type = Pop(sp).ival();
-        ParseData(sp, vm, (type_elem_t)type, ins->strv());
-    });
+    " string as second return value (or nil if no error)")
+(StackPtr &sp, VM &vm) {
+    auto ins = Pop(sp).sval();
+    auto type = Pop(sp).ival();
+    ParseData(sp, vm, (type_elem_t)type, ins->strv());
+}
 
-nfr("flexbuffers_value_to_binary", "val,max_nesting,cycle_detection", "AI?B?", "S",
+BUILTIN(flexbuffers_value_to_binary, "val,max_nesting,cycle_detection", "AI?B?", "S",
     "turns any reference value into a flexbuffer. max_nesting defaults to 100. "
-    "cycle_detection is by default off (expensive)",
-    [](StackPtr &, VM &vm, Value val, Value maxnest, Value cycle_detect) {
-        ToFlexBufferContext fbc(vm, 1024, flexbuffers::BUILDER_FLAG_SHARE_KEYS);
-        auto mn = maxnest.ival();
-        if (mn > 0) fbc.max_depth = mn;
-        fbc.cycle_detect = cycle_detect.True();
-        val.ToFlexBuffer(fbc, val.refnil() ? val.refnil()->ti(vm).t : RTT_NIL, {}, (type_elem_t)0);
-        fbc.builder.Finish();
-        if (!fbc.cycle_hit.empty())
-            vm.BuiltinError("flexbuffers_value_to_binary: data structure contains a cycle: " +
-                            fbc.cycle_hit);
-        if (!fbc.max_depth_hit.empty())
-            vm.BuiltinError(
-                "flexbuffers_value_to_binary: data structure exceeds max nesting depth: " +
-                fbc.max_depth_hit);
-        auto s = vm.NewString(
-            string_view((const char *)fbc.builder.GetBuffer().data(), fbc.builder.GetSize()));
-        return Value(s);
-    });
+    "cycle_detection is by default off (expensive)")
+(StackPtr &, VM &vm, Value val, Value maxnest, Value cycle_detect) {
+    ToFlexBufferContext fbc(vm, 1024, flexbuffers::BUILDER_FLAG_SHARE_KEYS);
+    auto mn = maxnest.ival();
+    if (mn > 0) fbc.max_depth = mn;
+    fbc.cycle_detect = cycle_detect.True();
+    val.ToFlexBuffer(fbc, val.refnil() ? val.refnil()->ti(vm).t : RTT_NIL, {}, (type_elem_t)0);
+    fbc.builder.Finish();
+    if (!fbc.cycle_hit.empty())
+        vm.BuiltinError("flexbuffers_value_to_binary: data structure contains a cycle: " +
+                        fbc.cycle_hit);
+    if (!fbc.max_depth_hit.empty())
+        vm.BuiltinError(
+            "flexbuffers_value_to_binary: data structure exceeds max nesting depth: " +
+            fbc.max_depth_hit);
+    auto s = vm.NewString(
+        string_view((const char *)fbc.builder.GetBuffer().data(), fbc.builder.GetSize()));
+    return Value(s);
+}
 
-nfr("flexbuffers_binary_to_value", "typeid,flex", "TS", "A1?S?",
-    "turns a flexbuffer into a value",
-    [](StackPtr &sp, VM &vm) {
-        auto fsv = Pop(sp).sval()->strv();
-        auto id = Pop(sp).ival();
-        vector<uint8_t> reuse_buffer;
-        if (flexbuffers::VerifyBuffer((const uint8_t *)fsv.data(), fsv.size(), &reuse_buffer)) {
-            auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
-            ParseFlexData(sp, vm, (type_elem_t)id, root);
-        } else { 
-            Push(sp, NilVal());
-            Push(sp, vm.NewString("flexbuffer binary does not verify!"));
-        }
-    });
+BUILTIN_V(flexbuffers_binary_to_value, "typeid,flex", "TS", "A1?S?",
+    "turns a flexbuffer into a value")
+(StackPtr &sp, VM &vm) {
+    auto fsv = Pop(sp).sval()->strv();
+    auto id = Pop(sp).ival();
+    vector<uint8_t> reuse_buffer;
+    if (flexbuffers::VerifyBuffer((const uint8_t *)fsv.data(), fsv.size(), &reuse_buffer)) {
+        auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
+        ParseFlexData(sp, vm, (type_elem_t)id, root);
+    } else { 
+        Push(sp, NilVal());
+        Push(sp, vm.NewString("flexbuffer binary does not verify!"));
+    }
+}
 
-nfr("flexbuffers_binary_to_json", "flex,field_quotes,indent_string", "SBS", "S?S?",
-    "turns a flexbuffer into a JSON string. If indent_string is empty, will be a single line string",
-    [](StackPtr &sp, VM &vm) {
-        auto indent_string = Pop(sp).sval()->strvnt();
-        auto quoted = Pop(sp).ival();
-        auto fsv = Pop(sp).sval()->strv();
-        vector<uint8_t> reuse_buffer;
-        if (flexbuffers::VerifyBuffer((const uint8_t *)fsv.data(), fsv.size(), &reuse_buffer)) {
-            auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
-            string json;
-            root.ToString(true, quoted, json, indent_string.size() != 0, 0, indent_string.c_str(), true);
-            auto s = vm.NewString(json);
-            Push(sp, s);
-            Push(sp, NilVal());
-        } else {
-            Push(sp, NilVal());
-            Push(sp, vm.NewString("flexbuffer binary does not verify!"));
-        }
-    });
+BUILTIN_V(flexbuffers_binary_to_json, "flex,field_quotes,indent_string", "SBS", "S?S?",
+    "turns a flexbuffer into a JSON string. If indent_string is empty, will be a single line string")
+(StackPtr &sp, VM &vm) {
+    auto indent_string = Pop(sp).sval()->strvnt();
+    auto quoted = Pop(sp).ival();
+    auto fsv = Pop(sp).sval()->strv();
+    vector<uint8_t> reuse_buffer;
+    if (flexbuffers::VerifyBuffer((const uint8_t *)fsv.data(), fsv.size(), &reuse_buffer)) {
+        auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
+        string json;
+        root.ToString(true, quoted, json, indent_string.size() != 0, 0, indent_string.c_str(), true);
+        auto s = vm.NewString(json);
+        Push(sp, s);
+        Push(sp, NilVal());
+    } else {
+        Push(sp, NilVal());
+        Push(sp, vm.NewString("flexbuffer binary does not verify!"));
+    }
+}
 
-nfr("flexbuffers_json_to_binary", "json,filename_for_errors", "SS?", "SS?",
-    "turns a JSON string into a flexbuffer, second value is error, if any",
-    [](StackPtr &sp, VM &vm, Value json, Value filename) {
-        flexbuffers::Builder builder;
-        flatbuffers::Parser parser;
-        auto err = NilVal();
-        auto fn = filename.True()
-            ? filename.sval()->strvnt()
-            : string_view_nt("{flexbuffers_json_to_binary}");
-        if (!parser.ParseFlexBuffer(json.sval()->strv().data(), fn.c_str(),
-                                    &builder)) {
-            err = vm.NewString(parser.error_);
-            Push(sp, vm.NewString(""));
-        } else {
-            Push(sp, vm.NewString(
-                string_view((const char *)builder.GetBuffer().data(), builder.GetSize())));
-        }
-        return err;
-    });
+BUILTIN(flexbuffers_json_to_binary, "json,filename_for_errors", "SS?", "SS?",
+    "turns a JSON string into a flexbuffer, second value is error, if any")
+(StackPtr &sp, VM &vm, Value json, Value filename) {
+    flexbuffers::Builder builder;
+    flatbuffers::Parser parser;
+    auto err = NilVal();
+    auto fn = filename.True()
+        ? filename.sval()->strvnt()
+        : string_view_nt("{flexbuffers_json_to_binary}");
+    if (!parser.ParseFlexBuffer(json.sval()->strv().data(), fn.c_str(),
+                                &builder)) {
+        err = vm.NewString(parser.error_);
+        Push(sp, vm.NewString(""));
+    } else {
+        Push(sp, vm.NewString(
+            string_view((const char *)builder.GetBuffer().data(), builder.GetSize())));
+    }
+    return err;
+}
 
-nfr("lobster_value_to_binary", "val", "A", "S",
+BUILTIN(lobster_value_to_binary, "val", "A", "S",
     "turns any reference value into a binary using a fast & compact Lobster native serialization format. "
     "this is intended for threads/networking, not for storage (since it is not readable by other languages). "
     "data structures participating must have been marked by attribute serializable. "
-    "does not provide protection against cycles, use flexbuffers if that is a concern. ",
-    [](StackPtr &, VM &vm, Value val) {
-        vector<uint8_t> buf;
-        val.ToLobsterBinary(vm, buf, val.refnil() ? val.refnil()->ti(vm).t : RTT_NIL);
-        // FIXME: since this is meant to be fast, worth seeing if this can be made 0-copy?
-        auto s = vm.NewString(
-            string_view((const char *)buf.data(), buf.size()));
-        return Value(s);
-    });
+    "does not provide protection against cycles, use flexbuffers if that is a concern. ")
+(StackPtr &, VM &vm, Value val) {
+    vector<uint8_t> buf;
+    val.ToLobsterBinary(vm, buf, val.refnil() ? val.refnil()->ti(vm).t : RTT_NIL);
+    // FIXME: since this is meant to be fast, worth seeing if this can be made 0-copy?
+    auto s = vm.NewString(
+        string_view((const char *)buf.data(), buf.size()));
+    return Value(s);
+}
 
-nfr("lobster_binary_to_value", "typeid,bin", "TS", "A1?S?",
-    "turns binary created by lobster_value_to_binary back into a value",
-    [](StackPtr &sp, VM &vm) {
-        auto fsv = Pop(sp).sval()->strv();
-        auto id = Pop(sp).ival();
-        ParseLobsterBinaryData(sp, vm, (type_elem_t)id, (const uint8_t *)fsv.data(), fsv.size());
-    });
+BUILTIN_V(lobster_binary_to_value, "typeid,bin", "TS", "A1?S?",
+    "turns binary created by lobster_value_to_binary back into a value")
+(StackPtr &sp, VM &vm) {
+    auto fsv = Pop(sp).sval()->strv();
+    auto id = Pop(sp).ival();
+    ParseLobsterBinaryData(sp, vm, (type_elem_t)id, (const uint8_t *)fsv.data(), fsv.size());
 }
 
 }

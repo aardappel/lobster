@@ -275,16 +275,26 @@ complex examples in <code>builtin.cpp</code> and
 
 using namespace lobster;
 
-void MyNativeOps(NativeRegistry &amp;nfr) {
+BuiltinGroup my_builtins;
+#define BUILTIN_GROUP my_builtins
+#define BUILTIN_SYM(name) builtin_##name
 
-    nfr(&quot;add&quot;, &quot;x,y&quot;, &quot;II&quot;, &quot;I&quot;,
-        &quot;Adds two integers.&quot;,
-        [](StackPtr &amp;, VM &amp;, Value x, Value y) {
-            return Value(x.ival() + y.ival());
-        });
+BUILTIN(add, &quot;x,y&quot;, &quot;II&quot;, &quot;I&quot;, &quot;Adds two integers.&quot;)
+(StackPtr &amp;, VM &amp;, Value x, Value y) {
+    return Value(x.ival() + y.ival());
+}
 
-    // more such declarations here
-}</code></pre>
+// more such definitions here</code></pre>
+<p><code>BUILTIN</code> defines an <code>extern "C"</code> function
+(named by <code>BUILTIN_SYM</code>, so here <code>builtin_add</code>,
+use a prefix like <code>builtin_gl_</code> for a group registered under
+a namespace) whose parameter list and body follow the macro, and a
+global holding the metadata that adds itself to the
+<code>BUILTIN_GROUP</code> list. The compiled code calls the function by
+that name, so the parameter list must be <code>StackPtr &amp;</code>,
+<code>VM &amp;</code> and then one <code>Value</code> per argument in
+the type string. See <code>natreg.h</code> for the variants for vararg
+builtins and for overloading a name.</p>
 <p>You'll need to become somewhat familiar with the Lobster internals to
 write these functions successfully, in particular with the
 <code>Value</code> type (see <code>vmdata.h</code>), which is a union of
@@ -313,9 +323,9 @@ language. The burden on making sure there are no name clashes is on the
 programmer integrating new libraries (you will get an assert if 2 names
 ever clash).</p>
 <p>Now from your main program, you'll need to call
-<code>RegisterBuiltin(nfr, "name", MyNativeOps)</code> or similar before
-you invoke the Lobster compiler, such that these new functions are
-available during all compiler passes.</p>
+<code>RegisterBuiltin(nfr, "", "name", my_builtins)</code> or similar
+before you invoke the Lobster compiler, such that these new functions
+are available during all compiler passes.</p>
 <p>You can add the above file to whatever build system you're using, but
 that may involve modifying the Lobster project files which you may not
 want to do. Instead, if your extension is small enough to sit in a

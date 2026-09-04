@@ -134,240 +134,242 @@ Value ParseSchemas(VM &vm, flatbuffers::Parser &parser, Value schema,
     return NilVal();
 }
 
-void AddFile(NativeRegistry &nfr) {
+BuiltinGroup file_builtins;
+#define BUILTIN_GROUP file_builtins
+#define BUILTIN_SYM(name) builtin_##name
 
-nfr("format_time", "format,time,localtime", "SIB", "S",
+BUILTIN(format_time, "format,time,localtime", "SIB", "S",
     "convert a time in seconds since 00:00:00 UTC, Thursday, 1 January 1970 into a string,"
     " using the same format string syntax as POSIX strftime. If localtime is true, then"
     " the time will be displayed using the local timezone, otherwise it will use UTC."
-    " Returns an empty string on error.",
-    [](StackPtr &, VM &vm, Value format, Value time, Value use_localtime) {
-        chrono::system_clock::time_point tp { chrono::seconds(time.ival()) };
-        time_t tt = chrono::system_clock::to_time_t(tp);
-        tm ctm{};
-        bool ok = false;
-        #ifdef _WIN32
-            ok = (use_localtime.True() ? localtime_s(&ctm, &tt) : gmtime_s(&ctm, &tt)) == 0;
-        #else
-            ok = (use_localtime.True() ? localtime_r(&tt, &ctm) : gmtime_r(&tt, &ctm)) != nullptr;
-        #endif
-        if (!ok) return Value(vm.NewString(0));
-        // TODO: using strftime to avoid pulling in std::format(); maybe we should reconsider that?
-        char buf[1024];
-        auto written = strftime(buf, sizeof(buf), format.sval()->data(), &ctm);
-        // TODO: written may be zero if the format string was too long; in that
-        // case maybe we want to try again with a larger buf?
-        if (written == 0) return Value(vm.NewString(0));
-        auto s = vm.NewString(buf);
-        return Value(s);
-    });
+    " Returns an empty string on error.")
+(StackPtr &, VM &vm, Value format, Value time, Value use_localtime) {
+    chrono::system_clock::time_point tp { chrono::seconds(time.ival()) };
+    time_t tt = chrono::system_clock::to_time_t(tp);
+    tm ctm{};
+    bool ok = false;
+    #ifdef _WIN32
+        ok = (use_localtime.True() ? localtime_s(&ctm, &tt) : gmtime_s(&ctm, &tt)) == 0;
+    #else
+        ok = (use_localtime.True() ? localtime_r(&tt, &ctm) : gmtime_r(&tt, &ctm)) != nullptr;
+    #endif
+    if (!ok) return Value(vm.NewString(0));
+    // TODO: using strftime to avoid pulling in std::format(); maybe we should reconsider that?
+    char buf[1024];
+    auto written = strftime(buf, sizeof(buf), format.sval()->data(), &ctm);
+    // TODO: written may be zero if the format string was too long; in that
+    // case maybe we want to try again with a larger buf?
+    if (written == 0) return Value(vm.NewString(0));
+    auto s = vm.NewString(buf);
+    return Value(s);
+}
 
-nfr("scan_folder", "folder,rel", "SB?", "S]?I]?I]?",
+BUILTIN(scan_folder, "folder,rel", "SB?", "S]?I]?I]?",
     "returns three vectors representing all elements in a folder, the first vector containing all"
     " names, the second vector containing sizes in bytes (or -1 if a directory), and the third as"
     " the number of seconds since 00:00:00 UTC, Thursday, 1 January 1970, not including leap seconds."
     " set rel use a relative path, default is absolute."
-    " Returns nil if folder couldn't be scanned.",
-    [](StackPtr &sp, VM &vm, Value fld, Value rel) {
-        vector<DirectoryInfo> dir;
-        auto ok = rel.True()
-            ? ScanDir(fld.sval()->strv(), dir)
-            : ScanDirAbs(fld.sval()->strv(), dir);
-        if (!ok) {
-            Push(sp, NilVal());
-            Push(sp, NilVal());
-            return NilVal();
-        }
-        auto nlist = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
-        auto slist = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
-        auto tlist = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
-        for (auto &entry : dir) {
-            nlist->Push(vm, Value(vm.NewString(entry.name)));
-            slist->Push(vm, Value(entry.size));
-            // For a fun change of pace, MSVC C++ standard library has support
-            // for clock_cast but libstdc++ and libc++ don't. This is a
-            // workaround for converting between the file_clock time (used for
-            // the filesystem) and system_clock time (used for formatting
-            // times). Sadly, even if we could use clock_cast, it seems to have
-            // a known memory leak on Windows:
-            // See https://developercommunity.visualstudio.com/t/reported-memory-leak-when-converting-file-time-typ/1467739
-            //
-            // According to https://stackoverflow.com/a/73748610 (written by Howard Hinnant,
-            // the designer of the chrono library):
-            //     "I believe the Windows file_clock epoch is 1601-01-01 00:00:00 UTC. The
-            //     difference between that and the system_clock epoch (1970-01-01 00:00:00
-            //     UTC) is 13,4774 days or 3'234'576h."
-            using namespace literals;
-            #if defined(_WIN32)
-                const chrono::duration file_to_system_clock_epoch_offset = 3'234'576h;
-            #elif defined(__GLIBCXX__)  // libstdc++
-                // From the same stack overflow article above: "On gcc I believe
-                // the epoch is 2174-01-01 00:00:00 UTC".
-                // I calculated the following value locally on my linux laptop.
-                const chrono::duration file_to_system_clock_epoch_offset = -1'788'240h;
-            #else  // libc++ or other
-                const chrono::duration file_to_system_clock_epoch_offset = 0h;
-            #endif
-            auto system_time = chrono::system_clock::time_point{
-                chrono::duration_cast<chrono::system_clock::duration>(
-                    entry.last_write_time.time_since_epoch() -
-                    file_to_system_clock_epoch_offset)
-            };
-            tlist->Push(vm, Value((int64_t)chrono::duration_cast<chrono::seconds>(
-                                      system_time.time_since_epoch())
-                                      .count()));
-        }
-        Push(sp, Value(nlist));
-        Push(sp, Value(slist));
-        return Value(tlist);
-    });
+    " Returns nil if folder couldn't be scanned.")
+(StackPtr &sp, VM &vm, Value fld, Value rel) {
+    vector<DirectoryInfo> dir;
+    auto ok = rel.True()
+        ? ScanDir(fld.sval()->strv(), dir)
+        : ScanDirAbs(fld.sval()->strv(), dir);
+    if (!ok) {
+        Push(sp, NilVal());
+        Push(sp, NilVal());
+        return NilVal();
+    }
+    auto nlist = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+    auto slist = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
+    auto tlist = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
+    for (auto &entry : dir) {
+        nlist->Push(vm, Value(vm.NewString(entry.name)));
+        slist->Push(vm, Value(entry.size));
+        // For a fun change of pace, MSVC C++ standard library has support
+        // for clock_cast but libstdc++ and libc++ don't. This is a
+        // workaround for converting between the file_clock time (used for
+        // the filesystem) and system_clock time (used for formatting
+        // times). Sadly, even if we could use clock_cast, it seems to have
+        // a known memory leak on Windows:
+        // See https://developercommunity.visualstudio.com/t/reported-memory-leak-when-converting-file-time-typ/1467739
+        //
+        // According to https://stackoverflow.com/a/73748610 (written by Howard Hinnant,
+        // the designer of the chrono library):
+        //     "I believe the Windows file_clock epoch is 1601-01-01 00:00:00 UTC. The
+        //     difference between that and the system_clock epoch (1970-01-01 00:00:00
+        //     UTC) is 13,4774 days or 3'234'576h."
+        using namespace literals;
+        #if defined(_WIN32)
+            const chrono::duration file_to_system_clock_epoch_offset = 3'234'576h;
+        #elif defined(__GLIBCXX__)  // libstdc++
+            // From the same stack overflow article above: "On gcc I believe
+            // the epoch is 2174-01-01 00:00:00 UTC".
+            // I calculated the following value locally on my linux laptop.
+            const chrono::duration file_to_system_clock_epoch_offset = -1'788'240h;
+        #else  // libc++ or other
+            const chrono::duration file_to_system_clock_epoch_offset = 0h;
+        #endif
+        auto system_time = chrono::system_clock::time_point{
+            chrono::duration_cast<chrono::system_clock::duration>(
+                entry.last_write_time.time_since_epoch() -
+                file_to_system_clock_epoch_offset)
+        };
+        tlist->Push(vm, Value((int64_t)chrono::duration_cast<chrono::seconds>(
+                                  system_time.time_since_epoch())
+                                  .count()));
+    }
+    Push(sp, Value(nlist));
+    Push(sp, Value(slist));
+    return Value(tlist);
+}
 
-nfr("read_file", "file,textmode", "SI?", "S?",
+BUILTIN(read_file, "file,textmode", "SI?", "S?",
     "returns the contents of a file as a string, or nil if the file can't be found."
-    " you may use either \\ or / as path separators",
-    [](StackPtr &, VM &vm, Value file, Value textmode) {
-        string buf;
-        auto l = LoadFile(file.sval()->strv(), &buf, 0, -1, textmode.False());
-        if (l < 0) return NilVal();
-        auto s = vm.NewString(buf);
-        return Value(s);
-    });
+    " you may use either \\ or / as path separators")
+(StackPtr &, VM &vm, Value file, Value textmode) {
+    string buf;
+    auto l = LoadFile(file.sval()->strv(), &buf, 0, -1, textmode.False());
+    if (l < 0) return NilVal();
+    auto s = vm.NewString(buf);
+    return Value(s);
+}
 
-nfr("write_file", "file,contents,textmode,absolute_path", "SSI?I?", "B",
-    "creates a file with the contents of a string, returns false if writing wasn't possible",
-    [](StackPtr &, VM &, Value file, Value contents, Value textmode, Value absolute) {
-        auto ok = WriteFile(file.sval()->strv(), textmode.False(), contents.sval()->strv(), absolute.True());
-        return Value(ok);
-    });
+BUILTIN(write_file, "file,contents,textmode,absolute_path", "SSI?I?", "B",
+    "creates a file with the contents of a string, returns false if writing wasn't possible")
+(StackPtr &, VM &, Value file, Value contents, Value textmode, Value absolute) {
+    auto ok = WriteFile(file.sval()->strv(), textmode.False(), contents.sval()->strv(), absolute.True());
+    return Value(ok);
+}
 
-nfr("rename_file", "old_file,new_file", "SS", "B",
-    "renames a file, returns false if it wasn't possible",
-    [](StackPtr &, VM &, Value old_file, Value new_file) {
-        auto ok = RenameFile(old_file.sval()->strv(), new_file.sval()->strv());
-        return Value(ok);
-    });
+BUILTIN(rename_file, "old_file,new_file", "SS", "B",
+    "renames a file, returns false if it wasn't possible")
+(StackPtr &, VM &, Value old_file, Value new_file) {
+    auto ok = RenameFile(old_file.sval()->strv(), new_file.sval()->strv());
+    return Value(ok);
+}
 
-nfr("delete_file", "file", "S", "B", "deletes a file, returns false if it wasn't possible. Will search in all import dirs.",
-    [](StackPtr &, VM &, Value file) {
-        auto ok = FileDelete(file.sval()->strv());
-        return Value(ok);
-    });
+BUILTIN(delete_file, "file", "S", "B", "deletes a file, returns false if it wasn't possible. Will search in all import dirs.")
+(StackPtr &, VM &, Value file) {
+    auto ok = FileDelete(file.sval()->strv());
+    return Value(ok);
+}
 
-nfr("exists_file", "file", "S", "B", "checks whether a file exists.",
-    [](StackPtr &, VM &, Value file) {
-        auto ok = FileExists(file.sval()->strv(), false);
-        return Value(ok);
-    });
+BUILTIN(exists_file, "file", "S", "B", "checks whether a file exists.")
+(StackPtr &, VM &, Value file) {
+    auto ok = FileExists(file.sval()->strv(), false);
+    return Value(ok);
+}
 
-nfr("launch_subprocess", "commandline,stdin", "S]S?", "IS",
+BUILTIN_V(launch_subprocess, "commandline,stdin", "S]S?", "IS",
     "launches a sub process, with optionally a stdin for the process, and returns its"
-    " return code (or -1 if it couldn't launch at all), and any output",
-    [](StackPtr &sp, VM &vm) {
-        auto stdins = Pop(sp);
-        auto commandline = Pop(sp).vval();
-        vector<const char *> cmdl;
-        for (iint i = 0; i < commandline->len; i++) {
-            cmdl.push_back(commandline->AtS(i).sval()->data());
-        }
-        cmdl.push_back(nullptr);
-        string out;
-        auto ret = LaunchSubProcess(cmdl.data(), stdins.True() ? stdins.sval()->data() : nullptr, out);
-        Push(sp, ret);
-        Push(sp, vm.NewString(out));
-    });
+    " return code (or -1 if it couldn't launch at all), and any output")
+(StackPtr &sp, VM &vm) {
+    auto stdins = Pop(sp);
+    auto commandline = Pop(sp).vval();
+    vector<const char *> cmdl;
+    for (iint i = 0; i < commandline->len; i++) {
+        cmdl.push_back(commandline->AtS(i).sval()->data());
+    }
+    cmdl.push_back(nullptr);
+    string out;
+    auto ret = LaunchSubProcess(cmdl.data(), stdins.True() ? stdins.sval()->data() : nullptr, out);
+    Push(sp, ret);
+    Push(sp, vm.NewString(out));
+}
 
-nfr("vector_to_buffer", "vec,width,offset,len", "A]*I?:4I?I?", "S",
+BUILTIN(vector_to_buffer, "vec,width,offset,len", "A]*I?:4I?I?", "S",
     "converts a vector of ints/floats (or structs of them) to a buffer, where"
     " each scalar is written with \"width\" bytes (1/2/4/8, default 4). Returns nil if the"
     " type couldn't be converted. Uses native endianness."
-    " Offset and len can specify a slice of the input, but if not specified default to all.",
-    [](StackPtr &, VM &vm, Value vec, Value width, Value _offset, Value _len) {
-        auto v = vec.vval();
-        auto w = width.intval();
-        auto offset = _offset.ival();
-        if (offset > v->len)
-            vm.Error("vector_to_buffer: offset out of range");
-        auto len = _len.ival();
-        if (!len) len = v->len - offset;
-        else if (len > v->len - offset)
-            vm.Error("vector_to_buffer: len out of range");
-        if (w != 1 && w != 2 && w != 4 && w != 8)
-            vm.Error("vector_to_buffer: width out of range");
-        auto &vect = v->ti(vm);
-        auto eto = vect.subt;
-        auto &ti = vm.GetTypeInfo(eto);
-        int64_t float_mask = 0;
-        if (ti.t == RTT_INT) {
-        } else if (ti.t == RTT_FLOAT) {
-            float_mask = 1;
-        } else if (ti.t == RTT_STRUCT_S) {
-            if (ti.len >= 63) vm.Error("vector_to_buffer: struct too big");
-            for (int i = 0; i < ti.len; i++) {
-                auto &seti = vm.GetTypeInfo(ti.elemtypes[i].type);
-                if (seti.t == RTT_INT) {
-                } else if (seti.t == RTT_FLOAT) {
-                    float_mask |= int64_t(1) << i;
-                } else {
-                    vm.Error("vector_to_buffer: struct field of non-numeric data");
-                }
-            }
-        } else {
-            vm.Error("vector_to_buffer: vector of non-numeric data");
-        }
-        if (float_mask && (w == 1 || w == 2))
-            vm.Error("vector_to_buffer: 8/16 floats not supported yet");
-        auto s = vm.NewString(len * v->width * w);
-        auto buf = (uint8_t *)s->data();
-        for (iint i = offset; i < offset + len; i++) {
-            for (int j = 0; j < (int)v->width; j++) {
-                auto is_float = float_mask & (int64_t(1) << j);
-                if (is_float) {
-                    auto x = v->AtSub(i, j).fval();
-                    if (w == sizeof(double)) {
-                        memcpy(buf, &x, sizeof(double));
-                    } else {
-                        auto xf = (float)x;
-                        memcpy(buf, &xf, sizeof(float));
-                    }
-                } else {
-                    auto x = v->AtSub(i, j).ival();
-                    #if FLATBUFFERS_LITTLEENDIAN
-                        memcpy(buf, &x, w);
-                    #else
-                        memcpy(buf, (uint8_t *)&x + (8 - w), w);
-                    #endif
-                }
-                buf += w;
+    " Offset and len can specify a slice of the input, but if not specified default to all.")
+(StackPtr &, VM &vm, Value vec, Value width, Value _offset, Value _len) {
+    auto v = vec.vval();
+    auto w = width.intval();
+    auto offset = _offset.ival();
+    if (offset > v->len)
+        vm.Error("vector_to_buffer: offset out of range");
+    auto len = _len.ival();
+    if (!len) len = v->len - offset;
+    else if (len > v->len - offset)
+        vm.Error("vector_to_buffer: len out of range");
+    if (w != 1 && w != 2 && w != 4 && w != 8)
+        vm.Error("vector_to_buffer: width out of range");
+    auto &vect = v->ti(vm);
+    auto eto = vect.subt;
+    auto &ti = vm.GetTypeInfo(eto);
+    int64_t float_mask = 0;
+    if (ti.t == RTT_INT) {
+    } else if (ti.t == RTT_FLOAT) {
+        float_mask = 1;
+    } else if (ti.t == RTT_STRUCT_S) {
+        if (ti.len >= 63) vm.Error("vector_to_buffer: struct too big");
+        for (int i = 0; i < ti.len; i++) {
+            auto &seti = vm.GetTypeInfo(ti.elemtypes[i].type);
+            if (seti.t == RTT_INT) {
+            } else if (seti.t == RTT_FLOAT) {
+                float_mask |= int64_t(1) << i;
+            } else {
+                vm.Error("vector_to_buffer: struct field of non-numeric data");
             }
         }
-        return Value(s);
-    });
+    } else {
+        vm.Error("vector_to_buffer: vector of non-numeric data");
+    }
+    if (float_mask && (w == 1 || w == 2))
+        vm.Error("vector_to_buffer: 8/16 floats not supported yet");
+    auto s = vm.NewString(len * v->width * w);
+    auto buf = (uint8_t *)s->data();
+    for (iint i = offset; i < offset + len; i++) {
+        for (int j = 0; j < (int)v->width; j++) {
+            auto is_float = float_mask & (int64_t(1) << j);
+            if (is_float) {
+                auto x = v->AtSub(i, j).fval();
+                if (w == sizeof(double)) {
+                    memcpy(buf, &x, sizeof(double));
+                } else {
+                    auto xf = (float)x;
+                    memcpy(buf, &xf, sizeof(float));
+                }
+            } else {
+                auto x = v->AtSub(i, j).ival();
+                #if FLATBUFFERS_LITTLEENDIAN
+                    memcpy(buf, &x, w);
+                #else
+                    memcpy(buf, (uint8_t *)&x + (8 - w), w);
+                #endif
+            }
+            buf += w;
+        }
+    }
+    return Value(s);
+}
 
-nfr("ensure_size", "string,size,char,extra", "SkIII?", "S",
+BUILTIN(ensure_size, "string,size,char,extra", "SkIII?", "S",
     "ensures a string is at least size characters. if it is, just returns the existing"
     " string, otherwise returns a new string of that size (with optionally extra bytes"
     " added), with any new characters set to"
     " char. You can specify a negative size to mean relative to the end, i.e. new"
-    " characters will be added at the start. ",
-    [](StackPtr &, VM &vm, Value str, Value size, Value c, Value extra) {
-        auto asize = std::abs(size.ival());
-        return str.sval()->len >= asize
-            ? str
-            : Value(vm.ResizeString(str.sval(), asize + extra.ival(), c.intval(), size.ival() < 0));
-    });
+    " characters will be added at the start. ")
+(StackPtr &, VM &vm, Value str, Value size, Value c, Value extra) {
+    auto asize = std::abs(size.ival());
+    return str.sval()->len >= asize
+        ? str
+        : Value(vm.ResizeString(str.sval(), asize + extra.ival(), c.intval(), size.ival() < 0));
+}
 
-auto write_val_desc1 =
+static const char *write_val_desc1 =
     "writes a value as little endian to a string at location i. Uses ensure_size to"
     " make the string twice as long (with extra 0 bytes) if no space. Returns"
     " new string if resized,"
     " and the index of the location right after where the value was written. The"
     " _back version writes relative to the end (and writes before the index)";
-auto write_val_desc2 = "(see write_int64_le)";
+static const char *write_val_desc2 = "(see write_int64_le)";
 #define WRITEOP(N, T, B, D, S) \
-    nfr(#N, "string,i,val", "SkI" S, "SI", D, \
-        [](StackPtr &sp, VM &vm, Value str, Value idx, Value val) { \
-            return WriteVal<T, B>(sp, vm, str, idx, val); \
-        });
+    BUILTIN(N, "string,i,val", "SkI" S, "SI", D) \
+    (StackPtr &sp, VM &vm, Value str, Value idx, Value val) { \
+        return WriteVal<T, B>(sp, vm, str, idx, val); \
+    }
 WRITEOP(write_int64_le, int64_t, false, write_val_desc1, "I")
 WRITEOP(write_int32_le, int32_t, false, write_val_desc2, "I")
 WRITEOP(write_int16_le, int16_t, false, write_val_desc2, "I")
@@ -381,42 +383,42 @@ WRITEOP(write_int8_le_back, int8_t, true, write_val_desc2, "I")
 WRITEOP(write_float64_le_back, double, true, write_val_desc2, "F")
 WRITEOP(write_float32_le_back, float, true, write_val_desc2, "F")
 
-nfr("write_substring", "string,i,substr,nullterm", "SkISI", "SI",
-    "writes a substring into another string at i (see also write_int64_le)",
-    [](StackPtr &sp, VM &vm, Value str, Value idx, Value val, Value term) {
-        return WriteStr<false>(sp, vm, str, idx, val.sval(), term.True());
-    });
+BUILTIN(write_substring, "string,i,substr,nullterm", "SkISI", "SI",
+    "writes a substring into another string at i (see also write_int64_le)")
+(StackPtr &sp, VM &vm, Value str, Value idx, Value val, Value term) {
+    return WriteStr<false>(sp, vm, str, idx, val.sval(), term.True());
+}
 
-nfr("write_substring_back", "string,i,substr,nullterm", "SkISI", "SI",
-    "",
-    [](StackPtr &sp, VM &vm, Value str, Value idx, Value val, Value term) {
-        return WriteStr<true>(sp, vm, str, idx, val.sval(), term.True());
-    });
+BUILTIN(write_substring_back, "string,i,substr,nullterm", "SkISI", "SI",
+    "")
+(StackPtr &sp, VM &vm, Value str, Value idx, Value val, Value term) {
+    return WriteStr<true>(sp, vm, str, idx, val.sval(), term.True());
+}
 
-nfr("compare_substring", "string_a,i_a,string_b,i_b,len", "SISII", "I",
-    "returns if the two substrings are equal (0), or a < b (-1) or a > b (1).",
-    [](StackPtr &, VM &vm, Value str1, Value idx1, Value str2, Value idx2,
-                                    Value len) {
-        auto s1 = str1.sval();
-        auto s2 = str2.sval();
-        auto i1 = idx1.ival();
-        auto i2 = idx2.ival();
-        auto l = len.ival();
-        if (l < 0 || i1 < 0 || i2 < 0 || i1 + l > s1->len || i2 + l > s2->len)
-            vm.Error("compare_substring: index out of bounds");
-        auto eq = memcmp(s1->data() + i1, s2->data() + i2, l);
-        return Value(eq);
-    });
+BUILTIN(compare_substring, "string_a,i_a,string_b,i_b,len", "SISII", "I",
+    "returns if the two substrings are equal (0), or a < b (-1) or a > b (1).")
+(StackPtr &, VM &vm, Value str1, Value idx1, Value str2, Value idx2,
+    Value len) {
+    auto s1 = str1.sval();
+    auto s2 = str2.sval();
+    auto i1 = idx1.ival();
+    auto i2 = idx2.ival();
+    auto l = len.ival();
+    if (l < 0 || i1 < 0 || i2 < 0 || i1 + l > s1->len || i2 + l > s2->len)
+        vm.Error("compare_substring: index out of bounds");
+    auto eq = memcmp(s1->data() + i1, s2->data() + i2, l);
+    return Value(eq);
+}
 
-auto read_val_desc1 =
+static const char *read_val_desc1 =
     "reads a value as little endian from a string at location i. The value must be within"
     " bounds of the string. Returns the value, and the index of the location right after where"
     " the value was read. The"
     " _back version reads relative to the end (and reads before the index)";
-auto read_val_desc2 = "(see read_int64_le)";
+static const char *read_val_desc2 = "(see read_int64_le)";
 #define READOP(N, T, B, D, S) \
-    nfr(#N, "string,i", "SI", S "I", D, \
-        [](StackPtr &sp, VM &vm, Value str, Value idx) { return ReadVal<T, B>(sp, vm, str, idx); });
+    BUILTIN(N, "string,i", "SI", S "I", D) \
+    (StackPtr &sp, VM &vm, Value str, Value idx) { return ReadVal<T, B>(sp, vm, str, idx); }
 READOP(read_int64_le, int64_t, false, read_val_desc1, "I")
 READOP(read_int32_le, int32_t, false, read_val_desc2, "I")
 READOP(read_int16_le, int16_t, false, read_val_desc2, "I")
@@ -439,22 +441,23 @@ READOP(read_float64_le_back, double, true, read_val_desc2, "F")
 READOP(read_float32_le_back, float, true, read_val_desc2, "F")
 
 
-}  // AddFile
+#undef BUILTIN_GROUP
+#undef BUILTIN_SYM
+BuiltinGroup flatbuffers_builtins;
+#define BUILTIN_GROUP flatbuffers_builtins
+#define BUILTIN_SYM(name) builtin_flatbuffers_##name
 
-
-void AddFlatBuffers(NativeRegistry &nfr) {
-
-auto read_field_desc1 =
+static const char *read_field_desc1 =
     "reads a flatbuffers field from a string at table location tablei, field vtable offset vo,"
     " and default value def. The value must be within"
     " bounds of the string. Returns the value (or default if the field was not present)";
-auto read_field_desc2 = "(see flatbuffers.field_int64)";
+static const char *read_field_desc2 = "(see flatbuffers.field_int64)";
 #define READFOP(N, T, D, S) \
-    nfr(#N, "string,tablei,vo,def", "SII" S, S, D, \
-        [](StackPtr &, VM &vm, Value str, Value idx, Value vidx, Value def) { \
-            auto val = ReadField<T, S[0] == 'F', false, false>(vm, str, idx, vidx, def); \
-            return Value(val); \
-        });
+    BUILTIN(N, "string,tablei,vo,def", "SII" S, S, D) \
+    (StackPtr &, VM &vm, Value str, Value idx, Value vidx, Value def) { \
+        auto val = ReadField<T, S[0] == 'F', false, false>(vm, str, idx, vidx, def); \
+        return Value(val); \
+    }
 READFOP(field_int64, int64_t, read_field_desc1, "I")
 READFOP(field_int32, int32_t, read_field_desc2, "I")
 READFOP(field_int16, int16_t, read_field_desc2, "I")
@@ -466,108 +469,106 @@ READFOP(field_uint8, uint8_t, read_field_desc2, "I")
 READFOP(field_float64, double, read_field_desc2, "F")
 READFOP(field_float32, float, read_field_desc2, "F")
 
-nfr("field_string", "string,tablei,vo", "SII", "S",
-    "reads a flatbuffer string field, returns \"\" if not present",
-    [](StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
-        auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
-                                                                        Value(0)).ival();
-        auto ret = Value(GetString(vm, fi, str.sval()));
-        return ret;
-    });
+BUILTIN(field_string, "string,tablei,vo", "SII", "S",
+    "reads a flatbuffer string field, returns \"\" if not present")
+(StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
+    auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
+                                                                    Value(0)).ival();
+    auto ret = Value(GetString(vm, fi, str.sval()));
+    return ret;
+}
 
-nfr("field_vector_len", "string,tablei,vo", "SII", "I",
-    "reads a flatbuffer vector field length, or 0 if not present",
-    [](StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
-        auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
-                                                                        Value(0)).ival();
-        Value ret(fi ? Read<flatbuffers::uoffset_t, false>(vm, fi, str.sval()) : 0);
-        return ret;
-    });
+BUILTIN(field_vector_len, "string,tablei,vo", "SII", "I",
+    "reads a flatbuffer vector field length, or 0 if not present")
+(StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
+    auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
+                                                                    Value(0)).ival();
+    Value ret(fi ? Read<flatbuffers::uoffset_t, false>(vm, fi, str.sval()) : 0);
+    return ret;
+}
 
-nfr("field_vector", "string,tablei,vo", "SII", "I",
-    "returns a flatbuffer vector field element start, or 0 if not present",
-    [](StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
-        auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
-                                                                        Value(0)).ival();
-        Value ret(fi ? fi + ssizeof<flatbuffers::uoffset_t>() : 0);
-        return ret;
-    });
+BUILTIN(field_vector, "string,tablei,vo", "SII", "I",
+    "returns a flatbuffer vector field element start, or 0 if not present")
+(StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
+    auto fi = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
+                                                                    Value(0)).ival();
+    Value ret(fi ? fi + ssizeof<flatbuffers::uoffset_t>() : 0);
+    return ret;
+}
 
-nfr("field_table", "string,tablei,vo", "SII", "I",
-    "returns a flatbuffer table field start, or 0 if not present",
-    [](StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
-        auto ret = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
-                                                                         Value(0));
-        return ret;
-    });
+BUILTIN(field_table, "string,tablei,vo", "SII", "I",
+    "returns a flatbuffer table field start, or 0 if not present")
+(StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
+    auto ret = ReadField<flatbuffers::uoffset_t, false, true, false>(vm, str, idx, vidx,
+                                                                     Value(0));
+    return ret;
+}
 
-nfr("field_struct", "string,tablei,vo", "SII", "I",
-    "returns a flatbuffer struct field start, or 0 if not present",
-    [](StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
-        auto ret = ReadField<flatbuffers::uoffset_t, false, false, true>(vm, str, idx, vidx,
-                                                                         Value(0));
-        return ret;
-    });
+BUILTIN(field_struct, "string,tablei,vo", "SII", "I",
+    "returns a flatbuffer struct field start, or 0 if not present")
+(StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
+    auto ret = ReadField<flatbuffers::uoffset_t, false, false, true>(vm, str, idx, vidx,
+                                                                     Value(0));
+    return ret;
+}
 
-nfr("field_present", "string,tablei,vo", "SII", "B",
-    "returns if a flatbuffer field is present (unequal to default)",
-    [](StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
-        return FieldPresent(vm, str, idx, vidx);
-    });
+BUILTIN(field_present, "string,tablei,vo", "SII", "B",
+    "returns if a flatbuffer field is present (unequal to default)")
+(StackPtr &, VM &vm, Value str, Value idx, Value vidx) {
+    return FieldPresent(vm, str, idx, vidx);
+}
 
-nfr("indirect", "string,index", "SI", "I",
-    "returns a flatbuffer offset at index relative to itself",
-    [](StackPtr &, VM &vm, Value str, Value idx) {
-        auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
-        return Value(off + idx.ival());
-    });
+BUILTIN(indirect, "string,index", "SI", "I",
+    "returns a flatbuffer offset at index relative to itself")
+(StackPtr &, VM &vm, Value str, Value idx) {
+    auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
+    return Value(off + idx.ival());
+}
 
-nfr("string", "string,index", "SI", "S",
-    "returns a flatbuffer string whose offset is at given index",
-    [](StackPtr &, VM &vm, Value str, Value idx) {
-        auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
-        auto ret = GetString(vm, off + idx.ival(), str.sval());
-        return Value(ret);
-    });
+BUILTIN(string, "string,index", "SI", "S",
+    "returns a flatbuffer string whose offset is at given index")
+(StackPtr &, VM &vm, Value str, Value idx) {
+    auto off = Read<flatbuffers::uoffset_t, false>(vm, idx.ival(), str.sval());
+    auto ret = GetString(vm, off + idx.ival(), str.sval());
+    return Value(ret);
+}
 
-nfr("binary_to_json", "schemas,binary,includedirs", "SSS]", "SS?",
+BUILTIN(binary_to_json, "schemas,binary,includedirs", "SSS]", "SS?",
     "returns a JSON string generated from the given binary and corresponding schema."
     "if there was an error parsing the schema, the error will be in the second return"
-    "value, or nil for no error",
-    [](StackPtr &sp, VM &vm, Value schema, Value binary, Value includes) {
-        flatbuffers::Parser parser;
-        auto err = ParseSchemas(vm, parser, schema, includes);
-        string json;
-        if (err.False()) {
-            auto e = GenText(parser, binary.sval()->data(), &json);
-            if (e) {
-                err = vm.NewString("unable to generate text for FlatBuffer binary: " + string(e));
-            }
+    "value, or nil for no error")
+(StackPtr &sp, VM &vm, Value schema, Value binary, Value includes) {
+    flatbuffers::Parser parser;
+    auto err = ParseSchemas(vm, parser, schema, includes);
+    string json;
+    if (err.False()) {
+        auto e = GenText(parser, binary.sval()->data(), &json);
+        if (e) {
+            err = vm.NewString("unable to generate text for FlatBuffer binary: " + string(e));
         }
-        Push(sp, vm.NewString(json));
-        return err;
-    });
+    }
+    Push(sp, vm.NewString(json));
+    return err;
+}
 
-nfr("json_to_binary", "schema,json,includedirs", "SSS]", "SS?",
+BUILTIN(json_to_binary, "schema,json,includedirs", "SSS]", "SS?",
     "returns a binary flatbuffer generated from the given json and corresponding schema."
     "if there was an error parsing the schema, the error will be in the second return"
-    "value, or nil for no error",
-    [](StackPtr &sp, VM &vm, Value schema, Value json, Value includes) {
-        flatbuffers::Parser parser;
-        auto err = ParseSchemas(vm, parser, schema, includes);
-        string binary;
-        if (err.False()) {
-            if (!parser.Parse(json.sval()->data())) {
-                err = vm.NewString(parser.error_);
-            } else {
-                binary.assign((const char *)parser.builder_.GetBufferPointer(),
-                                parser.builder_.GetSize());
-            }
+    "value, or nil for no error")
+(StackPtr &sp, VM &vm, Value schema, Value json, Value includes) {
+    flatbuffers::Parser parser;
+    auto err = ParseSchemas(vm, parser, schema, includes);
+    string binary;
+    if (err.False()) {
+        if (!parser.Parse(json.sval()->data())) {
+            err = vm.NewString(parser.error_);
+        } else {
+            binary.assign((const char *)parser.builder_.GetBufferPointer(),
+                            parser.builder_.GetSize());
         }
-        Push(sp, vm.NewString(binary));
-        return err;
-    });
-
-}  // AddFlatBuffers
+    }
+    Push(sp, vm.NewString(binary));
+    return err;
+}
 
 }

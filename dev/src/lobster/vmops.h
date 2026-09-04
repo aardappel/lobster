@@ -64,13 +64,18 @@ VM_INLINE void RtExitVoid(VM &vm) {
     #define GPROF_END()
 #endif
 
+// The calls to builtins. The generated code names the builtin `f` directly, see
+// CodeGen::EmitNativeCall, so with these inlined the C++ backend calls it directly, and the
+// index `nfi` only serves the checks and the profiler.
+
 // A native that takes a variable number of arguments works on the stack it is given.
-VM_INLINE void RtNativeCallV(VM &vm, StackPtr sp, int nfi) {
+VM_INLINE void RtNativeCallV(VM &vm, StackPtr sp, int nfi, builtinfV f) {
     BPROF_START(nfi);
     GPROF_START(nfi);
-    vm.native_funs[nfi].fV(sp, vm);
+    f(sp, vm);
     GPROF_END();
     BPROF_END();
+    (void)nfi;
 }
 
 // One that takes a fixed number of them and leaves at most one value gets them by value and
@@ -80,30 +85,30 @@ VM_INLINE Value RtNativeCall##N PARAMS { \
     BPROF_START(nfi); \
     GPROF_START(nfi); \
     StackPtr sp = nullptr; \
-    Value v = vm.native_funs[nfi].f##N ARGS; \
+    Value v = f ARGS; \
     GPROF_END(); \
     BPROF_END(); \
     vm.BCallRetCheck(v, nfi); \
     return v; \
 }
 
-NATIVE_CALL(0, (VM &vm, int nfi), (sp, vm))
-NATIVE_CALL(1, (VM &vm, int nfi, Value a0), (sp, vm, a0))
-NATIVE_CALL(2, (VM &vm, int nfi, Value a0, Value a1), (sp, vm, a0, a1))
-NATIVE_CALL(3, (VM &vm, int nfi, Value a0, Value a1, Value a2), (sp, vm, a0, a1, a2))
-NATIVE_CALL(4, (VM &vm, int nfi, Value a0, Value a1, Value a2, Value a3), (sp, vm, a0, a1, a2, a3))
-NATIVE_CALL(5, (VM &vm, int nfi, Value a0, Value a1, Value a2, Value a3, Value a4), (sp, vm, a0, a1, a2, a3, a4))
-NATIVE_CALL(6, (VM &vm, int nfi, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5), (sp, vm, a0, a1, a2, a3, a4, a5))
-NATIVE_CALL(7, (VM &vm, int nfi, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5, Value a6), (sp, vm, a0, a1, a2, a3, a4, a5, a6))
+NATIVE_CALL(0, (VM &vm, int nfi, builtinf0 f), (sp, vm))
+NATIVE_CALL(1, (VM &vm, int nfi, builtinf1 f, Value a0), (sp, vm, a0))
+NATIVE_CALL(2, (VM &vm, int nfi, builtinf2 f, Value a0, Value a1), (sp, vm, a0, a1))
+NATIVE_CALL(3, (VM &vm, int nfi, builtinf3 f, Value a0, Value a1, Value a2), (sp, vm, a0, a1, a2))
+NATIVE_CALL(4, (VM &vm, int nfi, builtinf4 f, Value a0, Value a1, Value a2, Value a3), (sp, vm, a0, a1, a2, a3))
+NATIVE_CALL(5, (VM &vm, int nfi, builtinf5 f, Value a0, Value a1, Value a2, Value a3, Value a4), (sp, vm, a0, a1, a2, a3, a4))
+NATIVE_CALL(6, (VM &vm, int nfi, builtinf6 f, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5), (sp, vm, a0, a1, a2, a3, a4, a5))
+NATIVE_CALL(7, (VM &vm, int nfi, builtinf7 f, Value a0, Value a1, Value a2, Value a3, Value a4, Value a5, Value a6), (sp, vm, a0, a1, a2, a3, a4, a5, a6))
 
 // And one that leaves several values pushes them on the stack it is given, the last of them
 // being what it returns.
 #define NATIVE_CALL_RETS(N, DECLS, ARGS) \
-VM_INLINE void RtNativeCall##N##Rets(VM &vm, StackPtr sp, int nfi) { \
+VM_INLINE void RtNativeCall##N##Rets(VM &vm, StackPtr sp, int nfi, builtinf##N f) { \
     BPROF_START(nfi); \
     GPROF_START(nfi); \
     DECLS; \
-    Value v = vm.native_funs[nfi].f##N ARGS; \
+    Value v = f ARGS; \
     GPROF_END(); \
     BPROF_END(); \
     Push(sp, v); \

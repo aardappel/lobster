@@ -88,6 +88,10 @@ struct CodeGen  {
     // C/C++ codegen related.
     string &c_codegen;
     string cb;
+    // The builtins the code calls, by index, which get declared at the spot in the prologue
+    // reserved for them once it is known which they are.
+    map<int, NativeFun *> natives_used;
+    size_t natives_decl_offset = 0;
     int regso = 0;
     int f_function_idx = -1;
     int f_regs_max = -1;
@@ -478,6 +482,7 @@ struct CodeGen  {
         }
 
         Prologue(c_codegen);
+        natives_decl_offset = c_codegen.size();
 
         // Start of the actual generated code.
         linenumbernodes.push_back(parser.root);
@@ -553,6 +558,23 @@ struct CodeGen  {
         }
 
         Epilogue(c_codegen, custom_pre_init_name, src_hash);
+
+        // The builtins the code refers to by their symbol, see EmitNativeCall. The C++ side
+        // needs the exact signature, since it passes them as the function pointer they are,
+        // and their definition lives in another translation unit, whereas the C side only
+        // takes their address, see the prologue.
+        string decls;
+        for (auto [idx, nf] : natives_used) {
+            if (cpp) {
+                append(decls, "extern \"C\" ", nf->vararg ? "void " : "Value ", nf->symbol,
+                       "(StackPtr &, VMRef");
+                if (!nf->vararg) for (size_t i = 0; i < nf->args.size(); i++) decls += ", Value";
+                decls += ");\n";
+            } else {
+                append(decls, "BuiltinFun ", nf->symbol, ";\n");
+            }
+        }
+        if (!decls.empty()) c_codegen.insert(natives_decl_offset, decls + "\n");
     }
 
     ~CodeGen() {
@@ -793,23 +815,28 @@ struct CodeGen  {
             // them as the type they are.
             sd +=
                 "LString *RtPushStr(VMRef, int);\n"
-                "void RtNativeCallV(VMRef, StackPtr, int);\n"
-                "Value RtNativeCall0(VMRef, int);\n"
-                "Value RtNativeCall1(VMRef, int, Value);\n"
-                "Value RtNativeCall2(VMRef, int, Value, Value);\n"
-                "Value RtNativeCall3(VMRef, int, Value, Value, Value);\n"
-                "Value RtNativeCall4(VMRef, int, Value, Value, Value, Value);\n"
-                "Value RtNativeCall5(VMRef, int, Value, Value, Value, Value, Value);\n"
-                "Value RtNativeCall6(VMRef, int, Value, Value, Value, Value, Value, Value);\n"
-                "Value RtNativeCall7(VMRef, int, Value, Value, Value, Value, Value, Value, Value);\n"
-                "void RtNativeCall0Rets(VMRef, StackPtr, int);\n"
-                "void RtNativeCall1Rets(VMRef, StackPtr, int);\n"
-                "void RtNativeCall2Rets(VMRef, StackPtr, int);\n"
-                "void RtNativeCall3Rets(VMRef, StackPtr, int);\n"
-                "void RtNativeCall4Rets(VMRef, StackPtr, int);\n"
-                "void RtNativeCall5Rets(VMRef, StackPtr, int);\n"
-                "void RtNativeCall6Rets(VMRef, StackPtr, int);\n"
-                "void RtNativeCall7Rets(VMRef, StackPtr, int);\n"
+                // A builtin, of which the generated code only takes the address to hand to
+                // the helpers below, since a call from here would not agree with the C++
+                // side on how a Value is returned, see CValue in vm.cpp. The ones the code
+                // uses are declared as this type, see natives_used.
+                "typedef void BuiltinFun(void);\n"
+                "void RtNativeCallV(VMRef, StackPtr, int, BuiltinFun *);\n"
+                "Value RtNativeCall0(VMRef, int, BuiltinFun *);\n"
+                "Value RtNativeCall1(VMRef, int, BuiltinFun *, Value);\n"
+                "Value RtNativeCall2(VMRef, int, BuiltinFun *, Value, Value);\n"
+                "Value RtNativeCall3(VMRef, int, BuiltinFun *, Value, Value, Value);\n"
+                "Value RtNativeCall4(VMRef, int, BuiltinFun *, Value, Value, Value, Value);\n"
+                "Value RtNativeCall5(VMRef, int, BuiltinFun *, Value, Value, Value, Value, Value);\n"
+                "Value RtNativeCall6(VMRef, int, BuiltinFun *, Value, Value, Value, Value, Value, Value);\n"
+                "Value RtNativeCall7(VMRef, int, BuiltinFun *, Value, Value, Value, Value, Value, Value, Value);\n"
+                "void RtNativeCall0Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
+                "void RtNativeCall1Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
+                "void RtNativeCall2Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
+                "void RtNativeCall3Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
+                "void RtNativeCall4Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
+                "void RtNativeCall5Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
+                "void RtNativeCall6Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
+                "void RtNativeCall7Rets(VMRef, StackPtr, int, BuiltinFun *);\n"
                 "LVector *RtNewVec(VMRef, type_elem_t, int);\n"
                 "LObject *RtNewObject(VMRef, type_elem_t);\n"
                 "void RtExit(VMRef, Value, type_elem_t);\n"
@@ -1336,10 +1363,11 @@ struct CodeGen  {
             "span", "uint64_t", "int64_t", "memcpy", "memmove", "GLFrame", "Entry", "IDXErr",
             "IDXErrS", "BackupVar", "DecOwned", "DecDelete", "AssertFailed", "RefVal",
             "RestoreBackup", "GetTypeSwitchID", "PushFunId", "PopFunId", "StartProfile",
-            "EndProfile", "STRING_DATA", "OBJECT_FIELDS",
+            "EndProfile", "STRING_DATA", "OBJECT_FIELDS", "BuiltinFun",
         };
         if (reserved.count(name)) return true;
-        if (name[0] == '_' || name.substr(0, 2) == "Rt") return true;
+        if (name[0] == '_' || name.substr(0, 2) == "Rt" || name.substr(0, 8) == "builtin_")
+            return true;
         auto numbered = [&](string_view prefix) {
             if (name.size() <= prefix.size() || name.substr(0, prefix.size()) != prefix) return false;
             for (auto c : name.substr(prefix.size())) if (!isdigit((uint8_t)c)) return false;
@@ -1357,7 +1385,8 @@ struct CodeGen  {
     string UniqueName(string name) {
         for (auto &c : name) if (!isalnum((uint8_t)c) && c != '_') c = '_';
         if (name.empty() || isdigit((uint8_t)name[0]) || name[0] == '_' ||
-            name.substr(0, 2) == "Rt" || name == "fun" || name.substr(0, 4) == "fun_") {
+            name.substr(0, 2) == "Rt" || name == "fun" || name.substr(0, 4) == "fun_" ||
+            name.substr(0, 8) == "builtin_") {
             name = "v" + name;
         }
         auto base = name;
@@ -1803,25 +1832,30 @@ struct CodeGen  {
     // There is one helper per number of arguments a native takes, which get them by value and
     // return the result, plus one that leaves its results on the stack for the natives that
     // have several, and a V one for those that take a variable number, which is what a
-    // negative count asks for.
+    // negative count asks for. They all get the builtin itself, which the code refers to by
+    // its symbol, along with its index for the checks and the profiler.
     void EmitNativeCall(int nargs, NativeFun *nf, const Types &args, const Types &rets) {
         auto uses = (int)args.size();
         auto defs = (int)rets.size();
         if (nf->IsGLFrame()) {
             TrackUseDef(uses, defs);
             Write(cb, Slot(0, VK_INT), "GLFrame(vm)", "");
-        } else if (nargs < 0 || defs > 1) {
+            comment(nf->name);
+            return;
+        }
+        natives_used[nf->idx] = nf;
+        if (nargs < 0 || defs > 1) {
             GenStackCall(args, rets, [&](string_view sp) {
                 auto s = string("RtNativeCall");
                 if (nargs < 0) s += "V"; else append(s, nargs, "Rets");
-                return cat(s, "(vm, ", sp, ", ", nf->idx, ")");
+                return cat(s, "(vm, ", sp, ", ", nf->idx, ", ", nf->symbol, ")");
             }, nf->name);
             return;
         } else {
             assert(uses == nargs);
             TrackUseDef(uses, defs);
             auto base = regso - uses;
-            auto call = cat("RtNativeCall", nargs, "(vm, ", nf->idx);
+            auto call = cat("RtNativeCall", nargs, "(vm, ", nf->idx, ", ", nf->symbol);
             for (int i = 0; i < nargs; i++) {
                 append(call, ", ", Box(base + i, SlotVar(base + i, args[i])));
             }
@@ -3674,8 +3708,8 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     }
     size_t nargs = children.size();
     cg.TakeTemp(nargs + numstructs, true);
-    assert(nargs == nf->args.size() && (nf->fun.fnargs < 0 || nargs <= 7));
-    cg.EmitNativeCall(nf->fun.fnargs >= 0 ? (int)nargs : -1, nf, args,
+    assert(nargs == nf->args.size() && (nf->vararg || nargs <= 7));
+    cg.EmitNativeCall(nf->vararg ? -1 : (int)nargs, nf, args,
                       CodeGen::TypesOf(nattype, nattype->NumValues()));
     if (nf->retvals.size() > 0) {
         assert(nf->retvals.size() == nattype->NumValues());

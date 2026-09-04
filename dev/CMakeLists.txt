@@ -299,6 +299,10 @@ elseif(LOBSTER_JIT)
   endif()
 endif()
 add_executable(${EXE_NAME} ${LOBSTER_SRCS} ${EXTERNAL_SRCS})
+if(NOT LOBSTER_TOCPP)
+  # The JIT looks the builtins up by name in the running executable, see FindExecutableSymbol.
+  set_target_properties(${EXE_NAME} PROPERTIES ENABLE_EXPORTS ON)
+endif()
 target_link_libraries(${EXE_NAME} ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 if(UNIX)
   # MIR needs libm.

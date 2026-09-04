@@ -41,7 +41,7 @@ extern pair<string, iint> RunJIT(NativeRegistry &nfr,
 extern bool LoadPakDir(const char *lpak, uint64_t &src_hash_dest);
 extern bool LoadMetaDataAndCode(string &metadata, string &c_codegen);
 extern void RegisterBuiltin(NativeRegistry &natreg, const char *ns, const char *name,
-                            void (* regfun)(NativeRegistry &));
+                            const BuiltinGroup &group);
 extern void RegisterCoreLanguageBuiltins(NativeRegistry &natreg);
 
 extern FileLoader EnginePreInit(NativeRegistry &nfr);

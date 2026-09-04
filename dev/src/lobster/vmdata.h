@@ -170,7 +170,6 @@ struct Value;
 struct LString;
 struct LVector;
 struct LObject;
-struct BuiltinPtr;
 
 struct PrintPrefs {
     iint depth;
@@ -1169,9 +1168,6 @@ struct VM : VMBase {
 
     PrintPrefs programprintprefs { 10, 100000, false, -1 };
     const type_elem_t *typetable = nullptr;
-    // Owned by the NativeRegistry in vma, cached here so a builtin call is one load away from
-    // the function pointer it needs.
-    const BuiltinPtr *native_funs = nullptr;
     pair<string, iint> evalret;
 
     int currentline = -1;

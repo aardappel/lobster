@@ -276,17 +276,25 @@ Here's a simple example of a Lobster extension:
 
 using namespace lobster;
 
-void MyNativeOps(NativeRegistry &nfr) {
+BuiltinGroup my_builtins;
+#define BUILTIN_GROUP my_builtins
+#define BUILTIN_SYM(name) builtin_##name
 
-    nfr("add", "x,y", "II", "I",
-        "Adds two integers.",
-        [](StackPtr &, VM &, Value x, Value y) {
-            return Value(x.ival() + y.ival());
-        });
-
-    // more such declarations here
+BUILTIN(add, "x,y", "II", "I", "Adds two integers.")
+(StackPtr &, VM &, Value x, Value y) {
+    return Value(x.ival() + y.ival());
 }
+
+// more such definitions here
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`BUILTIN` defines an `extern "C"` function (named by `BUILTIN_SYM`, so here
+`builtin_add`, use a prefix like `builtin_gl_` for a group registered under a
+namespace) whose parameter list and body follow the macro, and a global holding
+the metadata that adds itself to the `BUILTIN_GROUP` list. The compiled code
+calls the function by that name, so the parameter list must be `StackPtr &`,
+`VM &` and then one `Value` per argument in the type string. See `natreg.h` for
+the variants for vararg builtins and for overloading a name.
 
 You'll need to become somewhat familiar with the Lobster internals to write
 these functions successfully, in particular with the `Value` type (see
@@ -316,7 +324,7 @@ programmer integrating new libraries (you will get an assert if 2 names ever
 clash).
 
 Now from your main program, you'll need to call
-`RegisterBuiltin(nfr, "name", MyNativeOps)` or similar before you invoke the
+`RegisterBuiltin(nfr, "", "name", my_builtins)` or similar before you invoke the
 Lobster compiler, such that these new functions are available during all
 compiler passes.
 

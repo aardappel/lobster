@@ -335,10 +335,10 @@ bool LoadMetaDataAndCode(string &metadata, string &c_codegen) {
 }
 
 void RegisterBuiltin(NativeRegistry &nfr, const char *ns, const char *name,
-                     void (* regfun)(NativeRegistry &)) {
+                     const BuiltinGroup &group) {
     LOG_DEBUG("subsystem: ", name);
     nfr.NativeSubSystemStart(ns, name);
-    regfun(nfr);
+    nfr.RegisterGroup(group);
 }
 
 void DumpBuiltinNames(NativeRegistry &nfr) {
@@ -594,10 +594,25 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view metadata_buffer, stri
                           const JitOptions &jit_options) {
     #if VM_JIT_MODE
         const char *export_names[] = { "compiled_entry_point", "vtables", nullptr };
+        // What the generated code may refer to: the runtime helpers, and the builtins by their
+        // symbol, which it gets from this executable.
+        vector<const void *> imports;
+        for (auto p = vm_ops_jit_table; *p; p += 2) {
+            imports.push_back(p[0]);
+            imports.push_back(p[1]);
+        }
+        for (auto nf : nfr.nfuns) {
+            auto addr = FindExecutableSymbol(nf->symbol);
+            if (!addr) THROW_OR_ABORT(cat("builtin ", nf->symbol, " is not exported by this executable"));
+            imports.push_back(nf->symbol);
+            imports.push_back(addr);
+        }
+        imports.push_back(nullptr);
+        imports.push_back(nullptr);
         auto start_time = SecondsSinceStart();
         pair<string, iint> ret;
         auto ok = RunC(
-            c_codegen.c_str(), object_name, error, vm_ops_jit_table, export_names, jit_options,
+            c_codegen.c_str(), object_name, error, imports.data(), export_names, jit_options,
             [&](void **exports) -> bool {
                 LOG_INFO("time to ", jit_options.mir ? "mir" : "tcc",
                          " (seconds): ", SecondsSinceStart() - start_time);
@@ -866,25 +881,28 @@ Value CompileRunCCode(VM &vm, StackPtr &sp, Value code, Value input) {
     #endif
 }
 
-void AddCompiler(NativeRegistry &nfr) {  // it knows how to call itself!
+// The compiler knows how to call itself!
+BuiltinGroup compiler_builtins;
+#define BUILTIN_GROUP compiler_builtins
+#define BUILTIN_SYM(name) builtin_##name
 
-nfr("compile_run_code", "code,args", "SS]", "SS?",
+BUILTIN(compile_run_code, "code,args", "SS]", "SS?",
     "compiles and runs lobster source, sandboxed from the current program (in its own VM)."
     " the argument is a string of code. returns the return value of the program as a string,"
     " with an error string as second return value, or nil if none. using parse_data(),"
     " two program can communicate more complex data structures even if they don't have the same"
-    " version of struct definitions.",
-    [](StackPtr &sp, VM &vm, Value filename, Value args) {
-        return CompileRun(vm, sp, filename, true, ValueToVectorOfStrings(args));
-    });
+    " version of struct definitions.")
+(StackPtr &sp, VM &vm, Value filename, Value args) {
+    return CompileRun(vm, sp, filename, true, ValueToVectorOfStrings(args));
+}
 
-nfr("compile_run_file", "filename,args", "SS]", "SS?",
-    "same as compile_run_code(), only now you pass a filename.",
-    [](StackPtr &sp, VM &vm, Value filename, Value args) {
-        return CompileRun(vm, sp, filename, false, ValueToVectorOfStrings(args));
-    });
+BUILTIN(compile_run_file, "filename,args", "SS]", "SS?",
+    "same as compile_run_code(), only now you pass a filename.")
+(StackPtr &sp, VM &vm, Value filename, Value args) {
+    return CompileRun(vm, sp, filename, false, ValueToVectorOfStrings(args));
+}
 
-nfr("compile_run_c_code", "code,input", "SS", "S?S?",
+BUILTIN(compile_run_c_code, "code,input", "SS", "S?S?",
     "compiles and runs C source code using the built-in C compiler (available in JIT mode only)."
     " the code must contain a main() function, which will be called."
     " input must be a string, whose (mutable) contents are available"
@@ -894,29 +912,27 @@ nfr("compile_run_c_code", "code,input", "SS", "S?S?",
     " malloc/realloc/free/memcpy/memmove/memset/strlen. all these are pre-declared."
     " returns the output as a string (or nil if output_buf() was never called), plus an error"
     " string as second return value (nil if none). note the C code can also modify the input"
-    " buffer in-place as a way to return data.",
-    [](StackPtr &sp, VM &vm, Value code, Value input) {
-        return CompileRunCCode(vm, sp, code, input);
-    });
-
+    " buffer in-place as a way to return data.")
+(StackPtr &sp, VM &vm, Value code, Value input) {
+    return CompileRunCCode(vm, sp, code, input);
 }
 
 void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
-    extern void AddBuiltins(NativeRegistry &nfr);
-    extern void AddCompiler(NativeRegistry &nfr);
-    extern void AddFile(NativeRegistry &nfr);
-    extern void AddFlatBuffers(NativeRegistry &nfr);
-    extern void AddReader(NativeRegistry &nfr);
-    extern void AddMatrix(NativeRegistry &nfr);
-    extern void AddNoise(NativeRegistry &nfr);
+    extern BuiltinGroup core_builtins;
+    extern BuiltinGroup compiler_builtins;
+    extern BuiltinGroup file_builtins;
+    extern BuiltinGroup flatbuffers_builtins;
+    extern BuiltinGroup parsedata_builtins;
+    extern BuiltinGroup matrix_builtins;
+    extern BuiltinGroup noise_builtins;
 
-    RegisterBuiltin(nfr, "", "builtin", AddBuiltins);
-    RegisterBuiltin(nfr, "", "compiler", AddCompiler);
-    RegisterBuiltin(nfr, "", "file", AddFile);
-    RegisterBuiltin(nfr, "flatbuffers", "flatbuffers", AddFlatBuffers);
-    RegisterBuiltin(nfr, "", "parsedata", AddReader);
-    RegisterBuiltin(nfr, "matrix", "matrix", AddMatrix);
-    RegisterBuiltin(nfr, "", "noise", AddNoise);
+    RegisterBuiltin(nfr, "", "builtin", core_builtins);
+    RegisterBuiltin(nfr, "", "compiler", compiler_builtins);
+    RegisterBuiltin(nfr, "", "file", file_builtins);
+    RegisterBuiltin(nfr, "flatbuffers", "flatbuffers", flatbuffers_builtins);
+    RegisterBuiltin(nfr, "", "parsedata", parsedata_builtins);
+    RegisterBuiltin(nfr, "matrix", "matrix", matrix_builtins);
+    RegisterBuiltin(nfr, "", "noise", noise_builtins);
 }
 
 #if !LOBSTER_ENGINE

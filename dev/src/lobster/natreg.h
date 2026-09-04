@@ -18,6 +18,23 @@
 #include "lobster/vmdata.h"
 #include "lobster/type.h"
 
+// The BUILTIN macros below give builtins C linkage while they take and return C++ types, which
+// is fine for our purposes, so these warnings are not useful.
+#ifdef __clang__
+    #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
+#elif defined(_MSC_VER)
+    #pragma warning(disable: 4190)
+#endif
+
+// The JIT looks the builtins the generated code refers to up by name in the running executable,
+// see FindExecutableSymbol(), which needs them exported from it. This does that on Windows, the
+// other platforms link with -rdynamic or equivalent instead, see ENABLE_EXPORTS in CMakeLists.txt.
+#ifdef _WIN32
+    #define BUILTIN_EXPORT __declspec(dllexport)
+#else
+    #define BUILTIN_EXPORT
+#endif
+
 namespace lobster {
 
 enum NArgFlags {
@@ -122,6 +139,8 @@ struct Narg {
     }
 };
 
+// The two kinds of builtin, see the BUILTIN macros below: one taking a fixed number of
+// arguments by value, and the V kind that works on the stack it is given.
 typedef void  (*builtinfV)(StackPtr &sp, VM &vm);
 typedef Value (*builtinf0)(StackPtr &sp, VM &vm);
 typedef Value (*builtinf1)(StackPtr &sp, VM &vm, Value);
@@ -132,38 +151,97 @@ typedef Value (*builtinf5)(StackPtr &sp, VM &vm, Value, Value, Value, Value, Val
 typedef Value (*builtinf6)(StackPtr &sp, VM &vm, Value, Value, Value, Value, Value, Value);
 typedef Value (*builtinf7)(StackPtr &sp, VM &vm, Value, Value, Value, Value, Value, Value, Value);
 
-struct BuiltinPtr {
-    union  {
-        builtinfV fV;
-        builtinf0 f0;
-        builtinf1 f1;
-        builtinf2 f2;
-        builtinf3 f3;
-        builtinf4 f4;
-        builtinf5 f5;
-        builtinf6 f6;
-        builtinf7 f7;
-    };
-    int fnargs;
+struct BuiltinDef;
 
-    BuiltinPtr()      : f0(nullptr), fnargs(0) {}
-    BuiltinPtr(builtinfV f) : fV(f), fnargs(-1) {}
-    BuiltinPtr(builtinf0 f) : f0(f), fnargs(0) {}
-    BuiltinPtr(builtinf1 f) : f1(f), fnargs(1) {}
-    BuiltinPtr(builtinf2 f) : f2(f), fnargs(2) {}
-    BuiltinPtr(builtinf3 f) : f3(f), fnargs(3) {}
-    BuiltinPtr(builtinf4 f) : f4(f), fnargs(4) {}
-    BuiltinPtr(builtinf5 f) : f5(f), fnargs(5) {}
-    BuiltinPtr(builtinf6 f) : f6(f), fnargs(6) {}
-    BuiltinPtr(builtinf7 f) : f7(f), fnargs(7) {}
+// The builtins of one subsystem in definition order, filled in by the BuiltinDef constructors
+// during static initialization. Has no constructor of its own such that it is zero-initialized
+// before any of those run, regardless of definition order.
+struct BuiltinGroup {
+    BuiltinDef *first = nullptr;
+    BuiltinDef *last = nullptr;
 };
 
-struct NativeFun : Named {
-    BuiltinPtr fun;
+// The metadata of a builtin as defined by the BUILTIN macros, each of which is a global that
+// links itself into its group. RegisterBuiltin() turns these into NativeFuns. There is no
+// pointer to the function here: the generated code refers to it by its symbol, see
+// CodeGen::EmitNativeCall.
+struct BuiltinDef {
+    const char *symbol;  // C linkage name of the function, e.g. "builtin_gl_frame".
+    const char *name;    // Lobster name, without namespace.
+    const char *ids;
+    const char *typeids;
+    const char *rets;
+    const char *help;
+    bool vararg;         // Of the V kind, see builtinfV.
+    BuiltinDef *next = nullptr;
 
+    BuiltinDef(BuiltinGroup &group, const char *symbol, const char *name, const char *ids,
+               const char *typeids, const char *rets, const char *help, bool vararg)
+        : symbol(symbol), name(name), ids(ids), typeids(typeids), rets(rets), help(help),
+          vararg(vararg) {
+        if (group.last) group.last->next = this;
+        else group.first = this;
+        group.last = this;
+    }
+};
+
+// Builtins are defined at file scope with the macros below. A file first declares the group its
+// builtins go into and how their C symbols are formed, e.g.:
+//
+//     BuiltinGroup graphics_builtins;
+//     #define BUILTIN_GROUP graphics_builtins
+//     #define BUILTIN_SYM(name) builtin_gl_##name
+//
+// and then each builtin is a function definition whose head the macro generates, from the
+// same name, argument names, argument types, return types and help as before, with the
+// parameter list and body following it:
+//
+//     BUILTIN(set_shader, "shader", "S", "", "changes the current shader.")
+//     (StackPtr &, VM &vm, Value shader) {
+//         ...
+//         return NilVal();
+//     }
+//
+// This defines extern "C" Value builtin_gl_set_shader(StackPtr &, VM &, Value), plus a
+// BuiltinDef global holding the metadata. The symbol is thus always "builtin_" followed by the
+// full Lobster name with a "_" for the ".", which RegisterGroup() below verifies, and it is
+// what the generated code calls the builtin by. Nothing checks that the parameter list matches
+// the argument types given: a builtin taking N arguments must have exactly StackPtr &, VM &
+// and N Values as parameters, see builtinf0..7 above.
+// BUILTIN_V is for the vararg kind of builtin that pops its arguments and pushes its results
+// itself, and returns void. The _OVERLOAD variants take a distinct symbol name and the Lobster
+// name separately, for names that are defined more than once with different argument types.
+// The symbol must then still start with the plain one, followed by a distinguishing suffix.
+#define BUILTIN_CAT_(a, b) a##b
+#define BUILTIN_CAT(a, b) BUILTIN_CAT_(a, b)
+#define BUILTIN_STR_(a) #a
+#define BUILTIN_STR(a) BUILTIN_STR_(a)
+#define BUILTIN_DEF_(sym, name, ids, typeids, rets, help, vararg) \
+    static lobster::BuiltinDef BUILTIN_CAT(sym, _def)( \
+        BUILTIN_GROUP, BUILTIN_STR(sym), name, ids, typeids, rets, help, vararg)
+#define BUILTIN(name, ids, typeids, rets, help) \
+    BUILTIN_DEF_(BUILTIN_SYM(name), #name, ids, typeids, rets, help, false); \
+    extern "C" BUILTIN_EXPORT lobster::Value BUILTIN_SYM(name)
+#define BUILTIN_V(name, ids, typeids, rets, help) \
+    BUILTIN_DEF_(BUILTIN_SYM(name), #name, ids, typeids, rets, help, true); \
+    extern "C" BUILTIN_EXPORT void BUILTIN_SYM(name)
+#define BUILTIN_OVERLOAD(sym, name, ids, typeids, rets, help) \
+    BUILTIN_DEF_(BUILTIN_SYM(sym), name, ids, typeids, rets, help, false); \
+    extern "C" BUILTIN_EXPORT lobster::Value BUILTIN_SYM(sym)
+#define BUILTIN_V_OVERLOAD(sym, name, ids, typeids, rets, help) \
+    BUILTIN_DEF_(BUILTIN_SYM(sym), name, ids, typeids, rets, help, true); \
+    extern "C" BUILTIN_EXPORT void BUILTIN_SYM(sym)
+
+struct NativeFun : Named {
     vector<Narg> args, retvals;
 
     const char *help;
+
+    // C linkage name of the function, which is how the generated code calls it.
+    const char *symbol;
+
+    // Of the V kind, see builtinfV.
+    bool vararg;
 
     int subsystemid = -1;
 
@@ -175,17 +253,18 @@ struct NativeFun : Named {
         return i;
     };
 
-    NativeFun(const char *ns, const char *nsname, BuiltinPtr f, const char *ids,
-              const char *typeids,
-              const char *rets, const char *help)
+    NativeFun(const char *ns, const char *nsname, const char *ids, const char *typeids,
+              const char *rets, const char *help, const char *symbol, bool vararg)
         : Named(*ns ? cat(ns, ".", nsname) : nsname, 0),
-          fun(f),
           args(TypeLen(typeids)),
           retvals(TypeLen(rets)),
-          help(help) {
-        if ((int)args.size() != f.fnargs && f.fnargs >= 0) Error("mismatching argument count");
+          help(help),
+          symbol(symbol),
+          vararg(vararg) {
+        // The generated code has a helper per argument count, see vmops.h.
+        if (!vararg && args.size() > 7) Error("too many arguments for a non-vararg builtin");
         auto StructArgsVararg = [&](const Narg &arg) {
-            if (arg.vttype->t == V_STRUCT_NUM && f.fnargs >= 0)
+            if (arg.vttype->t == V_STRUCT_NUM && !vararg)
                 Error("struct types can only be used by vararg builtins");
             (void)arg;
         };
@@ -214,9 +293,6 @@ struct NativeFun : Named {
 
 struct NativeRegistry {
     vector<NativeFun *> nfuns;
-    // The function pointers out of nfuns, flattened so that calling a builtin only needs to
-    // load the pointer itself rather than chase the NativeFun it lives in.
-    vector<BuiltinPtr> nfun_ptrs;
     unordered_map<string_view, NativeFun *> nfunlookup;  // Key points to value!
     vector<string> subsystems;
     vector<string_view> namespaces;
@@ -249,22 +325,6 @@ struct NativeRegistry {
         #endif
     }
 
-    #define REGISTER(N) \
-    void operator()(const char *nsname, const char *ids, const char *typeids, \
-                    const char *rets, const char *help, builtinf##N f) { \
-        Reg(new NativeFun(cur_ns, nsname, BuiltinPtr(f), ids, typeids, rets, help)); \
-    }
-    REGISTER(V)
-    REGISTER(0)
-    REGISTER(1)
-    REGISTER(2)
-    REGISTER(3)
-    REGISTER(4)
-    REGISTER(5)
-    REGISTER(6)
-    REGISTER(7)
-    #undef REGISTER
-
     void Reg(NativeFun *nf) {
         nf->idx = (int)nfuns.size();
         nf->subsystemid = (int)subsystems.size() - 1;
@@ -284,7 +344,23 @@ struct NativeRegistry {
             nfunlookup[nf->name /* must be in value */] = nf;
         }
         nfuns.push_back(nf);
-        nfun_ptrs.push_back(nf->fun);
+    }
+
+    // Registers all builtins defined with the BUILTIN macros into a group, in definition order.
+    void RegisterGroup(const BuiltinGroup &group) {
+        for (auto def = group.first; def; def = def->next) {
+            auto nf = new NativeFun(cur_ns, def->name, def->ids, def->typeids, def->rets,
+                                    def->help, def->symbol, def->vararg);
+            // Catches a file whose BUILTIN_SYM doesn't match the namespace it is registered
+            // under, which would make the symbol of its builtins unpredictable.
+            auto expected = cat("builtin_", *cur_ns ? cat(cur_ns, "_") : string(), def->name);
+            string_view symbol = def->symbol;
+            if (symbol.substr(0, expected.size()) != expected ||
+                (symbol.size() > expected.size() && symbol[expected.size()] != '_')) {
+                nf->Error(cat("symbol ", symbol, " should start with ", expected));
+            }
+            Reg(nf);
+        }
     }
 
     NativeFun *FindNative(string_view name) {

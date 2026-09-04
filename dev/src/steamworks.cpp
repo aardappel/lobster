@@ -1161,587 +1161,592 @@ iint IIntFromSteamID(const CSteamID &steam_id) {
 #define STEAM_STRING_VALUE(vm, ...)  Value(vm.NewString(""));
 #endif
 
-void AddSteam(NativeRegistry &nfr) {
+BuiltinGroup steam_builtins;
+#define BUILTIN_GROUP steam_builtins
+#define BUILTIN_SYM(name) builtin_steam_##name
 
-nfr("init", "appid,allowscreenshots,initrelay", "IBB", "I",
+BUILTIN(init, "appid,allowscreenshots,initrelay", "IBB", "I",
     "initializes SteamWorks. returns 1 if succesful, 0 on failure. Specify a non-0 appid if you"
     " want to restart from steam if this wasn't started from steam (the return value in this"
     " case will be -1 to indicate you should terminate this instance). If you don't specify an"
     " appid here or in steam_appid.txt, init will likely fail. The other functions can still be"
     " called even if steam isn't active."
     " allowscreenshots automatically uploads screenshots to steam (triggered by steam)."
-    " initrelay initializes the relay network for p2p early, to save time when it is first used.",
-    [](StackPtr &, VM &, Value appid, Value ss, Value relay) {
-        return Value(SteamInit(appid.ival(), ss.True(), relay.True()));
-    });
+    " initrelay initializes the relay network for p2p early, to save time when it is first used.")
+(StackPtr &, VM &, Value appid, Value ss, Value relay) {
+    return Value(SteamInit(appid.ival(), ss.True(), relay.True()));
+}
 
-nfr("shutdown", "", "", "",
-    "", [](StackPtr &, VM &) { SteamShutDown(); });
+BUILTIN_V(shutdown, "", "", "",
+    "")
+(StackPtr &, VM &) { SteamShutDown(); }
 
-nfr("overlay", "", "", "B",
-    "returns true if the steam overlay is currently on (you may want to auto-pause if so)",
-    [](StackPtr &, VM &) {
-        return Value(OverlayActive());
-    });
+BUILTIN(overlay, "", "", "B",
+    "returns true if the steam overlay is currently on (you may want to auto-pause if so)")
+(StackPtr &, VM &) {
+    return Value(OverlayActive());
+}
 
-nfr("username", "", "", "S",
-    "returns the name of the steam user, or empty string if not available.",
-    [](StackPtr &, VM &vm) {
-        return Value(vm.NewString(UserName()));
-    });
+BUILTIN(username, "", "", "S",
+    "returns the name of the steam user, or empty string if not available.")
+(StackPtr &, VM &vm) {
+    return Value(vm.NewString(UserName()));
+}
 
-nfr("unlock_achievement", "achievementname", "S", "B",
+BUILTIN(unlock_achievement, "achievementname", "S", "B",
     "Unlocks an achievement and shows the achievement overlay if not already achieved before."
     " Will also Q-up saving achievement to Steam."
-    " Returns true if succesful.",
-    [](StackPtr &, VM &, Value name) {
-        auto ok = UnlockAchievement(name.sval()->strvnt());
-        return Value(ok);
-    });
+    " Returns true if succesful.")
+(StackPtr &, VM &, Value name) {
+    auto ok = UnlockAchievement(name.sval()->strvnt());
+    return Value(ok);
+}
 
-nfr("write_file", "file,contents", "SS", "B",
+BUILTIN(write_file, "file,contents", "SS", "B",
     "writes a file with the contents of a string to the steam cloud, or local storage if that"
-    " fails, returns false if writing wasn't possible at all",
-    [](StackPtr &, VM &, Value file, Value contents) {
-        auto fn = file.sval()->strvnt();
-        auto s = contents.sval();
-        auto ok = SteamWriteFile(fn, s->strv());
-        if (!ok) {
-            ok = WriteFile(fn.sv, true, s->strv(), false);
-        }
-        return Value(ok);
-    });
+    " fails, returns false if writing wasn't possible at all")
+(StackPtr &, VM &, Value file, Value contents) {
+    auto fn = file.sval()->strvnt();
+    auto s = contents.sval();
+    auto ok = SteamWriteFile(fn, s->strv());
+    if (!ok) {
+        ok = WriteFile(fn.sv, true, s->strv(), false);
+    }
+    return Value(ok);
+}
 
-nfr("read_file", "file", "S", "S?",
+BUILTIN(read_file, "file", "S", "S?",
     "returns the contents of a file as a string from the steam cloud if available, or otherwise"
-    " from local storage, or nil if the file can't be found at all.",
-    [](StackPtr &, VM &vm, Value file) {
-        auto fn = file.sval()->strvnt();
-        string buf;
-        auto len = SteamReadFile(fn, buf);
-        if (!len) len = (int)LoadFile(fn.sv, &buf);
-        if (len < 0) return NilVal();
-        auto s = vm.NewString(buf);
-        return Value(s);
-    });
+    " from local storage, or nil if the file can't be found at all.")
+(StackPtr &, VM &vm, Value file) {
+    auto fn = file.sval()->strvnt();
+    string buf;
+    auto len = SteamReadFile(fn, buf);
+    if (!len) len = (int)LoadFile(fn.sv, &buf);
+    if (len < 0) return NilVal();
+    auto s = vm.NewString(buf);
+    return Value(s);
+}
 
-nfr("update", "", "", "",
-    "you must call this function in your game loop when using most steam APIs",
-    [](StackPtr &, VM &) {
-        SteamUpdate();
-    });
+BUILTIN_V(update, "", "", "",
+    "you must call this function in your game loop when using most steam APIs")
+(StackPtr &, VM &) {
+    SteamUpdate();
+}
 
-nfr("get_steam_id", "", "", "I", "get the steam id of the current user",
-    [](StackPtr &, VM &) {
-        return STEAM_IINT_VALUE(IIntFromSteamID(SteamUser()->GetSteamID()));
-    });
+BUILTIN(get_steam_id, "", "", "I", "get the steam id of the current user")
+(StackPtr &, VM &) {
+    return STEAM_IINT_VALUE(IIntFromSteamID(SteamUser()->GetSteamID()));
+}
 
-nfr("friend_get_username", "steam_id", "I", "S",
+BUILTIN(friend_get_username, "steam_id", "I", "S",
     "returns the name for the given steam id; this only works for friends, or users in the same "
-    "lobby, chat room, game server, etc.",
-    [](StackPtr &, VM &vm, Value steam_id) {
-        return STEAM_STRING_VALUE(vm, steam->GetFriendPersonaName(SteamIDFromValue(steam_id)));
-    });
+    "lobby, chat room, game server, etc.")
+(StackPtr &, VM &vm, Value steam_id) {
+    return STEAM_STRING_VALUE(vm, steam->GetFriendPersonaName(SteamIDFromValue(steam_id)));
+}
 
-nfr("has_friend", "steam_id,flags", "II", "B",
-    "returns true if the given steam_id is a friend with the matching flags",
-    [](StackPtr &, VM &vm, Value steam_id, Value friend_flags) {
-        return STEAM_BOOL_VALUE(vm, steam->HasFriend(SteamIDFromValue(steam_id), friend_flags.intval()));
-    });
+BUILTIN(has_friend, "steam_id,flags", "II", "B",
+    "returns true if the given steam_id is a friend with the matching flags")
+(StackPtr &, VM &vm, Value steam_id, Value friend_flags) {
+    return STEAM_BOOL_VALUE(vm, steam->HasFriend(SteamIDFromValue(steam_id), friend_flags.intval()));
+}
 
-nfr("net_identity", "", "", "S",
+BUILTIN(net_identity, "", "", "S",
     "returns the steam identity for this"
     " user. This same ID will be used for connecting to peers, sending messages,"
-    " etc.",
-    [](StackPtr &, VM &vm) {
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) {
-                SteamNetworkingIdentity identity{};
-                SteamNetworkingSockets()->GetIdentity(&identity);
-                return Value(GetIdentityString(vm, identity));
-            }
-        #endif
-        return Value(vm.NewString("none"));
-    });
+    " etc.")
+(StackPtr &, VM &vm) {
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            SteamNetworkingIdentity identity{};
+            SteamNetworkingSockets()->GetIdentity(&identity);
+            return Value(GetIdentityString(vm, identity));
+        }
+    #endif
+    return Value(vm.NewString("none"));
+}
 
-nfr("net_identity_from_steam_id", "steam_id", "I", "S",
-    "returns a network identity for the given steam id", [](StackPtr &, VM &vm, Value steam_id) {
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) {
-                SteamNetworkingIdentity identity{};
-                identity.SetSteamID((uint64)steam_id.ival());
-                return Value(GetIdentityString(vm, identity));
-            }
-        #endif
-        return Value(vm.NewString("none"));
-    });
+BUILTIN(net_identity_from_steam_id, "steam_id", "I", "S",
+    "returns a network identity for the given steam id")
+(StackPtr &, VM &vm, Value steam_id) {
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            SteamNetworkingIdentity identity{};
+            identity.SetSteamID((uint64)steam_id.ival());
+            return Value(GetIdentityString(vm, identity));
+        }
+    #endif
+    return Value(vm.NewString("none"));
+}
 
-nfr("net_identity_ipaddr", "", "", "S",
+BUILTIN(net_identity_ipaddr, "", "", "S",
     "returns the steam identity for this user, but as an IP address instead of a"
     " Steam ID. This can be useful when connecting two clients that are using the"
     " same Steam ID (e.g. on the same computer). NOTE: this will only work if "
-    " p2p_listen_ipaddr is called first.",
-    [](StackPtr &, VM &vm) {
-        return STEAM_STRING_VALUE(vm, steam->GetIpAddressIdentity());
-    });
+    " p2p_listen_ipaddr is called first.")
+(StackPtr &, VM &vm) {
+    return STEAM_STRING_VALUE(vm, steam->GetIpAddressIdentity());
+}
 
-nfr("p2p_set_send_buffer_size", "size", "I", "B", "set the upper limit of pending bytes to be sent",
-    [](StackPtr &, VM &, Value size) {
-        auto ok = STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(k_ESteamNetworkingConfig_SendBufferSize, size.intval()));
-        return Value(ok);
-    });
+BUILTIN(p2p_set_send_buffer_size, "size", "I", "B", "set the upper limit of pending bytes to be sent")
+(StackPtr &, VM &, Value size) {
+    auto ok = STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(k_ESteamNetworkingConfig_SendBufferSize, size.intval()));
+    return Value(ok);
+}
 
-nfr("p2p_set_recv_buffer_size", "size", "I", "",
+BUILTIN(p2p_set_recv_buffer_size, "size", "I", "",
     "upper limit on total size in bytes of received messages that will be buffered waiting "
-    "to be processed by the application",
-    [](StackPtr &, VM &, Value size) {
-        auto ok = STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(k_ESteamNetworkingConfig_RecvBufferSize, size.intval()));
-        return Value(ok);
-    });
+    "to be processed by the application")
+(StackPtr &, VM &, Value size) {
+    auto ok = STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(k_ESteamNetworkingConfig_RecvBufferSize, size.intval()));
+    return Value(ok);
+}
 
-nfr("p2p_get_connection_status", "ident", "S", "IFFFFFFIIIII",
+BUILTIN_V(p2p_get_connection_status, "ident", "S", "IFFFFFFIIIII",
     "receive realtime connection status info. Returned values are: ping, local quality, "
     "remote quality, out packets/sec, out bytes/sec, in packets/sec, in bytes/sec, send rate bytes/sec, "
     "pending unreliable packets, pending reliable packets, sent unACKed reliable packets, and queue time in usec. "
-    "See ISteamNetworkingSockets::GetConnectionRealTimeStatus() for more info.",
-    [](StackPtr &sp, VM &) {
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) {
-                auto ident = Pop(sp).sval()->strvnt();
-                SteamNetConnectionRealTimeStatus_t status;
-                steam->GetConnectionRealTimeStatus(ident, &status);
-                Push(sp, Value(status.m_nPing));
-                Push(sp, Value(status.m_flConnectionQualityLocal));
-                Push(sp, Value(status.m_flConnectionQualityRemote));
-                Push(sp, Value(status.m_flOutPacketsPerSec));
-                Push(sp, Value(status.m_flOutBytesPerSec));
-                Push(sp, Value(status.m_flInPacketsPerSec));
-                Push(sp, Value(status.m_flInBytesPerSec));
-                Push(sp, Value(status.m_nSendRateBytesPerSecond));
-                Push(sp, Value(status.m_cbPendingUnreliable));
-                Push(sp, Value(status.m_cbPendingReliable));
-                Push(sp, Value(status.m_cbSentUnackedReliable));
-                Push(sp, Value(status.m_usecQueueTime));
-                return;
-            }
-        #endif
-        Push(sp, Value(0));
-        Push(sp, Value(0.0f));
-        Push(sp, Value(0.0f));
-        Push(sp, Value(0.0f));
-        Push(sp, Value(0.0f));
-        Push(sp, Value(0.0f));
-        Push(sp, Value(0.0f));
-        Push(sp, Value(0));
-        Push(sp, Value(0));
-        Push(sp, Value(0));
-        Push(sp, Value(0));
-        Push(sp, Value(0));
-    });
+    "See ISteamNetworkingSockets::GetConnectionRealTimeStatus() for more info.")
+(StackPtr &sp, VM &) {
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            auto ident = Pop(sp).sval()->strvnt();
+            SteamNetConnectionRealTimeStatus_t status;
+            steam->GetConnectionRealTimeStatus(ident, &status);
+            Push(sp, Value(status.m_nPing));
+            Push(sp, Value(status.m_flConnectionQualityLocal));
+            Push(sp, Value(status.m_flConnectionQualityRemote));
+            Push(sp, Value(status.m_flOutPacketsPerSec));
+            Push(sp, Value(status.m_flOutBytesPerSec));
+            Push(sp, Value(status.m_flInPacketsPerSec));
+            Push(sp, Value(status.m_flInBytesPerSec));
+            Push(sp, Value(status.m_nSendRateBytesPerSecond));
+            Push(sp, Value(status.m_cbPendingUnreliable));
+            Push(sp, Value(status.m_cbPendingReliable));
+            Push(sp, Value(status.m_cbSentUnackedReliable));
+            Push(sp, Value(status.m_usecQueueTime));
+            return;
+        }
+    #endif
+    Push(sp, Value(0));
+    Push(sp, Value(0.0f));
+    Push(sp, Value(0.0f));
+    Push(sp, Value(0.0f));
+    Push(sp, Value(0.0f));
+    Push(sp, Value(0.0f));
+    Push(sp, Value(0.0f));
+    Push(sp, Value(0));
+    Push(sp, Value(0));
+    Push(sp, Value(0));
+    Push(sp, Value(0));
+    Push(sp, Value(0));
+}
 
-nfr("p2p_listen", "", "", "B", "open a listen socket to receive new connections",
-    [](StackPtr &, VM &) {
-        return STEAM_BOOL_VALUE(steam->P2PListen());
-    });
+BUILTIN(p2p_listen, "", "", "B", "open a listen socket to receive new connections")
+(StackPtr &, VM &) {
+    return STEAM_BOOL_VALUE(steam->P2PListen());
+}
 
-nfr("p2p_listen_ipaddr", "ipaddr", "S", "B", "open a listen socket for receive new IP address connections",
-    [](StackPtr &, VM &, Value ipaddr) {
-        return STEAM_BOOL_VALUE(steam->P2PListenIP(ipaddr.sval()->strvnt()));
-    });
+BUILTIN(p2p_listen_ipaddr, "ipaddr", "S", "B", "open a listen socket for receive new IP address connections")
+(StackPtr &, VM &, Value ipaddr) {
+    return STEAM_BOOL_VALUE(steam->P2PListenIP(ipaddr.sval()->strvnt()));
+}
 
-nfr("p2p_close_listen", "", "", "B", "close the listen socket and stop accepting new connections",
-    [](StackPtr &, VM &) {
-        return STEAM_BOOL_VALUE(steam->CloseListen());
-    });
+BUILTIN(p2p_close_listen, "", "", "B", "close the listen socket and stop accepting new connections")
+(StackPtr &, VM &) {
+    return STEAM_BOOL_VALUE(steam->CloseListen());
+}
 
-nfr("p2p_connect", "ident", "S", "B", "connect to a user with a given steam "
+BUILTIN(p2p_connect, "ident", "S", "B", "connect to a user with a given steam "
     "identity (e.g. \"steam:XXXX\") or ip address (e.g. \"ip:127.0.0.1:5105\") that "
-    "has opened a listen socket",
-    [](StackPtr &, VM &, Value ident) {
-        return STEAM_BOOL_VALUE(steam->P2PConnect(ident.sval()->strvnt()));
-    });
+    "has opened a listen socket")
+(StackPtr &, VM &, Value ident) {
+    return STEAM_BOOL_VALUE(steam->P2PConnect(ident.sval()->strvnt()));
+}
 
-nfr("p2p_connect_ipaddr", "ipaddr", "S", "B", "connect to a user with a given IP address that has opened a listen socket",
-    [](StackPtr &, VM &, Value ipaddr) {
-        return STEAM_BOOL_VALUE(steam->P2PConnectIP(ipaddr.sval()->strvnt()));
-    });
+BUILTIN(p2p_connect_ipaddr, "ipaddr", "S", "B", "connect to a user with a given IP address that has opened a listen socket")
+(StackPtr &, VM &, Value ipaddr) {
+    return STEAM_BOOL_VALUE(steam->P2PConnectIP(ipaddr.sval()->strvnt()));
+}
 
-nfr("p2p_close_connection", "ident,linger", "SB", "B",
+BUILTIN(p2p_close_connection, "ident,linger", "SB", "B",
     "close a connection opened with p2p_connect(); if linger is true then the connection will "
-    "remain open for a short time to finish pending messages",
-    [](StackPtr &, VM &, Value ident, Value linger) {
-        return STEAM_BOOL_VALUE(steam->P2PCloseConnection(ident.sval()->strvnt(), linger.intval()));
-    });
+    "remain open for a short time to finish pending messages")
+(StackPtr &, VM &, Value ident, Value linger) {
+    return STEAM_BOOL_VALUE(steam->P2PCloseConnection(ident.sval()->strvnt(), linger.intval()));
+}
 
-nfr("p2p_get_connections", "", "", "S]", "get a list of the steam identites that are currently connected",
-    [](StackPtr &, VM &vm) {
-        auto *peers_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+BUILTIN(p2p_get_connections, "", "", "S]", "get a list of the steam identites that are currently connected")
+(StackPtr &, VM &vm) {
+    auto *peers_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
 
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) {
-                SteamNetworkingIdentity local_identity{};
-                SteamNetworkingSockets()->GetIdentity(&local_identity);
-                for (auto &peer: steam->peers) {
-                    if (!peer.is_connected) continue;
-                    peers_vec->Push(vm, vm.NewString(peer.ident));
-                }
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            SteamNetworkingIdentity local_identity{};
+            SteamNetworkingSockets()->GetIdentity(&local_identity);
+            for (auto &peer: steam->peers) {
+                if (!peer.is_connected) continue;
+                peers_vec->Push(vm, vm.NewString(peer.ident));
             }
-        #endif  // PLATFORM_STEAMWORKS
+        }
+    #endif  // PLATFORM_STEAMWORKS
 
-        return Value(peers_vec);
-    });
+    return Value(peers_vec);
+}
 
-nfr("p2p_rename_peer", "ident,new_ident", "SS", "B", "use a different identifier"
+BUILTIN(p2p_rename_peer, "ident,new_ident", "SS", "B", "use a different identifier"
     " for this peer. This can be useful when connecting multiple users using"
     " peer-to-peer, so you can have all peers in the network use the listen socket IP"
-    " address and port as the identifier.",
-    [](StackPtr &, VM &, Value ident, Value new_ident) {
-        return STEAM_BOOL_VALUE(steam->RenamePeer(ident.sval()->strvnt(), new_ident.sval()->strvnt()));
-    });
+    " address and port as the identifier.")
+(StackPtr &, VM &, Value ident, Value new_ident) {
+    return STEAM_BOOL_VALUE(steam->RenamePeer(ident.sval()->strvnt(), new_ident.sval()->strvnt()));
+}
 
-nfr("p2p_send_message", "ident,data,reliable", "SSB", "BI", "send a reliable message to a given steam identity",
-    [](StackPtr &sp, VM &) {
-        auto reliable = Pop(sp);
-        auto data = Pop(sp);
-        auto ident = Pop(sp);
-        #ifdef PLATFORM_STEAMWORKS
-            EResult result = k_EResultNone;
-            auto ok = steam && steam->SendMessage(ident.sval()->strvnt(), data.sval()->strv(), reliable.intval(), &result);
-            Push(sp, Value(ok));
-            Push(sp, Value(result));
-        #else
-            (void)reliable;
-            (void)data;
-            (void)ident;
-            Push(sp, Value(false));
-            Push(sp, Value(0));
-        #endif
-    });
+BUILTIN_V(p2p_send_message, "ident,data,reliable", "SSB", "BI", "send a reliable message to a given steam identity")
+(StackPtr &sp, VM &) {
+    auto reliable = Pop(sp);
+    auto data = Pop(sp);
+    auto ident = Pop(sp);
+    #ifdef PLATFORM_STEAMWORKS
+        EResult result = k_EResultNone;
+        auto ok = steam && steam->SendMessage(ident.sval()->strvnt(), data.sval()->strv(), reliable.intval(), &result);
+        Push(sp, Value(ok));
+        Push(sp, Value(result));
+    #else
+        (void)reliable;
+        (void)data;
+        (void)ident;
+        Push(sp, Value(false));
+        Push(sp, Value(0));
+    #endif
+}
 
-nfr("p2p_broadcast_message", "data,reliable", "SB", "B", "send a reliable message to all connected peers",
-    [](StackPtr &, VM &, Value data, Value reliable) {
-        return STEAM_BOOL_VALUE(steam->BroadcastMessage(data.sval()->strv(), reliable.intval()));
-    });
+BUILTIN(p2p_broadcast_message, "data,reliable", "SB", "B", "send a reliable message to all connected peers")
+(StackPtr &, VM &, Value data, Value reliable) {
+    return STEAM_BOOL_VALUE(steam->BroadcastMessage(data.sval()->strv(), reliable.intval()));
+}
 
-nfr("p2p_receive_messages", "", "", "S]S]", "receive messages from all"
+BUILTIN_V(p2p_receive_messages, "", "", "S]S]", "receive messages from all"
     " connected peers. The first return value is an array of messages, the second"
-    " return value is an array of the steam identities that sent each message",
-    [](StackPtr &sp, VM &vm) {
-        auto *client_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
-        auto *data_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+    " return value is an array of the steam identities that sent each message")
+(StackPtr &sp, VM &vm) {
+    auto *client_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+    auto *data_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
 
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) {
-                auto messages = steam->ReceiveMessages();
-                for (auto *message: messages) {
-                    auto *data = vm.NewString(string_view((char*)message->m_pData, message->m_cbSize));
-                    auto peer = steam->FindPeer(message->m_conn);  // TODO: optimize?
-                    if (peer != steam->peers.end()) {
-                        client_vec->Push(vm, vm.NewString(peer->ident));
-                        data_vec->Push(vm, data);
-                    }
-                    message->Release();
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            auto messages = steam->ReceiveMessages();
+            for (auto *message: messages) {
+                auto *data = vm.NewString(string_view((char*)message->m_pData, message->m_cbSize));
+                auto peer = steam->FindPeer(message->m_conn);  // TODO: optimize?
+                if (peer != steam->peers.end()) {
+                    client_vec->Push(vm, vm.NewString(peer->ident));
+                    data_vec->Push(vm, data);
                 }
+                message->Release();
             }
-        #endif  // PLATFORM_STEAMWORKS
+        }
+    #endif  // PLATFORM_STEAMWORKS
 
-        Push(sp, data_vec);
-        Push(sp, client_vec);
-    });
+    Push(sp, data_vec);
+    Push(sp, client_vec);
+}
 
-nfr("p2p_set_global_config_value", "enum,value", "II", "", "",
-    [](StackPtr &, VM &, Value enum_, Value value) {
-        return STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(enum_.intval(), value.intval()));
-    });
+BUILTIN_OVERLOAD(p2p_set_global_config_value_int, "p2p_set_global_config_value", "enum,value", "II", "", "")
+(StackPtr &, VM &, Value enum_, Value value) {
+    return STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(enum_.intval(), value.intval()));
+}
 
-nfr("p2p_set_global_config_value", "enum,value", "IF", "", "",
-    [](StackPtr &, VM &, Value enum_, Value value) {
-        return STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(enum_.intval(), value.fltval()));
-    });
+BUILTIN_OVERLOAD(p2p_set_global_config_value_float, "p2p_set_global_config_value", "enum,value", "IF", "", "")
+(StackPtr &, VM &, Value enum_, Value value) {
+    return STEAM_BOOL_VALUE(steam->SetGlobalConfigValue(enum_.intval(), value.fltval()));
+}
 
-nfr("p2p_set_debug_output_level", "level", "I", "",
-    "set the debug level for networking output.",
-    [](StackPtr &, VM &, Value level) {
-        #ifdef PLATFORM_STEAMWORKS
-            steam->SetDebugOutputLevel(level.intval());
-        #endif
-        return NilVal();
-    });
+BUILTIN(p2p_set_debug_output_level, "level", "I", "",
+    "set the debug level for networking output.")
+(StackPtr &, VM &, Value level) {
+    #ifdef PLATFORM_STEAMWORKS
+        steam->SetDebugOutputLevel(level.intval());
+    #endif
+    return NilVal();
+}
 
-nfr("p2p_get_debug_output", "", "", "S]",
-    "get the debug networking output.",
-    [](StackPtr &, VM &vm) {
-        auto *output_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+BUILTIN(p2p_get_debug_output, "", "", "S]",
+    "get the debug networking output.")
+(StackPtr &, VM &vm) {
+    auto *output_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
 
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) {
-                for (auto &output : steam->GetDebugOutput()) {
-                    output_vec->Push(vm, vm.NewString(output));
-                }
-                steam->debug_output.clear();
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            for (auto &output : steam->GetDebugOutput()) {
+                output_vec->Push(vm, vm.NewString(output));
             }
-        #endif  // PLATFORM_STEAMWORKS
+            steam->debug_output.clear();
+        }
+    #endif  // PLATFORM_STEAMWORKS
 
-        return Value(output_vec);
-    });
+    return Value(output_vec);
+}
 
-nfr("lobby_create", "max_members", "I", "B",
+BUILTIN_OVERLOAD(lobby_create_max_members, "lobby_create", "max_members", "I", "B",
     "create a new lobby that allows at most a given number of members; this lobby will be "
-    "automatically joined. use lobby_get_created() to get the newly created lobby's steam id",
-    [](StackPtr &, VM &, Value max_members) {
-        return STEAM_BOOL_VALUE(steam->CreateLobby(k_ELobbyTypePublic, max_members.intval()));
-    });
+    "automatically joined. use lobby_get_created() to get the newly created lobby's steam id")
+(StackPtr &, VM &, Value max_members) {
+    return STEAM_BOOL_VALUE(steam->CreateLobby(k_ELobbyTypePublic, max_members.intval()));
+}
 
-nfr("lobby_create", "lobby_type,max_members", "II", "B",
+BUILTIN_OVERLOAD(lobby_create_typed, "lobby_create", "lobby_type,max_members", "II", "B",
     "create a new lobby of a given lobby type that allows at most a given number "
     "of members; this lobby will be automatically joined. use lobby_get_created() "
-    "to get the newly created lobby's steam id",
-    [](StackPtr &, VM &, Value lobby_type, Value max_members) {
-        return STEAM_BOOL_VALUE(steam->CreateLobby(lobby_type.intval(), max_members.intval()));
-    });
+    "to get the newly created lobby's steam id")
+(StackPtr &, VM &, Value lobby_type, Value max_members) {
+    return STEAM_BOOL_VALUE(steam->CreateLobby(lobby_type.intval(), max_members.intval()));
+}
 
-nfr("lobby_get_created", "", "", "I",
-    "get the steam id of the most recently created lobby",
-    [](StackPtr &, VM &) {
-        return STEAM_IINT_VALUE(IIntFromSteamID(steam->created_lobby));
-    });
+BUILTIN(lobby_get_created, "", "", "I",
+    "get the steam id of the most recently created lobby")
+(StackPtr &, VM &) {
+    return STEAM_IINT_VALUE(IIntFromSteamID(steam->created_lobby));
+}
 
-nfr("lobby_join", "steam_id", "I", "B", "join a lobby with the given steam id",
-    [](StackPtr &, VM &, Value steam_id) {
-        return STEAM_BOOL_VALUE(steam->JoinLobby(SteamIDFromValue(steam_id)));
-    });
+BUILTIN(lobby_join, "steam_id", "I", "B", "join a lobby with the given steam id")
+(StackPtr &, VM &, Value steam_id) {
+    return STEAM_BOOL_VALUE(steam->JoinLobby(SteamIDFromValue(steam_id)));
+}
 
-nfr("lobby_leave", "steam_id", "I", "B", "leave a lobby with the given steam id",
-    [](StackPtr &, VM &, Value steam_id) {
-        return STEAM_BOOL_VALUE(steam->LeaveLobby(SteamIDFromValue(steam_id)));
-    });
+BUILTIN(lobby_leave, "steam_id", "I", "B", "leave a lobby with the given steam id")
+(StackPtr &, VM &, Value steam_id) {
+    return STEAM_BOOL_VALUE(steam->LeaveLobby(SteamIDFromValue(steam_id)));
+}
 
-nfr("lobby_set_joinable", "steam_id,joinable", "IB", "B",
-    "mark a lobby as joinable; only works if you are the owner",
-    [](StackPtr &, VM &, Value steam_id, Value joinable) {
-        return STEAM_BOOL_VALUE(
-            steam->SetLobbyJoinable(SteamIDFromValue(steam_id), joinable.intval()));
-    });
+BUILTIN(lobby_set_joinable, "steam_id,joinable", "IB", "B",
+    "mark a lobby as joinable; only works if you are the owner")
+(StackPtr &, VM &, Value steam_id, Value joinable) {
+    return STEAM_BOOL_VALUE(
+        steam->SetLobbyJoinable(SteamIDFromValue(steam_id), joinable.intval()));
+}
 
-nfr("lobby_get_joined", "", "", "I",
-    "get a list of the most recent lobby joined with lobby_create() or lobby_join()",
-    [](StackPtr &, VM &) {
-        return STEAM_IINT_VALUE(IIntFromSteamID(steam->joined_lobby));
-    });
+BUILTIN(lobby_get_joined, "", "", "I",
+    "get a list of the most recent lobby joined with lobby_create() or lobby_join()")
+(StackPtr &, VM &) {
+    return STEAM_IINT_VALUE(IIntFromSteamID(steam->joined_lobby));
+}
 
-nfr("lobby_get_all_joined", "", "", "I]",
-    "get a list of all of the lobbies that have been joined with lobby_create() or lobby_join()",
-    [](StackPtr &, VM &vm) {
-        auto *lobbies_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
+BUILTIN(lobby_get_all_joined, "", "", "I]",
+    "get a list of all of the lobbies that have been joined with lobby_create() or lobby_join()")
+(StackPtr &, VM &vm) {
+    auto *lobbies_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
 
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) {
-                for (const auto &lobby_id : steam->joined_lobbies) {
-                    lobbies_vec->Push(vm, (iint)lobby_id.ConvertToUint64());
-                }
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            for (const auto &lobby_id : steam->joined_lobbies) {
+                lobbies_vec->Push(vm, (iint)lobby_id.ConvertToUint64());
             }
-        #endif  // PLATFORM_STEAMWORKS
+        }
+    #endif  // PLATFORM_STEAMWORKS
 
-        return Value(lobbies_vec);
-    });
+    return Value(lobbies_vec);
+}
 
-nfr("lobby_get_owner", "steam_id", "I", "I",
-    "get the steam id of the owner of the given lobby",
-    [](StackPtr &, VM &, Value steam_id) {
-        return STEAM_IINT_VALUE(IIntFromSteamID(steam->GetLobbyOwner(SteamIDFromValue(steam_id))));
-    });
+BUILTIN(lobby_get_owner, "steam_id", "I", "I",
+    "get the steam id of the owner of the given lobby")
+(StackPtr &, VM &, Value steam_id) {
+    return STEAM_IINT_VALUE(IIntFromSteamID(steam->GetLobbyOwner(SteamIDFromValue(steam_id))));
+}
 
-nfr("lobby_request_data", "steam_id", "I", "B",
+BUILTIN(lobby_request_data, "steam_id", "I", "B",
     "refresh data for a given lobby; it is not necessary to call this for any lobby that you have "
-    "joined",
-    [](StackPtr &, VM &, Value steam_id) {
-        return STEAM_BOOL_VALUE(steam->RequestLobbyData(SteamIDFromValue(steam_id)));
-    });
+    "joined")
+(StackPtr &, VM &, Value steam_id) {
+    return STEAM_BOOL_VALUE(steam->RequestLobbyData(SteamIDFromValue(steam_id)));
+}
 
-nfr("lobby_get_data", "steam_id,key", "IS", "S",
+BUILTIN(lobby_get_data, "steam_id,key", "IS", "S",
     "get the matching value for a given key stored on this lobby; if the key has not been set then "
-    "the result is an empty string",
-    [](StackPtr &, VM &vm, Value steam_id, Value key) {
-        return STEAM_STRING_VALUE(
-            vm, steam->GetLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str()));
-    });
+    "the result is an empty string")
+(StackPtr &, VM &vm, Value steam_id, Value key) {
+    return STEAM_STRING_VALUE(
+        vm, steam->GetLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str()));
+}
 
-nfr("lobby_get_all_data", "steam_id", "I", "S]S]", "get all key-value pairs stored on this lobby",
-    [](StackPtr &sp, VM &vm) {
-        auto vsteam_id = Pop(sp);
-        (void)vsteam_id;
-        auto *key_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
-        auto *value_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+BUILTIN_V(lobby_get_all_data, "steam_id", "I", "S]S]", "get all key-value pairs stored on this lobby")
+(StackPtr &sp, VM &vm) {
+    auto vsteam_id = Pop(sp);
+    (void)vsteam_id;
+    auto *key_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+    auto *value_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
 
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) {
-                CSteamID steam_id = SteamIDFromValue(vsteam_id);
-                auto count = steam->GetLobbyDataCount(steam_id);
-                for (int i = 0; i < count; ++i) {
-                    char key[k_nMaxLobbyKeyLength];
-                    char value[k_cubChatMetadataMax];
-                    auto ok =
-                        steam->GetLobbyDataByIndex(steam_id, i, key, sizeof(key), value, sizeof(value));
-                    if (ok) {
-                        key_vec->Push(vm, vm.NewString(key));
-                        value_vec->Push(vm, vm.NewString(value));
-                    }
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            CSteamID steam_id = SteamIDFromValue(vsteam_id);
+            auto count = steam->GetLobbyDataCount(steam_id);
+            for (int i = 0; i < count; ++i) {
+                char key[k_nMaxLobbyKeyLength];
+                char value[k_cubChatMetadataMax];
+                auto ok =
+                    steam->GetLobbyDataByIndex(steam_id, i, key, sizeof(key), value, sizeof(value));
+                if (ok) {
+                    key_vec->Push(vm, vm.NewString(key));
+                    value_vec->Push(vm, vm.NewString(value));
                 }
             }
-        #endif  // PLATFORM_STEAMWORKS
+        }
+    #endif  // PLATFORM_STEAMWORKS
 
-        Push(sp, key_vec);
-        Push(sp, value_vec);
-    });
+    Push(sp, key_vec);
+    Push(sp, value_vec);
+}
 
-nfr("lobby_set_data", "steam_id,key,value", "ISS", "B",
-    "set a key-value pair for this lobby; only works if you are the owner",
-    [](StackPtr &, VM &, Value steam_id, Value key, Value value) {
-        return STEAM_BOOL_VALUE(steam->SetLobbyData(SteamIDFromValue(steam_id),
-                                                    key.sval()->strvnt().c_str(),
-                                                    value.sval()->strvnt().c_str()));
-    });
+BUILTIN(lobby_set_data, "steam_id,key,value", "ISS", "B",
+    "set a key-value pair for this lobby; only works if you are the owner")
+(StackPtr &, VM &, Value steam_id, Value key, Value value) {
+    return STEAM_BOOL_VALUE(steam->SetLobbyData(SteamIDFromValue(steam_id),
+                                                key.sval()->strvnt().c_str(),
+                                                value.sval()->strvnt().c_str()));
+}
 
-nfr("lobby_delete_data", "steam_id,key", "IS", "B",
-    "delete a key-value pair for this lobby; only works if you are the owner",
-    [](StackPtr &, VM &, Value steam_id, Value key) {
-        return STEAM_BOOL_VALUE(
-            steam->DeleteLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str()));
-    });
+BUILTIN(lobby_delete_data, "steam_id,key", "IS", "B",
+    "delete a key-value pair for this lobby; only works if you are the owner")
+(StackPtr &, VM &, Value steam_id, Value key) {
+    return STEAM_BOOL_VALUE(
+        steam->DeleteLobbyData(SteamIDFromValue(steam_id), key.sval()->strvnt().c_str()));
+}
 
-nfr("lobby_get_num_members", "steam_id", "I", "I", "get the number of members in this lobby",
-    [](StackPtr &, VM &, Value steam_id) {
-        return STEAM_INT_VALUE(steam->GetNumLobbyMembers(SteamIDFromValue(steam_id)));
-    });
+BUILTIN(lobby_get_num_members, "steam_id", "I", "I", "get the number of members in this lobby")
+(StackPtr &, VM &, Value steam_id) {
+    return STEAM_INT_VALUE(steam->GetNumLobbyMembers(SteamIDFromValue(steam_id)));
+}
 
-nfr("lobby_get_members", "steam_id", "I", "I]",
-    "get the steam ids of all members in this lobby; only works if you have joined the lobby",
-    [](StackPtr &, VM &vm, Value vsteam_id) {
-        auto *members_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
+BUILTIN(lobby_get_members, "steam_id", "I", "I]",
+    "get the steam ids of all members in this lobby; only works if you have joined the lobby")
+(StackPtr &, VM &vm, Value vsteam_id) {
+    auto *members_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
 
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) {
-                CSteamID steam_id = SteamIDFromValue(vsteam_id);
-                int num_members = steam->GetNumLobbyMembers(steam_id);
-                for (int i = 0; i < num_members; ++i) {
-                    auto id = steam->GetLobbyMemberByIndex(steam_id, i);
-                    if (id.IsValid()) {
-                        // NOTE: Can't use id.Render() because it seems to be unimplemented?
-                        members_vec->Push(vm, (iint)id.ConvertToUint64());
-                    }
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            CSteamID steam_id = SteamIDFromValue(vsteam_id);
+            int num_members = steam->GetNumLobbyMembers(steam_id);
+            for (int i = 0; i < num_members; ++i) {
+                auto id = steam->GetLobbyMemberByIndex(steam_id, i);
+                if (id.IsValid()) {
+                    // NOTE: Can't use id.Render() because it seems to be unimplemented?
+                    members_vec->Push(vm, (iint)id.ConvertToUint64());
                 }
             }
-        #endif  // PLATFORM_STEAMWORKS
+        }
+    #endif  // PLATFORM_STEAMWORKS
 
-        return Value(members_vec);
-    });
+    return Value(members_vec);
+}
 
-nfr("lobby_request_add_numerical_filter", "key,value,cmp", "SII", "B",
-    "add a numerical filter for the next lobby request",
-    [](StackPtr &, VM &, Value key, Value value, Value cmp) {
-        return STEAM_BOOL_VALUE(steam->AddRequestLobbyListNumericalFilter(
-            key.sval()->strvnt().c_str(), value.intval(), (ELobbyComparison)cmp.intval()));
-    });
+BUILTIN(lobby_request_add_numerical_filter, "key,value,cmp", "SII", "B",
+    "add a numerical filter for the next lobby request")
+(StackPtr &, VM &, Value key, Value value, Value cmp) {
+    return STEAM_BOOL_VALUE(steam->AddRequestLobbyListNumericalFilter(
+        key.sval()->strvnt().c_str(), value.intval(), (ELobbyComparison)cmp.intval()));
+}
 
-nfr("lobby_request_add_string_filter", "key,value,cmp", "SSI", "B",
-    "add a string filter for the next lobby request",
-    [](StackPtr &, VM &, Value key, Value value, Value cmp) {
-        return STEAM_BOOL_VALUE(steam->AddRequestLobbyListStringFilter(
-            key.sval()->strvnt().c_str(), value.sval()->strvnt().c_str(),
-            (ELobbyComparison)cmp.intval()));
-    });
+BUILTIN(lobby_request_add_string_filter, "key,value,cmp", "SSI", "B",
+    "add a string filter for the next lobby request")
+(StackPtr &, VM &, Value key, Value value, Value cmp) {
+    return STEAM_BOOL_VALUE(steam->AddRequestLobbyListStringFilter(
+        key.sval()->strvnt().c_str(), value.sval()->strvnt().c_str(),
+        (ELobbyComparison)cmp.intval()));
+}
 
-nfr("lobby_request_add_result_count_filter", "count", "I", "B",
-    "add a result count limit for the next lobby request", [](StackPtr &, VM &, Value count) {
-        return STEAM_BOOL_VALUE(steam->AddRequestLobbyListResultCountFilter(count.intval()));
-    });
+BUILTIN(lobby_request_add_result_count_filter, "count", "I", "B",
+    "add a result count limit for the next lobby request")
+(StackPtr &, VM &, Value count) {
+    return STEAM_BOOL_VALUE(steam->AddRequestLobbyListResultCountFilter(count.intval()));
+}
 
-nfr("lobby_request_list", "", "", "B",
+BUILTIN(lobby_request_list, "", "", "B",
     "request a list of lobbies that match the current set of filters; this function completes "
     "asynchronously, call lobby_request_is_ready() to determine when it is ready and "
-    "lobby_request_get_lobbies() to get the results",
-    [](StackPtr &, VM &) {
-        return STEAM_BOOL_VALUE(steam->RequestLobbyList());
-    });
+    "lobby_request_get_lobbies() to get the results")
+(StackPtr &, VM &) {
+    return STEAM_BOOL_VALUE(steam->RequestLobbyList());
+}
 
-nfr("lobby_request_list_reset", "", "", "",
-    "clear the list of matched lobbies, so lobby_request_is_ready() returns false",
-    [](StackPtr &, VM &) {
-        return STEAM_BOOL_VALUE(steam->LobbyListReset());
-    });
+BUILTIN(lobby_request_list_reset, "", "", "",
+    "clear the list of matched lobbies, so lobby_request_is_ready() returns false")
+(StackPtr &, VM &) {
+    return STEAM_BOOL_VALUE(steam->LobbyListReset());
+}
 
-nfr("lobby_request_is_ready", "", "", "B",
-    "returns true when a call to lobby_request_list() has finished",
-    [](StackPtr &, VM &) {
-        return STEAM_BOOL_VALUE(steam->LobbyListIsReady());
-    });
+BUILTIN(lobby_request_is_ready, "", "", "B",
+    "returns true when a call to lobby_request_list() has finished")
+(StackPtr &, VM &) {
+    return STEAM_BOOL_VALUE(steam->LobbyListIsReady());
+}
 
-nfr("lobby_request_get_lobbies", "", "", "I]",
-    "returns the list of matched lobbies when lobby_request_list() has finished",
-    [](StackPtr &, VM &vm) {
-        auto *lobbies_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
+BUILTIN(lobby_request_get_lobbies, "", "", "I]",
+    "returns the list of matched lobbies when lobby_request_list() has finished")
+(StackPtr &, VM &vm) {
+    auto *lobbies_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_INT);
 
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam && steam->matched_lobbies >= 0) {
-                for (int i = 0; i < steam->matched_lobbies; ++i) {
-                    auto id = steam->GetLobbyByIndex(i);
-                    if (id.IsValid()) {
-                        // NOTE: Can't use id.Render() because it seems to be unimplemented?
-                        lobbies_vec->Push(vm, (iint)id.ConvertToUint64());
-                    }
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam && steam->matched_lobbies >= 0) {
+            for (int i = 0; i < steam->matched_lobbies; ++i) {
+                auto id = steam->GetLobbyByIndex(i);
+                if (id.IsValid()) {
+                    // NOTE: Can't use id.Render() because it seems to be unimplemented?
+                    lobbies_vec->Push(vm, (iint)id.ConvertToUint64());
                 }
             }
-        #endif  // PLATFORM_STEAMWORKS
+        }
+    #endif  // PLATFORM_STEAMWORKS
 
-        return Value(lobbies_vec);
-    });
+    return Value(lobbies_vec);
+}
 
-nfr("lobby_get_game_server", "lobby_id", "I", "I", "get the game server associated with this lobby",
-    [](StackPtr &, VM &, Value lobby_id) {
-        return STEAM_IINT_VALUE(
-            IIntFromSteamID(steam->GetLobbyGameServer(SteamIDFromValue(lobby_id))));
-    });
+BUILTIN(lobby_get_game_server, "lobby_id", "I", "I", "get the game server associated with this lobby")
+(StackPtr &, VM &, Value lobby_id) {
+    return STEAM_IINT_VALUE(
+        IIntFromSteamID(steam->GetLobbyGameServer(SteamIDFromValue(lobby_id))));
+}
 
-nfr("lobby_set_game_server", "lobby_id,server_id", "II", "B",
-    "set the game server associated with this lobby; only works if you are the owner",
-    [](StackPtr &, VM &, Value lobby_id, Value server_id) {
-        return STEAM_BOOL_VALUE(
-            steam->SetLobbyGameServer(SteamIDFromValue(lobby_id), SteamIDFromValue(server_id)));
-    });
+BUILTIN(lobby_set_game_server, "lobby_id,server_id", "II", "B",
+    "set the game server associated with this lobby; only works if you are the owner")
+(StackPtr &, VM &, Value lobby_id, Value server_id) {
+    return STEAM_BOOL_VALUE(
+        steam->SetLobbyGameServer(SteamIDFromValue(lobby_id), SteamIDFromValue(server_id)));
+}
 
-nfr("workshop_open_page", "", "", "",
+BUILTIN_V(workshop_open_page, "", "", "",
     "opens this game's steam workshop page in the steam overlay web browser, where the user"
     " can browse and (un)subscribe to content. Use workshop_sync() to get subscribed content"
-    " into the game.",
-    [](StackPtr &, VM &) {
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) steam->WorkshopOpenPage();
-        #endif
-    });
+    " into the game.")
+(StackPtr &, VM &) {
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) steam->WorkshopOpenPage();
+    #endif
+}
 
-nfr("workshop_open_item_page", "fileid", "I", "",
+BUILTIN(workshop_open_item_page, "fileid", "I", "",
     "opens the steam workshop page of the given workshop item in the steam overlay, e.g. to"
-    " let the user view content they just uploaded.",
-    [](StackPtr &, VM &, Value fileid) {
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) steam->WorkshopOpenItemPage(fileid.ival());
-        #else
-            (void)fileid;
-        #endif
-        return NilVal();
-    });
+    " let the user view content they just uploaded.")
+(StackPtr &, VM &, Value fileid) {
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) steam->WorkshopOpenItemPage(fileid.ival());
+    #else
+        (void)fileid;
+    #endif
+    return NilVal();
+}
 
-nfr("workshop_open_legal_agreement", "", "", "",
+BUILTIN_V(workshop_open_legal_agreement, "", "", "",
     "opens the steam workshop legal agreement page in the steam overlay. A user must accept"
     " this agreement (once) before workshop content they upload can become publicly visible,"
-    " see workshop_upload_status().",
-    [](StackPtr &, VM &) {
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) steam->WorkshopOpenLegalAgreement();
-        #endif
-    });
+    " see workshop_upload_status().")
+(StackPtr &, VM &) {
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) steam->WorkshopOpenLegalAgreement();
+    #endif
+}
 
-nfr("workshop_sync", "dest_dir,own_subdirs", "SB", "IS]",
+BUILTIN_V(workshop_sync, "dest_dir,own_subdirs", "SB", "IS]",
     "makes subscribed workshop content progress towards being downloaded, and copies each"
     " item's files into dest_dir (relative to the main write dir, or absolute) once its"
     " download completes. If own_subdirs is true, each item's files go into a subdirectory of"
@@ -1752,28 +1757,28 @@ nfr("workshop_sync", "dest_dir,own_subdirs", "SB", "IS]",
     " to come in. Returns a status: -1 = error copying files, 0 = all subscribed content is"
     " installed and copied (nothing left to do), 1 = downloads still in progress, 2 = done"
     " but some items failed to download. Second return value is the files copied by this"
-    " call (full paths), so the game can pick up new/updated content the moment it arrives.",
-    [](StackPtr &sp, VM &vm) {
-        auto own_subdirs = Pop(sp);
-        auto dest_dir = Pop(sp);
-        auto *copied_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
-        int status = -1;
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) {
-                vector<string> copied_files;
-                status = steam->WorkshopSync(dest_dir.sval()->strv(), own_subdirs.True(),
-                                             copied_files);
-                for (auto &f : copied_files) copied_vec->Push(vm, vm.NewString(f));
-            }
-        #else
-            (void)own_subdirs;
-            (void)dest_dir;
-        #endif
-        Push(sp, Value(status));
-        Push(sp, Value(copied_vec));
-    });
+    " call (full paths), so the game can pick up new/updated content the moment it arrives.")
+(StackPtr &sp, VM &vm) {
+    auto own_subdirs = Pop(sp);
+    auto dest_dir = Pop(sp);
+    auto *copied_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
+    int status = -1;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            vector<string> copied_files;
+            status = steam->WorkshopSync(dest_dir.sval()->strv(), own_subdirs.True(),
+                                         copied_files);
+            for (auto &f : copied_files) copied_vec->Push(vm, vm.NewString(f));
+        }
+    #else
+        (void)own_subdirs;
+        (void)dest_dir;
+    #endif
+    Push(sp, Value(status));
+    Push(sp, Value(copied_vec));
+}
 
-nfr("workshop_upload_start", "content_folder,title,description,metadata,changenote,"
+BUILTIN_V(workshop_upload_start, "content_folder,title,description,metadata,changenote,"
     "preview_image,existing_fileid", "SSSSSSI", "B",
     "starts uploading workshop content for the current app; this is async, poll"
     " workshop_upload_status() (with steam.update() running) for the result."
@@ -1793,37 +1798,37 @@ nfr("workshop_upload_start", "content_folder,title,description,metadata,changeno
     " a new version of the same content, since steam has no other way to know it's the same"
     " item. Empty title/description/metadata leave the existing values unchanged when"
     " updating. Returns false if the upload could not be started (e.g. one is already in"
-    " progress).",
-    [](StackPtr &sp, VM &) {
-        auto existing_fileid = Pop(sp);
-        auto preview_image = Pop(sp);
-        auto changenote = Pop(sp);
-        auto metadata = Pop(sp);
-        auto description = Pop(sp);
-        auto title = Pop(sp);
-        auto content_folder = Pop(sp);
-        bool ok = false;
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) {
-                ok = steam->WorkshopUploadStart(
-                    content_folder.sval()->strv(), title.sval()->strv(),
-                    description.sval()->strv(), metadata.sval()->strv(),
-                    changenote.sval()->strv(), preview_image.sval()->strv(),
-                    existing_fileid.ival());
-            }
-        #else
-            (void)existing_fileid;
-            (void)preview_image;
-            (void)changenote;
-            (void)metadata;
-            (void)description;
-            (void)title;
-            (void)content_folder;
-        #endif
-        Push(sp, Value(ok));
-    });
+    " progress).")
+(StackPtr &sp, VM &) {
+    auto existing_fileid = Pop(sp);
+    auto preview_image = Pop(sp);
+    auto changenote = Pop(sp);
+    auto metadata = Pop(sp);
+    auto description = Pop(sp);
+    auto title = Pop(sp);
+    auto content_folder = Pop(sp);
+    bool ok = false;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) {
+            ok = steam->WorkshopUploadStart(
+                content_folder.sval()->strv(), title.sval()->strv(),
+                description.sval()->strv(), metadata.sval()->strv(),
+                changenote.sval()->strv(), preview_image.sval()->strv(),
+                existing_fileid.ival());
+        }
+    #else
+        (void)existing_fileid;
+        (void)preview_image;
+        (void)changenote;
+        (void)metadata;
+        (void)description;
+        (void)title;
+        (void)content_folder;
+    #endif
+    Push(sp, Value(ok));
+}
 
-nfr("workshop_upload_status", "", "", "IIBII",
+BUILTIN_V(workshop_upload_status, "", "", "IIBII",
     "gets the status of the upload started with workshop_upload_start(): 0 = no upload"
     " started, 1 = in progress, 2 = done succesfully, -1 = failed, -2 = failed because the"
     " existing item is owned by a different steam user. Further return values are: the"
@@ -1831,21 +1836,19 @@ nfr("workshop_upload_status", "", "", "IIBII",
     " content, see workshop_upload_start()), whether the user still needs to accept the"
     " steam workshop legal agreement (if true, the item remains hidden until they do; send"
     " them there with workshop_open_legal_agreement() or workshop_open_item_page()), and"
-    " upload progress as bytes processed and bytes total (both may be 0 in early stages).",
-    [](StackPtr &sp, VM &) {
-        int status = 0;
-        iint file_id = 0;
-        bool needs_legal = false;
-        iint processed = 0;
-        iint total = 0;
-        #ifdef PLATFORM_STEAMWORKS
-            if (steam) status = steam->WorkshopUploadStatus(file_id, needs_legal, processed, total);
-        #endif
-        Push(sp, Value(status));
-        Push(sp, Value(file_id));
-        Push(sp, Value(needs_legal));
-        Push(sp, Value(processed));
-        Push(sp, Value(total));
-    });
-
-}  // AddSteam
+    " upload progress as bytes processed and bytes total (both may be 0 in early stages).")
+(StackPtr &sp, VM &) {
+    int status = 0;
+    iint file_id = 0;
+    bool needs_legal = false;
+    iint processed = 0;
+    iint total = 0;
+    #ifdef PLATFORM_STEAMWORKS
+        if (steam) status = steam->WorkshopUploadStatus(file_id, needs_legal, processed, total);
+    #endif
+    Push(sp, Value(status));
+    Push(sp, Value(file_id));
+    Push(sp, Value(needs_legal));
+    Push(sp, Value(processed));
+    Push(sp, Value(total));
+}

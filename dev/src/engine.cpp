@@ -37,40 +37,40 @@
 #define ALLOW_PLUGINS 0
 #if ALLOW_PLUGINS && defined(BUILD_CONTEXT_lobster) && \
          __has_include("../../projects/include/lobster_engine_plugins.h")
+    // Which is expected to define its builtins into a BuiltinGroup plugin_builtins.
     #include "../../projects/include/lobster_engine_plugins.h"
     #define HAVE_PLUGINS
-    void AddPlugins(NativeRegistry &nfr);
 #endif
 
 
 using namespace lobster;
 
-extern void AddGraphics(NativeRegistry &nfr);
-extern void AddFont(NativeRegistry &nfr);
-extern void AddSound(NativeRegistry &nfr);
-extern void AddPhysics(NativeRegistry &nfr);
-extern void AddMeshGen(NativeRegistry &nfr);
-extern void AddCubeGen(NativeRegistry &nfr);
-extern void AddVR(NativeRegistry &nfr);
-extern void AddSteam(NativeRegistry &nfr);
-extern void AddIMGUI(NativeRegistry &nfr);
-extern void AddIMGUIDebug(NativeRegistry &nfr);
+extern BuiltinGroup graphics_builtins;
+extern BuiltinGroup font_builtins;
+extern BuiltinGroup sound_builtins;
+extern BuiltinGroup physics_builtins;
+extern BuiltinGroup meshgen_builtins;
+extern BuiltinGroup cubegen_builtins;
+extern BuiltinGroup vr_builtins;
+extern BuiltinGroup steam_builtins;
+extern BuiltinGroup imgui_builtins;
+extern BuiltinGroup imguidebug_builtins;
 
 namespace lobster {
 
 FileLoader EnginePreInit(NativeRegistry &nfr) {
-    RegisterBuiltin(nfr, "gl", "graphics",  AddGraphics);
-    RegisterBuiltin(nfr, "gl", "font", AddFont);
-    RegisterBuiltin(nfr, "", "sound", AddSound);
-    RegisterBuiltin(nfr, "ph", "physics", AddPhysics);
-    RegisterBuiltin(nfr, "mg", "meshgen", AddMeshGen);
-    RegisterBuiltin(nfr, "cg", "cubegen", AddCubeGen);
-    RegisterBuiltin(nfr, "vr", "vr", AddVR);
-    RegisterBuiltin(nfr, "steam", "steam", AddSteam);
-    RegisterBuiltin(nfr, "im", "imgui", AddIMGUI);
-    RegisterBuiltin(nfr, "", "imguidebug", AddIMGUIDebug);
+    RegisterBuiltin(nfr, "gl", "graphics", graphics_builtins);
+    RegisterBuiltin(nfr, "gl", "font", font_builtins);
+    RegisterBuiltin(nfr, "", "sound", sound_builtins);
+    RegisterBuiltin(nfr, "ph", "physics", physics_builtins);
+    RegisterBuiltin(nfr, "mg", "meshgen", meshgen_builtins);
+    RegisterBuiltin(nfr, "cg", "cubegen", cubegen_builtins);
+    RegisterBuiltin(nfr, "vr", "vr", vr_builtins);
+    RegisterBuiltin(nfr, "steam", "steam", steam_builtins);
+    RegisterBuiltin(nfr, "im", "imgui", imgui_builtins);
+    RegisterBuiltin(nfr, "", "imguidebug", imguidebug_builtins);
     #ifdef HAVE_PLUGINS
-        RegisterBuiltin(nfr, "", "plugin", AddPlugins);
+        RegisterBuiltin(nfr, "", "plugin", plugin_builtins);
     #endif
     nfr.DoneRegistering();
     return SDLLoadFile;
