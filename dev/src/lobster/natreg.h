@@ -286,12 +286,16 @@ template<typename TIDS, bool PushRets> using BuiltinSig =
 
 // The builtins the generated code writes out itself rather than calling, because they are
 // leaned on often enough that the call, and moving their arguments thru the stack to make it,
-// is worth avoiding. CodeGen::EmitSpecialBuiltin has a case for each of these. One defined
-// with BUILTIN_CODEGEN has no function at all, only the metadata the language needs.
-enum BuiltinSpecial {
-    BS_NONE = 0,
-    BS_GL_FRAME,
-    BS_PUSH,
+// is worth avoiding. CodeGen::EmitCodegenBuiltin has a case for each of these. One defined
+// with BUILTIN_CODEGEN has no function at all, only the metadata the language needs. The names
+// start with BCG since a BS_ prefix collides with the Windows button styles.
+enum BuiltinCodegen {
+    BCG_NONE = 0,
+    BCG_GL_FRAME,
+    BCG_PUSH,
+    BCG_POP,
+    BCG_TOP,
+    BCG_REMOVE,
 };
 
 struct BuiltinDef;
@@ -314,7 +318,7 @@ struct BuiltinDef {
     const char *rets;
     const char *help;
     bool pushrets;       // Of the V kind, see the BUILTIN macros below.
-    BuiltinSpecial special;  // Written out by codegen rather than called, if at all.
+    BuiltinCodegen codegen;  // Written out by codegen rather than called, if at all.
     // Only for the JIT to link the generated code against, which calls the function by its
     // symbol, see CodeGen::EmitNativeCall and NativeRegistry::jit_imports. Null for one that
     // has no function of its own, see BUILTIN_CODEGEN.
@@ -323,9 +327,9 @@ struct BuiltinDef {
 
     BuiltinDef(BuiltinGroup &group, const char *symbol, const char *name, const char *ids,
                const char *typeids, const char *rets, const char *help, bool pushrets,
-               BuiltinSpecial special, const void *address)
+               BuiltinCodegen codegen, const void *address)
         : symbol(symbol), name(name), ids(ids), typeids(typeids), rets(rets), help(help),
-          pushrets(pushrets), special(special), address(address) {
+          pushrets(pushrets), codegen(codegen), address(address) {
         if (group.last) group.last->next = this;
         else group.first = this;
         group.last = this;
@@ -367,22 +371,22 @@ struct BuiltinDef {
 // Lobster name separately, for names that are defined more than once with different argument
 // types. The symbol must then still start with the plain one, followed by a distinguishing
 // suffix.
-// BUILTIN_CODEGEN declares one the generated code writes out itself, see BuiltinSpecial. It
+// BUILTIN_CODEGEN declares one the generated code writes out itself, see BuiltinCodegen. It
 // has only the metadata the language needs, no function and thus no body, so it ends in a ';'
 // like any other declaration.
 #define BUILTIN_CAT_(a, b) a##b
 #define BUILTIN_CAT(a, b) BUILTIN_CAT_(a, b)
 #define BUILTIN_STR_(a) #a
 #define BUILTIN_STR(a) BUILTIN_STR_(a)
-#define BUILTIN_META_(sym, name, ids, typeids, rets, help, pushrets, special, address) \
+#define BUILTIN_META_(sym, name, ids, typeids, rets, help, pushrets, codegen, address) \
     static lobster::BuiltinDef BUILTIN_CAT(sym, _def)( \
-        BUILTIN_GROUP, BUILTIN_STR(sym), name, ids, typeids, rets, help, pushrets, special, \
-        address)
+        BUILTIN_GROUP, BUILTIN_STR(sym), name, ids, typeids, rets, help, pushrets, \
+        codegen, address)
 #define BUILTIN_DEF_(sym, name, ids, typeids, rets, help, pushrets) \
     struct BUILTIN_CAT(sym, _tids) { static constexpr const char *tids = typeids; \
                                      static constexpr const char *rids = rets; }; \
     extern "C" lobster::BuiltinSig<BUILTIN_CAT(sym, _tids), pushrets>::type sym; \
-    BUILTIN_META_(sym, name, ids, typeids, rets, help, pushrets, lobster::BS_NONE, \
+    BUILTIN_META_(sym, name, ids, typeids, rets, help, pushrets, lobster::BCG_NONE, \
                   (const void *)sym)
 #define BUILTIN_RET_(sym) lobster::BuiltinSig<BUILTIN_CAT(sym, _tids), false>::ret
 #define BUILTIN(name, ids, typeids, rets, help) \
@@ -397,9 +401,9 @@ struct BuiltinDef {
 #define BUILTIN_V_OVERLOAD(sym, name, ids, typeids, rets, help) \
     BUILTIN_DEF_(BUILTIN_SYM(sym), name, ids, typeids, rets, help, true); \
     extern "C" void BUILTIN_SYM(sym)
-#define BUILTIN_CODEGEN(special, name, ids, typeids, rets, help) \
+#define BUILTIN_CODEGEN(codegen, name, ids, typeids, rets, help) \
     BUILTIN_META_(BUILTIN_SYM(name), #name, ids, typeids, rets, help, false, \
-                  lobster::special, nullptr)
+                  lobster::codegen, nullptr)
 
 struct NativeFun : Named {
     vector<Narg> args, retvals;
@@ -412,8 +416,8 @@ struct NativeFun : Named {
     // Of the V kind, which leaves its return values on the stack, see the BUILTIN macros.
     bool pushrets;
 
-    // See BuiltinDef::special and BuiltinDef::address.
-    BuiltinSpecial special;
+    // See BuiltinDef::codegen and BuiltinDef::address.
+    BuiltinCodegen codegen;
     const void *address;
 
     int subsystemid = -1;
@@ -428,14 +432,14 @@ struct NativeFun : Named {
 
     NativeFun(const char *ns, const char *nsname, const char *ids, const char *typeids,
               const char *rets, const char *help, const char *symbol, bool pushrets,
-              BuiltinSpecial special, const void *address)
+              BuiltinCodegen codegen, const void *address)
         : Named(*ns ? cat(ns, ".", nsname) : nsname, 0),
           args(TypeLen(typeids)),
           retvals(TypeLen(rets)),
           help(help),
           symbol(symbol),
           pushrets(pushrets),
-          special(special),
+          codegen(codegen),
           address(address) {
         for (auto [i, arg] : enumerate(args)) {
             const char *idend = strchr(ids, ',');
@@ -450,8 +454,9 @@ struct NativeFun : Named {
         }
         for (auto &ret : retvals) {
             ret.Set(rets, LT_KEEP, this);
-            // A struct takes more than one slot, which only the V kind has a way to return.
-            if (ret.vttype->t == V_STRUCT_NUM && !pushrets)
+            // A struct takes more than one slot, which only the V kind has a way to return,
+            // and one the generated code writes out itself has no need of.
+            if (ret.vttype->t == V_STRUCT_NUM && !pushrets && codegen == BCG_NONE)
                 Error("struct types can only be returned by V builtins");
         }
     }
@@ -490,7 +495,7 @@ struct NativeFun : Named {
         return k == BAK_IVEC || k == BAK_FVEC || k == BAK_VALUEVEC;
     }
 
-    bool IsGLFrame() const { return special == BS_GL_FRAME; }
+    bool IsGLFrame() const { return codegen == BCG_GL_FRAME; }
 };
 
 struct NativeRegistry {
@@ -573,7 +578,7 @@ struct NativeRegistry {
     void RegisterGroup(const BuiltinGroup &group) {
         for (auto def = group.first; def; def = def->next) {
             auto nf = new NativeFun(cur_ns, def->name, def->ids, def->typeids, def->rets,
-                                    def->help, def->symbol, def->pushrets, def->special,
+                                    def->help, def->symbol, def->pushrets, def->codegen,
                                     def->address);
             // Catches a file whose BUILTIN_SYM doesn't match the namespace it is registered
             // under, which would make the symbol of its builtins unpredictable.

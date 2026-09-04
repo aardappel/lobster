@@ -90,6 +90,21 @@ VM_INLINE void RtVectorGrow(VM &vm, LVector *v) {
     v->Resize(vm, v->maxl ? v->maxl * 2 : 4);
 }
 
+// The same for the ones that take an element out, see CodeGen::EmitCodegenBuiltin: the errors,
+// named after the builtin that ran into them, and closing the gap the element leaves behind.
+VM_INLINE void RtVectorEmptyErr(VM &vm, int nfi) {
+    vm.BuiltinError(cat(vm.vma.nfr.nfuns[nfi]->name, ": empty vector"));
+}
+
+VM_INLINE void RtVectorIdxErr(VM &vm, int nfi, iint i, iint len) {
+    vm.BuiltinError(cat(vm.vma.nfr.nfuns[nfi]->name, ": index (", i, ") out of range (", len,
+                        ")"));
+}
+
+VM_INLINE void RtVectorErase(LVector *v, iint i) {
+    v->Erase(i);
+}
+
 VM_INLINE LString *RtStrConcatN(VM &vm, Value *strs, int len) {
     iint blen = 0;
     // Find total len.

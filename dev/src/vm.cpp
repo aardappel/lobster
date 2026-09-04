@@ -1105,6 +1105,9 @@ void CRtNativeProfileEnd(___tracy_c_zone_context ctx) { RtNativeProfileEnd(ctx);
 LVector *CRtNewVec(VM *vm, type_elem_t ti, int len) { return RtNewVec(*vm, ti, len); }
 LObject *CRtNewObject(VM *vm, type_elem_t ti) { return RtNewObject(*vm, ti); }
 void CRtVectorGrow(VM *vm, LVector *v) { RtVectorGrow(*vm, v); }
+void CRtVectorEmptyErr(VM *vm, int nfi) { RtVectorEmptyErr(*vm, nfi); }
+void CRtVectorIdxErr(VM *vm, int nfi, iint i, iint len) { RtVectorIdxErr(*vm, nfi, i, len); }
+void CRtVectorErase(LVector *v, iint i) { RtVectorErase(v, i); }
 void CRtExit(VM *vm, Value ret, type_elem_t ti) { RtExit(*vm, ret, ti); }
 void CRtExitVoid(VM *vm) { RtExitVoid(*vm); }
 void CRtAbort(VM *vm) { RtAbort(*vm); }
@@ -1152,6 +1155,9 @@ const void *vm_ops_jit_table[] = {
     "RtNewVec", (void *)&CRtNewVec,
     "RtNewObject", (void *)&CRtNewObject,
     "RtVectorGrow", (void *)&CRtVectorGrow,
+    "RtVectorEmptyErr", (void *)&CRtVectorEmptyErr,
+    "RtVectorIdxErr", (void *)&CRtVectorIdxErr,
+    "RtVectorErase", (void *)&CRtVectorErase,
     "RtExit", (void *)&CRtExit,
     "RtExitVoid", (void *)&CRtExitVoid,
     "RtAbort", (void *)&CRtAbort,

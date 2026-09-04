@@ -815,24 +815,17 @@ struct LVector : RefObj {
         v[len++] = val;
     }
 
-    void PushVW(VM &vm, const Value *vals) {
-        if (len == maxl) Resize(vm, maxl ? maxl * 2 : 4);
-        tsnz_memcpy(v + len * width, vals, width);
-        len++;
-    }
-
     Value Pop() {
         assert(width == 1);
         return v[--len];
     }
 
-    void PopVW(Value *dest) {
+    // Closes the gap the element at `i` leaves behind, which whoever took it out owns now, so
+    // unlike Remove() below nothing here is destructed.
+    void Erase(iint i) {
+        assert(i >= 0 && i < len);
+        t_memmove(v + i * width, v + (i + 1) * width, (len - i - 1) * width);
         len--;
-        tsnz_memcpy(dest, v + len * width, width);
-    }
-
-    void TopVW(Value *dest) const {
-        tsnz_memcpy(dest, v + (len - 1) * width, width);
     }
 
     void Insert(VM &vm, const Value *vals, iint i) {
@@ -843,7 +836,6 @@ struct LVector : RefObj {
         tsnz_memcpy(v + i * width, vals, width);
     }
 
-    void RemovePush(StackPtr &sp, iint i);
     void Remove(VM &vm, iint i, iint n);
     void Truncate(VM &vm, iint n);
 

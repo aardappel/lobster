@@ -278,8 +278,8 @@ BUILTIN_V(scissor, "top_left,size", "I}:2I}:2", "I}:2I}:2",
     PushVec(sp, prev.second);
 }
 
-// The generated code calls GLFrame() by its own symbol, see EmitSpecialBuiltin.
-BUILTIN_CODEGEN(BS_GL_FRAME, frame, "", "", "B",
+// The generated code calls GLFrame() by its own symbol, see EmitCodegenBuiltin.
+BUILTIN_CODEGEN(BCG_GL_FRAME, frame, "", "", "B",
     "advances rendering by one frame, swaps buffers, and collects new input events."
     " returns false if the closebutton on the window was pressed");
 

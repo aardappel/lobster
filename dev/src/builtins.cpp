@@ -212,25 +212,15 @@ BUILTIN(equal, "a,b", "AA", "B",
 }
 
 // A push is common enough, and small enough, that the generated code writes it out itself
-// rather than moving the element thru the stack to make a call, see EmitSpecialBuiltin.
-BUILTIN_CODEGEN(BS_PUSH, push, "xs,x", "A]*Akw1", "Ab]1",
+// rather than moving the element thru the stack to make a call, see EmitCodegenBuiltin.
+BUILTIN_CODEGEN(BCG_PUSH, push, "xs,x", "A]*Akw1", "Ab]1",
     "appends one element to a vector, returns existing vector");
 
-BUILTIN_V(pop, "xs", "A]*", "A1",
-    "removes last element from vector and returns it")
-(StackPtr &sp, VM &vm, LVector *l) {
-    if (!l->len) vm.BuiltinError("pop: empty vector");
-    l->PopVW(TopPtr(sp));
-    PushN(sp, l->width);
-}
+BUILTIN_CODEGEN(BCG_POP, pop, "xs", "A]*", "A1",
+    "removes last element from vector and returns it");
 
-BUILTIN_V(top, "xs", "A]*", "Ab1",
-    "returns last element from vector")
-(StackPtr &sp, VM &vm, LVector *l) {
-    if (!l->len) vm.BuiltinError("top: empty vector");
-    l->TopVW(TopPtr(sp));
-    PushN(sp, l->width);
-}
+BUILTIN_CODEGEN(BCG_TOP, top, "xs", "A]*", "Ab1",
+    "returns last element from vector");
 
 BUILTIN(insert, "xs,i,x", "A]*IAkw1", "Ab]1",
     "inserts a value into a vector at index i, existing elements shift upward,"
@@ -242,13 +232,8 @@ BUILTIN(insert, "xs,i,x", "A]*IAkw1", "Ab]1",
     return l;
 }
 
-BUILTIN_V(remove, "xs,i", "A]*I", "A1",
-    "remove element at index i, following elements shift down. returns the element removed.")
-(StackPtr &sp, VM &vm, LVector *l, iint i) {
-    if (i < 0 || i >= l->len)
-        vm.BuiltinError(cat("remove: index (", i, ") out of range (", l->len, ")"));
-    l->RemovePush(sp, i);
-}
+BUILTIN_CODEGEN(BCG_REMOVE, remove, "xs,i", "A]*I", "A1",
+    "remove element at index i, following elements shift down. returns the element removed.");
 
 BUILTIN(remove_range, "xs,i,n", "A]*II", "",
     "remove n elements at index i, following elements shift down.")

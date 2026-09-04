@@ -864,6 +864,9 @@ struct CodeGen  {
                 "LVector *RtNewVec(VMRef, type_elem_t, int);\n"
                 "LObject *RtNewObject(VMRef, type_elem_t);\n"
                 "void RtVectorGrow(VMRef, LVector *);\n"
+                "void RtVectorEmptyErr(VMRef, int);\n"
+                "void RtVectorIdxErr(VMRef, int, long long, long long);\n"
+                "void RtVectorErase(LVector *, long long);\n"
                 "void RtExit(VMRef, Value, type_elem_t);\n"
                 "void RtExitVoid(VMRef);\n"
                 "void RtAbort(VMRef);\n"
@@ -1978,17 +1981,37 @@ struct CodeGen  {
         return s;
     }
 
-    // A push of one element onto a vector, which the code writes out rather than calling
-    // push(), see EmitSpecialBuiltin. The element takes as many slots as its type is wide,
-    // which is the width the vector holds its elements at. The vector stays in the slot it
-    // came in, which is where the value push returns belongs anyway.
-    void EmitVectorPush(const Types &args, string_view cmt) {
-        auto width = (int)args.size() - 1;
-        auto base = regso - (int)args.size();
-        auto elems = string(cpp ? "_v->Elems()" : "_v->elems");
+    // The vector one of the builtins below works on, in a local, since the slot it comes in is
+    // also where the value the builtin leaves behind goes. `cmt` names the builtin.
+    string EmitVectorLocal(int base, string_view cmt) {
         cb += "    {";
         comment(cmt);
         append(cb, "    LVector *_v = ", Read(SlotVar(base, RTT_VECTOR)), ";\n");
+        return cpp ? "_v->Elems()" : "_v->elems";
+    }
+
+    // The element at `idx` of that vector, in the slots starting at `base`. A struct takes more
+    // than one load, at the width the vector holds its elements at, so its start goes in a
+    // local first.
+    void EmitVectorElem(const Types &elem, int base, string_view idx, string_view elems) {
+        auto width = (int)elem.size();
+        if (width == 1) {
+            CopyValue(cb, SlotVar(base, elem[0]), Mem(cat(elems, "[", idx, "]"), elem[0]));
+            return;
+        }
+        append(cb, "    Value *_e = ", elems, " + (", idx, ") * ", width, ";\n");
+        for (int i = 0; i < width; i++) {
+            CopyValue(cb, SlotVar(base + i, elem[i]), Mem(cat("_e[", i, "]"), elem[i]));
+        }
+    }
+
+    // A push of one element onto a vector, which the code writes out rather than calling
+    // push(), see EmitCodegenBuiltin. The vector stays in the slot it came in, which is where
+    // the value push returns belongs anyway.
+    void EmitVectorPush(const Types &args, string_view cmt) {
+        auto width = (int)args.size() - 1;
+        auto base = regso - (int)args.size();
+        auto elems = EmitVectorLocal(base, cmt);
         append(cb, "    if (_v->len == _v->maxl) ", cpp ? "lobster::" : "",
                "RtVectorGrow(vm, _v);\n");
         if (width == 1) {
@@ -2002,22 +2025,54 @@ struct CodeGen  {
         cb += "    _v->len++;\n    }\n";
     }
 
+    // The last element of a vector, which pop() also takes out of it where top() leaves it.
+    void EmitVectorPop(NativeFun *nf, const Types &rets, bool take) {
+        auto base = regso - 1;
+        auto elems = EmitVectorLocal(base, nf->name);
+        append(cb, "    if (!_v->len) ", cpp ? "lobster::" : "", "RtVectorEmptyErr(vm, ",
+               nf->idx, ");\n");
+        if (take) cb += "    _v->len--;\n";
+        EmitVectorElem(rets, base, take ? "_v->len" : "_v->len - 1", elems);
+        cb += "    }\n";
+    }
+
+    // The element of a vector at an index, which the ones behind it then shift down over.
+    void EmitVectorRemove(NativeFun *nf, const Types &rets) {
+        auto base = regso - 2;
+        auto uint = cpp ? "uint64_t" : "unsigned long long";
+        auto elems = EmitVectorLocal(base, nf->name);
+        append(cb, "    long long _i = ", Read(SlotVar(base + 1, RTT_INT)), ";\n");
+        append(cb, "    if ((", uint, ")_i >= (", uint, ")_v->len) ", cpp ? "lobster::" : "",
+               "RtVectorIdxErr(vm, ", nf->idx, ", _i, _v->len);\n");
+        EmitVectorElem(rets, base, "_i", elems);
+        append(cb, "    ", cpp ? "lobster::" : "", "RtVectorErase(_v, _i);\n    }\n");
+    }
+
     // The builtins the code does not call but writes out itself, because they are leaned on
-    // often enough for the call to be worth avoiding, see BuiltinSpecial. Each reads its
+    // often enough for the call to be worth avoiding, see BuiltinCodegen. Each reads its
     // arguments from the slots below regso and leaves its return values in the same ones, just
     // as a call would. Returns whether this was one of them.
-    bool EmitSpecialBuiltin(NativeFun *nf, const Types &args) {
+    bool EmitCodegenBuiltin(NativeFun *nf, const Types &args, const Types &rets) {
         // No default, so that a kind added without a case here is a compile error.
-        switch (nf->special) {
-            case BS_NONE:
+        switch (nf->codegen) {
+            case BCG_NONE:
                 return false;
-            case BS_GL_FRAME:
+            case BCG_GL_FRAME:
                 // Called by a symbol of its own, which the engine defines outside the registry.
                 Write(cb, Slot(0, VK_INT), "GLFrame(vm)", "");
                 comment(nf->name);
                 return true;
-            case BS_PUSH:
+            case BCG_PUSH:
                 EmitVectorPush(args, nf->name);
+                return true;
+            case BCG_POP:
+                EmitVectorPop(nf, rets, true);
+                return true;
+            case BCG_TOP:
+                EmitVectorPop(nf, rets, false);
+                return true;
+            case BCG_REMOVE:
+                EmitVectorRemove(nf, rets);
                 return true;
         }
         assert(false);
@@ -2036,7 +2091,7 @@ struct CodeGen  {
         auto uses = (int)args.size();
         auto defs = (int)rets.size();
         TrackUseDef(uses, defs);
-        if (EmitSpecialBuiltin(nf, args)) return;
+        if (EmitCodegenBuiltin(nf, args, rets)) return;
         natives_used[nf->idx] = nf;
         auto spref = nf->PushesValues() ? (cpp ? "sp, " : "&sp, ") : "";
         f_uses_sp = f_uses_sp || nf->PushesValues();
