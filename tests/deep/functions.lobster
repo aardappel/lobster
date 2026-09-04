@@ -1,5 +1,7 @@
 import std
 
+import vec
+
 
 // Functions: definitions, overloads, default arguments, generics, multiple
 // return values, non-local returns, function values, free variables.
@@ -11,6 +13,26 @@ def int_to_int_fun(i:int) -> int
 def freevar_add(c, d) [dfv_a, dfv_b]:
     dfv_a = dfv_a + c
     dfv_b = dfv_b + d
+
+// A call the generated C reads its arguments straight out of the stack slots holding them
+// leaves those writes deferred. slot_chain ends in one and is inlined into its caller, so
+// what it leaves behind reaches the end of that caller, where it has to be dropped rather
+// than emitted past the point its slot variables were declared.
+var slot_total = float3_0
+
+def slot_add(a:float3, b:float3, c:float3, d:float):
+    slot_total += a + b + c * d
+
+// Called twice, so it stays a function of its own for slot_chain to end in.
+def slot_pair(center:float3, yaw:float, radius:float3, c1:float3, c2:float3, duration:float):
+    slot_add(center, radius, c1, yaw)
+    slot_add(center + radius, center, c2, duration)
+
+def slot_chain(pos:float3, yaw:float, xr:float, yr:float, height:float, c1:float3, c2:float3, duration:float):
+    let hh = height / 2.0
+    let mradius = min(xr, min(yr, hh)) * 0.5
+    slot_add(pos - float3_x * mradius, pos, c2, duration)
+    slot_pair(pos + float3_z * hh, yaw, float3 { xr, yr, height * 0.5 }, c1, c2, duration)
 
 def functions_tests():
     suite("functions")
@@ -351,5 +373,13 @@ def functions_tests():
         attribute valued = 123
         return 1
     test_eq(attributed(), 1)
+
+    // A deferred slot write may not outlive the function it is in: the call slot_chain
+    // ends in leaves its arguments in slots the code only reads inline, and the check
+    // below is the last thing this function generates, which is where they used to escape.
+    slot_total = float3_0
+    slot_pair(float3_0, 0.5, float3_1, float3_x, float3_y, 0.0)
+    slot_chain(float3_1, 1.0, 2.0, 3.0, 4.0, float3_x, float3_y, 0.0)
+    test_approx(slot_total, float3 { 11.5, 13.0, 17.0 })
 
 functions_tests()
