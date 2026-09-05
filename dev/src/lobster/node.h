@@ -163,12 +163,6 @@ struct NAME : Unary { \
     METHODS \
 };
 
-#define UNOP_NODE(NAME, STR, SE, METHODS) \
-struct NAME : Unary { \
-    NAME(const Line &ln, Node *_a) : Unary(ln, _a) {} \
-    SHARED_SIGNATURE(NAME, STR, SE) \
-    METHODS \
-};
 #define COER_NODE(NAME, STR, METHODS) \
 struct NAME : Coercion { \
     NAME(const Line &ln, Node *_a) : Coercion(ln, _a) {} \
@@ -248,7 +242,7 @@ struct TypeAnnotation : Node {
 // generic node types
 NARY_NODE(List, "list", false, )
 BINARY_NODE(BinOp, "binop", false, left, right, SIMPLEMETHOD)
-UNOP_NODE(Coercion, "coercion", false, )
+UNARY_NODE(Coercion, "coercion", false, )
 
 BINOP_NODE(Plus, TName(T_PLUS), false, )
 BINOP_NODE(Minus, TName(T_MINUS), false, )
@@ -258,8 +252,8 @@ BINOP_NODE(Mod, TName(T_MOD), false, )
 BINOP_NODE(And, TName(T_AND), false, )
 BINOP_NODE(Or, TName(T_OR), false, )
 UNARY_NODE(Not, TName(T_NOT), false, )
-UNOP_NODE(PreIncr, TName(T_INCR), true, )
-UNOP_NODE(PreDecr, TName(T_DECR), true, )
+UNARY_NODE(PreIncr, TName(T_INCR), true, )
+UNARY_NODE(PreDecr, TName(T_DECR), true, )
 BINOP_NODE(Equal, TName(T_EQ), false, )
 BINOP_NODE(NotEqual, TName(T_NEQ), false, )
 BINOP_NODE(LessThan, TName(T_LT), false, )
@@ -288,8 +282,8 @@ UNARY_NODE(TypeOf, TName(T_TYPEOF), false, )
 
 BINARY_NODE(Seq, "statements", false, head, tail, )
 BINARY_NODE(Indexing, "indexing operation", false, object, index, )
-UNOP_NODE(PostIncr, TName(T_INCR), true, )
-UNOP_NODE(PostDecr, TName(T_DECR), true, )
+UNARY_NODE(PostIncr, TName(T_INCR), true, )
+UNARY_NODE(PostDecr, TName(T_DECR), true, )
 UNARY_NODE(UnaryMinus, TName(T_MINUS), false, INITMETHOD SIMPLEMETHOD)
 COER_NODE(ToFloat, "tofloat", )
 COER_NODE(ToString, "tostring", )
