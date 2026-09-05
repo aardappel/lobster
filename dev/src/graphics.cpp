@@ -265,7 +265,7 @@ BUILTIN(load_materials, "materialdefs,inline,prefix", "SI?S?", "S?",
     return err.empty() ? nullptr : vm.NewString(err);
 }
 
-BUILTIN_V(scissor, "top_left,size", "I}:2I}:2", "I}:2I}:2",
+BUILTIN_OUTS(scissor, "top_left,size", "I}:2I}:2", "I}:2I}:2",
     "Sets the scissor testing, so only the pixels in the given rectangle can"
     "be written.  Returns the previous value of the scissor rectangle.")
 (VM &vm, iint2 *prev_top_left, iint2 *prev_size, iint2 top_left, iint2 size_) {
@@ -387,7 +387,7 @@ BUILTIN(start_text_input, "pos,size", "I}:2I}:2", "",
     SDLStartTextInput(pos, size);
 }
 
-BUILTIN_V(text_input_state, "", "", "SSII",
+BUILTIN_OUTS(text_input_state, "", "", "SSII",
     "returns the string that has been input since text input started, followed by any candinate"
     " text (partial characters in case of IME editing), and the cursor & selection size for it")
 (VM &vm, LString **text, LString **editing, iint *cursor, iint *selection) {
@@ -975,7 +975,7 @@ BUILTIN(mesh_size, "m", "R:mesh", "I",
     return (int)m.geom->nverts;
 }
 
-BUILTIN_V(mesh_bounds, "m", "R:mesh", "F}:3F}:3",
+BUILTIN_OUTS(mesh_bounds, "m", "R:mesh", "F}:3F}:3",
     "returns the min and max vert dimensions of this mesh")
 (VM &, double3 *vmin, double3 *vmax, LResource *res) {
     auto &m = GetMesh(res);

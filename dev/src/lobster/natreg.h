@@ -42,7 +42,7 @@ enum NArgFlags {
     NF_SUBARG3            = 1 << 2,
     NF_ANYVAR             = 1 << 3,
     NF_CONVERTANYTOSTRING = 1 << 4,
-    NF_ANYWIDTH     = 1 << 5,
+    NF_ANYWIDTH           = 1 << 5,
     NF_BOOL               = 1 << 6,
     NF_UNION              = 1 << 7,
     NF_CONST              = 1 << 8,
@@ -334,20 +334,20 @@ template<typename TIDS, size_t P> struct BuiltinParam {
 // What a builtin returns. The return type string has the same shape as the argument one, so
 // the kind of each return value comes out of the same parser. A builtin returns its last
 // return value as the type that kind implies, so one that has none returns void, and so does
-// one of the V kind, which writes all of them thru a pointer instead.
-template<typename TIDS, bool PushRets> struct BuiltinRet {
+// one that writes all of them thru a pointer instead, see BUILTIN_OUTS.
+template<typename TIDS, bool AllOuts> struct BuiltinRet {
     static constexpr int n = BuiltinNumArgs(TIDS::rids);
     typedef std::conditional_t<
-        PushRets || n == 0, void,
+        AllOuts || n == 0, void,
         typename BuiltinParamType<BuiltinRetKindOf(TIDS::tids, TIDS::rids, n - 1),
                                   BuiltinRetWidthOf(TIDS::tids, TIDS::rids, n - 1)>::type> type;
 };
 
 // How many return values a builtin does not return but writes thru a pointer the caller passes
-// ahead of its arguments: all of them for the V kind, all but the last one for the rest.
-constexpr int BuiltinNumOuts(const char *rets, bool pushrets) {
+// ahead of its arguments: all of them for a BUILTIN_OUTS, all but the last one for the rest.
+constexpr int BuiltinNumOuts(const char *rets, bool allouts) {
     auto n = BuiltinNumArgs(rets);
-    return !n ? 0 : pushrets ? n : n - 1;
+    return !n ? 0 : allouts ? n : n - 1;
 }
 
 // The type one of those pointers is to.
@@ -357,10 +357,10 @@ template<typename TIDS, size_t R> struct BuiltinOut {
                                           *type;
 };
 
-template<typename TIDS, bool PushRets, typename Outs, typename Params> struct BuiltinSigT;
-template<typename TIDS, bool PushRets, size_t... O, size_t... P>
-struct BuiltinSigT<TIDS, PushRets, std::index_sequence<O...>, std::index_sequence<P...>> {
-    typedef typename BuiltinRet<TIDS, PushRets>::type ret;
+template<typename TIDS, bool AllOuts, typename Outs, typename Params> struct BuiltinSigT;
+template<typename TIDS, bool AllOuts, size_t... O, size_t... P>
+struct BuiltinSigT<TIDS, AllOuts, std::index_sequence<O...>, std::index_sequence<P...>> {
+    typedef typename BuiltinRet<TIDS, AllOuts>::type ret;
     typedef ret type(VM &, typename BuiltinOut<TIDS, O>::type...,
                      typename BuiltinParam<TIDS, P>::type...);
 };
@@ -369,9 +369,9 @@ struct BuiltinSigT<TIDS, PushRets, std::index_sequence<O...>, std::index_sequenc
 // them as a `tids` member, see BUILTIN_DEF_. The BUILTIN macros declare a builtin as this ahead
 // of its definition, which checks the parameter list of the definition against the argument
 // types given, and makes its address available.
-template<typename TIDS, bool PushRets> using BuiltinSig =
-    BuiltinSigT<TIDS, PushRets,
-                std::make_index_sequence<(size_t)BuiltinNumOuts(TIDS::rids, PushRets)>,
+template<typename TIDS, bool AllOuts> using BuiltinSig =
+    BuiltinSigT<TIDS, AllOuts,
+                std::make_index_sequence<(size_t)BuiltinNumOuts(TIDS::rids, AllOuts)>,
                 std::make_index_sequence<BuiltinNumArgs(TIDS::tids)>>;
 
 // The builtins the generated code writes out itself rather than calling, because they are
@@ -435,7 +435,7 @@ struct BuiltinDef {
     const char *typeids;
     const char *rets;
     const char *help;
-    bool pushrets;       // Of the V kind, see the BUILTIN macros below.
+    bool allouts;        // Writes all of its return values thru out pointers, see BUILTIN_OUTS.
     BuiltinCodegen codegen;  // Written out by codegen rather than called, if at all.
     // Only for the JIT to link the generated code against, which calls the function by its
     // symbol, see CodeGen::EmitNativeCall and NativeRegistry::jit_imports. Null for one that
@@ -444,10 +444,10 @@ struct BuiltinDef {
     BuiltinDef *next = nullptr;
 
     BuiltinDef(BuiltinGroup &group, const char *symbol, const char *name, const char *ids,
-               const char *typeids, const char *rets, const char *help, bool pushrets,
+               const char *typeids, const char *rets, const char *help, bool allouts,
                BuiltinCodegen codegen, const void *address)
         : symbol(symbol), name(name), ids(ids), typeids(typeids), rets(rets), help(help),
-          pushrets(pushrets), codegen(codegen), address(address) {
+          allouts(allouts), codegen(codegen), address(address) {
         if (group.last) group.last->next = this;
         else group.first = this;
         group.last = this;
@@ -480,7 +480,7 @@ struct BuiltinDef {
 // A builtin returns its last return value as the type its letter implies, or void when it has
 // none, and writes the ones before it thru a pointer per value, each of that value's own type,
 // which it takes ahead of its arguments, see BuiltinOut.
-// BUILTIN_V is for the kind of builtin that writes all of its return values thru such
+// BUILTIN_OUTS is for the kind of builtin that writes all of its return values thru such
 // pointers, in order, and returns void. The _OVERLOAD variants take a distinct symbol name and
 // the Lobster name separately, for names that are defined more than once with different
 // argument types. The symbol must then still start with the plain one, followed by a
@@ -494,27 +494,27 @@ struct BuiltinDef {
 #define BUILTIN_CAT(a, b) BUILTIN_CAT_(a, b)
 #define BUILTIN_STR_(a) #a
 #define BUILTIN_STR(a) BUILTIN_STR_(a)
-#define BUILTIN_META_(sym, name, ids, typeids, rets, help, pushrets, codegen, address) \
+#define BUILTIN_META_(sym, name, ids, typeids, rets, help, allouts, codegen, address) \
     static lobster::BuiltinDef BUILTIN_CAT(sym, _def)( \
-        BUILTIN_GROUP, BUILTIN_STR(sym), name, ids, typeids, rets, help, pushrets, \
+        BUILTIN_GROUP, BUILTIN_STR(sym), name, ids, typeids, rets, help, allouts, \
         codegen, address)
-#define BUILTIN_DEF_(sym, name, ids, typeids, rets, help, pushrets) \
+#define BUILTIN_DEF_(sym, name, ids, typeids, rets, help, allouts) \
     struct BUILTIN_CAT(sym, _tids) { static constexpr const char *tids = typeids; \
                                      static constexpr const char *rids = rets; }; \
-    extern "C" lobster::BuiltinSig<BUILTIN_CAT(sym, _tids), pushrets>::type sym; \
-    BUILTIN_META_(sym, name, ids, typeids, rets, help, pushrets, lobster::BCG_NONE, \
+    extern "C" lobster::BuiltinSig<BUILTIN_CAT(sym, _tids), allouts>::type sym; \
+    BUILTIN_META_(sym, name, ids, typeids, rets, help, allouts, lobster::BCG_NONE, \
                   (const void *)sym)
 #define BUILTIN_RET_(sym) lobster::BuiltinSig<BUILTIN_CAT(sym, _tids), false>::ret
 #define BUILTIN(name, ids, typeids, rets, help) \
     BUILTIN_DEF_(BUILTIN_SYM(name), #name, ids, typeids, rets, help, false); \
     extern "C" BUILTIN_RET_(BUILTIN_SYM(name)) BUILTIN_SYM(name)
-#define BUILTIN_V(name, ids, typeids, rets, help) \
+#define BUILTIN_OUTS(name, ids, typeids, rets, help) \
     BUILTIN_DEF_(BUILTIN_SYM(name), #name, ids, typeids, rets, help, true); \
     extern "C" void BUILTIN_SYM(name)
 #define BUILTIN_OVERLOAD(sym, name, ids, typeids, rets, help) \
     BUILTIN_DEF_(BUILTIN_SYM(sym), name, ids, typeids, rets, help, false); \
     extern "C" BUILTIN_RET_(BUILTIN_SYM(sym)) BUILTIN_SYM(sym)
-#define BUILTIN_V_OVERLOAD(sym, name, ids, typeids, rets, help) \
+#define BUILTIN_OUTS_OVERLOAD(sym, name, ids, typeids, rets, help) \
     BUILTIN_DEF_(BUILTIN_SYM(sym), name, ids, typeids, rets, help, true); \
     extern "C" void BUILTIN_SYM(sym)
 #define BUILTIN_CODEGEN(codegen, name, ids, typeids, rets, help) \
@@ -532,9 +532,8 @@ struct NativeFun : Named {
     // C linkage name of the function, which is how the generated code calls it.
     const char *symbol;
 
-    // Of the V kind, which writes all of its return values thru out pointers, see the BUILTIN
-    // macros.
-    bool pushrets;
+    // Writes all of its return values thru out pointers, see BUILTIN_OUTS.
+    bool allouts;
 
     // See BuiltinDef::codegen and BuiltinDef::address.
     BuiltinCodegen codegen;
@@ -545,14 +544,14 @@ struct NativeFun : Named {
     NativeFun *overloads = nullptr, *first = this;
 
     NativeFun(const char *ns, const char *nsname, const char *ids, const char *typeids,
-              const char *rets, const char *help, const char *symbol, bool pushrets,
+              const char *rets, const char *help, const char *symbol, bool allouts,
               BuiltinCodegen codegen, const void *address)
         : Named(*ns ? cat(ns, ".", nsname) : nsname, 0),
           args(BuiltinNumArgs(typeids)),
           retvals(BuiltinNumArgs(rets)),
           help(help),
           symbol(symbol),
-          pushrets(pushrets),
+          allouts(allouts),
           codegen(codegen),
           address(address) {
         for (auto [i, arg] : enumerate(args)) {
@@ -637,16 +636,16 @@ struct NativeFun : Named {
     }
     int RetValSlots(size_t i) const { return std::max(1, RetValWidth(i)); }
 
-    // The one the builtin returns its last return value as, see BuiltinRet. Of the V kind, or
-    // with nothing to return, it returns void, which has no kind of its own.
-    bool ReturnsValue() const { return !pushrets && !retvals.empty(); }
+    // The one the builtin returns its last return value as, see BuiltinRet. A BUILTIN_OUTS, or
+    // one with nothing to return, returns void, which has no kind of its own.
+    bool ReturnsValue() const { return !allouts && !retvals.empty(); }
     BuiltinArgKind RetKind() const { return RetValKind(retvals.size() - 1); }
     int RetWidth() const { return retvals.empty() ? 0 : RetValWidth(retvals.size() - 1); }
     int RetSlots() const { return ReturnsValue() ? RetValSlots(retvals.size() - 1) : 0; }
 
     // The return values it writes thru a pointer instead, mirroring BuiltinNumOuts.
     int OutValues() const {
-        return retvals.empty() ? 0 : (int)retvals.size() - (pushrets ? 0 : 1);
+        return retvals.empty() ? 0 : (int)retvals.size() - (allouts ? 0 : 1);
     }
 
     // How many values a numeric struct argument has, which its type says.
@@ -735,7 +734,7 @@ struct NativeRegistry {
     void RegisterGroup(const BuiltinGroup &group) {
         for (auto def = group.first; def; def = def->next) {
             auto nf = new NativeFun(cur_ns, def->name, def->ids, def->typeids, def->rets,
-                                    def->help, def->symbol, def->pushrets, def->codegen,
+                                    def->help, def->symbol, def->allouts, def->codegen,
                                     def->address);
             // Catches a file whose BUILTIN_SYM doesn't match the namespace it is registered
             // under, which would make the symbol of its builtins unpredictable.

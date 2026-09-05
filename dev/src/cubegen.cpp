@@ -1430,7 +1430,7 @@ BUILTIN(set_buf, "block,indices,offset,size", "R:voxelsSI}:3I}:3", "",
 }
 
 // Should probably be renamed because it collects a bunch of stats beyond color.
-BUILTIN_V(average_surface_color, "world", "R:voxels", "F}:3III}:3I}:3", "")
+BUILTIN_OUTS(average_surface_color, "world", "R:voxels", "F}:3III}:3I}:3", "")
 (VM &, double3 *color, iint *nsurface, iint *nvolume, iint3 *bbmin, iint3 *bbmax,
  LResource *world) {
 		auto &v = GetVoxels(world);
@@ -1616,7 +1616,7 @@ BUILTIN(simplex, "block,pos,size,spos,ssize,octaves,scale,persistence,solidcol,z
 // This function should probably be renamed, as it does something more complex than a plain
 // bounding box by trying to ignore outlier voxels according to minsolids.
 // For a regular bounding box, see average_surface_color
-BUILTIN_V(bounding_box, "world,minsolids", "R:voxelsF", "I}:3I}:3",
+BUILTIN_OUTS(bounding_box, "world,minsolids", "R:voxelsF", "I}:3I}:3",
     "")
 (VM &, iint3 *bbmin, iint3 *bbmax, LResource *res, double minsolids_) {
     auto minsolids = (float)minsolids_;

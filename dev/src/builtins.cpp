@@ -1081,7 +1081,7 @@ BUILTIN(smootherstep, "x", "F", "F",
 CARDINALSPLINEW(2) CARDINALSPLINEW(3)
 #undef CARDINALSPLINEW
 
-BUILTIN_V(line_intersect, "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "IF}:2",
+BUILTIN_OUTS(line_intersect, "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "IF}:2",
     "computes if there is an intersection point between 2 line segments, with the point as"
     " second return value")
 (VM &, iint *crosses, double2 *point, double2 line1a, double2 line1b, double2 line2a,
@@ -1182,7 +1182,7 @@ BUILTIN(circles_within_range, "dist,positions,radiuses,positions2,radiuses2,grid
     return rvec;
 }
 
-BUILTIN_V(wave_function_collapse, "tilemap,size", "S]I}:2", "S]I",
+BUILTIN_OUTS(wave_function_collapse, "tilemap,size", "S]I}:2", "S]I",
     "returns a tilemap of given size modelled after the possible shapes in the input"
     " tilemap. Tilemap should consist of chars in the 0..127 range. Second return value"
     " the number of failed neighbor matches, this should"

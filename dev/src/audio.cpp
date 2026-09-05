@@ -267,7 +267,7 @@ BUILTIN(music_set_general_volume, "vol", "F", "",
     SDLSetGeneralMusicVolume((float)vol);
 }
 
-BUILTIN_V(mic_devices, "", "", "I]S]",
+BUILTIN_OUTS(mic_devices, "", "", "I]S]",
     "returns the available microphone devices as two lists: their ids (used with mic_start) and their names")
 (VM &vm, LVector **out_ids, LVector **out_names) {
     vector<int> ids;

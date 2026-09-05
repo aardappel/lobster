@@ -1368,7 +1368,7 @@ BUILTIN(want_capture_mouse, "", "", "B",
     return result;
 }
 
-BUILTIN_V(get_modifiers, "", "", "BBB",
+BUILTIN_OUTS(get_modifiers, "", "", "BBB",
     "returns the status of the shift, ctrl and alt keys")
 (VM &vm, iint *shift, iint *ctrl, iint *alt) {
     IsInit(vm, { N_NONE, N_NONE });
@@ -1604,7 +1604,7 @@ BUILTIN_OVERLOAD(input_text_plain, "input_text", "label,str", "SSk", "S",
     return LStringInputText(vm, Label(vm, text), str).first;
 }
 
-BUILTIN_V_OVERLOAD(input_text_flags, "input_text", "label,str,flags", "SSkI", "SB",
+BUILTIN_OUTS_OVERLOAD(input_text_flags, "input_text", "label,str,flags", "SSkI", "SB",
     "")
 (VM &vm, LString **newtext, iint *entered, LString *text, LString *str, iint extra_flags) {
     IsInit(vm);
@@ -1786,7 +1786,7 @@ BUILTIN(image_button, "label,tex,size,bgcol,flip", "SR:textureF}:2F}:4?B?", "B",
     return press;
 }
 
-BUILTIN_V(image_mouseclick, "tex,size", "R:textureF}:2", "F}:2I",
+BUILTIN_OUTS(image_mouseclick, "tex,size", "R:textureF}:2", "F}:2I",
     "")
 (VM &vm, double2 *pos_in_image, iint *event_, LResource *tex, double2 size_) {
     IsInit(vm);

@@ -1300,7 +1300,7 @@ BUILTIN(p2p_set_recv_buffer_size, "size", "I", "",
     STEAM_BOOL(steam->SetGlobalConfigValue(k_ESteamNetworkingConfig_RecvBufferSize, (int)size));
 }
 
-BUILTIN_V(p2p_get_connection_status, "ident", "S", "IFFFFFFIIIII",
+BUILTIN_OUTS(p2p_get_connection_status, "ident", "S", "IFFFFFFIIIII",
     "receive realtime connection status info. Returned values are: ping, local quality, "
     "remote quality, out packets/sec, out bytes/sec, in packets/sec, in bytes/sec, send rate bytes/sec, "
     "pending unreliable packets, pending reliable packets, sent unACKed reliable packets, and queue time in usec. "
@@ -1402,7 +1402,7 @@ BUILTIN(p2p_rename_peer, "ident,new_ident", "SS", "B", "use a different identifi
     return STEAM_BOOL(steam->RenamePeer(ident->strvnt(), new_ident->strvnt()));
 }
 
-BUILTIN_V(p2p_send_message, "ident,data,reliable", "SSB", "BI", "send a reliable message to a given steam identity")
+BUILTIN_OUTS(p2p_send_message, "ident,data,reliable", "SSB", "BI", "send a reliable message to a given steam identity")
 (VM &, iint *sent, iint *result_, LString *ident, LString *data, iint reliable) {
     #ifdef PLATFORM_STEAMWORKS
         EResult result = k_EResultNone;
@@ -1423,7 +1423,7 @@ BUILTIN(p2p_broadcast_message, "data,reliable", "SB", "B", "send a reliable mess
     return STEAM_BOOL(steam->BroadcastMessage(data->strv(), (int)reliable));
 }
 
-BUILTIN_V(p2p_receive_messages, "", "", "S]S]", "receive messages from all"
+BUILTIN_OUTS(p2p_receive_messages, "", "", "S]S]", "receive messages from all"
     " connected peers. The first return value is an array of messages, the second"
     " return value is an array of the steam identities that sent each message")
 (VM &vm, LVector **messages_, LVector **senders) {
@@ -1565,7 +1565,7 @@ BUILTIN(lobby_get_data, "steam_id,key", "IS", "S",
         vm, steam->GetLobbyData(SteamIDFromValue(steam_id), key->strvnt().c_str()));
 }
 
-BUILTIN_V(lobby_get_all_data, "steam_id", "I", "S]S]", "get all key-value pairs stored on this lobby")
+BUILTIN_OUTS(lobby_get_all_data, "steam_id", "I", "S]S]", "get all key-value pairs stored on this lobby")
 (VM &vm, LVector **keys, LVector **values, iint vsteam_id) {
     (void)vsteam_id;
     auto *key_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
@@ -1739,7 +1739,7 @@ BUILTIN(workshop_open_legal_agreement, "", "", "",
     #endif
 }
 
-BUILTIN_V(workshop_sync, "dest_dir,own_subdirs", "SB", "IS]",
+BUILTIN_OUTS(workshop_sync, "dest_dir,own_subdirs", "SB", "IS]",
     "makes subscribed workshop content progress towards being downloaded, and copies each"
     " item's files into dest_dir (relative to the main write dir, or absolute) once its"
     " download completes. If own_subdirs is true, each item's files go into a subdirectory of"
@@ -1813,7 +1813,7 @@ BUILTIN(workshop_upload_start, "content_folder,title,description,metadata,change
     return ok;
 }
 
-BUILTIN_V(workshop_upload_status, "", "", "IIBII",
+BUILTIN_OUTS(workshop_upload_status, "", "", "IIBII",
     "gets the status of the upload started with workshop_upload_start(): 0 = no upload"
     " started, 1 = in progress, 2 = done succesfully, -1 = failed, -2 = failed because the"
     " existing item is owned by a different steam user. Further return values are: the"

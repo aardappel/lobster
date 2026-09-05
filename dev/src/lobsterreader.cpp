@@ -390,7 +390,7 @@ BuiltinGroup parsedata_builtins;
 #define BUILTIN_GROUP parsedata_builtins
 #define BUILTIN_SYM(name) builtin_##name
 
-BUILTIN_V(parse_data, "typeid,stringdata", "TS", "A1?S?",
+BUILTIN_OUTS(parse_data, "typeid,stringdata", "TS", "A1?S?",
     "parses a string containing a data structure in lobster syntax (what you get if you convert"
     " an arbitrary data structure to a string) back into a data structure. supports"
     " int/float/string/vector and classes. classes will be forced to be compatible with their "
@@ -423,7 +423,7 @@ BUILTIN(flexbuffers_value_to_binary, "val,max_nesting,cycle_detection", "AI?B?",
     return s;
 }
 
-BUILTIN_V(flexbuffers_binary_to_value, "typeid,flex", "TS", "A1?S?",
+BUILTIN_OUTS(flexbuffers_binary_to_value, "typeid,flex", "TS", "A1?S?",
     "turns a flexbuffer into a value")
 (VM &vm, RefObj **val, LString **err, iint id, LString *flex) {
     auto fsv = flex->strv();
@@ -437,7 +437,7 @@ BUILTIN_V(flexbuffers_binary_to_value, "typeid,flex", "TS", "A1?S?",
     }
 }
 
-BUILTIN_V(flexbuffers_binary_to_json, "flex,field_quotes,indent_string", "SBS", "S?S?",
+BUILTIN_OUTS(flexbuffers_binary_to_json, "flex,field_quotes,indent_string", "SBS", "S?S?",
     "turns a flexbuffer into a JSON string. If indent_string is empty, will be a single line string")
 (VM &vm, LString **json_, LString **err, LString *flex, iint quoted, LString *indent_string_) {
     auto indent_string = indent_string_->strvnt();
@@ -490,7 +490,7 @@ BUILTIN(lobster_value_to_binary, "val", "A", "S",
     return s;
 }
 
-BUILTIN_V(lobster_binary_to_value, "typeid,bin", "TS", "A1?S?",
+BUILTIN_OUTS(lobster_binary_to_value, "typeid,bin", "TS", "A1?S?",
     "turns binary created by lobster_value_to_binary back into a value")
 (VM &vm, RefObj **val, LString **err, iint id, LString *bin) {
     auto fsv = bin->strv();
