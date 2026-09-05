@@ -57,14 +57,15 @@ struct TypeChecker {
     Switch *switch_case_context = nullptr;
     set<pair<SubFunction *, SubFunction *>> freevar_check_preempt;
 
-    TypeChecker(Parser &_p, SymbolTable &_st, size_t retreq, Query *query, bool full_error)
-        : parser(_p), st(_st), query(query), full_error(full_error) {
+    TypeChecker(Parser &_p, SymbolTable &_st, const CompileOptions &opts)
+        : parser(_p), st(_st), query(opts.query), full_error(opts.full_error) {
         st.type_check_call_back = [&](UDT &udt) {
             EnsureUDTChecked(udt, *scopes.back().call_context);
         };
         // FIXME: this is unfriendly.
         if (!st.RegisterDefaultTypes())
             Error(*parser.root, "cannot find standard types (from stdtype.lobster)");
+        size_t retreq = opts.return_value;
         AssertIs<Call>(parser.root)->sf->reqret = retreq;
         TT(parser.root, retreq, LT_KEEP);
         CleanUpFlow(0);

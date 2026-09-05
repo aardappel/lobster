@@ -392,10 +392,10 @@ struct CodeGen  {
         return offset;
     }
 
-    CodeGen(Parser &_p, SymbolTable &_st, bool return_value, int runtime_checks, bool cpp,
-            uint64_t src_hash, string &c_codegen, string_view custom_pre_init_name, bool mir)
-        : parser(_p), st(_st), runtime_checks(runtime_checks), cpp(cpp), mir(mir),
-          c_codegen(c_codegen) {
+    CodeGen(Parser &_p, SymbolTable &_st, const CompileOptions &opts, uint64_t src_hash,
+            string &c_codegen)
+        : parser(_p), st(_st), runtime_checks(opts.runtime_checks), cpp(!opts.jit_mode),
+          mir(opts.jit_mode && opts.jit_options.mir), c_codegen(c_codegen) {
         node_context.push_back(parser.root);
 
         // Reserve space and index for all vtables.
@@ -548,6 +548,7 @@ struct CodeGen  {
         f_arg_places.clear();
         f_ret_types.clear();
         f_keeps.clear();
+        auto return_value = opts.return_value;
         Gen(parser.root, return_value);
         auto type = parser.root->exptype;
         assert(type->NumValues() == (size_t)return_value);
@@ -576,7 +577,7 @@ struct CodeGen  {
             }
         }
 
-        Epilogue(c_codegen, custom_pre_init_name, src_hash);
+        Epilogue(c_codegen, opts.custom_pre_init_name, src_hash);
 
         // The builtins the code calls by their symbol, see EmitNativeCall, whose definitions
         // live in other translation units. The C side sees the references they take as

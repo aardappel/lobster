@@ -566,7 +566,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
     DeclChecker dc(st, nfr);
     dc.Check();
     if (opts.query) PrepQuery(*opts.query, filenames);
-    TypeChecker tc(parser, st, opts.return_value, opts.query, opts.full_error);
+    TypeChecker tc(parser, st, opts);
     if (opts.query) {
         // The typechecker did not come across the location.
         if (!tc.ProcessQuery()) THROW_OR_ABORT("query_unknown_ident: " + opts.query->iden);
@@ -578,8 +578,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
     Optimizer opt(st, tc, opts.runtime_checks);
     if (parsedump) *parsedump = parser.DumpAll(true);
     auto src_hash = lex.HashAll();
-    CodeGen cg(parser, st, opts.return_value, opts.runtime_checks, !opts.jit_mode, src_hash,
-               c_codegen, opts.custom_pre_init_name, opts.jit_mode && opts.jit_options.mir);
+    CodeGen cg(parser, st, opts, src_hash, c_codegen);
     st.Serialize(cg.type_table, cg.sids, cg.stringtable, metadata_buffer, filenames, cg.ser_ids, src_hash);
     if (pakfile) {
         auto err = BuildPakFile(*pakfile, metadata_buffer, parser.pakfiles, src_hash,
