@@ -547,10 +547,9 @@ void PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
     query.filenames = &filenames;
 }
 
-void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, string &metadata_buffer,
-             string *parsedump, string *pakfile, bool return_value, int runtime_checks,
-             Query *query, int max_errors, bool full_error, bool jit_mode, string &c_codegen,
-             bool code_pak, string_view custom_pre_init_name, const JitOptions &jit_options) {
+void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
+             const CompileOptions &opts, string &metadata_buffer, string &c_codegen,
+             string *parsedump, string *pakfile) {
     #ifdef NDEBUG
         SlabAlloc slaballoc;
         if (g_current_slaballoc) THROW_OR_ABORT("nested slab allocator use");
@@ -562,30 +561,31 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
         } slabreset;
     #endif
     vector<pair<string, string>> filenames;
-    Lex lex(fn, filenames, nfr.namespaces, stringsource, max_errors);
+    Lex lex(fn, filenames, nfr.namespaces, stringsource, opts.max_errors);
     SymbolTable st(lex);
     Parser parser(nfr, lex, st);
     parser.Parse();
     DeclChecker dc(st, nfr);
     dc.Check();
-    if (query) PrepQuery(*query, filenames);
-    TypeChecker tc(parser, st, return_value, query, full_error);
-    if (query) { // Failed to find location during type checking.
-        if(!tc.ProcessQuery()) THROW_OR_ABORT("query_unknown_ident: " + query->iden);
+    if (opts.query) PrepQuery(*opts.query, filenames);
+    TypeChecker tc(parser, st, opts.return_value, opts.query, opts.full_error);
+    if (opts.query) {
+        // The typechecker did not come across the location.
+        if (!tc.ProcessQuery()) THROW_OR_ABORT("query_unknown_ident: " + opts.query->iden);
     }
     if (lex.num_errors) THROW_OR_ABORT("errors encountered, aborting");
     tc.Stats(filenames);
     // Optimizer is not optional, must always run, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
-    Optimizer opt(st, tc, runtime_checks);
+    Optimizer opt(st, tc, opts.runtime_checks);
     if (parsedump) *parsedump = parser.DumpAll(true);
     auto src_hash = lex.HashAll();
-    CodeGen cg(parser, st, return_value, runtime_checks, !jit_mode, src_hash,
-               c_codegen, custom_pre_init_name, jit_mode && jit_options.mir);
+    CodeGen cg(parser, st, opts.return_value, opts.runtime_checks, !opts.jit_mode, src_hash,
+               c_codegen, opts.custom_pre_init_name, opts.jit_mode && opts.jit_options.mir);
     st.Serialize(cg.type_table, cg.sids, cg.stringtable, metadata_buffer, filenames, cg.ser_ids, src_hash);
     if (pakfile) {
         auto err = BuildPakFile(*pakfile, metadata_buffer, parser.pakfiles, src_hash,
-                                code_pak ? c_codegen : string());
+                                opts.code_pak ? c_codegen : string());
         if (!err.empty()) THROW_OR_ABORT(err);
     }
 }
@@ -743,16 +743,18 @@ LString *CompileRun(VM &parent_vm, LString **result, Value source, bool stringis
     try
     #endif
     {
-        int runtime_checks = RUNTIME_ASSERT;  // FIXME: let caller decide?
+        CompileOptions opts;
+        opts.return_value = true;
+        // FIXME: let the caller decide on the runtime checks?
+        opts.jit_options = parent_vm.vma.jit_options;
         string metadata_buffer;
         string c_codegen;
         Compile(parent_vm.vma.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
-                metadata_buffer, nullptr, nullptr, true, runtime_checks, nullptr, 1, false, true,
-                c_codegen, false, "nullptr", parent_vm.vma.jit_options);
+                opts, metadata_buffer, c_codegen);
         string error;
         auto ret = RunJIT(parent_vm.vma.nfr, metadata_buffer, fn, nullptr, std::move(args),
-                          false, error, runtime_checks, true, false, c_codegen,
-                          parent_vm.vma.jit_options);
+                          false, error, opts.runtime_checks, true, false, c_codegen,
+                          opts.jit_options);
         if (!error.empty()) THROW_OR_ABORT(error);
         *result = parent_vm.NewString(ret.first);
         return nullptr;

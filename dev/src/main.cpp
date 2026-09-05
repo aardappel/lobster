@@ -76,21 +76,16 @@ int main(int argc, char* argv[]) {
         bool dump_names = false;
         bool tcc_out = false;
         bool c_out = false;
-        bool code_pak = false;
         bool compile_only = false;
         bool non_interactive_test = false;
-        bool full_error = false;
-        int runtime_checks = RUNTIME_ASSERT;
         bool stack_trace_python_ordering = false;
-        int max_errors = 1;
-        JitOptions jit_options;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
         string fn;
         string mainfile;
         vector<string> program_args;
         vector<string> imports;
-        auto jit_mode = true;
+        CompileOptions opts;
         Query query;
         string helptext = "Usage:\n"
             "lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]\n"
@@ -135,19 +130,19 @@ int main(int argc, char* argv[]) {
                 string a = argv[arg];
                 if      (a == "--wait") { wait = true; }
                 else if (a == "--pak") { lpak = default_lpak; }
-                else if (a == "--rpak") { lpak = default_lpak; code_pak = true; }
-                else if (a == "--cpp") { jit_mode = false; }
+                else if (a == "--rpak") { lpak = default_lpak; opts.code_pak = true; }
+                else if (a == "--cpp") { opts.jit_mode = false; }
                 else if (a == "--parsedump") { parsedump = true; }
                 else if (a == "--verbose") { min_output_level = OUTPUT_INFO; }
                 else if (a == "--debug") { min_output_level = OUTPUT_DEBUG; }
                 else if (a == "--silent") { min_output_level = OUTPUT_ERROR; }
-                else if (a == "--runtime-no-asserts") { runtime_checks = RUNTIME_NO_ASSERT; }
-                else if (a == "--runtime-asserts") { runtime_checks = RUNTIME_ASSERT; }
-                else if (a == "--runtime-stack-traces") { runtime_checks = RUNTIME_STACK_TRACE; }
-                else if (a == "--runtime-debug") { runtime_checks = RUNTIME_DEBUG; }
-                else if (a == "--runtime-debug-dump") { runtime_checks = RUNTIME_DEBUG_DUMP; }
-                else if (a == "--runtime-debugger") { runtime_checks = RUNTIME_DEBUGGER; }
-                else if (a == "--runtime-debugger-dump") { runtime_checks = RUNTIME_DEBUGGER_DUMP; }
+                else if (a == "--runtime-no-asserts") { opts.runtime_checks = RUNTIME_NO_ASSERT; }
+                else if (a == "--runtime-asserts") { opts.runtime_checks = RUNTIME_ASSERT; }
+                else if (a == "--runtime-stack-traces") { opts.runtime_checks = RUNTIME_STACK_TRACE; }
+                else if (a == "--runtime-debug") { opts.runtime_checks = RUNTIME_DEBUG; }
+                else if (a == "--runtime-debug-dump") { opts.runtime_checks = RUNTIME_DEBUG_DUMP; }
+                else if (a == "--runtime-debugger") { opts.runtime_checks = RUNTIME_DEBUGGER; }
+                else if (a == "--runtime-debugger-dump") { opts.runtime_checks = RUNTIME_DEBUGGER_DUMP; }
                 else if (a == "--invert-stacktraces") { stack_trace_python_ordering = true; }
                 else if (a == "--noconsole") { SetConsole(false); }
                 else if (a == "--gen-builtins-json") { dump_builtins_json = true; }
@@ -155,18 +150,18 @@ int main(int argc, char* argv[]) {
                 else if (a == "--gen-builtins-html") { dump_builtins = true; }
                 else if (a == "--gen-builtins-names") { dump_names = true; }
                 else if (a == "--compile-only") { compile_only = true; }
-                else if (a == "--full-error") { full_error = true; }
+                else if (a == "--full-error") { opts.full_error = true; }
                 #if LOBSTER_ENGINE
                 else if (a == "--non-interactive-test") { non_interactive_test = true; SDLTestMode(); }
                 else if (a == "--background") { SDLStartInBackground(); }
                 #endif
                 else if (a == "--tcc-out") { tcc_out = true; }
                 else if (a == "--mir") {
-                    jit_options.mir = true;
+                    opts.jit_options.mir = true;
                     // The optimization level is optional, so only take the next argument if it
                     // could not be anything else.
                     if (arg + 1 < argc && IsDigitsOnly(argv[arg + 1]))
-                        jit_options.optimize_level = parse_int<int>(string_view(argv[++arg]));
+                        opts.jit_options.optimize_level = parse_int<int>(string_view(argv[++arg]));
                 }
                 else if (a == "--c-out") { c_out = true; }
                 else if (a == "--no-crash-dialog") { /* Handled before main arg parsing. */ }
@@ -185,7 +180,7 @@ int main(int argc, char* argv[]) {
                 } else if (a == "--errors") {
                     arg++;
                     if (arg >= argc) THROW_OR_ABORT("missing error count");
-                    max_errors = std::max(1, std::max(100, parse_int<int>(string_view(argv[arg]))));
+                    opts.max_errors = std::max(1, std::max(100, parse_int<int>(string_view(argv[arg]))));
                 } else if (a == "--query") {
                     arg++;
                     if (argc - arg < 4)
@@ -255,7 +250,7 @@ int main(int argc, char* argv[]) {
             // This will now come from the pakfile.
             if (!LoadMetaDataAndCode(metadata_buffer, c_codegen))
                 THROW_OR_ABORT("Cannot load metadata from pakfile!");
-            if (jit_mode && c_codegen.empty())
+            if (opts.jit_mode && c_codegen.empty())
                 THROW_OR_ABORT("Cannot load compiled C from pakfile to run it!");
         } else {
             LOG_INFO("compiling...");
@@ -264,13 +259,12 @@ int main(int argc, char* argv[]) {
             auto start_time = SecondsSinceStart();
             dump.clear();
             pakfile.clear();
+            opts.query = !query.kind.empty() ? &query : nullptr;
             for (;;) {
                 metadata_buffer.clear();
                 c_codegen.clear();
-                Compile(nfr, fn, {}, metadata_buffer, parsedump ? &dump : nullptr,
-                        lpak ? &pakfile : nullptr, false, runtime_checks,
-                        !query.kind.empty() ? &query : nullptr, max_errors, full_error, jit_mode,
-                        c_codegen, code_pak, "nullptr", jit_options);
+                Compile(nfr, fn, {}, opts, metadata_buffer, c_codegen,
+                        parsedump ? &dump : nullptr, lpak ? &pakfile : nullptr);
                 if (mainfile.empty()) break;
                 if (!FileExists(mainfile, true)) {
                     //LOG_WARN(mainfile, " does not exist, skipping");
@@ -297,7 +291,7 @@ int main(int argc, char* argv[]) {
             if (!WriteFile(out, false, c_codegen, false)) THROW_OR_ABORT(cat("cannot write: ", out));
             return 0;
         }
-        if (jit_mode) {
+        if (opts.jit_mode) {
             string error;
             auto ret = RunJIT(nfr,
                               metadata_buffer,
@@ -306,11 +300,11 @@ int main(int argc, char* argv[]) {
                               std::move(program_args),
                               compile_only,
                               error,
-                              runtime_checks,
+                              opts.runtime_checks,
                               !non_interactive_test,
                               stack_trace_python_ordering,
                               c_codegen,
-                              jit_options);
+                              opts.jit_options);
             if (!error.empty())
                 THROW_OR_ABORT(error);
             return (int)ret.second;

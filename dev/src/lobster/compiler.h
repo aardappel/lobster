@@ -31,11 +31,32 @@ struct Query {
     vector<pair<string, string>> *filenames = nullptr;
 };
 
+// How to compile, with the defaults compile_run_code() uses; main.cpp sets these from its
+// command line.
+struct CompileOptions {
+    // The program's own value is wanted, which a main program has no use for.
+    bool return_value = false;
+    int runtime_checks = RUNTIME_ASSERT;
+    // How many errors the parser recovers from and reports before it gives up.
+    int max_errors = 1;
+    // Full compile time stack traces in errors, and in warnings.
+    bool full_error = false;
+    // C for the JIT, rather than C++ for a build with the compiled_lobster project.
+    bool jit_mode = true;
+    // Also put the generated C in the pakfile, so it can run without the source, see --rpak.
+    bool code_pak = false;
+    // The function the generated C++ main() calls to register extra builtins, "nullptr" for
+    // none.
+    string_view custom_pre_init_name = "nullptr";
+    JitOptions jit_options;
+    Query *query = nullptr;
+};
+
+// Compiles the source in `stringsource`, or the file `fn` when that is empty, into the
+// metadata and the generated C or C++, plus a parse tree dump and a pakfile when asked for.
 extern void Compile(NativeRegistry &natreg, string_view fn, string_view stringsource,
-                    string &metadata_buffer, string *parsedump, string *pakfile, bool return_value,
-                    int runtime_checks, Query *query, int max_errors, bool full_error,
-                    bool jit_mode, string &c_codegen, bool code_pak,
-                    string_view custom_pre_init_name, const JitOptions &jit_options);
+                    const CompileOptions &opts, string &metadata_buffer, string &c_codegen,
+                    string *parsedump = nullptr, string *pakfile = nullptr);
 
 extern pair<string, iint> RunJIT(NativeRegistry &nfr,
                           string_view metadata_buffer,
