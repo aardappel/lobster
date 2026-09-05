@@ -1664,7 +1664,6 @@ struct CodeGen  {
         }
     }
 
-
     // The same as an address, for the helpers that take one, which a local never has since it
     // is a variable.
     string LvalPtr() {
@@ -2932,8 +2931,6 @@ struct CodeGen  {
             append(sd, "&vmmeta, vtables, object_decs, ", custom_pre_init_name, ", \"\");\n}\n");
         }
     }
-
-
 
     // This must be called explicitly when any values are consumed.
     void TakeTemp(size_t n, bool can_handle_structs) {
@@ -4476,7 +4473,6 @@ pair<IntConstant *, IntConstant *> get_range(Node *c) {
     }
     return { Is<IntConstant>(start), Is<IntConstant>(end) };
 };
-
 
 bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
     if (value->exptype->t != V_INT)

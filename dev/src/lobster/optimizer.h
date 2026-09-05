@@ -231,4 +231,3 @@ Node *Call::Optimize(Optimizer &opt) {
 
 }  // namespace lobster
 
-

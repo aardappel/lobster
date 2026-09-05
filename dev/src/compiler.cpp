@@ -989,7 +989,6 @@ extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const VMMe
 
 }  // namespace lobster
 
-
 stack_vector_storage g_svs1;
 stack_vector_storage g_svs2;
 stack_vector_storage g_svs4;

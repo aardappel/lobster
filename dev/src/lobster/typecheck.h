@@ -1558,8 +1558,6 @@ struct TypeChecker {
         return true;
     }
 
-
-
     void UnWrapBoth(UnTypeRef &otype, TypeRef &atype) {
         while (otype->Wrapped() && otype->t == atype->t) {
             otype = otype->Element();
@@ -2904,14 +2902,14 @@ struct TypeChecker {
         return TypeRef(nullptr);
     }
 
-    bool ProcessDefinition(GUDT *parent, string full_iden, SubFunction **sf) {
+    bool ProcessDefinition(GUDT *parent, string full_iden, SubFunction *sf) {
         size_t pos = full_iden.find('.');
         bool got_pos = pos != std::string::npos;
         string ident = full_iden;
         if (got_pos) {
             ident = full_iden.substr(0, pos);
             //Possible a class or a struct name
-            auto ident_type = FindVarType(ident, *sf);
+            auto ident_type = FindVarType(ident, sf);
             if (!ident_type.Null()) {
                 ident = TypeName(ident_type);
             }
@@ -2979,7 +2977,7 @@ struct TypeChecker {
             FindVar(sf->args);
             FindVar(sf->locals);
             FindVar(sf->freevars);
-            return ProcessDefinition(nullptr, query->iden, &sf);
+            return ProcessDefinition(nullptr, query->iden, sf);
         } else {
             THROW_OR_ABORT("query_unknown_kind: " + query->kind);
             return false;

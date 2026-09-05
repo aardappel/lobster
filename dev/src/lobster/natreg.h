@@ -767,16 +767,6 @@ struct NativeRegistry {
     }
 };
 
-struct Query {
-    Line qloc{ -1, -1 };
-    string kind;
-    string file;
-    string line;
-    string iden;
-    vector<string> args;
-    vector<pair<string, string>> *filenames = nullptr;
-};
-
 }  // namespace lobster
 
 #endif  // LOBSTER_NATREG
