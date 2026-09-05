@@ -576,7 +576,7 @@ struct Parser {
         auto p = st.StructOrSpecializationUse(lastid);
         if (is_struct != p.first->is_struct) Error("class/struct must match parent");
         return p;
-    };
+    }
 
     void ParseTypeDecl(bool is_struct, bool isprivate, Block *parent_list, bool is_abstract) {
         Line line = lex;
@@ -2046,14 +2046,8 @@ struct Parser {
         return Either(T_ENDOFFILE, T_ENDOFINCLUDE);
     }
 
-    bool Either(TType t1, TType t2) {
-        return lex.token == t1 || lex.token == t2;
-    }
-    bool Either(TType t1, TType t2, TType t3) {
-        return lex.token == t1 || lex.token == t2 || lex.token == t3;
-    }
-    bool Either(TType t1, TType t2, TType t3, TType t4) {
-        return lex.token == t1 || lex.token == t2 || lex.token == t3 || lex.token == t4;
+    template<typename... Ts> bool Either(Ts... ts) {
+        return ((lex.token == ts) || ...);
     }
 
     void Expect(TType t) {

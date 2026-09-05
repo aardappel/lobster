@@ -1463,13 +1463,13 @@ struct TypeChecker {
             }
         }
         return sf->returntype;
-    };
+    }
 
     bool SpecializationIsCompatible(const SubFunction &sf, size_t reqret) {
         return reqret == sf.reqret &&
             FreeVarsSameAsCurrent(sf, false) &&
             CompatibleReturns(sf);
-    };
+    }
 
     void ReplayReturns(const SubFunction *sf, const Node &call_context) {
         // Apply effects of return statements for functions being reused, see
@@ -1726,7 +1726,7 @@ struct TypeChecker {
         }
         st.bound_typevars_stack.pop_back();
         return rtype;
-    };
+    }
 
     TypeRef TypeCheckCallDispatch(UDT &dispatch_udt, SubFunction *&csf, List &call_args,
                                   size_t reqret, vector<UnTypeRef> *specializers,
@@ -1950,7 +1950,7 @@ struct TypeChecker {
             call_args.children[0]->exptype = &dispatch_udt.thistype;
         }
         return dispatch_udt.dispatch_table[vtable_idx]->returntype;
-    };
+    }
 
     // Reuse these, otherwise cause a LOT of allocations.
     vector<Overload *> pickfrom;
@@ -2874,7 +2874,7 @@ struct TypeChecker {
                           (!etype.Null() ? ", got " + Q(TypeName(etype)) : ""));
         }
         return type;
-    };
+    }
 
     void LocationQuery(Line &line, string_view type) {
         THROW_OR_ABORT(

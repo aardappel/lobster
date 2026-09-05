@@ -1710,6 +1710,17 @@ inline string Signature(const SubFunction &sf, int depth = 0) {
 }
 
 inline string TypeName(UnTypeRef type, bool tuple_brackets, int depth) {
+    // A type name followed by its type arguments, when it has any.
+    auto specialized = [](string_view name, const auto &types) {
+        string s(name);
+        if (types.empty()) return s;
+        s += "<";
+        for (auto [i, t] : enumerate(types)) {
+            if (i) s += ", ";
+            s += TypeName(t);
+        }
+        return s + ">";
+    };
     switch (type->t) {
         case V_STRUCT_NUM: {
             auto nvt = SymbolTable::GetVectorName(type->ns->t, type->ns->flen);
@@ -1720,30 +1731,12 @@ inline string TypeName(UnTypeRef type, bool tuple_brackets, int depth) {
         case V_STRUCT_R:
         case V_STRUCT_S:
         case V_CLASS: {
-            string s = type->udt->name;
-            if (type->udt->unnamed_specialization && !type->udt->bound_generics.empty()) {
-                s += "<";
-                for (auto [i, t] : enumerate(type->udt->bound_generics)) {
-                    if (i) s += ", ";
-                    s += TypeName(t);
-                }
-                s += ">";
-            }
-            return s;
+            auto udt = type->udt;
+            return udt->unnamed_specialization ? specialized(udt->name, udt->bound_generics)
+                                               : udt->name;
         }
-        case V_UUDT: {
-            string s = type->spec_udt->gudt->name;
-            if (!type->spec_udt->specializers.empty()) {
-                // FIXME! merge with code above..
-                s += "<";
-                for (auto [i, t] : enumerate(type->spec_udt->specializers)) {
-                    if (i) s += ", ";
-                    s += TypeName(t);
-                }
-                s += ">";
-            }
-            return s;
-        }
+        case V_UUDT:
+            return specialized(type->spec_udt->gudt->name, type->spec_udt->specializers);
         case V_VECTOR:
             return type->Element()->t == V_VAR
                         ? "[]"

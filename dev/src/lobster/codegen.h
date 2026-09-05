@@ -1219,12 +1219,7 @@ struct CodeGen  {
             f_slot_kinds[d.slot] |= 1 << d.k();
         }
         if (d.typed) return cat(d.s, " = ", expr, ";");
-        if (cpp) {
-            if (IsRefKind(d.k())) {
-                return cat(d.s, " = Value(", expr, ");");
-            }
-            return cat(d.s, " = Value(", expr, ");");
-        }
+        if (cpp) return cat(d.s, " = Value(", expr, ");");
         switch (d.k()) {
             case VK_INT: return cat(d.s, ".ival = ", expr, ";");
             case VK_FLOAT: return cat(d.s, ".fval = ", expr, ";");
@@ -1274,7 +1269,6 @@ struct CodeGen  {
         else append(sd, "    ", d.s, ".ival = 0;\n");
     }
 
-    // A Value a helper returned, as the expression of a kind.
     // A Value a helper returned as the kind the slot it goes into holds.
     string Unbox(string_view expr, VKind k) {
         if (cpp) return cat(expr, ".", Accessor(k));
@@ -1526,8 +1520,8 @@ struct CodeGen  {
     // members of the struct it returns them in, see RetStruct.
     Place RetVar() { return Var("ret", f_ret_types[0]); }
     Place RetSlot(int i, RTType rtt) { return Var(cat("ret.r", i), rtt); }
-    void comment(string_view c) { append(cb, " // ", c, "\n"); };
-    string_view vmref() { return string_view(cpp ? "vm." : "vm->"); };
+    void comment(string_view c) { append(cb, " // ", c, "\n"); }
+    string_view vmref() { return string_view(cpp ? "vm." : "vm->"); }
 
     // The operands of a helper that works on a run of values, in an array of its own that it
     // gets a pointer to, since the slots they come from are variables. Declares the array, so
@@ -1955,18 +1949,15 @@ struct CodeGen  {
         comment(q);
     }
 
-    int EmitJump() {
+    void EmitJumpBack(int lab) {
         TrackUseDef(0, 0);
         Flush();
-        auto lab = Label();
         append(cb, "    goto block", lab, ";\n");
-        return lab;
     }
 
-    int EmitJumpBack(int lab) {
-        TrackUseDef(0, 0);
-        Flush();
-        append(cb, "    goto block", lab, ";\n");
+    int EmitJump() {
+        auto lab = Label();
+        EmitJumpBack(lab);
         return lab;
     }
 
@@ -3028,7 +3019,7 @@ struct CodeGen  {
             // can happen?
             PushTemp();
         }
-    };
+    }
 
     bool ShouldDec(TypeLT typelt) {
         return IsRefNil(typelt.type->t) && typelt.lt == LT_KEEP;
@@ -4466,7 +4457,7 @@ pair<IntConstant *, IntConstant *> get_range(Node *c) {
         end = r->end;
     }
     return { Is<IntConstant>(start), Is<IntConstant>(end) };
-};
+}
 
 bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
     if (value->exptype->t != V_INT)

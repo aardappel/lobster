@@ -193,7 +193,7 @@ static const char *mdname = "metadata.lbc";
 static const char *ccname = "c_codegen.c";
 static const int64_t current_version = 2;
 
-template <typename T> int64_t LE(T x) { return flatbuffers::EndianScalar((int64_t)x); };
+template <typename T> int64_t LE(T x) { return flatbuffers::EndianScalar((int64_t)x); }
 
 string BuildPakFile(string &pakfile, string &metadata_buffer, set<string> &files, uint64_t src_hash,
                     const string &c_codegen) {
