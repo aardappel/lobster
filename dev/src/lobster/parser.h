@@ -584,7 +584,10 @@ struct Parser {
         if (is_struct && is_abstract) Error("structs cannot be abstract");
         if (IsNext(T_ASSIGN)) {
             // A specialization of an existing struct
-            auto [gsup, ssup] = ParseSup(is_struct);
+            // ParseSup's result is unpacked by hand rather than with a structured binding,
+            // since capturing one in a lambda (below) is not allowed before C++20, and the NDK's
+            // clang enforces that.
+            auto gsup = ParseSup(is_struct).first;
             auto udt = st.MakeSpecialization(*gsup, sname, true, true);
             Expect(T_LT);
             ParseSpecializerList([&]() {
@@ -633,7 +636,10 @@ struct Parser {
                 }
             }
             if (lex.token == T_IDENT) {
-                auto [gsup, ssup] = ParseSup(is_struct);
+                // Unpacked by hand, see the lambda capture comment above.
+                auto sup = ParseSup(is_struct);
+                auto gsup = sup.first;
+                auto ssup = sup.second;
                 if (gsup == gudt) Error("can\'t inherit from ", Q(lastid));
                 gsup->has_subclasses = true;
                 for (auto &fld : gsup->fields) {
