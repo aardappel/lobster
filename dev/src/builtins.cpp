@@ -50,7 +50,7 @@ static int FirstObjectCompare(Value key, Value elem) {
     return _a < _b ? -1 : _a > _b;
 }
 
-template<typename T> iint BinarySearch(StackPtr &sp, Value l, Value key, T comparefun) {
+template<typename T> iint BinarySearch(iint *nmatches, Value l, Value key, T comparefun) {
     iint size = l.vval()->len;
     iint i = 0;
     for (;;) {
@@ -70,7 +70,7 @@ template<typename T> iint BinarySearch(StackPtr &sp, Value l, Value key, T compa
             break;
         }
     }
-    Push(sp, Value(size));
+    *nmatches = size;
     return i;
 }
 
@@ -263,52 +263,52 @@ BUILTIN_OVERLOAD(binary_search_int, "binary_search", "xs,key", "I]I", "II",
     " matches were found, and as second the index in the array where the matches start (so you"
     " can read them, overwrite them, or remove them), or if none found, where the key could be"
     " inserted such that the vector stays sorted. This overload is for int vectors and keys.")
-(StackPtr &sp, VM &, LVector *l, iint key) {
-    auto r = BinarySearch(sp, l, key, IntCompare);
+(VM &, iint *nmatches, LVector *l, iint key) {
+    auto r = BinarySearch(nmatches, l, key, IntCompare);
     return r;
 }
 
 BUILTIN_OVERLOAD(binary_search_float, "binary_search", "xs,key", "F]F", "II",
     "float version.")
-(StackPtr &sp, VM &, LVector *l, double key) {
-    auto r = BinarySearch(sp, l, key, FloatCompare);
+(VM &, iint *nmatches, LVector *l, double key) {
+    auto r = BinarySearch(nmatches, l, key, FloatCompare);
     return r;
 }
 
 BUILTIN_OVERLOAD(binary_search_string, "binary_search", "xs,key", "S]S", "II",
     "string version.")
-(StackPtr &sp, VM &, LVector *l, LString *key) {
-    auto r = BinarySearch(sp, l, key, StringCompare);
+(VM &, iint *nmatches, LVector *l, LString *key) {
+    auto r = BinarySearch(nmatches, l, key, StringCompare);
     return r;
 }
 
 BUILTIN(binary_search_object, "xs,key", "A]*A1", "II",
     "object version. compares by reference rather than contents.")
-(StackPtr &sp, VM &, LVector *l, Value key) {
-    auto r = BinarySearch(sp, l, key, ObjectCompare);
+(VM &, iint *nmatches, LVector *l, Value key) {
+    auto r = BinarySearch(nmatches, l, key, ObjectCompare);
     return r;
 }
 
 // TODO: add int/float versions of this?
 BUILTIN(binary_search_first_field_string, "xs,key", "A]*S", "II",
     "object version where key is the first field (must be string, runtime error if it is not)")
-(StackPtr &sp, VM &vm, LVector *l, LString *key) {
+(VM &vm, iint *nmatches, LVector *l, LString *key) {
     auto &et = vm.GetTypeInfo(l->ti(vm).subt);
     if (et.t != RTT_CLASS || !et.len || vm.GetTypeInfo(et.elemtypes[0].type).t != RTT_STRING)
         vm.BuiltinError(
             "binary_search_first_field_string: elements not objects with first string field");
-    auto r = BinarySearch(sp, l, key, FirstStringCompare);
+    auto r = BinarySearch(nmatches, l, key, FirstStringCompare);
     return r;
 }
 
 BUILTIN(binary_search_first_field_object, "xs,key", "A]*A", "II",
     "object version where key is the first field (must be object, runtime error if it is not)")
-(StackPtr &sp, VM &vm, LVector *l, RefObj *key) {
+(VM &vm, iint *nmatches, LVector *l, RefObj *key) {
     auto &et = vm.GetTypeInfo(l->ti(vm).subt);
     if (et.t != RTT_CLASS || !et.len || vm.GetTypeInfo(et.elemtypes[0].type).t != RTT_CLASS)
         vm.BuiltinError(
             "binary_search_first_field_object: elements not objects with first object field");
-    auto r = BinarySearch(sp, l, Value(key), FirstObjectCompare);
+    auto r = BinarySearch(nmatches, l, Value(key), FirstObjectCompare);
     return r;
 }
 
@@ -419,18 +419,18 @@ BUILTIN(find_string_reverse, "s,substr,offset", "SSI?", "I",
 BUILTIN(split_string, "s,delimiter", "SS", "SS",
     "returns two strings, the parts of the input before and after the first delimiter."
     " if not found, returns the input and an empty string")
-(StackPtr &sp, VM &vm, LString *input, LString *delim) {
+(VM &vm, LString **before, LString *input, LString *delim) {
     auto s = input->strv();
     auto d = delim->strv();
     auto pos = s.find(d, 0);
     if (pos == string_view::npos) {
         input->Inc();
-        Push(sp, input);
+        *before = input;
         return vm.NewString(0);  // FIXME: need to have a way to not allocate empty strings.
     } else {
         auto left = vm.NewString(string_view(s.data(), pos));
         auto right = vm.NewString(string_view(s.data() + (pos + d.size()), s.size() - (pos + d.size())));
-        Push(sp, Value(left));
+        *before = left;
         return right;
     }
 }
@@ -438,18 +438,18 @@ BUILTIN(split_string, "s,delimiter", "SS", "SS",
 BUILTIN(split_string_reverse, "s,delimiter", "SS", "SS",
     "returns two strings, the parts of the input before and after the last delimiter."
     " if not found, returns an empty string and the input")
-(StackPtr &sp, VM &vm, LString *input, LString *delim) {
+(VM &vm, LString **before, LString *input, LString *delim) {
     auto s = input->strv();
     auto d = delim->strv();
     auto pos = s.rfind(d);
     if (pos == string_view::npos) {
-        Push(sp, Value(vm.NewString(0)));  // FIXME: need to have a way to not allocate empty strings.
+        *before = vm.NewString(0);  // FIXME: need to have a way to not allocate empty strings.
         input->Inc();
         return input;
     } else {
         auto left = vm.NewString(string_view(s.data(), pos));
         auto right = vm.NewString(string_view(s.data() + (pos + d.size()), s.size() - (pos + d.size())));
-        Push(sp, Value(left));
+        *before = left;
         return right;
     }
 }
@@ -490,25 +490,23 @@ BUILTIN(string_to_int, "s,base", "SI?", "IB",
     "converts a string to an int given the base (2..36, e.g. 16 for hex, default is 10)."
     "returns 0 if no numeric data could be parsed (or overflow); second return value is true if all"
     "characters of the string were parsed (and no overflow).")
-(StackPtr &sp, VM &vm, LString *s, iint b) {
+(VM &vm, iint *value, LString *s, iint b) {
     int base = (b != 0) ? (int)b : 10;
     if (base < 2 || base > 36)
         vm.BuiltinError("string_to_int: values out of range");
     std::errc ec;
     auto svnt = s->strv();
-    auto i = parse_int<iint>(svnt, base, &ec);
-    Push(sp,  i);
+    *value = parse_int<iint>(svnt, base, &ec);
     return ec == std::errc();
 }
 
 BUILTIN(string_to_float, "s", "S", "FB",
     "converts a string to a float. returns 0.0 if no numeric data could be parsed;"
     "second return value is true if all characters of the string were parsed.")
-(StackPtr &sp, VM &, LString *s) {
+(VM &, double *value, LString *s) {
     const char *end;
     auto sv = s->strv();
-    auto f = parse_float<double>(sv, &end);
-    Push(sp, f);
+    *value = parse_float<double>(sv, &end);
     return end == sv.data() + sv.size();
 }
 
@@ -554,9 +552,9 @@ BUILTIN(string_to_unicode, "s", "S", "I]B",
     "converts a UTF-8 string into a vector of unicode values. second return value is false"
     " if there was a decoding error, and the vector will only contain the characters up to the"
     " error")
-(StackPtr &sp, VM &vm, LString *s) {
+(VM &vm, LVector **chars, LString *s) {
     auto v = (LVector *)vm.NewVec(0, s->len, TYPE_ELEM_VECTOR_OF_INT);
-    Push(sp, v);
+    *chars = v;
     auto p = s->strv();
     while (!p.empty()) {
         int u = FromUTF8(p);
@@ -659,11 +657,11 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
 // An elementwise operation on a numeric struct `v`: `op` computes from the element in `f` the
 // one it becomes, of element type RCT. See VECBOOL1234 above for the widths.
 #define VECTOROPW(sym, name, ids, T, CT, RT, RCT, W, help, op) \
-    BUILTIN_V_OVERLOAD(sym##W, name, ids, T "}:" #W, RT "}:" #W, help) \
-    (StackPtr &sp, VM &, vec<CT, W> v) { \
+    BUILTIN_OVERLOAD(sym##W, name, ids, T "}:" #W, RT "}:" #W, help) \
+    (VM &, vec<CT, W> v) { \
         vec<RCT, W> r((RCT)0); \
         for (int i = 0; i < W; i++) { auto f = v[i]; r[i] = (RCT)(op); } \
-        PushVec(sp, r); \
+        return r; \
     }
 #define VECTOROP1234(sym, name, ids, T, CT, RT, RCT, help, op) \
     VECTOROPW(sym, name, ids, T, CT, RT, RCT, 1, help, op) \
@@ -673,11 +671,11 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
 
 // The same with the VM available, which only the random one needs.
 #define VECTOROPVMW(sym, name, ids, T, CT, RT, RCT, W, help, op) \
-    BUILTIN_V_OVERLOAD(sym##W, name, ids, T "}:" #W, RT "}:" #W, help) \
-    (StackPtr &sp, VM &vm, vec<CT, W> v) { \
+    BUILTIN_OVERLOAD(sym##W, name, ids, T "}:" #W, RT "}:" #W, help) \
+    (VM &vm, vec<CT, W> v) { \
         vec<RCT, W> r((RCT)0); \
         for (int i = 0; i < W; i++) { auto f = v[i]; r[i] = (RCT)(op); } \
-        PushVec(sp, r); \
+        return r; \
     }
 #define VECTOROPVM1234(sym, name, ids, T, CT, RT, RCT, help, op) \
     VECTOROPVMW(sym, name, ids, T, CT, RT, RCT, 1, help, op) \
@@ -699,9 +697,9 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
     VECMATHW(sym, name, ids, T, CT, RT, 4, help, expr)
 
 #define VECVECW(sym, name, ids, T, CT, W, help, expr) \
-    BUILTIN_V_OVERLOAD(sym##W, name, ids, T "}:" #W, T "}:" #W, help) \
-    (StackPtr &sp, VM &, vec<CT, W> v) { \
-        PushVec(sp, expr); \
+    BUILTIN_OVERLOAD(sym##W, name, ids, T "}:" #W, T "}:" #W, help) \
+    (VM &, vec<CT, W> v) { \
+        return expr; \
     }
 #define VECVEC1234(sym, name, ids, T, CT, help, expr) \
     VECVECW(sym, name, ids, T, CT, 1, help, expr) \
@@ -722,9 +720,9 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
     VEC2MATHW(sym, name, ids, T, CT, RT, 4, help, expr)
 
 #define VEC2VECW(sym, name, ids, T, CT, W, help, expr) \
-    BUILTIN_V_OVERLOAD(sym##W, name, ids, T "}:" #W T "}:" #W "1", T "}:" #W, help) \
-    (StackPtr &sp, VM &, vec<CT, W> a, vec<CT, W> b) { \
-        PushVec(sp, expr); \
+    BUILTIN_OVERLOAD(sym##W, name, ids, T "}:" #W T "}:" #W "1", T "}:" #W, help) \
+    (VM &, vec<CT, W> a, vec<CT, W> b) { \
+        return expr; \
     }
 #define VEC2VEC1234(sym, name, ids, T, CT, help, expr) \
     VEC2VECW(sym, name, ids, T, CT, 1, help, expr) \
@@ -734,10 +732,10 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
 
 // And for three of them, as `a`, `b` and `c`.
 #define VEC3VECW(sym, name, ids, T, CT, W, help, expr) \
-    BUILTIN_V_OVERLOAD(sym##W, name, ids, T "}:" #W T "}:" #W "1" T "}:" #W "1", \
-                       T "}:" #W, help) \
-    (StackPtr &sp, VM &, vec<CT, W> a, vec<CT, W> b, vec<CT, W> c) { \
-        PushVec(sp, expr); \
+    BUILTIN_OVERLOAD(sym##W, name, ids, T "}:" #W T "}:" #W "1" T "}:" #W "1", \
+                     T "}:" #W, help) \
+    (VM &, vec<CT, W> a, vec<CT, W> b, vec<CT, W> c) { \
+        return expr; \
     }
 #define VEC3VEC1234(sym, name, ids, T, CT, help, expr) \
     VEC3VECW(sym, name, ids, T, CT, 1, help, expr) \
@@ -756,12 +754,12 @@ BUILTIN_OVERLOAD(pow_float, "pow", "a,b", "FF", "F",
 (VM &, double a, double b) { return pow(a, b); }
 
 #define POWW(W) \
-    BUILTIN_V_OVERLOAD(pow_fvec##W, "pow", "a,b", "F}:" #W "F", "F}:" #W, \
+    BUILTIN_OVERLOAD(pow_fvec##W, "pow", "a,b", "F}:" #W "F", "F}:" #W, \
         "struct elements raised to the power of b") \
-    (StackPtr &sp, VM &, vec<double, W> a, double exp) { \
+    (VM &, vec<double, W> a, double exp) { \
         auto r = vec<double, W>(0.0); \
         for (int i = 0; i < W; i++) r[i] = pow(a[i], exp); \
-        PushVec(sp, r); \
+        return r; \
     }
 POWW(2) POWW(3) POWW(4)
 #undef POWW
@@ -1171,15 +1169,15 @@ CARDINALSPLINEW(2) CARDINALSPLINEW(3)
 BUILTIN_V(line_intersect, "line1a,line1b,line2a,line2b", "F}:2F}:2F}:2F}:2", "IF}:2",
     "computes if there is an intersection point between 2 line segments, with the point as"
     " second return value")
-(StackPtr &sp, VM &, double2 line1a, double2 line1b, double2 line2a, double2 line2b) {
+(VM &, iint *crosses, double2 *point, double2 line1a, double2 line1b, double2 line2a,
+ double2 line2b) {
     auto l2b = ToVec<double2>(line2b);
     auto l2a = ToVec<double2>(line2a);
     auto l1b = ToVec<double2>(line1b);
     auto l1a = ToVec<double2>(line1a);
     double2 ipoint(0, 0);
-    auto r = line_intersect(l1a, l1b, l2a, l2b, &ipoint);
-    Push(sp,  r);
-    PushVec(sp, ipoint);
+    *crosses = line_intersect(l1a, l1b, l2a, l2b, &ipoint);
+    *point = ipoint;
 }
 
 BUILTIN(circles_within_range, "dist,positions,radiuses,positions2,radiuses2,gridsize", "FF}:2]F]F}:2]F]I}:2", "I]]",
@@ -1275,7 +1273,7 @@ BUILTIN_V(wave_function_collapse, "tilemap,size", "S]I}:2", "S]I",
     " the number of failed neighbor matches, this should"
     " ideally be 0, but can be non-0 for larger maps. Simply call this function"
     " repeatedly until it is 0")
-(StackPtr &sp, VM &vm, LVector *tilemap, iint2 size) {
+(VM &vm, LVector **outmap_, iint *contradictions, LVector *tilemap, iint2 size) {
     auto sz = ToVec<int2>(size);
     auto rows = tilemap->SLen();
     vector<const char *> inmap(rows);
@@ -1297,8 +1295,8 @@ BUILTIN_V(wave_function_collapse, "tilemap,size", "S]I}:2", "S]I",
                                    vm.rndx[vm.active_rng], num_contradictions);
     if (!ok)
         vm.BuiltinError("tilemap contained too many tile ids, or characters outside of 0..127 range");
-    Push(sp,  outstrings);
-    Push(sp,  num_contradictions);
+    *outmap_ = outstrings;
+    *contradictions = num_contradictions;
 }
 
 BUILTIN_OVERLOAD(hash_int, "hash", "x", "I", "I",
@@ -1567,8 +1565,8 @@ BUILTIN(command_line_arguments, "", "", "S]",
 
 BUILTIN(thread_information, "", "", "II",
     "returns the number of hardware threads, and the number of cores")
-(StackPtr &sp, VM &) {
-    Push(sp,  NumHWThreads());
+(VM &, iint *nthreads) {
+    *nthreads = NumHWThreads();
     return NumHWCores();
 }
 

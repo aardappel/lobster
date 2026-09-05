@@ -269,7 +269,7 @@ BUILTIN(music_set_general_volume, "vol", "F", "",
 
 BUILTIN_V(mic_devices, "", "", "I]S]",
     "returns the available microphone devices as two lists: their ids (used with mic_start) and their names")
-(StackPtr &sp, VM &vm) {
+(VM &vm, LVector **out_ids, LVector **out_names) {
     vector<int> ids;
     vector<string> names;
     SDLGetRecordingDeviceNames(ids, names);
@@ -280,8 +280,8 @@ BUILTIN_V(mic_devices, "", "", "I]S]",
         vids->Push(vm, Value(ids[i]));
         vnames->Push(vm, Value(vm.NewString(names[i])));
     }
-    Push(sp, Value(vids));
-    Push(sp, Value(vnames));
+    *out_ids = vids;
+    *out_names = vnames;
 }
 
 BUILTIN(mic_start, "id,freq", "II", "I",

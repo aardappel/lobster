@@ -47,26 +47,22 @@ template<typename T, bool B> T Read(VM &vm, iint i, const LString *s) {
     return ReadValLE<T, B>(s, i);
 }
 
-template<typename T, bool B> iint WriteVal(StackPtr &sp, VM &vm, Value str, Value idx,
-                                           Value val) {
-    auto i = idx.ival();
-    if (i < 0) vm.IDXErr(i, 0, str.sval());
-    Push(sp, WriteValLE<T, B>(vm, str.sval(), i, val.ifval<T>()));
+template<typename T, bool B, typename VT> iint WriteVal(LString **out, VM &vm, LString *str,
+                                                        iint i, VT val) {
+    if (i < 0) vm.IDXErr(i, 0, str);
+    *out = WriteValLE<T, B>(vm, str, i, (T)val);
     return i + ssizeof<T>();
 }
 
-template<bool B> iint WriteStr(StackPtr &sp, VM &vm, Value str, Value idx, LString *s,
+template<bool B> iint WriteStr(LString **out, VM &vm, LString *str, iint i, LString *s,
                                iint extra) {
-    auto i = idx.ival();
-    if (i < 0) vm.IDXErr(i, 0, str.sval());
-    Push(sp, WriteMem<B>(vm, str.sval(), i, s->data(), s->len + extra));
+    if (i < 0) vm.IDXErr(i, 0, str);
+    *out = WriteMem<B>(vm, str, i, s->data(), s->len + extra);
     return i + s->len + extra;
 }
 
-template<typename T, bool B> iint ReadVal(StackPtr &sp, VM &vm, Value str, Value idx) {
-    auto i = idx.ival();
-    auto val = Read<T, B>(vm, i, str.sval());
-    Push(sp, val);
+template<typename T, bool B, typename OT> iint ReadVal(OT *out, VM &vm, LString *str, iint i) {
+    *out = (OT)Read<T, B>(vm, i, str);
     return i + ssizeof<T>();
 }
 
@@ -170,14 +166,14 @@ BUILTIN(scan_folder, "folder,rel", "SB?", "S]?I]?I]?",
     " the number of seconds since 00:00:00 UTC, Thursday, 1 January 1970, not including leap seconds."
     " set rel use a relative path, default is absolute."
     " Returns nil if folder couldn't be scanned.")
-(StackPtr &sp, VM &vm, LString *fld, iint rel) {
+(VM &vm, LVector **names, LVector **sizes, LString *fld, iint rel) {
     vector<DirectoryInfo> dir;
     auto ok = (rel != 0)
         ? ScanDir(fld->strv(), dir)
         : ScanDirAbs(fld->strv(), dir);
     if (!ok) {
-        Push(sp, NilVal());
-        Push(sp, NilVal());
+        *names = nullptr;
+        *sizes = nullptr;
         return nullptr;
     }
     auto nlist = (LVector *)vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
@@ -219,8 +215,8 @@ BUILTIN(scan_folder, "folder,rel", "SB?", "S]?I]?I]?",
                                   system_time.time_since_epoch())
                                   .count()));
     }
-    Push(sp, Value(nlist));
-    Push(sp, Value(slist));
+    *names = nlist;
+    *sizes = slist;
     return tlist;
 }
 
@@ -264,16 +260,15 @@ BUILTIN(exists_file, "file", "S", "B", "checks whether a file exists.")
 BUILTIN_V(launch_subprocess, "commandline,stdin", "S]S?", "IS",
     "launches a sub process, with optionally a stdin for the process, and returns its"
     " return code (or -1 if it couldn't launch at all), and any output")
-(StackPtr &sp, VM &vm, LVector *commandline, LString *stdins) {
+(VM &vm, iint *retcode, LString **output, LVector *commandline, LString *stdins) {
     vector<const char *> cmdl;
     for (iint i = 0; i < commandline->len; i++) {
         cmdl.push_back(commandline->AtS(i).sval()->data());
     }
     cmdl.push_back(nullptr);
     string out;
-    auto ret = LaunchSubProcess(cmdl.data(), (stdins != nullptr) ? stdins->data() : nullptr, out);
-    Push(sp, ret);
-    Push(sp, vm.NewString(out));
+    *retcode = LaunchSubProcess(cmdl.data(), (stdins != nullptr) ? stdins->data() : nullptr, out);
+    *output = vm.NewString(out);
 }
 
 BUILTIN(vector_to_buffer, "vec,width,offset,len", "A]*I?:4I?I?", "S",
@@ -363,8 +358,8 @@ static const char *write_val_desc1 =
 static const char *write_val_desc2 = "(see write_int64_le)";
 #define WRITEOP(N, T, B, D, S, VT) \
     BUILTIN(N, "string,i,val", "SkI" S, "SI", D) \
-    (StackPtr &sp, VM &vm, LString *str, iint idx, VT val) { \
-        return WriteVal<T, B>(sp, vm, str, idx, val); \
+    (VM &vm, LString **out, LString *str, iint idx, VT val) { \
+        return WriteVal<T, B>(out, vm, str, idx, val); \
     }
 WRITEOP(write_int64_le, int64_t, false, write_val_desc1, "I", iint)
 WRITEOP(write_int32_le, int32_t, false, write_val_desc2, "I", iint)
@@ -381,14 +376,14 @@ WRITEOP(write_float32_le_back, float, true, write_val_desc2, "F", double)
 
 BUILTIN(write_substring, "string,i,substr,nullterm", "SkISI", "SI",
     "writes a substring into another string at i (see also write_int64_le)")
-(StackPtr &sp, VM &vm, LString *str, iint idx, LString *val, iint term) {
-    return WriteStr<false>(sp, vm, str, idx, val, (term != 0));
+(VM &vm, LString **out, LString *str, iint idx, LString *val, iint term) {
+    return WriteStr<false>(out, vm, str, idx, val, (term != 0));
 }
 
 BUILTIN(write_substring_back, "string,i,substr,nullterm", "SkISI", "SI",
     "")
-(StackPtr &sp, VM &vm, LString *str, iint idx, LString *val, iint term) {
-    return WriteStr<true>(sp, vm, str, idx, val, (term != 0));
+(VM &vm, LString **out, LString *str, iint idx, LString *val, iint term) {
+    return WriteStr<true>(out, vm, str, idx, val, (term != 0));
 }
 
 BUILTIN(compare_substring, "string_a,i_a,string_b,i_b,len", "SISII", "I",
@@ -406,29 +401,29 @@ static const char *read_val_desc1 =
     " the value was read. The"
     " _back version reads relative to the end (and reads before the index)";
 static const char *read_val_desc2 = "(see read_int64_le)";
-#define READOP(N, T, B, D, S) \
+#define READOP(N, T, B, D, S, OT) \
     BUILTIN(N, "string,i", "SI", S "I", D) \
-    (StackPtr &sp, VM &vm, LString *str, iint idx) { return ReadVal<T, B>(sp, vm, str, idx); }
-READOP(read_int64_le, int64_t, false, read_val_desc1, "I")
-READOP(read_int32_le, int32_t, false, read_val_desc2, "I")
-READOP(read_int16_le, int16_t, false, read_val_desc2, "I")
-READOP(read_int8_le, int8_t, false, read_val_desc2, "I")
-READOP(read_uint64_le, uint64_t, false, read_val_desc1, "I")
-READOP(read_uint32_le, uint32_t, false, read_val_desc2, "I")
-READOP(read_uint16_le, uint16_t, false, read_val_desc2, "I")
-READOP(read_uint8_le, uint8_t, false, read_val_desc2, "I")
-READOP(read_float64_le, double, false, read_val_desc2, "F")
-READOP(read_float32_le, float, false, read_val_desc2, "F")
-READOP(read_int64_le_back, int64_t, true, read_val_desc2, "I")
-READOP(read_int32_le_back, int32_t, true, read_val_desc2, "I")
-READOP(read_int16_le_back, int16_t, true, read_val_desc2, "I")
-READOP(read_int8_le_back, int8_t, true, read_val_desc2, "I")
-READOP(read_uint64_le_back, uint64_t, true, read_val_desc2, "I")
-READOP(read_uint32_le_back, uint32_t, true, read_val_desc2, "I")
-READOP(read_uint16_le_back, uint16_t, true, read_val_desc2, "I")
-READOP(read_uint8_le_back, uint8_t, true, read_val_desc2, "I")
-READOP(read_float64_le_back, double, true, read_val_desc2, "F")
-READOP(read_float32_le_back, float, true, read_val_desc2, "F")
+    (VM &vm, OT *out, LString *str, iint idx) { return ReadVal<T, B>(out, vm, str, idx); }
+READOP(read_int64_le, int64_t, false, read_val_desc1, "I", iint)
+READOP(read_int32_le, int32_t, false, read_val_desc2, "I", iint)
+READOP(read_int16_le, int16_t, false, read_val_desc2, "I", iint)
+READOP(read_int8_le, int8_t, false, read_val_desc2, "I", iint)
+READOP(read_uint64_le, uint64_t, false, read_val_desc1, "I", iint)
+READOP(read_uint32_le, uint32_t, false, read_val_desc2, "I", iint)
+READOP(read_uint16_le, uint16_t, false, read_val_desc2, "I", iint)
+READOP(read_uint8_le, uint8_t, false, read_val_desc2, "I", iint)
+READOP(read_float64_le, double, false, read_val_desc2, "F", double)
+READOP(read_float32_le, float, false, read_val_desc2, "F", double)
+READOP(read_int64_le_back, int64_t, true, read_val_desc2, "I", iint)
+READOP(read_int32_le_back, int32_t, true, read_val_desc2, "I", iint)
+READOP(read_int16_le_back, int16_t, true, read_val_desc2, "I", iint)
+READOP(read_int8_le_back, int8_t, true, read_val_desc2, "I", iint)
+READOP(read_uint64_le_back, uint64_t, true, read_val_desc2, "I", iint)
+READOP(read_uint32_le_back, uint32_t, true, read_val_desc2, "I", iint)
+READOP(read_uint16_le_back, uint16_t, true, read_val_desc2, "I", iint)
+READOP(read_uint8_le_back, uint8_t, true, read_val_desc2, "I", iint)
+READOP(read_float64_le_back, double, true, read_val_desc2, "F", double)
+READOP(read_float32_le_back, float, true, read_val_desc2, "F", double)
 
 
 #undef BUILTIN_GROUP
@@ -521,7 +516,7 @@ BUILTIN(binary_to_json, "schemas,binary,includedirs", "SSS]", "SS?",
     "returns a JSON string generated from the given binary and corresponding schema."
     "if there was an error parsing the schema, the error will be in the second return"
     "value, or nil for no error")
-(StackPtr &sp, VM &vm, LString *schema, LString *binary, LVector *includes) {
+(VM &vm, LString **json_, LString *schema, LString *binary, LVector *includes) {
     flatbuffers::Parser parser;
     auto err = ParseSchemas(vm, parser, schema, includes);
     string json;
@@ -531,7 +526,7 @@ BUILTIN(binary_to_json, "schemas,binary,includedirs", "SSS]", "SS?",
             err = vm.NewString("unable to generate text for FlatBuffer binary: " + string(e));
         }
     }
-    Push(sp, vm.NewString(json));
+    *json_ = vm.NewString(json);
     return err.svalnil();
 }
 
@@ -539,7 +534,7 @@ BUILTIN(json_to_binary, "schema,json,includedirs", "SSS]", "SS?",
     "returns a binary flatbuffer generated from the given json and corresponding schema."
     "if there was an error parsing the schema, the error will be in the second return"
     "value, or nil for no error")
-(StackPtr &sp, VM &vm, LString *schema, LString *json, LVector *includes) {
+(VM &vm, LString **binary_, LString *schema, LString *json, LVector *includes) {
     flatbuffers::Parser parser;
     auto err = ParseSchemas(vm, parser, schema, includes);
     string binary;
@@ -551,7 +546,7 @@ BUILTIN(json_to_binary, "schema,json,includedirs", "SSS]", "SS?",
                             parser.builder_.GetSize());
         }
     }
-    Push(sp, vm.NewString(binary));
+    *binary_ = vm.NewString(binary);
     return err.svalnil();
 }
 

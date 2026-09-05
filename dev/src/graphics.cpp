@@ -268,14 +268,14 @@ BUILTIN(load_materials, "materialdefs,inline,prefix", "SI?S?", "S?",
 BUILTIN_V(scissor, "top_left,size", "I}:2I}:2", "I}:2I}:2",
     "Sets the scissor testing, so only the pixels in the given rectangle can"
     "be written.  Returns the previous value of the scissor rectangle.")
-(StackPtr &sp, VM &vm, iint2 top_left, iint2 size_) {
+(VM &vm, iint2 *prev_top_left, iint2 *prev_size, iint2 top_left, iint2 size_) {
     auto size = ToVec<int2>(size_);
     auto topleft = ToVec<int2>(top_left);
     TestGL(vm);
     auto prev = pair{ int2_0, int2_0 };
     SetScissorRect(topleft, size, prev);
-    PushVec(sp, prev.first);
-    PushVec(sp, prev.second);
+    *prev_top_left = ToVec<iint2>(prev.first);
+    *prev_size = ToVec<iint2>(prev.second);
 }
 
 // The generated code calls GLFrame() by its own symbol, see EmitCodegenBuiltin.
@@ -357,9 +357,9 @@ BUILTIN(button, "name", "S", "II",
     " it is possible both happen inside one frame, i.e. down==1 and up==1! "
     " for name, pass a string like mouse1/mouse2/mouse3/escape/space/up/down/a/b/f1/joy1 etc."
     " mouse11 and on are additional fingers")
-(StackPtr &sp, VM &, LString *name) {
+(VM &, iint *down, LString *name) {
     auto ks = GetKS(name->strv());
-    Push(sp, ks.first);
+    *down = ks.first;
     return ks.second;
 }
 
@@ -390,12 +390,12 @@ BUILTIN(start_text_input, "pos,size", "I}:2I}:2", "",
 BUILTIN_V(text_input_state, "", "", "SSII",
     "returns the string that has been input since text input started, followed by any candinate"
     " text (partial characters in case of IME editing), and the cursor & selection size for it")
-(StackPtr &sp, VM &vm) {
+(VM &vm, LString **text, LString **editing, iint *cursor, iint *selection) {
     auto &ti = SDLTextInputState();
-    Push(sp, vm.NewString(ti.text));
-    Push(sp, vm.NewString(ti.editing));
-    Push(sp, ti.cursor);
-    Push(sp, ti.len);
+    *text = vm.NewString(ti.text);
+    *editing = vm.NewString(ti.editing);
+    *cursor = ti.cursor;
+    *selection = ti.len;
 }
 
 BUILTIN(set_text_input, "text", "S", "",
@@ -977,10 +977,10 @@ BUILTIN(mesh_size, "m", "R:mesh", "I",
 
 BUILTIN_V(mesh_bounds, "m", "R:mesh", "F}:3F}:3",
     "returns the min and max vert dimensions of this mesh")
-(StackPtr &sp, VM &, LResource *res) {
+(VM &, double3 *vmin, double3 *vmax, LResource *res) {
     auto &m = GetMesh(res);
-    PushVec(sp, m.geom->vmin);
-    PushVec(sp, m.geom->vmax);
+    *vmin = ToVec<double3>(m.geom->vmin);
+    *vmax = ToVec<double3>(m.geom->vmax);
 }
 
 BUILTIN(mesh_animations, "m", "R:mesh", "S]",
@@ -995,7 +995,7 @@ BUILTIN(mesh_animations, "m", "R:mesh", "S]",
 BUILTIN(mesh_animation_frames, "m,name", "R:meshS", "IIF",
     "given name, return animation's first frame, number of frames and framerate, "
     "or '-1, -1, 0.0' if name is invalid")
-(StackPtr &sp, VM &, LResource *i, LString *n) {
+(VM &, iint *first, iint *count, LResource *i, LString *n) {
     auto &m = GetMesh(i);
     int first_frame = -1;
     int num_frames = -1;
@@ -1005,8 +1005,8 @@ BUILTIN(mesh_animation_frames, "m,name", "R:meshS", "IIF",
         num_frames = it->second.num_frames;
         framerate = it->second.framerate;
     }
-    Push(sp, first_frame);
-    Push(sp, num_frames);
+    *first = first_frame;
+    *count = num_frames;
     return framerate;
 }
 

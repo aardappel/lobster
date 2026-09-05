@@ -332,54 +332,56 @@ struct FlexBufferParser : Deserializer {
     }
 };
 
-static void ParseData(StackPtr &sp, VM &vm, type_elem_t typeoff, string_view inp) {
+static void ParseData(RefObj **val, LString **err, VM &vm, type_elem_t typeoff,
+                      string_view inp) {
     ValueParser parser(vm, inp);
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
-        Push(sp, parser.Parse(typeoff));
-        Push(sp, NilVal());
+        *val = parser.Parse(typeoff).refnil();
+        *err = nullptr;
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        Push(sp, NilVal());
-        Push(sp, vm.NewString(s));
+        *val = nullptr;
+        *err = vm.NewString(s);
     }
     #endif
 }
 
-static void ParseFlexData(StackPtr &sp, VM &vm, type_elem_t typeoff, flexbuffers::Reference r) {
+static void ParseFlexData(RefObj **val, LString **err, VM &vm, type_elem_t typeoff,
+                          flexbuffers::Reference r) {
     FlexBufferParser parser(vm);
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
-        Push(sp, parser.Parse(typeoff, r));
-        Push(sp, NilVal());
+        *val = parser.Parse(typeoff, r).refnil();
+        *err = nullptr;
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        Push(sp, NilVal());
-        Push(sp, vm.NewString(s));
+        *val = nullptr;
+        *err = vm.NewString(s);
     }
     #endif
 }
 
-static void ParseLobsterBinaryData(StackPtr &sp, VM &vm, type_elem_t typeoff, const uint8_t *data,
-                                   size_t size) {
+static void ParseLobsterBinaryData(RefObj **val, LString **err, VM &vm, type_elem_t typeoff,
+                                   const uint8_t *data, size_t size) {
     LobsterBinaryParser parser(vm);
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
-        Push(sp, parser.Parse(typeoff, data, data + size));
-        Push(sp, NilVal());
+        *val = parser.Parse(typeoff, data, data + size).refnil();
+        *err = nullptr;
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        Push(sp, NilVal());
-        Push(sp, vm.NewString(s));
+        *val = nullptr;
+        *err = vm.NewString(s);
     }
     #endif
 }
@@ -395,8 +397,8 @@ BUILTIN_V(parse_data, "typeid,stringdata", "TS", "A1?S?",
     " current definitions, i.e. too many elements will be truncated, missing elements will be"
     " set to 0/nil if possible. useful for simple file formats. returns the value and an error"
     " string as second return value (or nil if no error)")
-(StackPtr &sp, VM &vm, iint type, LString *ins) {
-    ParseData(sp, vm, (type_elem_t)type, ins->strv());
+(VM &vm, RefObj **val, LString **err, iint type, LString *ins) {
+    ParseData(val, err, vm, (type_elem_t)type, ins->strv());
 }
 
 BUILTIN(flexbuffers_value_to_binary, "val,max_nesting,cycle_detection", "AI?B?", "S",
@@ -423,21 +425,21 @@ BUILTIN(flexbuffers_value_to_binary, "val,max_nesting,cycle_detection", "AI?B?",
 
 BUILTIN_V(flexbuffers_binary_to_value, "typeid,flex", "TS", "A1?S?",
     "turns a flexbuffer into a value")
-(StackPtr &sp, VM &vm, iint id, LString *flex) {
+(VM &vm, RefObj **val, LString **err, iint id, LString *flex) {
     auto fsv = flex->strv();
     vector<uint8_t> reuse_buffer;
     if (flexbuffers::VerifyBuffer((const uint8_t *)fsv.data(), fsv.size(), &reuse_buffer)) {
         auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
-        ParseFlexData(sp, vm, (type_elem_t)id, root);
-    } else { 
-        Push(sp, NilVal());
-        Push(sp, vm.NewString("flexbuffer binary does not verify!"));
+        ParseFlexData(val, err, vm, (type_elem_t)id, root);
+    } else {
+        *val = nullptr;
+        *err = vm.NewString("flexbuffer binary does not verify!");
     }
 }
 
 BUILTIN_V(flexbuffers_binary_to_json, "flex,field_quotes,indent_string", "SBS", "S?S?",
     "turns a flexbuffer into a JSON string. If indent_string is empty, will be a single line string")
-(StackPtr &sp, VM &vm, LString *flex, iint quoted, LString *indent_string_) {
+(VM &vm, LString **json_, LString **err, LString *flex, iint quoted, LString *indent_string_) {
     auto indent_string = indent_string_->strvnt();
     auto fsv = flex->strv();
     vector<uint8_t> reuse_buffer;
@@ -445,18 +447,17 @@ BUILTIN_V(flexbuffers_binary_to_json, "flex,field_quotes,indent_string", "SBS", 
         auto root = flexbuffers::GetRoot((const uint8_t *)fsv.data(), fsv.size());
         string json;
         root.ToString(true, quoted, json, indent_string.size() != 0, 0, indent_string.c_str(), true);
-        auto s = vm.NewString(json);
-        Push(sp, s);
-        Push(sp, NilVal());
+        *json_ = vm.NewString(json);
+        *err = nullptr;
     } else {
-        Push(sp, NilVal());
-        Push(sp, vm.NewString("flexbuffer binary does not verify!"));
+        *json_ = nullptr;
+        *err = vm.NewString("flexbuffer binary does not verify!");
     }
 }
 
 BUILTIN(flexbuffers_json_to_binary, "json,filename_for_errors", "SS?", "SS?",
     "turns a JSON string into a flexbuffer, second value is error, if any")
-(StackPtr &sp, VM &vm, LString *json, LString *filename) {
+(VM &vm, LString **binary, LString *json, LString *filename) {
     flexbuffers::Builder builder;
     flatbuffers::Parser parser;
     LString *err = nullptr;
@@ -466,10 +467,10 @@ BUILTIN(flexbuffers_json_to_binary, "json,filename_for_errors", "SS?", "SS?",
     if (!parser.ParseFlexBuffer(json->strv().data(), fn.c_str(),
                                 &builder)) {
         err = vm.NewString(parser.error_);
-        Push(sp, vm.NewString(""));
+        *binary = vm.NewString("");
     } else {
-        Push(sp, vm.NewString(
-            string_view((const char *)builder.GetBuffer().data(), builder.GetSize())));
+        *binary = vm.NewString(
+            string_view((const char *)builder.GetBuffer().data(), builder.GetSize()));
     }
     return err;
 }
@@ -491,9 +492,10 @@ BUILTIN(lobster_value_to_binary, "val", "A", "S",
 
 BUILTIN_V(lobster_binary_to_value, "typeid,bin", "TS", "A1?S?",
     "turns binary created by lobster_value_to_binary back into a value")
-(StackPtr &sp, VM &vm, iint id, LString *bin) {
+(VM &vm, RefObj **val, LString **err, iint id, LString *bin) {
     auto fsv = bin->strv();
-    ParseLobsterBinaryData(sp, vm, (type_elem_t)id, (const uint8_t *)fsv.data(), fsv.size());
+    ParseLobsterBinaryData(val, err, vm, (type_elem_t)id, (const uint8_t *)fsv.data(),
+                           fsv.size());
 }
 
 }

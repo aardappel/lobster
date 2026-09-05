@@ -400,6 +400,8 @@ public:
     }
 };
 
+// All that is left of the stack the VM used to work on: the array a stack trace dumps the
+// locals of a frame from, see PushFunId.
 typedef Value *StackPtr;
 
 // A generated function takes its arguments and returns its result the way its signature says,
@@ -1093,8 +1095,6 @@ struct VM : VMBase {
     int64_t vm_count_bcalls = 0;
     int64_t vm_count_decref = 0;
 
-    typedef StackPtr (* f_ins_pointer)(VM &, StackPtr);
-
     iint frame_count = -1;
 
     bool is_worker = false;
@@ -1263,15 +1263,6 @@ struct VMAllocator {
     ~VMAllocator();
 };
 
-VM_INLINE void Push(StackPtr &sp, Value v) { *sp++ = v; }
-VM_INLINE Value Pop(StackPtr &sp) { return *--sp; }
-VM_INLINE Value Top(StackPtr sp) { return *(sp - 1); }
-VM_INLINE Value TopM(StackPtr sp, iint n) { return *(sp - (n + 1)); }
-VM_INLINE Value &TopMR(StackPtr sp, iint n) { return *(sp - (n + 1)); }
-VM_INLINE Value *TopPtr(StackPtr sp) { return sp; }
-VM_INLINE void PushN(StackPtr &sp, iint n) { sp += n; }
-VM_INLINE void PopN(StackPtr &sp, iint n) { sp -= n; }
-
 // Codegen helpers.
 
 VM_INLINE Value NilVal() {
@@ -1332,11 +1323,6 @@ VM_INLINE void EndProfile(___tracy_c_zone_context ctx) {
     ___tracy_emit_zone_end(ctx);
 }
 #endif
-
-template<typename T, int N> void PushVec(StackPtr &sp, const vec<T, N> &v, int truncate = 4) {
-    auto l = std::min(N, truncate);
-    for (int i = 0; i < l; i++) Push(sp, v[i]);
-}
 
 // The numeric struct a builtin was passed as a vector of another element type or width, with
 // `def` for the elements it does not have.

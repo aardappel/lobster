@@ -1370,11 +1370,11 @@ BUILTIN(want_capture_mouse, "", "", "B",
 
 BUILTIN_V(get_modifiers, "", "", "BBB",
     "returns the status of the shift, ctrl and alt keys")
-(StackPtr &sp, VM &vm) {
+(VM &vm, iint *shift, iint *ctrl, iint *alt) {
     IsInit(vm, { N_NONE, N_NONE });
-    Push(sp, ImGui::GetIO().KeyShift);
-    Push(sp, ImGui::GetIO().KeyCtrl);
-    Push(sp, ImGui::GetIO().KeyAlt);
+    *shift = ImGui::GetIO().KeyShift;
+    *ctrl = ImGui::GetIO().KeyCtrl;
+    *alt = ImGui::GetIO().KeyAlt;
 }
 
 BUILTIN(get_layout_pos, "", "", "F}:2", "")
@@ -1606,7 +1606,7 @@ BUILTIN_OVERLOAD(input_text_plain, "input_text", "label,str", "SSk", "S",
 
 BUILTIN_V_OVERLOAD(input_text_flags, "input_text", "label,str,flags", "SSkI", "SB",
     "")
-(StackPtr &sp, VM &vm, LString *text, LString *str, iint extra_flags) {
+(VM &vm, LString **newtext, iint *entered, LString *text, LString *str, iint extra_flags) {
     IsInit(vm);
     // Don't allow setting any of the callback flags.
     extra_flags &= ~(
@@ -1618,8 +1618,8 @@ BUILTIN_V_OVERLOAD(input_text_flags, "input_text", "label,str,flags", "SSkI", "S
         ImGuiInputTextFlags_CallbackEdit
     );
     auto [newstr, enter] = LStringInputText(vm, Label(vm, text), str, 1, (int)extra_flags);
-    Push(sp, Value(newstr));
-    Push(sp, enter);
+    *newtext = newstr;
+    *entered = enter;
 }
 
 BUILTIN(input_text_multi_line, "label,str,num_lines,flags", "SSkII?", "S",
@@ -1730,15 +1730,15 @@ BUILTIN(sliderfloat, "label,f,min,max", "SFFF", "F",
 }
 
 #define VECSLIDER(Type, type, VT, T, N)                                                   \
-    BUILTIN_V(slider##type##N, "label,"#T #N ",min,max", "S" #T "}:" #N #T #T, #T "}:" #N, "") \
-    (StackPtr &sp, VM &vm, LString *text, vec<VT, N> val, VT minv, VT maxv) {             \
+    BUILTIN(slider##type##N, "label,"#T #N ",min,max", "S" #T "}:" #N #T #T, #T "}:" #N, "") \
+    (VM &vm, LString *text, vec<VT, N> val, VT minv, VT maxv) {                           \
         IsInit(vm);                                                                       \
         auto max = (type)maxv;                                                            \
         auto min = (type)minv;                                                            \
         auto v = ToVec<type ## N>(val);                                                   \
         auto label = Label(vm, text);                                                     \
         ImGui::Slider ## Type ## N(label, &v.c[0], min, max);                             \
-        PushVec(sp, v);                                                                   \
+        return ToVec<vec<VT, N>>(v);                                                      \
     }
 VECSLIDER(Int, int, iint, I, 2)
 VECSLIDER(Int, int, iint, I, 3)
@@ -1749,12 +1749,12 @@ VECSLIDER(Float, float, double, F, 4)
 #undef VECSLIDER
 
 #define COLOREDITW(W) \
-    BUILTIN_V_OVERLOAD(coloredit_f##W, "coloredit", "label,color", "SF}:" #W, "A2", "") \
-    (StackPtr &sp, VM &vm, LString *label, vec<double, W> color) { \
+    BUILTIN_OVERLOAD(coloredit_f##W, "coloredit", "label,color", "SF}:" #W, "A2", "") \
+    (VM &vm, LString *label, vec<double, W> color) { \
         IsInit(vm); \
         auto c = ToVec<float4>(color); \
         ImGui::ColorEdit4(Label(vm, label), (float *)c.data()); \
-        PushVec(sp, c, W); \
+        return ToVec<vec<double, W>>(c); \
     }
 COLOREDITW(3) COLOREDITW(4)
 #undef COLOREDITW
@@ -1788,7 +1788,7 @@ BUILTIN(image_button, "label,tex,size,bgcol,flip", "SR:textureF}:2F}:4?B?", "B",
 
 BUILTIN_V(image_mouseclick, "tex,size", "R:textureF}:2", "F}:2I",
     "")
-(StackPtr &sp, VM &vm, LResource *tex, double2 size_) {
+(VM &vm, double2 *pos_in_image, iint *event_, LResource *tex, double2 size_) {
     IsInit(vm);
     auto sz = ToVec<float2>(size_);
     auto t = GetTexture(tex);
@@ -1797,16 +1797,16 @@ BUILTIN_V(image_mouseclick, "tex,size", "R:textureF}:2", "F}:2I",
     ImGui::Image((ImTextureID)(size_t)t.id, size, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
     if (ImGui::IsMouseHoveringRect(cursor, cursor + size)) {
         auto pos = (ImGui::GetMousePos() - cursor) / size;
-        PushVec<float, 2>(sp, float2(pos.x, pos.y));
+        *pos_in_image = double2(pos.x, pos.y);
         // Create an all-in-one event value similar to gl.button().
         int event = -1;
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) event = 1;
         else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) event = 0;
         else if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) event = 2;
-        Push(sp, event);
+        *event_ = event;
     } else {
-        PushVec<float, 2>(sp, -float2_1);
-        Push(sp, -1);
+        *pos_in_image = ToVec<double2>(-float2_1);
+        *event_ = -1;
     }
 }
 

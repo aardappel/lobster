@@ -728,13 +728,13 @@ BUILTIN(load_vox, "name,material_palette,file_contents,remap_palettes", "SB?S?B?
     "if file_contents is non-nil, it contains the file already loaded. "
     "if remap_palettes is true, then the palette will be remapped to match the MagicaVoxel UI if necessary. "
     "returns vector of blocks or empty if file failed to load, and error string if any")
-(StackPtr &sp, VM &vm, LString *name, iint material_palette, LString *file_contents,
+(VM &vm, LVector **blocks, LString *name, iint material_palette, LString *file_contents,
  iint remap_palettes) {
     auto namep = name->strv();
     auto voxvec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_RESOURCE);
     auto errf = [&](string_view err) {
         // TODO: could clear voxvec elements if any?
-        Push(sp, Value(voxvec));
+        *blocks = voxvec;
         return vm.NewString(cat(namep, ": ", err));
     };
     auto erreof = [&]() {
@@ -1154,19 +1154,19 @@ BUILTIN(load_vox, "name,material_palette,file_contents,remap_palettes", "SB?S?B?
         }
         voxels->palette_idx = NewPalette(palette.data());
     }
-    Push(sp, Value(voxvec));
+    *blocks = voxvec;
     return nullptr;
 }
 
 BUILTIN(load_vox_names, "name", "S", "S]S?",
     "loads a MagicaVoxel .vox file, and returns its contained sub model names.")
-(StackPtr &sp, VM &vm, LString *name) {
+(VM &vm, LVector **names, LString *name) {
     auto namep = name->strv();
     string buf;
     auto namevec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
     auto errf = [&](string_view err) {
         // TODO: could clear namevec elements if any?
-        Push(sp, Value(namevec));
+        *names = namevec;
         return vm.NewString(cat(namep, ": ", err));
     };
     auto erreof = [&]() {
@@ -1261,7 +1261,7 @@ BUILTIN(load_vox_names, "name", "S", "S]S?",
         return errf("Expected MagicaVoxel .vox file");
     }
 
-    Push(sp, Value(namevec));
+    *names = namevec;
     return nullptr;
 }
 
@@ -1431,7 +1431,8 @@ BUILTIN(set_buf, "block,indices,offset,size", "R:voxelsSI}:3I}:3", "",
 
 // Should probably be renamed because it collects a bunch of stats beyond color.
 BUILTIN_V(average_surface_color, "world", "R:voxels", "F}:3III}:3I}:3", "")
-(StackPtr &sp, VM &, LResource *world) {
+(VM &, double3 *color, iint *nsurface, iint *nvolume, iint3 *bbmin, iint3 *bbmax,
+ LResource *world) {
 		auto &v = GetVoxels(world);
     auto &palette = palettes[v.palette_idx].colors;
 		float3 col(0.0f);
@@ -1472,11 +1473,11 @@ BUILTIN_V(average_surface_color, "world", "R:voxels", "F}:3III}:3I}:3", "")
 			}
 		}
 		if (nsurf) col /= float(nsurf);
-		PushVec(sp, col);
-    Push(sp, nsurf);
-    Push(sp, nvol);
-		PushVec(sp, bmin);
-		PushVec(sp, bmax + 1);
+		*color = ToVec<double3>(col);
+    *nsurface = nsurf;
+    *nvolume = nvol;
+		*bbmin = ToVec<iint3>(bmin);
+		*bbmax = ToVec<iint3>(bmax + 1);
 	}
 
 BUILTIN(average_face_colors, "world", "R:voxels", "F]",
@@ -1617,7 +1618,7 @@ BUILTIN(simplex, "block,pos,size,spos,ssize,octaves,scale,persistence,solidcol,z
 // For a regular bounding box, see average_surface_color
 BUILTIN_V(bounding_box, "world,minsolids", "R:voxelsF", "I}:3I}:3",
     "")
-(StackPtr &sp, VM &, LResource *res, double minsolids_) {
+(VM &, iint3 *bbmin, iint3 *bbmax, LResource *res, double minsolids_) {
     auto minsolids = (float)minsolids_;
 		auto &v = GetVoxels(res);
     auto bmin = int3_0;
@@ -1656,8 +1657,8 @@ BUILTIN_V(bounding_box, "world,minsolids", "R:voxelsF", "I}:3I}:3",
             break;
         }
     }
-    PushVec(sp, bmin);
-    PushVec(sp, bmax);
+    *bbmin = ToVec<iint3>(bmin);
+    *bbmax = ToVec<iint3>(bmax);
 	}
 
 BUILTIN(randomize, "world,rnd_range,cutoff,paletteindex,filter", "R:voxelsIIII", "", "")

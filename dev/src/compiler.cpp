@@ -737,7 +737,7 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view metadata_buffer, stri
     #endif
 }
 
-LString *CompileRun(VM &parent_vm, StackPtr &parent_sp, Value source, bool stringiscode,
+LString *CompileRun(VM &parent_vm, LString **result, Value source, bool stringiscode,
                  vector<string> &&args) {
     string_view fn = stringiscode ? "string" : source.sval()->strv();  // fixme: datadir + sanitize?
     #ifdef USE_EXCEPTION_HANDLING
@@ -755,12 +755,12 @@ LString *CompileRun(VM &parent_vm, StackPtr &parent_sp, Value source, bool strin
                           false, error, runtime_checks, true, false, c_codegen,
                           parent_vm.vma.jit_options);
         if (!error.empty()) THROW_OR_ABORT(error);
-        Push(parent_sp, Value(parent_vm.NewString(ret.first)));
+        *result = parent_vm.NewString(ret.first);
         return nullptr;
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        Push(parent_sp, Value(parent_vm.NewString("nil")));
+        *result = parent_vm.NewString("nil");
         return parent_vm.NewString(s);
     }
     #endif
@@ -799,10 +799,10 @@ static void CCodeOutputBuf(void *p, size_t len) {
 
 #endif  // VM_JIT_MODE
 
-LString *CompileRunCCode(VM &vm, StackPtr &sp, Value code, Value input) {
+LString *CompileRunCCode(VM &vm, LString **result, Value code, Value input) {
     #if VM_JIT_MODE
         auto err = [&](string msg) {
-            Push(sp, NilVal());
+            *result = nullptr;
             return vm.NewString(msg);
         };
         CCodeContext ctx;
@@ -860,16 +860,16 @@ LString *CompileRunCCode(VM &vm, StackPtr &sp, Value code, Value input) {
         if (ctx.output_set) {
             auto sv = ctx.output ? string_view((const char *)ctx.output, ctx.output_len)
                                  : string_view();
-            Push(sp, Value(vm.NewString(sv)));
+            *result = vm.NewString(sv);
             free_output();
         } else {
-            Push(sp, NilVal());
+            *result = nullptr;
         }
         return nullptr;
     #else
         (void)code;
         (void)input;
-        Push(sp, NilVal());
+        *result = nullptr;
         return vm.NewString("cannot JIT code: libtcc not enabled");
     #endif
 }
@@ -885,14 +885,14 @@ BUILTIN(compile_run_code, "code,args", "SS]", "SS?",
     " with an error string as second return value, or nil if none. using parse_data(),"
     " two program can communicate more complex data structures even if they don't have the same"
     " version of struct definitions.")
-(StackPtr &sp, VM &vm, LString *filename, LVector *args) {
-    return CompileRun(vm, sp, filename, true, ValueToVectorOfStrings(args));
+(VM &vm, LString **result, LString *filename, LVector *args) {
+    return CompileRun(vm, result, filename, true, ValueToVectorOfStrings(args));
 }
 
 BUILTIN(compile_run_file, "filename,args", "SS]", "SS?",
     "same as compile_run_code(), only now you pass a filename.")
-(StackPtr &sp, VM &vm, LString *filename, LVector *args) {
-    return CompileRun(vm, sp, filename, false, ValueToVectorOfStrings(args));
+(VM &vm, LString **result, LString *filename, LVector *args) {
+    return CompileRun(vm, result, filename, false, ValueToVectorOfStrings(args));
 }
 
 BUILTIN(compile_run_c_code, "code,input", "SS", "S?S?",
@@ -906,8 +906,8 @@ BUILTIN(compile_run_c_code, "code,input", "SS", "S?S?",
     " returns the output as a string (or nil if output_buf() was never called), plus an error"
     " string as second return value (nil if none). note the C code can also modify the input"
     " buffer in-place as a way to return data.")
-(StackPtr &sp, VM &vm, LString *code, LString *input) {
-    return CompileRunCCode(vm, sp, code, input);
+(VM &vm, LString **result, LString *code, LString *input) {
+    return CompileRunCCode(vm, result, code, input);
 }
 
 void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {

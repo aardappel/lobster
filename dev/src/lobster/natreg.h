@@ -251,12 +251,13 @@ constexpr string_view BuiltinArgMods(const char *typeids, int arg) {
     }
 }
 
-// Whether an 'A' is a value of any type at all or always a reference, which is what lets it be
-// a RefObj * rather than a Value. The typechecker requires a reference of an argument that
-// carries no modifiers at all, which is the only place in the language where any reference type
-// goes. A return value that is the same type as such an argument is one too, since none of the
-// rewrites the typechecker does for a vector, typeid or function argument apply to it, and so
-// is a nilable one, whose type it requires to be nillable.
+// What an 'A' really is, which is what lets it be something better than a Value. The
+// typechecker requires a reference of an argument that carries no modifiers at all, which is
+// the only place in the language where any reference type goes, and of a nilable return value,
+// whose type it requires to be nillable. A return value that is the same type as an argument is
+// whatever that argument is, as long as it is not one of the ones the typechecker works out a
+// type of its own for: the element type of a vector, the type a typeid names, or what a
+// function returns.
 constexpr bool BuiltinModsPlain(string_view mods) {
     for (auto c : mods) {
         if (c == '1' || c == '2' || c == '3' || c == 'u' || c == '*' || c == 'c' || c == 's' ||
@@ -296,7 +297,20 @@ constexpr BuiltinArgKind BuiltinRetKindOf(const char *typeids, const char *rets,
     auto sa = BuiltinModsSubArg(mods);
     if (sa < 0) return BAK_VALUE;
     if (BuiltinModsOptional(mods)) return BAK_REF;
+    auto ak = BuiltinArgKindOf(typeids, sa);
+    if (ak == BAK_IVEC || ak == BAK_FVEC) return ak;
     return BuiltinArgIsPlainAny(typeids, sa) ? BAK_REF : BAK_VALUE;
+}
+
+// How wide it is, which for one that is the same type as a numeric struct argument is that
+// argument's width.
+constexpr int BuiltinRetWidthOf(const char *typeids, const char *rets, int ret) {
+    auto w = BuiltinArgWidthOf(rets, ret);
+    if (w || BuiltinArgKindOf(rets, ret) != BAK_VALUE) return w;
+    auto mods = BuiltinArgMods(rets, ret);
+    if (BuiltinModsOptional(mods)) return 0;
+    auto sa = BuiltinModsSubArg(mods);
+    return sa < 0 ? 0 : BuiltinArgWidthOf(typeids, sa);
 }
 
 template<BuiltinArgKind K, int W> struct BuiltinParamType;
@@ -318,32 +332,36 @@ template<typename TIDS, size_t P> struct BuiltinParam {
 
 // What a builtin returns. The return type string has the same shape as the argument one, so
 // the kind of each return value comes out of the same parser. A builtin returns its last
-// return value as the type that kind implies, and pushes the ones before it, so one that has
-// none returns void, and so does one of the V kind, which pushes all of them.
+// return value as the type that kind implies, so one that has none returns void, and so does
+// one of the V kind, which writes all of them thru a pointer instead.
 template<typename TIDS, bool PushRets> struct BuiltinRet {
     static constexpr int n = BuiltinNumArgs(TIDS::rids);
     typedef std::conditional_t<
         PushRets || n == 0, void,
         typename BuiltinParamType<BuiltinRetKindOf(TIDS::tids, TIDS::rids, n - 1),
-                                  BuiltinArgWidthOf(TIDS::rids, n - 1)>::type> type;
+                                  BuiltinRetWidthOf(TIDS::tids, TIDS::rids, n - 1)>::type> type;
 };
 
-// Whether a builtin has anything to push, which is what it is given a stack pointer for: all
-// of its return values for the V kind, all but the last one for the rest.
-constexpr bool BuiltinPushesValues(const char *rets, bool pushrets) {
-    return pushrets || BuiltinNumArgs(rets) > 1;
+// How many return values a builtin does not return but writes thru a pointer the caller passes
+// ahead of its arguments: all of them for the V kind, all but the last one for the rest.
+constexpr int BuiltinNumOuts(const char *rets, bool pushrets) {
+    auto n = BuiltinNumArgs(rets);
+    return !n ? 0 : pushrets ? n : n - 1;
 }
 
-template<typename TIDS, bool PushRets, bool Stack, typename Params> struct BuiltinSigT;
-template<typename TIDS, bool PushRets, size_t... P>
-struct BuiltinSigT<TIDS, PushRets, true, std::index_sequence<P...>> {
-    typedef typename BuiltinRet<TIDS, PushRets>::type ret;
-    typedef ret type(StackPtr &, VM &, typename BuiltinParam<TIDS, P>::type...);
+// The type one of those pointers is to.
+template<typename TIDS, size_t R> struct BuiltinOut {
+    typedef typename BuiltinParamType<BuiltinRetKindOf(TIDS::tids, TIDS::rids, (int)R),
+                                      BuiltinRetWidthOf(TIDS::tids, TIDS::rids, (int)R)>::type
+                                          *type;
 };
-template<typename TIDS, bool PushRets, size_t... P>
-struct BuiltinSigT<TIDS, PushRets, false, std::index_sequence<P...>> {
+
+template<typename TIDS, bool PushRets, typename Outs, typename Params> struct BuiltinSigT;
+template<typename TIDS, bool PushRets, size_t... O, size_t... P>
+struct BuiltinSigT<TIDS, PushRets, std::index_sequence<O...>, std::index_sequence<P...>> {
     typedef typename BuiltinRet<TIDS, PushRets>::type ret;
-    typedef ret type(VM &, typename BuiltinParam<TIDS, P>::type...);
+    typedef ret type(VM &, typename BuiltinOut<TIDS, O>::type...,
+                     typename BuiltinParam<TIDS, P>::type...);
 };
 
 // The function type the argument types of a builtin imply, where TIDS is a type that carries
@@ -351,7 +369,8 @@ struct BuiltinSigT<TIDS, PushRets, false, std::index_sequence<P...>> {
 // of its definition, which checks the parameter list of the definition against the argument
 // types given, and makes its address available.
 template<typename TIDS, bool PushRets> using BuiltinSig =
-    BuiltinSigT<TIDS, PushRets, BuiltinPushesValues(TIDS::rids, PushRets),
+    BuiltinSigT<TIDS, PushRets,
+                std::make_index_sequence<(size_t)BuiltinNumOuts(TIDS::rids, PushRets)>,
                 std::make_index_sequence<BuiltinNumArgs(TIDS::tids)>>;
 
 // The builtins the generated code writes out itself rather than calling, because they are
@@ -568,32 +587,53 @@ struct NativeFun : Named {
         return IsPlainAny(args[i]) ? BAK_REF : KindOf(args[i]);
     }
 
-    // The one the builtin returns its last return value as, see BuiltinRet. Of the V kind, or
-    // with nothing to return, it returns void, which has no kind of its own.
-    bool ReturnsValue() const { return !pushrets && !retvals.empty(); }
-    BuiltinArgKind RetKind() const {
-        auto &r = retvals.back();
+    // The argument a return value says it is the same type as, if any, mirroring
+    // BuiltinModsSubArg.
+    const Narg *SameTypeArg(const Narg &r) const {
+        auto sub = r.flags & (NF_SUBARG1 | NF_SUBARG2 | NF_SUBARG3);
+        if (r.optional || !sub || sub != r.flags) return nullptr;
+        auto sa = (size_t)(sub == NF_SUBARG1 ? 0 : sub == NF_SUBARG2 ? 1 : 2);
+        return sa < args.size() ? &args[sa] : nullptr;
+    }
+
+    // The kind return value `i` has, mirroring BuiltinRetKindOf.
+    BuiltinArgKind RetValKind(size_t i) const {
+        auto &r = retvals[i];
         auto k = KindOf(r);
         if (k != BAK_VALUE) return k;
         if (!r.flags) return BAK_REF;
-        auto sub = r.flags & (NF_SUBARG1 | NF_SUBARG2 | NF_SUBARG3);
-        if (!sub || sub != r.flags) return BAK_VALUE;
         if (r.optional) return BAK_REF;
-        auto sa = (size_t)(sub == NF_SUBARG1 ? 0 : sub == NF_SUBARG2 ? 1 : 2);
-        return sa < args.size() && IsPlainAny(args[sa]) ? BAK_REF : BAK_VALUE;
+        auto a = SameTypeArg(r);
+        if (!a) return BAK_VALUE;
+        if (a->vttype->t == V_STRUCT_NUM) return KindOf(*a);
+        return IsPlainAny(*a) ? BAK_REF : BAK_VALUE;
     }
 
-    // Whether it takes a pointer to the stack, which only the ones that push anything do.
-    bool PushesValues() const { return pushrets || retvals.size() > 1; }
+    // How many values a numeric struct return value has, which its type says, or the argument
+    // it says it is the same type as does, and how many slots that takes.
+    int RetValWidth(size_t i) const {
+        auto &r = retvals[i];
+        if (r.vttype->t == V_STRUCT_NUM) return r.vttype->ns->flen;
+        if (KindOf(r) != BAK_VALUE) return 0;
+        auto a = SameTypeArg(r);
+        return a && a->vttype->t == V_STRUCT_NUM ? a->vttype->ns->flen : 0;
+    }
+    int RetValSlots(size_t i) const { return std::max(1, RetValWidth(i)); }
+
+    // The one the builtin returns its last return value as, see BuiltinRet. Of the V kind, or
+    // with nothing to return, it returns void, which has no kind of its own.
+    bool ReturnsValue() const { return !pushrets && !retvals.empty(); }
+    BuiltinArgKind RetKind() const { return RetValKind(retvals.size() - 1); }
+    int RetWidth() const { return retvals.empty() ? 0 : RetValWidth(retvals.size() - 1); }
+    int RetSlots() const { return ReturnsValue() ? RetValSlots(retvals.size() - 1) : 0; }
+
+    // The return values it writes thru a pointer instead, mirroring BuiltinNumOuts.
+    int OutValues() const {
+        return retvals.empty() ? 0 : (int)retvals.size() - (pushrets ? 0 : 1);
+    }
+
     // How many values a numeric struct argument has, which its type says.
     int ArgWidth(size_t i) const { return args[i].vttype->ns->flen; }
-    // The same for the value it returns, and how many slots that takes: a numeric struct
-    // comes back as the vector of its width, everything else as one value.
-    int RetWidth() const {
-        auto &r = retvals.back();
-        return r.vttype->t == V_STRUCT_NUM ? r.vttype->ns->flen : 0;
-    }
-    int RetSlots() const { return ReturnsValue() ? std::max(1, RetWidth()) : 0; }
     bool ArgIsVec(size_t i) const {
         auto k = ArgKind(i);
         return k == BAK_IVEC || k == BAK_FVEC || k == BAK_VALUEVEC;

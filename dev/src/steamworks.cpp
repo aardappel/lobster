@@ -1305,38 +1305,41 @@ BUILTIN_V(p2p_get_connection_status, "ident", "S", "IFFFFFFIIIII",
     "remote quality, out packets/sec, out bytes/sec, in packets/sec, in bytes/sec, send rate bytes/sec, "
     "pending unreliable packets, pending reliable packets, sent unACKed reliable packets, and queue time in usec. "
     "See ISteamNetworkingSockets::GetConnectionRealTimeStatus() for more info.")
-(StackPtr &sp, VM &, LString *ident) {
+(VM &, iint *ping, double *quality_local, double *quality_remote, double *out_packets_sec,
+ double *out_bytes_sec, double *in_packets_sec, double *in_bytes_sec, iint *send_rate,
+ iint *pending_unreliable, iint *pending_reliable, iint *sent_unacked, iint *queue_time,
+ LString *ident) {
     #ifdef PLATFORM_STEAMWORKS
         if (steam) {
             SteamNetConnectionRealTimeStatus_t status;
             steam->GetConnectionRealTimeStatus(ident->strvnt(), &status);
-            Push(sp, Value(status.m_nPing));
-            Push(sp, Value(status.m_flConnectionQualityLocal));
-            Push(sp, Value(status.m_flConnectionQualityRemote));
-            Push(sp, Value(status.m_flOutPacketsPerSec));
-            Push(sp, Value(status.m_flOutBytesPerSec));
-            Push(sp, Value(status.m_flInPacketsPerSec));
-            Push(sp, Value(status.m_flInBytesPerSec));
-            Push(sp, Value(status.m_nSendRateBytesPerSecond));
-            Push(sp, Value(status.m_cbPendingUnreliable));
-            Push(sp, Value(status.m_cbPendingReliable));
-            Push(sp, Value(status.m_cbSentUnackedReliable));
-            Push(sp, Value(status.m_usecQueueTime));
+            *ping = status.m_nPing;
+            *quality_local = status.m_flConnectionQualityLocal;
+            *quality_remote = status.m_flConnectionQualityRemote;
+            *out_packets_sec = status.m_flOutPacketsPerSec;
+            *out_bytes_sec = status.m_flOutBytesPerSec;
+            *in_packets_sec = status.m_flInPacketsPerSec;
+            *in_bytes_sec = status.m_flInBytesPerSec;
+            *send_rate = status.m_nSendRateBytesPerSecond;
+            *pending_unreliable = status.m_cbPendingUnreliable;
+            *pending_reliable = status.m_cbPendingReliable;
+            *sent_unacked = status.m_cbSentUnackedReliable;
+            *queue_time = status.m_usecQueueTime;
             return;
         }
     #endif
-    Push(sp, Value(0));
-    Push(sp, Value(0.0f));
-    Push(sp, Value(0.0f));
-    Push(sp, Value(0.0f));
-    Push(sp, Value(0.0f));
-    Push(sp, Value(0.0f));
-    Push(sp, Value(0.0f));
-    Push(sp, Value(0));
-    Push(sp, Value(0));
-    Push(sp, Value(0));
-    Push(sp, Value(0));
-    Push(sp, Value(0));
+    *ping = 0;
+    *quality_local = 0.0;
+    *quality_remote = 0.0;
+    *out_packets_sec = 0.0;
+    *out_bytes_sec = 0.0;
+    *in_packets_sec = 0.0;
+    *in_bytes_sec = 0.0;
+    *send_rate = 0;
+    *pending_unreliable = 0;
+    *pending_reliable = 0;
+    *sent_unacked = 0;
+    *queue_time = 0;
 }
 
 BUILTIN(p2p_listen, "", "", "B", "open a listen socket to receive new connections")
@@ -1400,18 +1403,18 @@ BUILTIN(p2p_rename_peer, "ident,new_ident", "SS", "B", "use a different identifi
 }
 
 BUILTIN_V(p2p_send_message, "ident,data,reliable", "SSB", "BI", "send a reliable message to a given steam identity")
-(StackPtr &sp, VM &, LString *ident, LString *data, iint reliable) {
+(VM &, iint *sent, iint *result_, LString *ident, LString *data, iint reliable) {
     #ifdef PLATFORM_STEAMWORKS
         EResult result = k_EResultNone;
         auto ok = steam && steam->SendMessage(ident->strvnt(), data->strv(), (int)reliable, &result);
-        Push(sp, Value(ok));
-        Push(sp, Value(result));
+        *sent = ok;
+        *result_ = result;
     #else
         (void)reliable;
         (void)data;
         (void)ident;
-        Push(sp, Value(false));
-        Push(sp, Value(0));
+        *sent = false;
+        *result_ = 0;
     #endif
 }
 
@@ -1423,7 +1426,7 @@ BUILTIN(p2p_broadcast_message, "data,reliable", "SB", "B", "send a reliable mess
 BUILTIN_V(p2p_receive_messages, "", "", "S]S]", "receive messages from all"
     " connected peers. The first return value is an array of messages, the second"
     " return value is an array of the steam identities that sent each message")
-(StackPtr &sp, VM &vm) {
+(VM &vm, LVector **messages_, LVector **senders) {
     auto *client_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
     auto *data_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
 
@@ -1442,8 +1445,8 @@ BUILTIN_V(p2p_receive_messages, "", "", "S]S]", "receive messages from all"
         }
     #endif  // PLATFORM_STEAMWORKS
 
-    Push(sp, data_vec);
-    Push(sp, client_vec);
+    *messages_ = data_vec;
+    *senders = client_vec;
 }
 
 BUILTIN_OVERLOAD(p2p_set_global_config_value_int, "p2p_set_global_config_value", "enum,value", "II", "", "")
@@ -1563,7 +1566,7 @@ BUILTIN(lobby_get_data, "steam_id,key", "IS", "S",
 }
 
 BUILTIN_V(lobby_get_all_data, "steam_id", "I", "S]S]", "get all key-value pairs stored on this lobby")
-(StackPtr &sp, VM &vm, iint vsteam_id) {
+(VM &vm, LVector **keys, LVector **values, iint vsteam_id) {
     (void)vsteam_id;
     auto *key_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
     auto *value_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
@@ -1585,8 +1588,8 @@ BUILTIN_V(lobby_get_all_data, "steam_id", "I", "S]S]", "get all key-value pairs 
         }
     #endif  // PLATFORM_STEAMWORKS
 
-    Push(sp, key_vec);
-    Push(sp, value_vec);
+    *keys = key_vec;
+    *values = value_vec;
 }
 
 BUILTIN(lobby_set_data, "steam_id,key,value", "ISS", "B",
@@ -1748,7 +1751,7 @@ BUILTIN_V(workshop_sync, "dest_dir,own_subdirs", "SB", "IS]",
     " installed and copied (nothing left to do), 1 = downloads still in progress, 2 = done"
     " but some items failed to download. Second return value is the files copied by this"
     " call (full paths), so the game can pick up new/updated content the moment it arrives.")
-(StackPtr &sp, VM &vm, LString *dest_dir, iint own_subdirs) {
+(VM &vm, iint *status_, LVector **copied, LString *dest_dir, iint own_subdirs) {
     auto *copied_vec = vm.NewVec(0, 0, TYPE_ELEM_VECTOR_OF_STRING);
     int status = -1;
     #ifdef PLATFORM_STEAMWORKS
@@ -1762,11 +1765,11 @@ BUILTIN_V(workshop_sync, "dest_dir,own_subdirs", "SB", "IS]",
         (void)own_subdirs;
         (void)dest_dir;
     #endif
-    Push(sp, Value(status));
-    Push(sp, Value(copied_vec));
+    *status_ = status;
+    *copied = copied_vec;
 }
 
-BUILTIN_V(workshop_upload_start, "content_folder,title,description,metadata,changenote,"
+BUILTIN(workshop_upload_start, "content_folder,title,description,metadata,changenote,"
     "preview_image,existing_fileid", "SSSSSSI", "B",
     "starts uploading workshop content for the current app; this is async, poll"
     " workshop_upload_status() (with steam.update() running) for the result."
@@ -1787,7 +1790,7 @@ BUILTIN_V(workshop_upload_start, "content_folder,title,description,metadata,chan
     " item. Empty title/description/metadata leave the existing values unchanged when"
     " updating. Returns false if the upload could not be started (e.g. one is already in"
     " progress).")
-(StackPtr &sp, VM &, LString *content_folder, LString *title, LString *description,
+(VM &, LString *content_folder, LString *title, LString *description,
  LString *metadata, LString *changenote, LString *preview_image, iint existing_fileid) {
     bool ok = false;
     #ifdef PLATFORM_STEAMWORKS
@@ -1807,7 +1810,7 @@ BUILTIN_V(workshop_upload_start, "content_folder,title,description,metadata,chan
         (void)title;
         (void)content_folder;
     #endif
-    Push(sp, Value(ok));
+    return ok;
 }
 
 BUILTIN_V(workshop_upload_status, "", "", "IIBII",
@@ -1819,7 +1822,8 @@ BUILTIN_V(workshop_upload_status, "", "", "IIBII",
     " steam workshop legal agreement (if true, the item remains hidden until they do; send"
     " them there with workshop_open_legal_agreement() or workshop_open_item_page()), and"
     " upload progress as bytes processed and bytes total (both may be 0 in early stages).")
-(StackPtr &sp, VM &) {
+(VM &, iint *status_, iint *fileid, iint *needs_agreement, iint *bytes_processed,
+ iint *bytes_total) {
     int status = 0;
     iint file_id = 0;
     bool needs_legal = false;
@@ -1828,9 +1832,9 @@ BUILTIN_V(workshop_upload_status, "", "", "IIBII",
     #ifdef PLATFORM_STEAMWORKS
         if (steam) status = steam->WorkshopUploadStatus(file_id, needs_legal, processed, total);
     #endif
-    Push(sp, Value(status));
-    Push(sp, Value(file_id));
-    Push(sp, Value(needs_legal));
-    Push(sp, Value(processed));
-    Push(sp, Value(total));
+    *status_ = status;
+    *fileid = file_id;
+    *needs_agreement = needs_legal;
+    *bytes_processed = processed;
+    *bytes_total = total;
 }
