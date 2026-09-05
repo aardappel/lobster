@@ -58,7 +58,6 @@ enum ReturnKind { RET_LOCAL, RET_NONLOCAL, RET_ANY };
 struct CodeGen  {
     vector<metadata::SpecIdent> sids;
     Parser &parser;
-    vector<const Node *> linenumbernodes;
     SymbolTable &st;
     vector<type_elem_t> type_table;
     vector<type_elem_t> ser_ids;
@@ -83,7 +82,6 @@ struct CodeGen  {
     // Set when the C output is going to be fed to MIR rather than libtcc, for any places where
     // the two need different code.
     bool mir = false;
-    size_t nil_type_table_size = 0;
 
     // C/C++ codegen related.
     string &c_codegen;
@@ -366,7 +364,6 @@ struct CodeGen  {
                 PushFields(udt, tt);
                 assert(ssize(tt) == ttsize);
                 std::copy(tt.begin(), tt.end(), type_table.begin() + typeinfo);
-                if (non_nil_version) nil_type_table_size += ttsize;
                 return typeinfo;
             }
             case V_TYPEID:
@@ -393,7 +390,6 @@ struct CodeGen  {
         auto offset = (type_elem_t)type_table.size();
         type_lookup[tt] = offset;
         type_table.insert(type_table.end(), tt.begin(), tt.end());
-        if (non_nil_version) nil_type_table_size += tt.size();
         return offset;
     }
 
@@ -455,7 +451,7 @@ struct CodeGen  {
         o = GetTypeTableOffset(type_vector_vector_float4); assert(o == TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT4);
         (void)o;
 
-        for (auto f : parser.st.functiontable) {
+        for (auto f : st.functiontable) {
             if (!f->istype) {
                 for (auto ov : f->overloads) for (auto sf = ov->sf; sf; sf = sf->next) {
                     if (sf->typechecked) {
@@ -487,7 +483,7 @@ struct CodeGen  {
 
         auto max_ser_ids = parser.serializable_id_max + 1;
         ser_ids.resize(max_ser_ids, (type_elem_t)-1);
-        for (auto udt : parser.st.udttable) {
+        for (auto udt : st.udttable) {
             if (!udt->g.is_abstract) {
                 // We generate a type table for every UDT regardless of whether it is referred to
                 // anywhere, for example (sub)classes may be constructed by deserializing them and
@@ -510,7 +506,6 @@ struct CodeGen  {
         natives_decl_offset = c_codegen.size();
 
         // Start of the actual generated code.
-        linenumbernodes.push_back(parser.root);
         // Generate a dummmy function for function values that are never called.
         // Would be good if the optimizer guarantees these don't exist, but for now this is
         // more debuggable if it does happen to get called.
@@ -529,7 +524,7 @@ struct CodeGen  {
         vector<SubFunction *> sf_used;
         fun_names.resize(st.subfunctiontable.size());
         set<string> fun_names_used;
-        for (auto f : parser.st.functiontable) {
+        for (auto f : st.functiontable) {
             if (!f->istype) {
                 for (auto ov : f->overloads) for (auto sf = ov->sf; sf; sf = sf->next) {
                     if (sf->typechecked) {
@@ -567,7 +562,6 @@ struct CodeGen  {
             append(cb, "    RtExitVoid(vm);\n");
         }
         f_regs_max = (int)tstack_max;
-        linenumbernodes.pop_back();
         DefineFunction(c_codegen, false);
 
         // Now fill in the vtables.
@@ -637,9 +631,6 @@ struct CodeGen  {
         if (!decls.empty()) c_codegen.insert(natives_decl_offset, decls + "\n");
     }
 
-    ~CodeGen() {
-    }
-
     // FIXME: remove.
     void Dummy(size_t retval) {
         assert(!retval);
@@ -670,7 +661,6 @@ struct CodeGen  {
         f_regs_max = 0;  // Not valid until end of codegen of this function.
         f_keeps.clear();  // Not valid until end of codegen of this function.
 
-        linenumbernodes.push_back(sf.sbody);
         auto ret = AssertIs<Return>(sf.sbody->children.back());
         auto ir = sf.consumes_vars_on_return ? AssertIs<IdentRef>(ret->child) : nullptr;
 
@@ -741,7 +731,6 @@ struct CodeGen  {
         assert(continues.empty());
         assert(!tstack_size);
         f_regs_max = (int)tstack_max;
-        linenumbernodes.pop_back();
         cursf = nullptr;
     }
 
@@ -1394,18 +1383,16 @@ struct CodeGen  {
         }
     }
 
-    string IdName(int i, bool is_whole_struct, TypeRef type) {
+    // The name of variable slot `i`, which for a slot of a struct says which one it is.
+    string IdName(int i, TypeRef type) {
         auto ididx = sids[i].ididx();
         auto idx = sids[i].idx();
         auto &basename = st.identtable[ididx]->name;
-        if (is_whole_struct || !IsStruct(type->t)) {
-            return basename;
-        } else {
-            int j = i;
-            while (j && sids[j - 1].idx() == idx) j--;
-            return cat(basename, "+", i - j);
-        }
-    };
+        if (!IsStruct(type->t)) return basename;
+        int j = i;
+        while (j && sids[j - 1].idx() == idx) j--;
+        return cat(basename, "+", i - j);
+    }
 
     // The name of slot `slot` of a struct: the field it is in, and for a nested struct that
     // field's own slot name behind it.
@@ -1656,7 +1643,7 @@ struct CodeGen  {
             if (used_as_freevar) {
                 // A global is addressed by number, so say which it is.
                 CopyValue(cb, Slot(-i, type, i), Global(offset + i), "");
-                comment(IdName(offset + i, false, type));
+                comment(IdName(offset + i, type));
             } else {
                 CopyValue(cb, Slot(-i, type, i), Local(var_to_local[offset + i]));
             }
@@ -1703,7 +1690,7 @@ struct CodeGen  {
         TrackUseDef(0, 0);
         f_lval_kind = LVK_GLOBAL;
         f_lval_idx = offset;
-        append(cb, "    // lval: ", IdName(offset, false, type), "\n");
+        append(cb, "    // lval: ", IdName(offset, type), "\n");
     }
 
     // The struct the generated code gets for a type, whose members are its fields by the names
@@ -2897,7 +2884,6 @@ struct CodeGen  {
             }
             sd += "\n};\n\n";
             sd += "static const int subfunctions_to_function[] = {";
-            vector<int> subfunctions_to_function;
             for (auto [i, sf] : enumerate(st.subfunctiontable)) {
                 if ((i & 0xF) == 0) sd += "\n ";
                 append(sd, " ", sf->parent->idx, ",");
@@ -2948,8 +2934,7 @@ struct CodeGen  {
             sd += "        span(subfunctions_to_function),\n";
             sd += "    };\n";
             sd += "    return RunCompiledCodeMain(argc, argv, ";
-            append(sd, "&vmmeta, vtables, object_decs, ", custom_pre_init_name, ", \"",
-                   (!cpp ? "main.lobster" : ""), "\");\n}\n");
+            append(sd, "&vmmeta, vtables, object_decs, ", custom_pre_init_name, ", \"\");\n}\n");
         }
     }
 
@@ -3262,8 +3247,6 @@ struct CodeGen  {
         // they can irrespective of retval, optionally record that in rettypes for the more complex
         // cases. Then at the end of this function the two get matched up.
         auto tempstartsize = temptypestack.size();
-        linenumbernodes.push_back(n);
-
         node_context.push_back(n);
         n->Generate(*this, retval);
         node_context.pop_back();
@@ -3294,7 +3277,6 @@ struct CodeGen  {
             }
         }
         assert(rettypes.empty());
-        linenumbernodes.pop_back();
     }
 
     int ComputeBitMask(const UDT &udt) {
@@ -4218,14 +4200,8 @@ void Block::Generate(CodeGen &cg, size_t retval) const {
             cg.Gen(c, 0);
             assert(tstack_start == cg.tstack_size);
         } else {
-            if (false && c->exptype->t == V_VOID) {
-                // This may happen because it is an inlined function whose result is never used,
-                // because returns escape out of it, e.g. check in std.lobster.
-                cg.Gen(c, 0);
-            } else {
-                cg.Gen(c, retval);
-                cg.TakeTemp(retval, true);
-            }
+            cg.Gen(c, retval);
+            cg.TakeTemp(retval, true);
         }
     }
 }

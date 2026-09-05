@@ -25,7 +25,6 @@ struct DeclChecker {
     NativeRegistry &natreg;
     set<GUDT *> fields_completed;
     unordered_map<string_view, vector<Function *>> function_scopes;
-    unordered_map<string_view, vector<Function *>> all_functions;
     vector<Function *> function_stack;
     set<Overload *> bodies_walked;
     set<Function *> default_args_walked;

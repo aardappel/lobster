@@ -39,9 +39,7 @@ struct SpecIdent;
 
 struct UDT;
 
-#ifdef NDEBUG
-SlabAlloc *g_current_slaballoc;
-#endif
+extern SlabAlloc *g_current_slaballoc;
 
 #ifdef NDEBUG
     #define USE_CURRENT_SLABALLOCATOR \
@@ -816,11 +814,6 @@ struct SymbolTable {
         return nullptr;
     }
 
-    Ident *LookupAny(string_view name) {
-        for (auto id : identtable) if (id->name == name) return id;
-        return nullptr;
-    }
-
     Ident *NewId(string_view name, SubFunction *sf, bool withtype, size_t scopelevel, Line &line) {
         auto ident = new Ident(name, (int)identtable.size(), scopelevel, line);
         ident->cursid = NewSid(ident, sf, withtype);
@@ -890,12 +883,6 @@ struct SymbolTable {
             }
         }
         return id ? fld : nullptr;
-    }
-
-    WithStackElem GetWithStackBack() {
-        return withstack.size()
-            ? withstack.back()
-            : WithStackElem();
     }
 
     void BlockScopeStart() {

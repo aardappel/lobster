@@ -492,7 +492,6 @@ struct VectorConstructor : List {
         return giventype->Equal(*((VectorConstructor *)o)->giventype);
     }
     SHARED_SIGNATURE(VectorConstructor, "vector_constructor", false)
-    OPTMETHOD
     SIMPLEMETHOD
 };
 
@@ -518,7 +517,6 @@ struct ObjectConstructor : List {
         return giventype->Equal(*((ObjectConstructor *)o)->giventype);
     }
     SHARED_SIGNATURE(ObjectConstructor, "object_constructor", false)
-    OPTMETHOD
     SIMPLEMETHOD
 };
 
@@ -585,7 +583,6 @@ struct NativeCall : List {
                natlt == ((NativeCall *)o)->natlt;
     }
     SHARED_SIGNATURE(NativeCall, "native call", true)
-    RETURNSMETHOD
     SIMPLEMETHOD
 };
 

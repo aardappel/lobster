@@ -1106,13 +1106,6 @@ struct TypeChecker {
         udt.state = UDTState::CHECKED;
     }
 
-    void TypeCheckGUDT(GUDT &gudt, const Node &errn, bool predeclaration) {
-        if (predeclaration) return;
-        for (auto udt = gudt.first; udt; udt = udt->next) {
-            EnsureUDTChecked(*udt, errn);
-        }
-    }
-
     void RetVal(TypeRef type, SubFunction *sf, const Node &err) {
         for (auto &isc : reverse(scopes)) {
             if (isc.sf->parent == sf->parent) break;
@@ -2799,7 +2792,6 @@ struct TypeChecker {
         n = n->TypeCheck(*this, reqret, parent_bound);
         // Check if we need to do any type adjustmenst.
         auto &rtype = n->exptype;
-        n->exptype = rtype;
         auto nret = rtype->NumValues();
         if (nret < reqret) {
             if (!n->Terminal(*this)) {
@@ -5019,18 +5011,24 @@ Node *MultipleReturn::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*pa
 }
 
 Node *EnumRef::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef /*parent_bound*/) {
+    exptype = type_void;
+    lt = LT_ANY;
     return this;
 }
 
 Node *GUDTRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-    tc.TypeCheckGUDT(*gudt, *this, predeclaration);
+    if (!predeclaration) {
+        for (auto udt = gudt->first; udt; udt = udt->next) {
+            tc.EnsureUDTChecked(*udt, *this);
+        }
+    }
     exptype = type_void;
     lt = LT_ANY;
     return this;
 }
 
 Node *UDTRef::TypeCheck(TypeChecker &, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-    // For now, being type-checked from TypeCheckGUDT.
+    // Its specializations get checked from GUDTRef::TypeCheck.
     exptype = type_void;
     lt = LT_ANY;
     return this;
@@ -5082,10 +5080,6 @@ bool Switch::Terminal(TypeChecker &tc) const {
         return true;
     // Other types, cannot guarantee it is terminal without a default.
     return have_default;
-}
-
-bool NativeCall::Terminal(TypeChecker &) const {
-    return false;
 }
 
 bool Assert::Terminal(TypeChecker &) const {

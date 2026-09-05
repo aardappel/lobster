@@ -32,9 +32,9 @@
 #include "lobster/tonative.h"
 #include "lobster/codegen.h"
 
-SlabAlloc *g_current_slaballoc = nullptr;
-
 namespace lobster {
+
+SlabAlloc *g_current_slaballoc = nullptr;
 
 const Type g_type_int(V_INT);
 const Type g_type_float(V_FLOAT);
@@ -320,7 +320,7 @@ bool LoadPakDir(const char *lpak, uint64_t &src_hash_dest) {
     for (int64_t i = 0; i < num; i++) {
         auto name = string_view(dir.c_str() + (read_unaligned64(namestarts + i) - dirstart));
         auto off = read_unaligned64(filestarts + i);
-        auto end = i < num + 1 ? read_unaligned64(filestarts + i + 1) : dirstart;
+        auto end = i < num - 1 ? read_unaligned64(filestarts + i + 1) : dirstart;
         auto len = end - off;
         LOG_INFO("pakfile dir: ", name, " : ", len);
         AddPakFileEntry(lpak, name, off, len, read_unaligned64(uncompressed + i));
@@ -578,7 +578,7 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource, stri
     tc.Stats(filenames);
     // Optimizer is not optional, must always run, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
-    Optimizer opt(parser, st, tc, runtime_checks);
+    Optimizer opt(st, tc, runtime_checks);
     if (parsedump) *parsedump = parser.DumpAll(true);
     auto src_hash = lex.HashAll();
     CodeGen cg(parser, st, return_value, runtime_checks, !jit_mode, src_hash,
@@ -912,7 +912,6 @@ BUILTIN(compile_run_c_code, "code,input", "SS", "S?S?",
 
 void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
     extern BuiltinGroup core_builtins;
-    extern BuiltinGroup compiler_builtins;
     extern BuiltinGroup file_builtins;
     extern BuiltinGroup flatbuffers_builtins;
     extern BuiltinGroup parsedata_builtins;

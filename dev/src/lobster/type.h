@@ -319,7 +319,6 @@ extern TypeRef type_any;
 extern TypeRef type_vector_int;
 extern TypeRef type_vector_float;
 extern TypeRef type_function_null_void;
-extern TypeRef type_function_cocl;
 extern TypeRef type_resource;
 extern TypeRef type_vector_resource;
 extern TypeRef type_typeid;

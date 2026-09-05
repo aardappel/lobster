@@ -55,7 +55,6 @@ struct NativeFun;
 
 struct Narg {
     TypeRef vttype = type_undefined;
-    RTType rttype = RTT_NIL;
     NArgFlags flags = NF_NONE;
     string_view name;
     char default_val = 0;
@@ -79,7 +78,6 @@ struct Narg {
         }
         while (*tid && !isupper(*tid)) {
             switch (*tid++) {
-                case 0: break;
                 case '1': flags = flags | NF_SUBARG1; break;
                 case '2': flags = flags | NF_SUBARG2; break;
                 case '3': flags = flags | NF_SUBARG3; break;
@@ -133,7 +131,6 @@ struct Narg {
         }
         if (vttype->t == V_RESOURCE && !vttype->rt)
             nf->Error("all uses of type R must have :name specifier");
-        rttype = VT2RT(vttype->t);
     }
 };
 
@@ -227,11 +224,6 @@ constexpr int BuiltinArgWidthOf(const char *typeids, int arg) {
             w = typeids[1] - '0';
         }
     }
-}
-
-constexpr bool BuiltinArgIsVec(const char *typeids, int arg) {
-    auto k = BuiltinArgKindOf(typeids, arg);
-    return k == BAK_IVEC || k == BAK_FVEC || k == BAK_VALUEVEC;
 }
 
 // The modifiers that follow the type letter of an argument, which is what says how much of a
@@ -553,18 +545,12 @@ struct NativeFun : Named {
 
     NativeFun *overloads = nullptr, *first = this;
 
-    int TypeLen(const char *s) {
-        int i = 0;
-        while (*s) if(isupper(*s++)) i++;
-        return i;
-    };
-
     NativeFun(const char *ns, const char *nsname, const char *ids, const char *typeids,
               const char *rets, const char *help, const char *symbol, bool pushrets,
               BuiltinCodegen codegen, const void *address)
         : Named(*ns ? cat(ns, ".", nsname) : nsname, 0),
-          args(TypeLen(typeids)),
-          retvals(TypeLen(rets)),
+          args(BuiltinNumArgs(typeids)),
+          retvals(BuiltinNumArgs(rets)),
           help(help),
           symbol(symbol),
           pushrets(pushrets),
@@ -734,10 +720,8 @@ struct NativeRegistry {
         nf->subsystemid = (int)subsystems.size() - 1;
         auto existing = FindNative(nf->name);
         if (existing) {
-            if (/*nf->args.v.size() != existing->args.v.size() ||
-                nf->retvals.v.size() != existing->retvals.v.size() || */
-                nf->subsystemid != existing->subsystemid ) {
-                // Must have similar signatures.
+            // Overloads of a name must all come from the same subsystem.
+            if (nf->subsystemid != existing->subsystemid) {
                 assert(0);
                 THROW_OR_ABORT("native library name clash: " + nf->name);
             }

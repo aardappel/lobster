@@ -70,14 +70,6 @@ struct Parser {
         return false;
     }
 
-    NativeFun *FindNative(string_view name) {
-        if (st.MaybeNameSpace(name)) {
-            auto nf = natreg.FindNative(st.NameSpaced(name));
-            if (nf) return nf;
-        }
-        return natreg.FindNative(name);
-    }
-
     void Parse() {
         auto sf = st.FunctionScopeStart();
         st.toplevel = sf;

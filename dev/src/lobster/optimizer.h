@@ -15,7 +15,6 @@
 namespace lobster {
 
 struct Optimizer {
-    Parser &parser;
     SymbolTable &st;
     TypeChecker &tc;
     size_t total_changes = 0;
@@ -25,15 +24,15 @@ struct Optimizer {
     size_t always_inline = 16;
     size_t never_inline = 256;
 
-    Optimizer(Parser &_p, SymbolTable &_st, TypeChecker &_tc, int runtime_checks)
-        : parser(_p), st(_st), tc(_tc), runtime_checks(runtime_checks) {
+    Optimizer(SymbolTable &_st, TypeChecker &_tc, int runtime_checks)
+        : st(_st), tc(_tc), runtime_checks(runtime_checks) {
         if (runtime_checks >= RUNTIME_DEBUG) {
             // User wants to see useful stack-traces, only inline the tiniest of functions.
             always_inline = 2;
             never_inline = 4;
         }
         // We don't optimize parser.root, it only contains a single call.
-        for (auto f : parser.st.functiontable) {
+        for (auto f : st.functiontable) {
             again:
             for (auto ov : f->overloads) {
                 auto sf = ov->sf;
@@ -94,14 +93,6 @@ Node *Node::Optimize(Optimizer &opt) {
     delete this;
     opt.Changed();
     return r->Optimize(opt);
-}
-
-Node *VectorConstructor::Optimize(Optimizer &opt) {
-    return Node::Optimize(opt);
-}
-
-Node *ObjectConstructor::Optimize(Optimizer &opt) {
-    return Node::Optimize(opt);
 }
 
 Node *Nil::Optimize(Optimizer &) {
