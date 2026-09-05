@@ -78,11 +78,13 @@ else()
     src/lobster/vmdata.h
     src/lobster/wentropy.h
     src/lobster/wfc.h
+    src/builtindoc.cpp
     src/builtins.cpp
     src/compiler.cpp
     src/file.cpp
     src/lobsterreader.cpp
     src/main.cpp
+    src/pakfile.cpp
     src/platform.cpp
     src/simplex.cpp
     src/stdafx.cpp

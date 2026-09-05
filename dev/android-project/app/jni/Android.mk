@@ -29,6 +29,8 @@ LOCAL_C_INCLUDES := \
 LOCAL_SRC_FILES := \
 	$(LOBSTER_PATH)/compiled_lobster/src/compiled_lobster.cpp \
 	$(LOBSTER_PATH)/src/compiler.cpp \
+	$(LOBSTER_PATH)/src/pakfile.cpp \
+	$(LOBSTER_PATH)/src/builtindoc.cpp \
 	$(LOBSTER_PATH)/src/audio.cpp \
 	$(LOBSTER_PATH)/src/builtins.cpp \
 	$(LOBSTER_PATH)/src/engine.cpp \

@@ -750,8 +750,6 @@ template<> void ErasePrivate(unordered_map<string_view, UDT *> &dict) {
     }
 }
 
-inline string TypeName(UnTypeRef type, bool tuple_brackets = true, int depth = 0);
-
 struct SymbolTable {
     Lex &lex;
 
@@ -1708,7 +1706,8 @@ inline string Signature(const SubFunction &sf, int depth = 0) {
     return r;
 }
 
-inline string TypeName(UnTypeRef type, bool tuple_brackets, int depth) {
+// Declared in compiler.h, so that the files outside the compiler can name a type too.
+string TypeName(UnTypeRef type, bool tuple_brackets, int depth) {
     // A type name followed by its type arguments, when it has any.
     auto specialized = [](string_view name, const auto &types) {
         string s(name);

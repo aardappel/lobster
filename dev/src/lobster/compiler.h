@@ -75,6 +75,13 @@ extern pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_vie
                                  const CompileOptions &copts, const RunOptions &ropts,
                                  string &error);
 
+// The name of a type as the language writes it, see idents.h.
+extern string TypeName(UnTypeRef type, bool tuple_brackets = true, int depth = 0);
+
+// The pakfile: the metadata, the generated code and every file the program asked for in one
+// file, see pakfile.cpp.
+extern string BuildPakFile(string &pakfile, string &metadata_buffer, set<string> &files,
+                           uint64_t src_hash, const string &c_codegen);
 extern bool LoadPakDir(const char *lpak, uint64_t &src_hash_dest);
 extern bool LoadMetaDataAndCode(string &metadata, string &c_codegen);
 extern void RegisterBuiltin(NativeRegistry &natreg, const char *ns, const char *name,
@@ -87,6 +94,7 @@ extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const VMMe
                                    const lobster::object_dec_t *object_decs,
                                    void *custom_pre_init, const char *aux_src_path);
 
+// The builtin function reference, see builtindoc.cpp.
 extern void DumpBuiltinNames(NativeRegistry &nfr);
 extern void DumpBuiltinDoc(NativeRegistry &nfr, bool group_subsystem);
 extern void DumpBuiltinDocJson(NativeRegistry &nfr);

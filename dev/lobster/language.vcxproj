@@ -365,8 +365,10 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='ReleaseClang|x64'">_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='ReleaseASAN|x64'">_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="..\src\builtindoc.cpp" />
     <ClCompile Include="..\src\builtins.cpp" />
     <ClCompile Include="..\src\file.cpp" />
+    <ClCompile Include="..\src\pakfile.cpp" />
     <ClCompile Include="..\src\compiler.cpp">
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Level4</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Level4</WarningLevel>

@@ -50,6 +50,7 @@ HEADERS= $(wildcard ../src/lobster/*.h)
 CPPSRCS= \
 	../compiled_lobster/src/compiled_lobster.cpp \
 	../src/audio.cpp \
+	../src/builtindoc.cpp \
 	../src/builtins.cpp \
 	../src/compiler.cpp \
 	../src/cubegen.cpp \
@@ -68,6 +69,7 @@ CPPSRCS= \
 	../src/imbind.cpp \
 	../src/lobsterreader.cpp \
 	../src/meshgen.cpp \
+	../src/pakfile.cpp \
 	../src/platform.cpp \
 	../src/physics.cpp \
 	../src/sdlaudiosfxr.cpp \
