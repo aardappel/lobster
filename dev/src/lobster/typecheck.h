@@ -4389,14 +4389,14 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
                     tc.RequiresError("reference type", c->exptype, *c, nf->args[i].name, nf->name);
                 typed = true;
             } else if (IsStruct(c->exptype->t) &&
-                       !(arg.flags & NF_PUSHVALUEWIDTH) &&
+                       !(arg.flags & NF_ANYWIDTH) &&
                        c->exptype->udt->numslots > 1) {
                 // Avoid unsuspecting generic functions taking values as args.
                 // TODO: ideally this does not trigger for any functions.
                 tc.Error(*this, "function does not support this struct type");
             }
         }
-        if (arg.vttype->t != V_STRUCT_NUM && !(arg.flags & NF_PUSHVALUEWIDTH))
+        if (arg.vttype->t != V_STRUCT_NUM && !(arg.flags & NF_ANYWIDTH))
             tc.NoStruct(*c, nf->name);
         if (!typed) {
             tc.SubType(c, argtype, tc.ArgName(i), nf->name, cf_const);

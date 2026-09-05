@@ -42,7 +42,7 @@ enum NArgFlags {
     NF_SUBARG3            = 1 << 2,
     NF_ANYVAR             = 1 << 3,
     NF_CONVERTANYTOSTRING = 1 << 4,
-    NF_PUSHVALUEWIDTH     = 1 << 5,
+    NF_ANYWIDTH     = 1 << 5,
     NF_BOOL               = 1 << 6,
     NF_UNION              = 1 << 7,
     NF_CONST              = 1 << 8,
@@ -85,7 +85,7 @@ struct Narg {
                 case '*': flags = flags | NF_ANYVAR; break;
                 case 'c': flags = flags | NF_CONST; break;
                 case 's': flags = flags | NF_CONVERTANYTOSTRING; break;
-                case 'w': flags = flags | NF_PUSHVALUEWIDTH; break;
+                case 'w': flags = flags | NF_ANYWIDTH; break;
                 case 'k': lt = LT_KEEP; break;
                 case 'b': lt = LT_BORROW; break;
                 case ']': {
@@ -572,7 +572,7 @@ struct NativeFun : Named {
         // An argument that may be a struct of any width has no one C++ type, so only a builtin
         // the generated code writes out itself can take one, see BuiltinCodegen.
         for (auto &arg : args) {
-            if ((arg.flags & NF_PUSHVALUEWIDTH) && codegen == BCG_NONE)
+            if ((arg.flags & NF_ANYWIDTH) && codegen == BCG_NONE)
                 Error("an argument of any width needs a codegen builtin");
         }
     }
@@ -580,7 +580,7 @@ struct NativeFun : Named {
     // The kind the type of an argument or a return value belongs to, which must agree with
     // what BuiltinArgKindOf makes of the type string it came from.
     static BuiltinArgKind KindOf(const Narg &n) {
-        if (n.flags & NF_PUSHVALUEWIDTH) return BAK_VALUEVEC;
+        if (n.flags & NF_ANYWIDTH) return BAK_VALUEVEC;
         if (n.vttype->t == V_STRUCT_NUM)
             return n.vttype->ns->t == V_FLOAT ? BAK_FVEC : BAK_IVEC;
         switch (n.vttype->ElementIfNil()->t) {
