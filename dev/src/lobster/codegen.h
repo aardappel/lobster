@@ -193,11 +193,12 @@ struct CodeGen  {
     set<string> f_names_used;
     // The static type of each slot of every variable, by its index in sids.
     vector<TypeRef> var_types;
-    // A struct local staged in the stack array to be indexed at runtime, which goes back into
-    // its variables once the modifier has written it, see EmitLvalStructIndex.
-    struct { int idx = 0, width = 0, base = 0; } f_writeback;
-    // How far up the stack array such staging reaches, beyond what the stack itself needs.
-    int f_vals_max = 0;
+    // A struct local staged in an array to be indexed at runtime, which goes back into its
+    // variables once the modifier has written it, see EmitLvalStructIndex.
+    struct { int idx = 0, width = 0; VKind k = VK_INT; } f_writeback;
+    // How wide that array has to be, per numeric type one can be of, which is only known at the
+    // end of the codegen of the function like f_regs_max is.
+    int f_stage_max[2] = { 0, 0 };
     bool has_profile = false;
     string sdt;
     int numlocals = 0;
@@ -1478,6 +1479,9 @@ struct CodeGen  {
     }
     // The stack as memory, for the helpers that take a pointer to it, see StageRange.
     string StackArray() { return "vals"; }
+    // The array a struct local goes into to be indexed at runtime, one per numeric type its
+    // fields can all be of, see EmitLvalStructIndex.
+    static string StageArray(VKind k) { return k == VK_FLOAT ? "_lsf" : "_lsi"; }
     Place StackSlot(int k, RTType rtt) { return Mem(cat(StackArray(), "[", k, "]"), rtt); }
     // A local variable, a global, and the temporaries a function keeps references alive in. The
     // locals are variables of their own like the stack slots are, see LocalName.
@@ -1868,7 +1872,7 @@ struct CodeGen  {
         f_uses_lval = true;
         string base;
         auto typed = f_lval_kind == LVK_FIELD || f_lval_kind == LVK_NUMPTR ||
-                     f_lval_kind == LVK_ELEM;
+                     f_lval_kind == LVK_ELEM || f_lval_kind == LVK_LOCAL;
         auto kind = typed ? LVK_NUMPTR : LVK_PTR;
         if (f_lval_kind == LVK_FIELD) {
             // A field of a struct type is an array of what its slots hold, so indexing it is
@@ -1879,16 +1883,16 @@ struct CodeGen  {
             base = cat("&", Elem("lvec", f_lval_elem, "lidx", f_lval_idx).s);
         } else if (f_lval_kind == LVK_LOCAL) {
             // A struct in variables has to be in memory to be indexed at runtime, so it goes
-            // thru the stack array above what is in use, and comes back out once the modifier
-            // has written it, see GenLvalWriteBack.
-            f_writeback = { f_lval_idx, numslots, regso };
-            f_uses_vals = true;
-            f_vals_max = std::max(f_vals_max, regso + numslots);
+            // thru an array of the one numeric type all of its fields are, and comes back out
+            // once the modifier has written it, see GenLvalWriteBack.
+            auto k = Local(f_lval_idx).k();
+            f_writeback = { f_lval_idx, numslots, k };
+            f_stage_max[k] = std::max(f_stage_max[k], numslots);
             for (int j = 0; j < numslots; j++) {
                 auto l = Local(f_lval_idx + j);
-                CopyValue(cb, StackSlot(regso + j, l.rtt), l);
+                append(cb, "    ", StageArray(k), "[", j, "] = ", Read(l), ";\n");
             }
-            base = cat(StackArray(), " + ", regso);
+            base = StageArray(k);
         } else {
             base = LvalPtr();
         }
@@ -1905,13 +1909,13 @@ struct CodeGen  {
         f_lval_kind = kind;
     }
 
-    // What a modifier wrote thru the lvalue lands where it belongs: a struct staged in the
-    // stack array back in its variables, and any local in its shadow, see LocalWritten.
+    // What a modifier wrote thru the lvalue lands where it belongs: a staged struct back in
+    // its variables, and any local in its shadow, see LocalWritten.
     void GenLvalWriteBack(TypeRef type) {
         if (f_writeback.width) {
             for (int j = 0; j < f_writeback.width; j++) {
-                auto l = Local(f_writeback.idx + j);
-                CopyValue(cb, l, StackSlot(f_writeback.base + j, l.rtt));
+                Write(cb, Local(f_writeback.idx + j),
+                      cat(StageArray(f_writeback.k), "[", j, "]"));
             }
             LocalWritten(f_writeback.idx, f_writeback.width);
             f_writeback.width = 0;
@@ -2645,7 +2649,7 @@ struct CodeGen  {
         Types argtypes;
         for (auto &p : f_arg_places) argtypes.push_back(p.rtt);
         append(sd, FunSignature(FunName(sf_idx), argtypes, f_ret_types, &f_arg_places), " {\n");
-        // NOTE: f_keeps, f_slot_kinds, f_uses_vals, f_vals_max and f_regs_max are not known
+        // NOTE: f_keeps, f_slot_kinds, f_uses_vals, f_stage_max and f_regs_max are not known
         // until the end of codegen of the function!
         vector<Place> slots, keeps, locals;
         for (auto [i, kinds] : enumerate(f_slot_kinds)) {
@@ -2661,7 +2665,11 @@ struct CodeGen  {
         for (int i = nargs_local; i < numlocals; i++) locals.push_back(Local(i));
         GenPlaceDecls(sd, slots);
         if (f_uses_vals) {
-            append(sd, "    Value vals[", std::max({ 1, f_regs_max, f_vals_max }), "];\n");
+            append(sd, "    Value vals[", std::max(1, f_regs_max), "];\n");
+        }
+        for (auto k : { VK_INT, VK_FLOAT }) {
+            if (f_stage_max[k])
+                append(sd, "    ", CType(k), " ", StageArray(k), "[", f_stage_max[k], "];\n");
         }
         if (f_uses_sp) sd += "    StackPtr sp;\n";
         if (f_uses_pctx) append(sd, "    ", cpp ? "" : "struct ", "___tracy_c_zone_context pctx;\n");
@@ -2745,7 +2753,8 @@ struct CodeGen  {
         f_keeps.clear();
         f_slot_kinds.clear();
         f_uses_vals = false;
-        f_vals_max = 0;
+        f_stage_max[VK_INT] = 0;
+        f_stage_max[VK_FLOAT] = 0;
         f_uses_sp = false;
         f_uses_pctx = false;
         f_uses_lval = false;
