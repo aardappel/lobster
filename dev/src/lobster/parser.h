@@ -1548,9 +1548,11 @@ struct Parser {
                         si = new Plus(lex, si, e);
                     } else {
                         // We start with an exp, but we have to force this to be a string to ensure
-                        // all subsequent Plus ops are string concats.
-                        auto call = new NativeCall(natreg.FindNative("string"), lex);
-                        call->children.push_back(e);
+                        // all subsequent Plus ops are string concats. A call like any other, which
+                        // can only be the builtin since `string` is a keyword.
+                        auto call = new GenericCall(lex, "string", st.current_namespace, false,
+                                                    false, false, nullptr);
+                        call->Add(e);
                         si = call;
                     }
                     if (!lex.sval.empty())

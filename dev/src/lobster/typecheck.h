@@ -4258,11 +4258,8 @@ Node *Assert::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
 }
 
 Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-    if (!children.empty() && children[0]->exptype->t == V_UNDEFINED) {
-        // The string conversion a string interpolation starts with, which the parser makes
-        // directly rather than thru a GenericCall.
-        tc.TypeCheckList(this, LT_ANY);
-    }
+    // The arguments were typechecked by the GenericCall this came from.
+    assert(children.empty() || children[0]->exptype->t != V_UNDEFINED);
     if (nf->first->overloads) {
         // Multiple overloads available, figure out which we want to call.
         auto cnf = nf->first;
