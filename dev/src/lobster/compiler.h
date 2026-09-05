@@ -58,18 +58,22 @@ extern void Compile(NativeRegistry &natreg, string_view fn, string_view stringso
                     const CompileOptions &opts, string &metadata_buffer, string &c_codegen,
                     string *parsedump = nullptr, string *pakfile = nullptr);
 
-extern pair<string, iint> RunJIT(NativeRegistry &nfr,
-                          string_view metadata_buffer,
-                          string_view fn,
-                          const char *object_name /* save instead of run if non-null */,
-                          vector<string> &&program_args,
-                          bool compile_only,
-                          string &error,
-                          int runtime_checks,
-                          bool dump_leaks,
-                          bool stack_trace_python_ordering,
-                          const string &c_codegen,
-                          const JitOptions &jit_options);
+// How to run what the JIT compiled; main.cpp sets these from its command line.
+struct RunOptions {
+    // Save the object file under this name rather than running the code, see --tcc-out.
+    const char *object_name = nullptr;
+    bool compile_only = false;
+    bool dump_leaks = true;
+    bool stack_trace_python_ordering = false;
+};
+
+// Compiles the generated C with the JIT and runs it, under the runtime checks and JIT settings
+// the code was compiled with. Returns what the program returned as a string, and its exit
+// code.
+extern pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metadata_buffer,
+                                 const string &c_codegen, vector<string> &&program_args,
+                                 const CompileOptions &copts, const RunOptions &ropts,
+                                 string &error);
 
 extern bool LoadPakDir(const char *lpak, uint64_t &src_hash_dest);
 extern bool LoadMetaDataAndCode(string &metadata, string &c_codegen);

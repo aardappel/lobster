@@ -74,11 +74,7 @@ int main(int argc, char* argv[]) {
         bool dump_builtins_ng = false;
         bool dump_builtins = false;
         bool dump_names = false;
-        bool tcc_out = false;
         bool c_out = false;
-        bool compile_only = false;
-        bool non_interactive_test = false;
-        bool stack_trace_python_ordering = false;
         const char *default_lpak = "default.lpak";
         const char *lpak = nullptr;
         string fn;
@@ -86,6 +82,7 @@ int main(int argc, char* argv[]) {
         vector<string> program_args;
         vector<string> imports;
         CompileOptions opts;
+        RunOptions ropts;
         Query query;
         string helptext = "Usage:\n"
             "lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]\n"
@@ -143,19 +140,23 @@ int main(int argc, char* argv[]) {
                 else if (a == "--runtime-debug-dump") { opts.runtime_checks = RUNTIME_DEBUG_DUMP; }
                 else if (a == "--runtime-debugger") { opts.runtime_checks = RUNTIME_DEBUGGER; }
                 else if (a == "--runtime-debugger-dump") { opts.runtime_checks = RUNTIME_DEBUGGER_DUMP; }
-                else if (a == "--invert-stacktraces") { stack_trace_python_ordering = true; }
+                else if (a == "--invert-stacktraces") { ropts.stack_trace_python_ordering = true; }
                 else if (a == "--noconsole") { SetConsole(false); }
                 else if (a == "--gen-builtins-json") { dump_builtins_json = true; }
                 else if (a == "--gen-builtins-html-ng") { dump_builtins_ng = true; }
                 else if (a == "--gen-builtins-html") { dump_builtins = true; }
                 else if (a == "--gen-builtins-names") { dump_names = true; }
-                else if (a == "--compile-only") { compile_only = true; }
+                else if (a == "--compile-only") { ropts.compile_only = true; }
                 else if (a == "--full-error") { opts.full_error = true; }
                 #if LOBSTER_ENGINE
-                else if (a == "--non-interactive-test") { non_interactive_test = true; SDLTestMode(); }
+                else if (a == "--non-interactive-test") {
+                    // Quits after a frame, with whatever that left alive.
+                    ropts.dump_leaks = false;
+                    SDLTestMode();
+                }
                 else if (a == "--background") { SDLStartInBackground(); }
                 #endif
-                else if (a == "--tcc-out") { tcc_out = true; }
+                else if (a == "--tcc-out") { ropts.object_name = "tcc_out.o"; }
                 else if (a == "--mir") {
                     opts.jit_options.mir = true;
                     // The optimization level is optional, so only take the next argument if it
@@ -293,18 +294,8 @@ int main(int argc, char* argv[]) {
         }
         if (opts.jit_mode) {
             string error;
-            auto ret = RunJIT(nfr,
-                              metadata_buffer,
-                              !fn.empty() ? fn : "",
-                              tcc_out ? "tcc_out.o" : nullptr,
-                              std::move(program_args),
-                              compile_only,
-                              error,
-                              opts.runtime_checks,
-                              !non_interactive_test,
-                              stack_trace_python_ordering,
-                              c_codegen,
-                              opts.jit_options);
+            auto ret = RunJIT(nfr, fn, metadata_buffer, c_codegen, std::move(program_args), opts,
+                              ropts, error);
             if (!error.empty())
                 THROW_OR_ABORT(error);
             return (int)ret.second;

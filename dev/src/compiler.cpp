@@ -587,24 +587,23 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
     }
 }
 
-pair<string, iint> RunJIT(NativeRegistry &nfr, string_view metadata_buffer, string_view fn,
-                          const char *object_name, vector<string> &&program_args,
-                          bool compile_only, string &error, int runtime_checks, bool dump_leaks,
-                          bool stack_trace_python_ordering, const string &c_codegen,
-                          const JitOptions &jit_options) {
+pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metadata_buffer,
+                          const string &c_codegen, vector<string> &&program_args,
+                          const CompileOptions &copts, const RunOptions &ropts, string &error) {
     #if VM_JIT_MODE
         const char *export_names[] = { "compiled_entry_point", "vtables", "object_decs",
                                        nullptr };
         assert(!nfr.jit_imports.empty());
+        auto &jit_options = copts.jit_options;
         auto start_time = SecondsSinceStart();
         pair<string, iint> ret;
         auto ok = RunC(
-            c_codegen.c_str(), object_name, error, nfr.jit_imports.data(), export_names,
+            c_codegen.c_str(), ropts.object_name, error, nfr.jit_imports.data(), export_names,
             jit_options,
             [&](void **exports) -> bool {
                 LOG_INFO("time to ", jit_options.mir ? "mir" : "tcc",
                          " (seconds): ", SecondsSinceStart() - start_time);
-                if (compile_only) return true;
+                if (ropts.compile_only) return true;
                 // Verify the bytecode.
                 flatbuffers::Verifier verifier((uint8_t *)metadata_buffer.data(), metadata_buffer.size());
                 auto ok = metadata::VerifyMetadataFileBuffer(verifier);
@@ -697,8 +696,8 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view metadata_buffer, stri
                     nfr, string(fn), &vmmeta,
                     std::move(program_args),
                     (fun_base_t *)exports[1], (object_dec_t *)exports[2],
-                    (fun_base_t)exports[0], dump_leaks,
-                    runtime_checks, stack_trace_python_ordering, jit_options
+                    (fun_base_t)exports[0], ropts.dump_leaks,
+                    copts.runtime_checks, ropts.stack_trace_python_ordering, jit_options
                 };
                 lobster::VMAllocator vma(std::move(vmargs));
                 vma.vm->EvalProgram();
@@ -717,17 +716,13 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view metadata_buffer, stri
         }
         return ret;
     #else
-        (void)fn;
-        (void)object_name;
-        (void)program_args;
-        (void)compile_only;
-        (void)dump_leaks;
-        (void)stack_trace_python_ordering;
-        (void)c_codegen;
-        (void)runtime_checks;
-        (void)metadata_buffer;
         (void)nfr;
-        (void)jit_options;
+        (void)fn;
+        (void)metadata_buffer;
+        (void)c_codegen;
+        (void)program_args;
+        (void)copts;
+        (void)ropts;
         error = "cannot JIT code: JIT backend not enabled";
         return { "", 0 };
     #endif
@@ -749,9 +744,8 @@ LString *CompileRun(VM &parent_vm, LString **result, Value source, bool stringis
         Compile(parent_vm.vma.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
                 opts, metadata_buffer, c_codegen);
         string error;
-        auto ret = RunJIT(parent_vm.vma.nfr, metadata_buffer, fn, nullptr, std::move(args),
-                          false, error, opts.runtime_checks, true, false, c_codegen,
-                          opts.jit_options);
+        auto ret = RunJIT(parent_vm.vma.nfr, fn, metadata_buffer, c_codegen, std::move(args), opts,
+                          RunOptions(), error);
         if (!error.empty()) THROW_OR_ABORT(error);
         *result = parent_vm.NewString(ret.first);
         return nullptr;
