@@ -1020,9 +1020,9 @@ struct SymbolTable {
     }
 
     void Unregister(const Function *f) {
-        auto &v = functions[f->name];
-        if (!v.empty() && v.back() == f) {
-            v.pop_back();
+        auto it = functions.find(f->name);
+        if (it != functions.end() && !it->second.empty() && it->second.back() == f) {
+            it->second.pop_back();
         }
     }
 
@@ -1235,19 +1235,18 @@ struct SymbolTable {
         }
     }
 
+    // The function of this name in the innermost scope that has one.
     Function *GetFirstFunction(const string &name) {
-        auto &v = functions[name];
-        return v.empty() ? nullptr : v.back();
+        auto it = functions.find(name);
+        return it == functions.end() || it->second.empty() ? nullptr : it->second.back();
     }
 
     Function *FindFunction(string_view name) {
         if (MaybeNameSpace(name)) {
-            auto &v = functions[NameSpaced(name)];
-            if (!v.empty()) return v.back();
+            auto f = GetFirstFunction(NameSpaced(name));
+            if (f) return f;
         }
-        auto &v = functions[string(name)];
-        if (!v.empty()) return v.back();
-        return nullptr;
+        return GetFirstFunction(string(name));
     }
 
     SpecIdent *NewSid(Ident *id, SubFunction *sf, bool withtype, TypeRef type = nullptr) {

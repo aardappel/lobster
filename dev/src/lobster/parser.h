@@ -589,20 +589,11 @@ struct Parser {
             auto [gsup, ssup] = ParseSup(is_struct);
             auto udt = st.MakeSpecialization(*gsup, sname, true, true);
             Expect(T_LT);
-            lex.allow_shift_right = false;
-            size_t j = 0;
-            for (;;) {
-                if (j == gsup->generics.size()) Error("too many type specializers");
+            ParseSpecializerList([&]() {
+                if (udt->bound_generics.size() == gsup->generics.size())
+                    Error("too many type specializers");
                 udt->bound_generics.push_back(ParseType<TypeRef>(false, nullptr, false));
-                j++;
-                if (lex.token == T_GT) {
-                    lex.allow_shift_right = true;
-                    lex.OverrideCont(false);  // T_GT here should not continue the line.
-                    lex.Next();
-                    break;
-                }
-                Expect(T_COMMA);
-            }
+            });
             if (isprivate != gsup->isprivate) Error("specialization must have same privacy level");
             if (gsup->predeclaration) Error("must specialize fully defined type");
             if (is_abstract) Error("specialization cannot be abstract");
@@ -656,26 +647,16 @@ struct Parser {
                     st.bound_typevars_stack.pop_back();
                 } else {
                     gudt->gsuperclass = { st.NewSpecUDT(gsup) };
+                    auto &specializers = gudt->gsuperclass->spec_udt->specializers;
                     if (IsNext(T_LT)) {
-                        lex.allow_shift_right = false;
-                        size_t j = 0;
-                        for (;;) {
-                            if (j == gsup->generics.size()) Error("too many type specializers");
-                            gudt->gsuperclass->spec_udt->specializers.push_back(
-                                &*ParseType(false));
-                            j++;
-                            if (lex.token == T_GT) {
-                                lex.allow_shift_right = true;
-                                lex.OverrideCont(false);  // T_GT here should not continue the line.
-                                lex.Next();
-                                break;
-                            }
-                            Expect(T_COMMA);
-                        }
+                        ParseSpecializerList([&]() {
+                            if (specializers.size() == gsup->generics.size())
+                                Error("too many type specializers");
+                            specializers.push_back(&*ParseType(false));
+                        });
                     }
                     st.bound_typevars_stack.pop_back();
-                    if (gudt->gsuperclass->spec_udt->specializers.size() <
-                        gsup->generics.size())
+                    if (specializers.size() < gsup->generics.size())
                         Error("too few type specializers");
                 }
             }
@@ -1013,6 +994,22 @@ struct Parser {
         return new FunRef(line, sf);
     }
 
+    // The type specializers between < and >, `f` parsing each. The > is an operator to the
+    // lexer, which would take a line break after it as continuing the line.
+    template<typename F> void ParseSpecializerList(F f) {
+        lex.allow_shift_right = false;
+        for (;;) {
+            f();
+            if (lex.token == T_GT) {
+                lex.allow_shift_right = true;
+                lex.OverrideCont(false);
+                lex.Next();
+                break;
+            }
+            Expect(T_COMMA);
+        }
+    }
+
     UnTypeRef ParseTypes(SubFunction *sfreturntype, Lifetime lt) {
         auto dest = ParseType(false, sfreturntype);
         if (!IsNext(T_COMMA)) return dest;
@@ -1100,21 +1097,11 @@ struct Parser {
                             Error("no ad-hoc specialization allowed in concrete type (use a "
                                     "named specialization)");
                         }
-                        lex.allow_shift_right = false;
                         dest = (const Type *)st.NewSpecUDT(gudt).get();
-                        for (;;) {
-                            auto s = ParseType<T>(false, nullptr, allow_unresolved);
-                            dest->spec_udt->specializers.push_back(&*s);
-                            if (lex.token == T_GT) {
-                                lex.allow_shift_right = true;
-                                // This may be the end of the line, so make sure Lex doesn't see
-                                // it as a GT op.
-                                lex.OverrideCont(false);
-                                lex.Next();
-                                break;
-                            }
-                            Expect(T_COMMA);
-                        }
+                        ParseSpecializerList([&]() {
+                            dest->spec_udt->specializers.push_back(
+                                &*ParseType<T>(false, nullptr, allow_unresolved));
+                        });
                     } else {
                         if (gudt->predeclaration) {
                             dest = (const Type *)st.NewSpecUDT(gudt).get();
@@ -1476,22 +1463,18 @@ struct Parser {
         // Note: <, because functions are inside their own scope.
         if (nf || (f && (!id || id->scopelevel < f->scopelevel))) {
             if (f && f->istype) Error("can\'t call function type ", Q(f->name));
-            auto call = new GenericCall(line, idname, st.current_namespace, dotarg != nullptr,
-                                        !parens_parsed, false, specializers);
-            call->children = list;
-            return call;
-        }
-        if (noparenscall) Error("call requires ()");
-        if (id) {
-            auto dc = new DynCall(lex, nullptr, id->cursid);
-            dc->children = list;
-            return dc;
         } else {
-            auto call = new GenericCall(line, idname, st.current_namespace, dotarg != nullptr,
-                                        !parens_parsed, false, specializers);
-            call->children = list;
-            return call;
+            if (noparenscall) Error("call requires ()");
+            if (id) {
+                auto dc = new DynCall(lex, nullptr, id->cursid);
+                dc->children = list;
+                return dc;
+            }
         }
+        auto call = new GenericCall(line, idname, st.current_namespace, dotarg != nullptr,
+                                    !parens_parsed, false, specializers);
+        call->children = list;
+        return call;
     }
 
     Node *ParseDeref() {
