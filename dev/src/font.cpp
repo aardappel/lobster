@@ -159,16 +159,16 @@ BUILTIN(text, "text", "S", "Sb",
     return s;
 }
 
-BUILTIN_V(text_size, "text", "S", "I}:2",
+BUILTIN(text_size, "text", "S", "I}:2",
     "the x/y size in pixels the given text would need")
-(StackPtr &sp, VM &vm, LString *text) {
+(VM &vm, LString *text) {
     auto f = curfont;
     if (!f) vm.BuiltinError("gl.text_size: no font / font size set");
     auto size = f->TextSize(text->strv());
     if (curfontsize > maxfontsize) {
         size = fceil<int>(float2(size) * float(curfontsize) / float(maxfontsize));
     }
-    PushVec(sp, size);
+    return ToVec<iint2>(size);
 }
 
 BUILTIN(get_glyph_name, "i", "I", "S",

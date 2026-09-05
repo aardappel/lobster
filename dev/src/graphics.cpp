@@ -427,49 +427,49 @@ BUILTIN(dpi, "screen", "I", "I",
     return SDLScreenDPI((int)screen);
 }
 
-BUILTIN_V_OVERLOAD(window_size_get, "window_size", "", "", "I}:2",
+BUILTIN_OVERLOAD(window_size_get, "window_size", "", "", "I}:2",
     "a vector representing the size (in pixels) of the window, changes when the user resizes")
-(StackPtr &sp, VM &) {
-    PushVec(sp, GetScreenSize());
+(VM &) {
+    return ToVec<iint2>(GetScreenSize());
 }
 
-BUILTIN_V(mouse_pos, "i", "I", "I}:2",
+BUILTIN(mouse_pos, "i", "I", "I}:2",
     "the current mouse/finger position in pixels, pass a value other than 0 to read additional"
     " fingers (for touch screens only if the corresponding gl.isdown is true)")
-(StackPtr &sp, VM &, iint i) {
-    PushVec(sp, GetFinger((int)i, false));
+(VM &, iint i) {
+    return ToVec<iint2>(GetFinger((int)i, false));
 }
 
-BUILTIN_V(mouse_delta, "i", "I", "I}:2",
+BUILTIN(mouse_delta, "i", "I", "I}:2",
     "number of pixels the mouse/finger has moved since the last frame. use this instead of"
     " substracting positions to correctly deal with lifted fingers and FPS mode"
     " (gl.cursor(0))")
-(StackPtr &sp, VM &, iint i) {
-    PushVec(sp, GetFinger((int)i, true));
+(VM &, iint i) {
+    return ToVec<iint2>(GetFinger((int)i, true));
 }
 
-BUILTIN_V(local_mouse_pos, "i", "I", "F}:2",
+BUILTIN(local_mouse_pos, "i", "I", "F}:2",
     "the current mouse/finger position local to the current transform (gl.translate etc)"
     " (for touch screens only if the corresponding gl.isdown is true)")
-(StackPtr &sp, VM &, iint i) {
-    PushVec(sp, localfingerpos((int)i));
+(VM &, iint i) {
+    return ToVec<double2>(localfingerpos((int)i));
 }
 
-BUILTIN_V(last_pos, "name,down", "SI", "I}:2",
+BUILTIN(last_pos, "name,down", "SI", "I}:2",
     "position (in pixels) key/mousebutton/finger last went down (true) or up (false)")
-(StackPtr &sp, VM &, LString *name, iint down) {
+(VM &, LString *name, iint down) {
     auto on = (int)down;
     auto p = GetKeyPos(name->strv(), on);
-    PushVec(sp, p);
+    return ToVec<iint2>(p);
 }
 
-BUILTIN_V(local_last_pos, "name,down", "SI", "F}:2",
+BUILTIN(local_last_pos, "name,down", "SI", "F}:2",
     "position (local to the current transform) key/mousebutton/finger last went down (true) or"
     " up (false)")
-(StackPtr &sp, VM &, LString *name, iint down) {
+(VM &, LString *name, iint down) {
     auto on = (int)down;
     auto p = localpos(GetKeyPos(name->strv(), on));
-    PushVec(sp, p);
+    return ToVec<double2>(p);
 }
 
 BUILTIN(mousewheel_delta, "", "", "I",
@@ -533,12 +533,12 @@ BUILTIN(clear, "col", "F}:4", "",
     ClearFrameBuffer(ToVec<float3>(col));
 }
 
-BUILTIN_V(color, "col", "F}:4", "F}:4",
+BUILTIN(color, "col", "F}:4", "F}:4",
     "sets the current color, returns previous one")
-(StackPtr &sp, VM &, double4 col) {
+(VM &, double4 col) {
     auto oldcolor = curcolor;
     curcolor = ToVec<float4>(col);
-    PushVec(sp, oldcolor);
+    return ToVec<double4>(oldcolor);
 }
 
 BUILTIN(polygon, "vertlist", "F}]", "",
@@ -650,20 +650,20 @@ BUILTIN_OVERLOAD(scale_float, "scale", "factor", "F", "",
 SCALEW(2) SCALEW(3)
 #undef SCALEW
 
-BUILTIN_V(origin, "", "", "F}:2",
+BUILTIN(origin, "", "", "F}:2",
     "returns a vector representing the current transform origin in pixels."
     " only makes sense in 2D mode (no gl.perspective called).")
-(StackPtr &sp, VM &) {
+(VM &) {
     auto pos = double2(otransforms.object2view()[3].x, otransforms.object2view()[3].y);
-    PushVec(sp, pos);
+    return pos;
 }
 
-BUILTIN_V(scaling, "", "", "F}:2",
+BUILTIN(scaling, "", "", "F}:2",
     "returns a vector representing the current transform scale in pixels."
     " only makes sense in 2D mode (no gl.perspective called).")
-(StackPtr &sp, VM &) {
+(VM &) {
     auto sc = double2(otransforms.object2view()[0].x, otransforms.object2view()[1].y);
-    PushVec(sp, sc);
+    return sc;
 }
 
 BUILTIN(model_view_projection, "", "", "F]",
@@ -1323,11 +1323,11 @@ BUILTIN(create_colored_texture, "size,color,textureformat", "I}:3F}:4I?", "R:tex
     return vm.NewResource(&texture_type, new OwnedTexture(tex));
 }
 
-BUILTIN_V(texture_size, "tex", "R:texture", "I}:2",
+BUILTIN(texture_size, "tex", "R:texture", "I}:2",
     "returns the size of a texture")
-(StackPtr &sp, VM &vm, LResource *v) {
+(VM &vm, LResource *v) {
     TestGL(vm);
-    PushVec(sp, GetTexture(v).size.xy());
+    return ToVec<iint2>(GetTexture(v).size.xy());
 }
 
 BUILTIN(read_texture, "tex", "R:texture", "S?",
@@ -1369,11 +1369,11 @@ BUILTIN(switch_to_framebuffer, "tex,hasdepth,multisampleformat,resolvetex,deptht
                                      GetTexture(depthtex));
 }
 
-BUILTIN_V(framebuffer_size, "", "", "I}:2",
+BUILTIN(framebuffer_size, "", "", "I}:2",
     "a vector representing the size (in pixels) of the framebuffer, according to the last call"
     " to gl.switch_to_framebuffer, or same as gl.window_size otherwise")
-(StackPtr &sp, VM &) {
-    PushVec(sp, GetFrameBufferSize(GetScreenSize()));
+(VM &) {
+    return ToVec<iint2>(GetFrameBufferSize(GetScreenSize()));
 }
 
 BUILTIN(light, "pos,params", "F}:3F}:2", "",

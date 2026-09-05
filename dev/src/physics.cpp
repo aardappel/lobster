@@ -257,10 +257,10 @@ BUILTIN(set_texture, "id,tex,texunit", "R:fixture?R:textureI?", "",
     r.Get(GetSampler(vm, tex_unit)) = GetTexture(tex);
 }
 
-BUILTIN_V(get_position, "id", "R:fixture", "F}:2",
+BUILTIN(get_position, "id", "R:fixture", "F}:2",
     "gets a shape's position.")
-(StackPtr &sp, VM &, LResource *id) {
-    PushVec(sp, GetObject(id).Pos());
+(VM &, LResource *id) {
+    return ToVec<double2>(GetObject(id).Pos());
 }
 
 BUILTIN(get_mass, "id", "R:fixture", "F",
@@ -378,14 +378,14 @@ BUILTIN(delete_particle, "i", "I", "",
     particlesystem->DestroyParticle(idx);
 }
 
-BUILTIN_V(getparticle_position, "i", "I", "F}:2",
+BUILTIN(getparticle_position, "i", "I", "F}:2",
     "gets a particle's position, or 0 if there is no such particle.")
-(StackPtr &sp, VM &, iint idx) {
+(VM &, iint idx) {
     CheckPhysics();
     auto pos = float2_0;
     if (particlesystem && idx >= 0 && idx < particlesystem->GetParticleCount())
         pos = B2ToFloat2(particlesystem->GetPositionBuffer()[idx]);
-    PushVec(sp, pos);
+    return ToVec<double2>(pos);
 }
 
 BUILTIN(render, "", "", "",

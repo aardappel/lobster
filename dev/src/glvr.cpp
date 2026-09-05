@@ -370,21 +370,21 @@ BUILTIN(motion_controller_button, "n,button", "IS", "I",
     #endif
 }
 
-BUILTIN_V(motion_controller_vec, "n,i", "II", "F}:3",
+BUILTIN(motion_controller_vec, "n,i", "II", "F}:3",
     "returns one of the vectors for motion controller n. 0 = left, 1 = up, 2 = fwd, 4 = pos."
     " These are in Y up space.")
-(StackPtr &sp, VM &vm, iint n, iint idx) {
+(VM &vm, iint n, iint idx) {
     auto mcd = GetMC(n);
-    if (!mcd) { PushVec(sp, float3_0); return; }
+    if (!mcd) return ToVec<double3>(float3_0);
     auto i = RangeCheck(vm, idx, 4);
-    PushVec(sp, mcd->mat[i].xyz());
+    return ToVec<double3>(mcd->mat[i].xyz());
 }
 
-BUILTIN_V(hmd_vec, "i", "I", "F}:3",
+BUILTIN(hmd_vec, "i", "I", "F}:3",
     "returns one of the vectors for hmd pose. 0 = left, 1 = up, 2 = fwd, 4 = pos."
     " These are in Y up space.")
-(StackPtr &sp, VM &vm, iint i_) {
+(VM &vm, iint i_) {
     auto i = RangeCheck(vm, i_, 4);
-    PushVec(sp, hmdpose[i].xyz());
+    return ToVec<double3>(hmdpose[i].xyz());
 }
 

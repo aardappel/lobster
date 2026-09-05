@@ -1377,11 +1377,11 @@ BUILTIN_V(get_modifiers, "", "", "BBB",
     Push(sp, ImGui::GetIO().KeyAlt);
 }
 
-BUILTIN_V(get_layout_pos, "", "", "F}:2", "")
-(StackPtr &sp, VM &vm) {
+BUILTIN(get_layout_pos, "", "", "F}:2", "")
+(VM &vm) {
     IsInit(vm);
     auto pos = ImGui::GetCursorPos();
-    PushVec(sp, float2(pos.x, pos.y));
+    return double2(pos.x, pos.y);
 }
 
 BUILTIN(set_layout_pos, "pos", "F}:2", "", "")
@@ -1391,11 +1391,11 @@ BUILTIN(set_layout_pos, "pos", "F}:2", "", "")
     ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
 }
 
-BUILTIN_V(get_layout_screen_pos, "", "", "F}:2", "")
-(StackPtr &sp, VM &vm) {
+BUILTIN(get_layout_screen_pos, "", "", "F}:2", "")
+(VM &vm) {
     IsInit(vm);
     auto pos = ImGui::GetCursorScreenPos();
-    PushVec(sp, float2(pos.x, pos.y));
+    return double2(pos.x, pos.y);
 }
 
 BUILTIN(set_layout_screen_pos, "pos", "F}:2", "", "")
@@ -1405,21 +1405,21 @@ BUILTIN(set_layout_screen_pos, "pos", "F}:2", "", "")
     ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y));
 }
 
-BUILTIN_V(get_content_region_avail, "", "", "F}:2",
+BUILTIN(get_content_region_avail, "", "", "F}:2",
     "returns the amount of space left in the current region from the cursor pos")
-(StackPtr &sp, VM &vm) {
+(VM &vm) {
     IsInit(vm);
     auto avail = ImGui::GetContentRegionAvail();
-    PushVec(sp, float2(avail.x, avail.y));
+    return double2(avail.x, avail.y);
 }
 
-BUILTIN_V(calc_text_size, "text", "S", "F}:2",
+BUILTIN(calc_text_size, "text", "S", "F}:2",
     "returns the amount of space used by the given text in the current font")
-(StackPtr &sp, VM &vm, LString *text_) {
+(VM &vm, LString *text_) {
     IsInit(vm);
     auto &text = *text_;
     auto size = ImGui::CalcTextSize(text.strvnt().c_str());
-    PushVec(sp, float2(size.x, size.y));
+    return double2(size.x, size.y);
 }
 
 BUILTIN(calc_word_wrap_position, "text,width", "SF", "I",

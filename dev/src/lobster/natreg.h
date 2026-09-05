@@ -454,10 +454,13 @@ struct NativeFun : Named {
         }
         for (auto &ret : retvals) {
             ret.Set(rets, LT_KEEP, this);
-            // A struct takes more than one slot, which only the V kind has a way to return,
-            // and one the generated code writes out itself has no need of.
-            if (ret.vttype->t == V_STRUCT_NUM && !pushrets && codegen == BCG_NONE)
-                Error("struct types can only be returned by V builtins");
+        }
+        // A struct takes more than one slot, so one that is not the last return value has to
+        // be pushed, which only the V kind has a way to do. The last one is returned as the
+        // vector of its width, see BuiltinRet.
+        for (size_t i = 0; i + 1 < retvals.size(); i++) {
+            if (retvals[i].vttype->t == V_STRUCT_NUM && !pushrets)
+                Error("a struct can only be returned before other values by a V builtin");
         }
     }
 
@@ -490,6 +493,13 @@ struct NativeFun : Named {
     bool PushesValues() const { return pushrets || retvals.size() > 1; }
     // How many values a numeric struct argument has, which its type says.
     int ArgWidth(size_t i) const { return args[i].vttype->ns->flen; }
+    // The same for the value it returns, and how many slots that takes: a numeric struct
+    // comes back as the vector of its width, everything else as one value.
+    int RetWidth() const {
+        auto &r = retvals.back();
+        return r.vttype->t == V_STRUCT_NUM ? r.vttype->ns->flen : 0;
+    }
+    int RetSlots() const { return ReturnsValue() ? std::max(1, RetWidth()) : 0; }
     bool ArgIsVec(size_t i) const {
         auto k = ArgKind(i);
         return k == BAK_IVEC || k == BAK_FVEC || k == BAK_VALUEVEC;

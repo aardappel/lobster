@@ -845,10 +845,10 @@ VECTOROP1234(tan_fvec, "tan", "angle", "F", double, "F", double,
     "the tangents of the angles (in degrees)",
     tan(f * RAD_D))
 
-BUILTIN_V(sincos, "angle", "F", "F}:2",
+BUILTIN(sincos, "angle", "F", "F}:2",
     "the normalized vector indicated by angle (in degrees), same as float2 { cos(angle), sin(angle) }")
-(StackPtr &sp, VM &, double a) {
-    PushVec(sp, double2(cos(a * RAD_D), sin(a * RAD_D)));
+(VM &, double a) {
+    return double2(cos(a * RAD_D), sin(a * RAD_D));
 }
 
 BUILTIN(asin, "y", "F", "F",
@@ -894,12 +894,12 @@ VECMATH1234(magnitude_squared_ivec, "magnitude_squared", "v", "I", iint, "I",
 VECMATH1234(manhattan_i, "manhattan", "v", "I", iint, "I",
     "the manhattan distance of a vector", manhattan(v))
 
-BUILTIN_V(cross, "a,b", "F}:3F}:3", "F}:3",
+BUILTIN(cross, "a,b", "F}:3F}:3", "F}:3",
     "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)")
-(StackPtr &sp, VM &, double3 a_, double3 b_) {
+(VM &, double3 a_, double3 b_) {
     auto b = ToVec<double3>(b_);
     auto a = ToVec<double3>(a_);
-    PushVec(sp, cross(a, b));
+    return cross(a, b);
 }
 
 VECMATH1234(volume_fvec, "volume", "v", "F", double, "F",
@@ -1118,23 +1118,23 @@ BUILTIN_OVERLOAD(lerp_float, "lerp", "x,y,f", "FFF", "F",
 }
 
 #define LERPW(W) \
-    BUILTIN_V_OVERLOAD(lerp_fvec##W, "lerp", "a,b,f", "F}:" #W "F}:" #W "1F", "F}:" #W, \
+    BUILTIN_OVERLOAD(lerp_fvec##W, "lerp", "a,b,f", "F}:" #W "F}:" #W "1F", "F}:" #W, \
         "linearly interpolates between a and b vectors with factor f [0..1]") \
-    (StackPtr &sp, VM &, vec<double, W> a, vec<double, W> b, double f) { \
+    (VM &, vec<double, W> a, vec<double, W> b, double f) { \
         auto r = vec<double, W>(0.0); \
         for (int i = 0; i < W; i++) r.c[i] = mix(a.c[i], b.c[i], (float)f); \
-        PushVec(sp, r); \
+        return r; \
     }
 LERPW(2) LERPW(3) LERPW(4)
 #undef LERPW
 
-BUILTIN_V(spherical_lerp, "a,b,f", "F}:4F}:4F", "F}:4",
+BUILTIN(spherical_lerp, "a,b,f", "F}:4F}:4F", "F}:4",
     "spherically interpolates between a and b quaternions with factor f [0..1]")
-(StackPtr &sp, VM &, double4 a, double4 b, double f_) {
+(VM &, double4 a, double4 b, double f_) {
     auto f = (float)f_;
     auto y = ToVec<quat>(b);
     auto x = ToVec<quat>(a);
-    PushVec(sp, spherical_lerp(x, y, f));
+    return ToVec<double4>(spherical_lerp(x, y, f));
 }
 
 BUILTIN(smoothmin, "x,y,k", "FFF", "F",
@@ -1162,14 +1162,14 @@ BUILTIN(smootherstep, "x", "F", "F",
 }
 
 #define CARDINALSPLINEW(W) \
-    BUILTIN_V_OVERLOAD(cardinal_spline_f##W, "cardinal_spline", "z,a,b,c,f,tension", \
+    BUILTIN_OVERLOAD(cardinal_spline_f##W, "cardinal_spline", "z,a,b,c,f,tension", \
         "F}:" #W "F}:" #W "1F}:" #W "1F}:" #W "1FF", "F}:" #W, \
         "computes the position between a and b with factor f [0..1], using z (before a) and c" \
         " (after b) to form a cardinal spline (tension at 0.5 is a good default)") \
-    (StackPtr &sp, VM &, vec<double, W> z, vec<double, W> a, vec<double, W> b, \
+    (VM &, vec<double, W> z, vec<double, W> a, vec<double, W> b, \
      vec<double, W> c, double f, double t) { \
-        PushVec(sp, cardinal_spline(ToVec<double3>(z), ToVec<double3>(a), \
-                                    ToVec<double3>(b), ToVec<double3>(c), f, t), W); \
+        return ToVec<vec<double, W>>(cardinal_spline(ToVec<double3>(z), ToVec<double3>(a), \
+                                                     ToVec<double3>(b), ToVec<double3>(c), f, t)); \
     }
 CARDINALSPLINEW(2) CARDINALSPLINEW(3)
 #undef CARDINALSPLINEW

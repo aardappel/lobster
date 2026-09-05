@@ -297,10 +297,10 @@ BUILTIN(init, "size", "I}:3", "R:voxels",
     return NewVoxelResource(vm, *v);
 }
 
-BUILTIN_V(size, "block", "R:voxels", "I}:3",
+BUILTIN(size, "block", "R:voxels", "I}:3",
     "returns the current block size")
-(StackPtr &sp, VM &, LResource *block) {
-    PushVec(sp, GetVoxels(block).grid.dim);
+(VM &, LResource *block) {
+    return ToVec<iint3>(GetVoxels(block).grid.dim);
 }
 
 BUILTIN(name, "block", "R:voxels", "S",
@@ -309,10 +309,10 @@ BUILTIN(name, "block", "R:voxels", "S",
     return vm.NewString(GetVoxels(block).name);
 }
 
-BUILTIN_V(offset, "block", "R:voxels", "I}:3",
+BUILTIN(offset, "block", "R:voxels", "I}:3",
     "returns the current block offset")
-(StackPtr &sp, VM &, LResource *block) {
-    PushVec(sp, GetVoxels(block).offset);
+(VM &, LResource *block) {
+    return ToVec<iint3>(GetVoxels(block).offset);
 }
 
 BUILTIN(set, "block,pos,size,paletteindex", "R:voxelsI}:3I}:3I", "",
@@ -382,11 +382,11 @@ BUILTIN(color_to_palette, "block,color", "R:voxelsF}:4", "I",
     return GetVoxels(res).Color2Palette(color);
 }
 
-BUILTIN_V(palette_to_color, "block,paletteindex", "R:voxelsI", "F}:4",
+BUILTIN(palette_to_color, "block,paletteindex", "R:voxelsI", "F}:4",
     "converts a palette index to a color. empty space (index 0) will have 0 alpha")
-(StackPtr &sp, VM &, LResource *res, iint paletteindex) {
+(VM &, LResource *res, iint paletteindex) {
     auto p = uint8_t(paletteindex);
-    PushVec(sp, color2vec(palettes[GetVoxels(res).palette_idx].colors[p]));
+    return ToVec<double4>(color2vec(palettes[GetVoxels(res).palette_idx].colors[p]));
 }
 
 BUILTIN(get_palette, "world", "R:voxels", "I", "")
@@ -435,12 +435,12 @@ BUILTIN(new_palette, "palette", "F}:4]", "I",
     return NewPalette(pal.data());
 }
 
-BUILTIN_V(get_palette_color, "palette_idx,entry", "II", "F}:4", "")
-(StackPtr &sp, VM &vm, iint palette_idx_, iint entry_) {
+BUILTIN(get_palette_color, "palette_idx,entry", "II", "F}:4", "")
+(VM &vm, iint palette_idx_, iint entry_) {
     auto entry = (uint8_t)(int)entry_;
     auto palette_idx = (size_t)palette_idx_;
     if (palette_idx >= palettes.size()) vm.BuiltinError("get_palette_color: out of range");
-    PushVec(sp, color2vec(palettes[palette_idx].colors[entry]));
+    return ToVec<double4>(color2vec(palettes[palette_idx].colors[entry]));
 }
 
 BUILTIN(sample_down, "scale,world,alpha_threshold", "IR:voxelsF", "R:voxels", "")

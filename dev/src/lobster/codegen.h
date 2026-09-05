@@ -99,7 +99,6 @@ struct CodeGen  {
     // Whether the function calls any builtin, which takes a stack pointer to hand it, one whose
     // result lands in a Value first, and one that gets the profiler hooks, see EmitNativeCall.
     bool f_uses_sp = false;
-    bool f_uses_nret = false;
     bool f_uses_pctx = false;
     int regso = 0;
     int f_function_idx = -1;
@@ -596,7 +595,7 @@ struct CodeGen  {
             if (cpp) {
                 append(decls, "extern \"C\" ", rt, sep, nf->symbol, "(", sp, "VMRef");
             } else if (SretValues(nf)) {
-                append(decls, "void ", nf->symbol, "(Value *, ", sp, "VMRef");
+                append(decls, "void ", nf->symbol, "(", rt, " *, ", sp, "VMRef");
             } else {
                 append(decls, rt, sep, nf->symbol, "(", sp, "VMRef");
             }
@@ -834,17 +833,16 @@ struct CodeGen  {
             // The fields are named rather than an array, since a C compiler may pass a struct
             // holding an array differently from one holding the same fields by name, and the
             // C++ side is the latter, see the vec union in geom.h.
-            static const char *fields[] = { "x", "y", "z", "w" };
             for (auto isint : { true, false }) {
                 for (auto w = 1; w <= 4; w++) {
                     auto elem = isint ? "long long" : "double";
                     auto name = cat(isint ? "ivec" : "fvec", w);
                     append(sd, "typedef struct { ", elem);
-                    for (auto i = 0; i < w; i++) append(sd, i ? ", " : " ", fields[i]);
+                    for (auto i = 0; i < w; i++) append(sd, i ? ", " : " ", VecField(i));
                     append(sd, "; } ", name, ";\nstatic ", name, " mk", name, "(");
                     for (auto i = 0; i < w; i++) append(sd, i ? ", " : "", elem, " a", i);
                     append(sd, ") { ", name, " r;");
-                    for (auto i = 0; i < w; i++) append(sd, " r.", fields[i], " = a", i, ";");
+                    for (auto i = 0; i < w; i++) append(sd, " r.", VecField(i), " = a", i, ";");
                     sd += " return r; }\n";
                 }
             }
@@ -1405,7 +1403,7 @@ struct CodeGen  {
             "span", "uint64_t", "int64_t", "memcpy", "memmove", "GLFrame", "Entry", "IDXErr",
             "IDXErrS", "BackupVar", "DecOwned", "DecDelete", "AssertFailed",
             "RestoreBackup", "GetTypeSwitchID", "PushFunId", "PopFunId", "StartProfile",
-            "EndProfile", "STRING_DATA", "sp", "nret", "pctx",
+            "EndProfile", "STRING_DATA", "sp", "pctx",
         };
         if (reserved.count(name)) return true;
         if (name[0] == '_' || name.substr(0, 2) == "Rt" || name.substr(0, 8) == "builtin_")
@@ -1463,7 +1461,7 @@ struct CodeGen  {
     Place Slot(int off, TypeRef type, int i = 0) {
         return SlotVar(regso - off, RtTypeOf(SlotType(type, i)));
     }
-    // The stack as memory, for the helpers that take a pointer to it, see GenStackCall.
+    // The stack as memory, for the helpers that take a pointer to it, see StageRange.
     string StackArray() { return "vals"; }
     Place StackSlot(int k, RTType rtt) { return Mem(cat(StackArray(), "[", k, "]"), rtt); }
     // A local variable, a global, and the temporaries a function keeps references alive in. The
@@ -1522,24 +1520,6 @@ struct CodeGen  {
         f_uses_vals = true;
         CopyValue(cb, m, p);
         return m.s;
-    }
-
-    // A call to a helper that works on the stack: it takes the values of `ins` off the top and
-    // leaves those of `outs` behind. Since the slots are variables, the operands are copied into
-    // the array kept for this purpose and the results back out of it around the call, which
-    // `call` renders given the pointer into that array to hand the helper.
-    template<typename F> void GenStackCall(const Types &ins, const Types &outs, F call,
-                                           string_view cmt = {}) {
-        auto uses = (int)ins.size();
-        auto defs = (int)outs.size();
-        TrackUseDef(uses, defs);
-        auto base = regso - uses;
-        StageRange(base, ins);
-        append(cb, "    ", call(string_view(cat(StackArray(), " + ", regso))), ";");
-        if (cmt.empty()) cb += "\n"; else comment(cmt);
-        for (int i = 0; i < defs; i++) {
-            CopyValue(cb, SlotVar(base + i, outs[i]), StackSlot(base + i, outs[i]));
-        }
     }
 
     int Label() { return nlabel++; }
@@ -2024,7 +2004,11 @@ struct CodeGen  {
     // builtins that return an untyped Value are returned indirectly at all.
     bool SretValues(NativeFun *nf) {
         #ifdef _MSC_VER
-            return !cpp && nf->ReturnsValue() && nf->RetKind() == BAK_VALUE;
+            // A numeric struct fails MSVC's rules for a return in a register on its base class
+            // alone, and an untyped Value on its private members, so both come back thru a
+            // pointer the caller passes first.
+            return !cpp && nf->ReturnsValue() &&
+                   (nf->RetKind() == BAK_VALUE || nf->RetWidth());
         #else
             (void)nf;
             return false;
@@ -2064,7 +2048,7 @@ struct CodeGen  {
 
     // The type a builtin returns, which is that of its last return value, see BuiltinRet.
     string NativeRetCType(NativeFun *nf) {
-        return nf->ReturnsValue() ? NativeArgCType(nf->RetKind(), 0) : "void";
+        return nf->ReturnsValue() ? NativeArgCType(nf->RetKind(), nf->RetWidth()) : "void";
     }
 
     // A typed expression as a value of another kind, which between two kinds of reference is
@@ -2084,6 +2068,13 @@ struct CodeGen  {
             case BAK_VECTOR: return VK_VECTOR;
             default:         return VK_REF;
         }
+    }
+
+    // The name of element `i` of a vector, which both the C mirror and the C++ vec give its
+    // fields rather than an array, see Prologue.
+    static const char *VecField(int i) {
+        static const char *fields[] = { "x", "y", "z", "w" };
+        return fields[i];
     }
 
     // The arguments of a call to a builtin, whose values start at slot `base`. Each is the
@@ -2234,29 +2225,39 @@ struct CodeGen  {
         auto base = regso - uses;
         auto argstr = NativeArgList(base, nf, args, nargs);
         // The values the builtin does not return it pushes, which it needs a stack pointer to.
-        auto pushed = nf->ReturnsValue() ? defs - 1 : defs;
+        // What it does return is a numeric struct when it takes more than one slot.
+        auto retslots = nf->RetSlots();
+        auto pushed = defs - retslots;
         if (pushed) {
             f_uses_vals = true;
             append(cb, "    sp = ", StackArray(), " + ", base, ";\n");
         }
-        auto call = cat(nf->symbol, "(", sret ? "&nret, " : "", spref, "vm", argstr, ")");
-        if (!nf->ReturnsValue()) {
+        auto call = cat(nf->symbol, "(", sret ? "&_nr, " : "", spref, "vm", argstr, ")");
+        if (!retslots) {
             append(cb, "    ", call, ";");
             comment(nf->name);
+        } else if (retslots > 1 || sret) {
+            // A value that does not go straight into its slot lands in a temporary of the type
+            // it comes back as first: a numeric struct, which is read a field at a time into
+            // the slots its values live in, or one the host compiler returns thru a pointer.
+            append(cb, "    {");
+            comment(nf->name);
+            auto ct = NativeRetCType(nf);
+            if (sret) append(cb, "    ", ct, " _nr;\n    ", call, ";\n");
+            else append(cb, "    ", ct, " _nr = ", call, ";\n");
+            for (int i = 0; i < retslots; i++) {
+                auto d = SlotVar(base + pushed + i, rets[pushed + i]);
+                if (retslots > 1) Write(cb, d, cat("_nr.", VecField(i)));
+                else SetValue(cb, d, "_nr");
+            }
+            cb += "    }\n";
         } else {
             // The value it returns lands in the last of the slots the call leaves behind.
-            auto ret = SlotVar(base + defs - 1, rets.back());
-            if (sret) {
-                f_uses_nret = true;
-                append(cb, "    ", call, ";");
-                comment(nf->name);
-                SetValue(cb, ret, "nret");
-            } else {
-                auto e = nf->RetKind() == BAK_VALUE ? Unbox(call, ret.k())
-                                                    : CastAs(call, NativeRetKind(nf), ret.k());
-                Write(cb, ret, e, "");
-                comment(nf->name);
-            }
+            auto ret = SlotVar(base + pushed, rets[pushed]);
+            auto e = nf->RetKind() == BAK_VALUE ? Unbox(call, ret.k())
+                                               : CastAs(call, NativeRetKind(nf), ret.k());
+            Write(cb, ret, e, "");
+            comment(nf->name);
         }
         // What it did push comes back out into the slots those values live in.
         for (int i = 0; i < pushed; i++) {
@@ -2634,7 +2635,6 @@ struct CodeGen  {
             append(sd, "    Value vals[", std::max({ 1, f_regs_max, f_vals_max }), "];\n");
         }
         if (f_uses_sp) sd += "    StackPtr sp;\n";
-        if (f_uses_nret) sd += "    Value nret;\n";
         if (f_uses_pctx) append(sd, "    ", cpp ? "" : "struct ", "___tracy_c_zone_context pctx;\n");
         GenPlaceDecls(sd, keeps);
         GenPlaceDecls(sd, locals);
@@ -2718,7 +2718,6 @@ struct CodeGen  {
         f_uses_vals = false;
         f_vals_max = 0;
         f_uses_sp = false;
-        f_uses_nret = false;
         f_uses_pctx = false;
         f_uses_lval = false;
         f_uses_lobj = false;
