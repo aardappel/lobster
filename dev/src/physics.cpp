@@ -336,7 +336,7 @@ BUILTIN(particle_contacts, "id", "R:fixture", "I]",
     if (!po.particle_contacts) po.particle_contacts = new vector<int>();
     auto numelems = (int)po.particle_contacts->size();
     auto v = vm.NewVec(numelems, numelems, TYPE_ELEM_VECTOR_OF_INT);
-    for (int i = 0; i < numelems; i++) v->AtSR(i) = Value((*po.particle_contacts)[i]);
+    for (int i = 0; i < numelems; i++) v->SetAtS(i, Value((*po.particle_contacts)[i]));
     return v;
 }
 

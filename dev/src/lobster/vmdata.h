@@ -614,69 +614,12 @@ struct Value {
 };
 
 
-template<typename T> T get_T(Value) {
-    assert(false);
-    return 0;
-}
-template<> inline iint get_T<iint>(Value a) {
-    return a.ival();
-}
-template<> inline double get_T<double>(Value a) {
-    return a.fval();
-}
-
-// This enables access of an array of Value equally in Debug or Release, which works well
-// for short vectors. We can't just cast to T * because in debug there's a type field.
-template<typename T> struct ValueVec {
-    Value *vals;
-    iint len;
-
-    ValueVec() : vals(nullptr), len(0) {}
-    ValueVec(Value *_c, iint _l) : vals(_c), len(_l) {}
-
-    uint64_t Hash(VM &vm, RTType vt) {
-        auto hash = SplitMix64Hash((uint64_t)len);
-        for (iint i = 0; i < len; i++) {
-            hash = hash * 31 + vals[i].Hash(vm, vt);
-        }
-        return hash;
-    }
-};
-
-// Like ValueVec, but optimizes for speed in Release mode (no copy).
+// A run of slots that hold one numeric type, read and written in place as the array of that
+// type it is, which is what the elements of a vector of one are, see LVector::ElemSlots.
 template<typename T, int N> struct InlineVec {
     T *vals;
-    #ifndef NDEBUG
-        T valstore[N];
-    #endif
 
-    // initialized should be false for a result vector where data will be overwritten anyway.
-    InlineVec(const Value *v, bool initialized = true) {
-        #ifdef NDEBUG
-            // In Release mode we may assume this is a contiguous set of T's.
-            vals = (T *)v;  // FIXME: strict aliasing?
-            (void)initialized;
-        #else
-            vals = &valstore[0];
-            if (initialized) {
-                // Sadly in debug there's type values in between, so we must copy.
-                for (int i = 0; i < N; i++) {
-                    valstore[i] = get_T<T>(v[i]);
-                }
-            }
-        #endif
-    }
-
-    void CopyBack(Value *v) {
-        #ifdef NDEBUG
-            // Don't need to do anything, since memory was aliased.
-            (void)v;
-        #else
-            for (int i = 0; i < N; i++) {
-                v[i] = valstore[i];
-            }
-        #endif
-    }
+    InlineVec(void *v) : vals((T *)v) {}
 };
 
 template<typename T> inline T *AllocSubBuf(VM &vm, iint size, type_elem_t tti);
@@ -702,6 +645,23 @@ VM_INLINE void StoreSlot(void *slots, iint i, Value v) {
 VM_INLINE const void *SubSlots(const void *slots, iint i) {
     return (const char *)slots + i * ssizeof<Value>();
 }
+
+// Slots read out into Values that go back where they came from, for whoever has to work on a
+// run of them as Values, which the storage they live in may not be, see LoadSlot.
+struct SlotCopy {
+    void *slots = nullptr;
+    vector<Value> vals;
+
+    Value *Of(void *s, iint n) {
+        slots = s;
+        for (iint i = 0; i < n; i++) vals.push_back(LoadSlot(s, i));
+        return vals.data();
+    }
+
+    ~SlotCopy() {
+        for (auto [i, v] : enumerate(vals)) StoreSlot(slots, (iint)i, v);
+    }
+};
 
 struct LObject : RefObj {
     LObject(type_elem_t _tti) : RefObj(_tti) {}
@@ -803,12 +763,12 @@ struct LVector : RefObj {
     void Push(VM &vm, Value val) {
         assert(width == 1);
         if (len == maxl) Resize(vm, maxl ? maxl * 2 : 4);
-        v[len++] = val;
+        StoreSlot(v, len++, val);
     }
 
     Value Pop() {
         assert(width == 1);
-        return v[--len];
+        return LoadSlot(v, --len);
     }
 
     // Closes the gap the element at `i` leaves behind, which whoever took it out owns now, so
@@ -830,35 +790,38 @@ struct LVector : RefObj {
     void Remove(VM &vm, iint i, iint n);
     void Truncate(VM &vm, iint n);
 
-    Value *Elems() { return v; }
-    const Value *Elems() const { return v; }
+    // The slots its elements live in, which the generated code holds as the types those
+    // elements are rather than as Values, see CodeGen::ElemName. That is why everything below
+    // reads and writes them a byte at a time, see LoadSlot.
+    void *ElemSlots() const { return (void *)v; }
 
-    Value &AtSR(iint i) {
-        assert(i < len && width == 1);
-        return v[i];
+    // The slots of one element, for whoever reads several of them at once.
+    void *AtSt(iint i) const {
+        assert(i < len);
+        return (void *)SubSlots(v, i * width);
     }
+
     Value AtS(iint i) const {
         assert(i < len && width == 1);
-        return v[i];
+        return LoadSlot(v, i);
+    }
+    void SetAtS(iint i, Value val) {
+        assert(i < len && width == 1);
+        StoreSlot(v, i, val);
     }
 
     Value AtSub(iint i, int off) const {
         assert(i < len);
-        return v[i * width + off];
+        return LoadSlot(v, i * width + off);
     }
 
-    Value *AtSt(iint i) const {
-        assert(i < len);
-        return v + i * width;
-    }
-
-    Value &AtSlotR(iint i) {
-        assert(i < len * width);
-        return v[i];
-    }
     Value AtSlot(iint i) const {
         assert(i < len * width);
-        return v[i];
+        return LoadSlot(v, i);
+    }
+    void SetAtSlot(iint i, Value val) {
+        assert(i < len * width);
+        StoreSlot(v, i, val);
     }
 
 
@@ -870,8 +833,8 @@ struct LVector : RefObj {
 
     bool Equal(VM &vm, const LVector &o) const;
 
-    void CopyElemsShallow(Value *from) {
-        t_memcpy(v, from, len * width);
+    void CopyElemsShallow(const void *from) {
+        memcpy(v, from, (size_t)(len * width) * sizeof(Value));
     }
 
     void IncRefElems(VM &vm) {
@@ -885,8 +848,7 @@ struct LVector : RefObj {
             if (eti.t != RTT_STRUCT_R || (1 << j) & eti.vtable_start_or_bitmask) {
                 for (iint i = 0; i < len; i++) {
                     auto l = i * width + j;
-                    auto &slot = AtSlotR(l);
-                    slot = slot.CopyRef(vm, depth);
+                    SetAtSlot(l, AtSlot(l).CopyRef(vm, depth));
                 }
             }
         }
@@ -1453,29 +1415,29 @@ template<typename T, bool back> T ReadValLE(const LString *s, iint i) {
 
 
 // FIXME: turn check for len into an assert and make caller guarantee lengths match.
-template<int N> inline vec<double, N> ValueToF(const Value *v, iint width, double def = 0) {
+template<int N> inline vec<double, N> ValueToF(const void *v, iint width, double def = 0) {
     vec<double, N> t(def);
-    for (int i = 0; i < N; i++) if (width > i) t[i] = (v + i)->fval();
+    for (int i = 0; i < N; i++) if (width > i) t[i] = LoadSlot(v, i).fval();
     return t;
 }
-template<int N> inline vec<iint, N> ValueToI(const Value *v, iint width, iint def = 0) {
+template<int N> inline vec<iint, N> ValueToI(const void *v, iint width, iint def = 0) {
     vec<iint, N> t(def);
-    for (int i = 0; i < N; i++) if (width > i) t[i] = (v + i)->ival();
+    for (int i = 0; i < N; i++) if (width > i) t[i] = LoadSlot(v, i).ival();
     return t;
 }
-template<int N> inline vec<float, N> ValueToFLT(const Value *v, iint width, float def = 0) {
+template<int N> inline vec<float, N> ValueToFLT(const void *v, iint width, float def = 0) {
     vec<float, N> t(def);
-    for (int i = 0; i < N; i++) if (width > i) t[i] = (v + i)->fltval();
+    for (int i = 0; i < N; i++) if (width > i) t[i] = LoadSlot(v, i).fltval();
     return t;
 }
-template<int N> inline vec<int, N> ValueToINT(const Value *v, iint width, int def = 0) {
+template<int N> inline vec<int, N> ValueToINT(const void *v, iint width, int def = 0) {
     vec<int, N> t(def);
-    for (int i = 0; i < N; i++) if (width > i) t[i] = (v + i)->intval();
+    for (int i = 0; i < N; i++) if (width > i) t[i] = LoadSlot(v, i).intval();
     return t;
 }
 
-template <typename T, int N> inline void ToValue(Value *dest, iint width, const vec<T, N> &v) {
-    for (iint i = 0; i < width; i++) dest[i] = i < N ? v.c[i] : 0;
+template <typename T, int N> inline void ToValue(void *dest, iint width, const vec<T, N> &v) {
+    for (iint i = 0; i < width; i++) StoreSlot(dest, i, i < N ? v.c[i] : 0);
 }
 
 inline iint RangeCheck(VM &vm, Value idx, iint range, iint bias = 0) {

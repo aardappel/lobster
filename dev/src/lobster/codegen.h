@@ -1781,7 +1781,7 @@ struct CodeGen  {
 
     // The elements of the vector in _o, and the index of one of them or of a slot of one, at
     // the width the vector holds them at.
-    string Elems() { return cpp ? "_o->Elems()" : "_o->elems"; }
+    string Elems() { return cpp ? "((Value *)_o->ElemSlots())" : "_o->elems"; }
     string ElemIndex(int width, int slot) {
         if (width == 1) return slot ? cat("_i + ", slot) : "_i";
         return cat("_i * ", width, " + ", slot);
@@ -2097,7 +2097,7 @@ struct CodeGen  {
         cb += "    {";
         comment(cmt);
         append(cb, "    LVector *_v = ", Read(SlotVar(base, RTT_VECTOR)), ";\n");
-        return cpp ? "_v->Elems()" : "_v->elems";
+        return cpp ? "((Value *)_v->ElemSlots())" : "_v->elems";
     }
 
     // The element at `idx` of that vector, in the slots starting at `base`. A struct takes more
@@ -2424,7 +2424,8 @@ struct CodeGen  {
         append(cb, "    {\n    LVector *_v = RtNewVec(vm, (type_elem_t)", type_idx, ", ", len,
                ");\n");
         for (int i = 0; i < n; i++) {
-            CopyValue(cb, Mem(cat("_v->", cpp ? "Elems()" : "elems", "[", i, "]"), args[i]),
+            CopyValue(cb, Mem(cat(cpp ? "((Value *)_v->ElemSlots())" : "_v->elems", "[", i, "]"),
+                              args[i]),
                       SlotVar(base + i, args[i]));
         }
         Write(cb, SlotVar(base, RTT_VECTOR), "_v");
@@ -3121,7 +3122,8 @@ struct CodeGen  {
             Write(cb, Slot(0, VK_INT), cat("(long long)", data, "[", idx, "]"));
             return;
         }
-        auto elems = cat(Read(Slot(1, VK_VECTOR)), "->", cpp ? "Elems()" : "elems");
+        auto elems = cpp ? cat("((Value *)", Read(Slot(1, VK_VECTOR)), "->ElemSlots())")
+                         : cat(Read(Slot(1, VK_VECTOR)), "->elems");
         if (width > 1) {
             // A struct element is the same load per slot it occupies, at the width the vector
             // holds them at, which is what the element type says it is.

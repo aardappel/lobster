@@ -1466,19 +1466,19 @@ BUILTIN(date_time, "utc", "B?", "I]",
     auto time = std::time(nullptr);
     const iint num_elems = 9;
     auto v = vm.NewVec(num_elems, num_elems, TYPE_ELEM_VECTOR_OF_INT);
-    for (iint i = 0; i < num_elems; i++) v->AtSR(i) = -1;
+    for (iint i = 0; i < num_elems; i++) v->SetAtS(i, -1);
     if (!time) return v;
-    v->AtSR(0) = (iint)time; // unix epoch in seconds
+    v->SetAtS(0, (iint)time); // unix epoch in seconds
     auto tm = (utc != 0) ? std::gmtime(&time) : std::localtime(&time);
     if (!tm) return v;
-    v->AtSR(1) = tm->tm_year;
-    v->AtSR(2) = tm->tm_mon;
-    v->AtSR(3) = tm->tm_mday;
-    v->AtSR(4) = tm->tm_yday;
-    v->AtSR(5) = tm->tm_wday;
-    v->AtSR(6) = tm->tm_hour;
-    v->AtSR(7) = tm->tm_min;
-    v->AtSR(8) = tm->tm_sec;
+    v->SetAtS(1, tm->tm_year);
+    v->SetAtS(2, tm->tm_mon);
+    v->SetAtS(3, tm->tm_mday);
+    v->SetAtS(4, tm->tm_yday);
+    v->SetAtS(5, tm->tm_wday);
+    v->SetAtS(6, tm->tm_hour);
+    v->SetAtS(7, tm->tm_min);
+    v->SetAtS(8, tm->tm_sec);
     return v;
 }
 
@@ -1709,11 +1709,10 @@ BUILTIN(multiply, "a,b", "F]F]", "F]",
     if (av->len != 16 || bv->len != 16)
         vm.BuiltinError("matrix_multiply: input vectors must be length 16");
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
-    InlineVec<double, 16> iva(av->Elems());
-    InlineVec<double, 16> ivb(bv->Elems());
-    InlineVec<double, 16> ivr(r->Elems(), false);
+    InlineVec<double, 16> iva(av->ElemSlots());
+    InlineVec<double, 16> ivb(bv->ElemSlots());
+    InlineVec<double, 16> ivr(r->ElemSlots());
     (*(double4x4 *)ivr.vals) = (*(double4x4 *)iva.vals) * (*(double4x4 *)ivb.vals);
-    ivr.CopyBack(r->Elems());
     return r;
 }
 
@@ -1722,9 +1721,8 @@ BUILTIN(rotate_x, "angle", "F}:2", "F]",
 (VM &vm, double2 angle_) {
     auto angle = ToVec<double2>(angle_);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
-    InlineVec<double, 16> ivr(r->Elems(), false);
+    InlineVec<double, 16> ivr(r->ElemSlots());
     (*(double4x4 *)ivr.vals) = rotationX(angle);
-    ivr.CopyBack(r->Elems());
     return r;
 }
 
@@ -1733,9 +1731,8 @@ BUILTIN(rotate_y, "angle", "F}:2", "F]",
 (VM &vm, double2 angle_) {
     auto angle = ToVec<double2>(angle_);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
-    InlineVec<double, 16> ivr(r->Elems(), false);
+    InlineVec<double, 16> ivr(r->ElemSlots());
     (*(double4x4 *)ivr.vals) = rotationY(angle);
-    ivr.CopyBack(r->Elems());
     return r;
 }
 
@@ -1744,9 +1741,8 @@ BUILTIN(rotate_z, "angle", "F}:2", "F]",
 (VM &vm, double2 angle_) {
     auto angle = ToVec<double2>(angle_);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
-    InlineVec<double, 16> ivr(r->Elems(), false);
+    InlineVec<double, 16> ivr(r->ElemSlots());
     (*(double4x4 *)ivr.vals) = rotationZ(angle);
-    ivr.CopyBack(r->Elems());
     return r;
 }
 
@@ -1755,9 +1751,8 @@ BUILTIN(translation, "trans", "F}:3", "F]",
 (VM &vm, double3 trans_) {
     auto trans = ToVec<double3>(trans_);
     auto r = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
-    InlineVec<double, 16> ivr(r->Elems(), false);
+    InlineVec<double, 16> ivr(r->ElemSlots());
     (*(double4x4 *)ivr.vals) = translation(trans);
-    ivr.CopyBack(r->Elems());
     return r;
 }
 

@@ -574,20 +574,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
     }
     auto l = label.c_str();
     auto flags = expanded ? ImGuiTreeNodeFlags_DefaultOpen : 0;
-    // The fields of an object hold the types they are rather than Values, see LoadSlot, so the
-    // editor works on a copy of them, which goes back into the object when it is done.
-    struct FieldCopy {
-        LObject *obj = nullptr;
-        vector<Value> vals;
-        Value *Of(LObject *o, iint len) {
-            obj = o;
-            for (iint i = 0; i < len; i++) vals.push_back(o->At(i));
-            return vals.data();
-        }
-        ~FieldCopy() {
-            for (auto [i, v] : enumerate(vals)) obj->SetAt((iint)i, v);
-        }
-    } fieldcopy;
+    SlotCopy fieldcopy;
     switch (ti->t) {
         case RTT_INT: {
             if (ti->enumidx == 0) {
@@ -640,7 +627,9 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
                     auto &sti = vm.GetTypeInfo(ti->subt);
                     auto vec = v->vval();
                     for (iint i = 0; i < vec->len; i++) {
-                        ValToGUI(vm, vec->AtSt(i), &sti, to_string(i), false);
+                        SlotCopy elem;
+                        ValToGUI(vm, elem.Of(vec->AtSt(i), vec->width), &sti, to_string(i),
+                                 false);
                     }
                     EndTable();
                 }
@@ -654,7 +643,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             }
             // Upgrade to dynamic type if maybe subclass.
             ti = &v->oval()->ti(vm);
-            v = fieldcopy.Of(v->oval(), ti->len);  // To iterate it like a struct.
+            v = fieldcopy.Of(v->oval()->FieldSlots(), ti->len);  // To iterate it like a struct.
         case RTT_STRUCT_R:
         case RTT_STRUCT_S: {
             auto &st = vm.vma.meta->udts[ti->structidx];
@@ -2327,10 +2316,10 @@ BUILTIN(graph, "label,values,ishistogram", "SF]I", "",
         return ((Value *)data)[i].fltval();
     };
     if ((histogram != 0)) {
-        ImGui::PlotHistogram(Label(vm, label), getter, vals->Elems(),
+        ImGui::PlotHistogram(Label(vm, label), getter, vals->ElemSlots(),
             (int)vals->len);
     } else {
-        ImGui::PlotLines(Label(vm, label), getter, vals->Elems(),
+        ImGui::PlotLines(Label(vm, label), getter, vals->ElemSlots(),
             (int)vals->len);
     }
 }

@@ -100,7 +100,7 @@ BUILTIN(put_audio_stream, "channel,data", "IF]", "B",
     vector<float> data;
     data.reserve(vdata->len);
     for (int i = 0; i < vdata->len; i++)
-        data.push_back(vdata->AtSt(i)->fltval());
+        data.push_back(vdata->AtS(i).fltval());
     auto ok = SDLPutAudioStream((int)channel, std::move(data));
     return ok;
 }

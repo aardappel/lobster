@@ -672,7 +672,7 @@ BUILTIN(model_view_projection, "", "", "F]",
 (VM &vm) {
     auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     auto mvp = view2clip * otransforms.object2view();
-    for (int i = 0; i < 16; i++) v->AtSR(i) = mvp.data()[i];
+    for (int i = 0; i < 16; i++) v->SetAtS(i, mvp.data()[i]);
     return v;
 }
 
@@ -682,7 +682,7 @@ BUILTIN(model_view, "", "", "F]",
 (VM &vm) {
     auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     auto &mv = otransforms.object2view();
-    for (int i = 0; i < 16; i++) v->AtSR(i) = mv.data()[i];
+    for (int i = 0; i < 16; i++) v->SetAtS(i, mv.data()[i]);
     return v;
 }
 
@@ -692,7 +692,7 @@ BUILTIN(projection, "", "", "F]",
 (VM &vm) {
     auto v = vm.NewVec(16, 16, TYPE_ELEM_VECTOR_OF_FLOAT);
     auto p = view2clip;
-    for (int i = 0; i < 16; i++) v->AtSR(i) = p.data()[i];
+    for (int i = 0; i < 16; i++) v->SetAtS(i, p.data()[i]);
     return v;
 }
 

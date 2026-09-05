@@ -422,7 +422,7 @@ Value Value::CopyRef(VM &vm, iint depth) {
             auto len = vval()->len;
             auto nv = vm.NewVec(len, len, vval()->tti);
             if (len) {
-                nv->CopyElemsShallow(vval()->Elems());
+                nv->CopyElemsShallow(vval()->ElemSlots());
                 if (depth) {
                     nv->CopyRefElemsDeep(vm, depth);
                 } else {
