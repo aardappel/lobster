@@ -187,7 +187,6 @@ struct Lex : LoadedFile {
                 prevline = linestart;
                 prevlinetok = tokenstart;
             } else {
-                //prevlineindenttype = 0;
                 prevlinetok = prevline = nullptr;
             }
             if (lastcont) {
@@ -754,7 +753,6 @@ struct Lex : LoadedFile {
                 }
             }
         }
-        //LOG_DEBUG(err);
         THROW_OR_ABORT(err);
     }
 

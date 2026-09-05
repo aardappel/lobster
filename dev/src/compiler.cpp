@@ -154,7 +154,6 @@ TypeRef WrapKnown(UnTypeRef elem, ValueType with) {
             case V_INT:       { static const Type t(V_NIL, &g_type_int); return elem->e ? nullptr : &t; }
             case V_FLOAT:     { static const Type t(V_NIL, &g_type_float); return &t; }
             case V_STRING:    { static const Type t(V_NIL, &g_type_string); return &t; }
-            //case V_FUNCTION:  { static const Type t(V_NIL, &g_type_function_null); return &t; }
             case V_RESOURCE:  { return &elem->rt->thistypenil; }
             case V_VECTOR: switch (elem->sub->t) {
                 case V_INT:    { static const Type t(V_NIL, &g_type_vector_int); return elem->sub->e ? nullptr : &t; }

@@ -268,7 +268,6 @@ struct GUDT : Named {
     bool is_abstract = false;
     bool isprivate = false;
     bool predeclaration = false;
-    //bool is_generic = false;
     bool has_subclasses = false;
     bool has_constructor_function = false;
     SpecUDT unspecialized;
@@ -401,7 +400,7 @@ inline TypeRef SingleNonGenericSpecialization(GUDT &gudt) {
     return &gudt.first->thistype;
 }
 
-    // Distance to the exact type "super".
+// Distance to the exact type "super".
 int SuperDistance(const UDT *super, const UDT *subclass) {
     int dist = 0;
     for (auto t = subclass; t; t = t->ssuperclass) {

@@ -238,7 +238,6 @@ struct CodeGen  {
         for (int i = regso; i < (int)pending.size(); i++) pending[i].expr.clear();
         for (int i = 0; i < useslots; i++) PopTemp();
         for (int i = 0; i < defslots; i++) PushTemp();
-        //LOG_DEBUG("cg: ", useslots, "/", defslots, " -> ", tstack_size);
     }
 
     const int ti_num_udt_fields = 8;

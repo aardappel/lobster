@@ -23,7 +23,7 @@ enum ValueType : int {
     // refc types are negative
     V_MINVTTYPES = -8,
     V_ANY = -7,         // any other reference type.
-    V_VALUEBUF = -6,    // only used as memory type for vector/coro buffers, not used by Value.
+    V_VALUEBUF = -6,    // only used as memory type for vector buffers, not used by Value.
     V_STRUCT_R = -5,
     V_RESOURCE = -4,
     V_STRING = -3,
@@ -140,7 +140,6 @@ struct Type;
 struct SpecUDT {
     GUDT *gudt;
     vector<const Type *> specializers;
-    //bool is_generic = false;
 
     SpecUDT(GUDT *gudt) : gudt(gudt) {}
 

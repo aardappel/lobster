@@ -394,7 +394,7 @@ struct StringConstant : Node {
         return str == ((StringConstant *)o)->str;
     }
     SHARED_SIGNATURE(StringConstant, TName(T_STR), false)
-    STATEMENTMETHOD  // FIXME: this is hear because of how T_PAKFILE is implemented, ideally should be removed.
+    STATEMENTMETHOD  // FIXME: this is here because of how T_PAKFILE is implemented, ideally should be removed.
 };
 
 struct EnumRef : Node {

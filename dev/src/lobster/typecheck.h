@@ -589,21 +589,10 @@ struct TypeChecker {
                 if (!sf->sbody) sf = CloneFunction(*sf->parent->overloads[0]);
                 TypeCheckFunctionDef(*sf, *sf->sbody);
             }
-            /*
-            if (bound->sf && bound->sf->parent->istype) {
-                // FIXME: this doesn't work, as we have plenty of use cases where a function type is
-                // used in a non-escaping way which works fine with free variables.
-                // We'd need to detect the common case of function types attached to chained function args
-                // whose only use is a dyncall way down the line.
-                for (auto &fv : sf->freevars) {
-                    // Allow globals.
-                    if (fv.sid->id->scopelevel == 1) continue;
-                    Error(*a, cat("cannot pass function value with free variable ",
-                                  Q(fv.sid->id->name), " to declared function type ",
-                                  Q(bound->sf->parent->name)));
-                }
-            }
-            */
+            // FIXME: a function value with (non-global) free variables passed to a declared
+            // function type should be an error, since the value may outlive them, but plenty
+            // of code passes one in a non-escaping way (a function type on a chain of function
+            // args whose only use is a dyncall down the line), which would need detecting first.
             // Covariant again.
             if (sf->returntype->NumValues() != returntype->NumValues() ||
                 !ConvertsTo(sf->returntype, returntype, CF_UNIFICATION))
@@ -1212,7 +1201,6 @@ struct TypeChecker {
         scopes.push_back(scope);
         auto pfvss = preferfreestack.size();
         auto dss = definestack.size();
-        //for (auto &ns : named_scopes) LOG_DEBUG("named scope: ", ns.sf->parent->name);
         if (!sf.parent->anonymous) named_scopes.push_back(scope);
         st.BlockScopeStart();
         sf.typechecked = true;
@@ -1344,7 +1332,6 @@ struct TypeChecker {
 
     bool FreeVarsSameAsCurrent(const SubFunction &sf, bool prespecialize) {
         for (auto &freevar : sf.freevars) {
-            //auto atype = Promote(freevar.id->type);
             auto sid = freevar.sid;
             auto cur = sid->Current();
             FlowItem fi(cur, cur->type, cur->type);
@@ -1355,7 +1342,6 @@ struct TypeChecker {
                 assert(prespecialize || sid == cur || (sid && cur));
                 return false;
             }
-            //if (atype->t == V_FUNCTION) return false;
             // For the sake of explicit free variables which (unlike lexical free vars) can
             // refer to multiple different variables, we must check if the variable is reachable at all.
             // FIXME: we should really be able to see this without looping if cursid is null?
@@ -1903,7 +1889,6 @@ struct TypeChecker {
                 // matter. Could call TypeCheckCallStatic once more at the end of this loop
                 // to fix that?
                 // FIXME: return value?
-                /*auto rtype =*/
                 TypeCheckCallStatic(csf, call_args, reqret, specializers, *overload_picks[i].ov,
                                     false, !last_sf, true, de);
                 sf = csf;
@@ -2540,7 +2525,6 @@ struct TypeChecker {
         }
         // FIXME: make this faster.
         for (auto &b : reverse(borrowstack)) {
-            //LOG_INFO("borrow check:", lv.Name(), " vs ", b.Name(), " ", b.refc);
             if (!b.IsPrefix(lv)) continue;  // Not overwriting this one.
             if (!b.refc) continue;          // Lval is not borowed, writing is ok.
             Error(*n, "cannot modify ", Q(lv.Name()), " while borrowed in ",
@@ -4511,7 +4495,7 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     exptype = type_void;
     lt = LT_ANY;
     // Ensure what we're returning from is going to be on the stack at runtime.
-    // First fund correct specialization for sf.
+    // First find correct specialization for sf.
     for (auto isc : reverse(tc.scopes)) {
         if (isc.sf->parent == sf->parent) {
             sf = isc.sf;
@@ -4935,7 +4919,6 @@ Node *Dot::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*
         exptype = flowtype;
     }
     lt = tc.PushBorrow(this);
-    //lt = children[0]->lt;  // Also LT_BORROW, also depending on the same variable.
     return this;
 }
 

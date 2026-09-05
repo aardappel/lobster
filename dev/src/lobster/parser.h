@@ -741,9 +741,6 @@ struct Parser {
             auto type = g.type.Null()
                 ? &g.tv->thistype
                 : g.type;
-            // This test works correctly if a generic refers to its own struct, since either
-            // is_generic is still false, or it is already true if theres other generics.
-            //if (st.IsGeneric(type)) gudt->is_generic = true;
             gudt->unspecialized.specializers.push_back(&*type);
             g.type = type;
         }
@@ -1188,13 +1185,11 @@ struct Parser {
             case T_WHILE: {
                 lex.Next();
                 Line line = lex;
-                //st.BlockScopeStart();  // Just in case condition has a define.
                 // TODO: This could call ParseExpCond(list) which supports "while let", but that gives the impression the initializer will be
                 // evaluated in a loop, and it will only be done once. So for now, disable. To support, we'd need to move while to be
                 // Made out of two blocks, an outer which can hold all these defines, and a body.
                 auto cond = ParseExp(true);
                 auto w = new While(line, cond, ParseBlock(-1, false, allow_multi_assign));
-                //st.BlockScopeCleanup();
                 list->Add(w);
                 break;
             }
