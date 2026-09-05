@@ -743,6 +743,51 @@ inline string DumpNode(Node &n, int indent, bool single_line) {
 
 bool UnaryMinus::IsConstInit() const { return child->IsConstInit(); }
 
+// The members of idents.h that need the node types complete: the owners of a body or an
+// expression, and the lvalue context that reads one.
+
+SubFunction::~SubFunction() { if (sbody) delete sbody; }
+
+Field::~Field() { delete gdefaultval; }
+
+Field::Field(const Field &o)
+    : id(o.id),
+      giventype(o.giventype),
+      gdefaultval(o.gdefaultval ? o.gdefaultval->Clone(true) : nullptr),
+      isprivate(o.isprivate),
+      in_scope(o.in_scope),
+      member_of(o.member_of),
+      defined_in(o.defined_in) {}
+
+UDT::~UDT() {
+    for (auto &sfield : sfields) {
+        delete sfield.defaultval;
+    }
+}
+
+Function::~Function() {
+    for (auto ov : overloads) delete ov;
+    for (auto da : default_args) delete da;
+}
+
+Overload::~Overload() {
+    delete gbody;
+    for (auto fvd : freevardecls) delete fvd;
+}
+
+LValContext::LValContext(const Node &n) {
+    auto t = &n;
+    while (auto dot = Is<Dot>(t)) {
+        derefs.insert(0, dot->fld);
+        t = dot->child;
+    }
+    auto idr = Is<IdentRef>(t);
+    sid = idr ? idr->sid : nullptr;
+}
+
+FlowItem::FlowItem(const Node &n, TypeRef type)
+    : LValContext(n), old(n.exptype), now(type) {}
+
 }  // namespace lobster
 
 #endif  // LOBSTER_NODE
