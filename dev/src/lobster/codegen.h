@@ -747,7 +747,6 @@ struct CodeGen  {
                 "typedef lobster::LVector LVector;\n"
                 "typedef lobster::LString LString;\n"
                 "typedef lobster::LResource LResource;\n"
-                "using lobster::RefVal;\n"
                 "\n"
                 // A program is free to assign a variable it never reads, or to compare a
                 // variable with itself.
@@ -785,9 +784,6 @@ struct CodeGen  {
                 "        LVector *vval;\n"
                 "        LObject *oval;\n"
                 "    };\n"
-                #if RTT_ENABLED
-                "    int type;\n"
-                #endif
                 "} Value;\n"
                 // These need to correspond to the C++ LVector, LString and LObject, enforced in
                 // Entry(). We mirror them so that reading a length, an element or a field is a
@@ -818,15 +814,6 @@ struct CodeGen  {
                 // its own header the same way, which is what the struct emitted per object
                 // type says, see UDTName.
                 "#define STRING_DATA(S) ((unsigned char *)((S) + 1))\n";
-            #if RTT_ENABLED
-                // The tags the runtime type field takes, see RTType.
-                sd += "enum {";
-                for (int t = RTT_MINVMTYPES + 1; t < RTT_MAXVMTYPES; t++) {
-                    if (t == RTT_VALUEBUF) continue;
-                    append(sd, t == RTT_MINVMTYPES + 1 ? " " : ", ", RttName((RTType)t), " = ", t);
-                }
-                sd += " };\n";
-            #endif
             // This needs to correspond to the C++ VMBase, enforced in Entry().
             append(sd,
                 "typedef struct {\n"
@@ -884,11 +871,6 @@ struct CodeGen  {
             // them as the type they are.
             sd +=
                 "LString *RtPushStr(VMRef, int);\n"
-                // Around the calls to builtins, see EmitNativeCall.
-                #if RTT_ENABLED
-                "void RtNativeRetCheck(VMRef, int, Value);\n"
-                "void RtNativeRetCheckStack(VMRef, StackPtr, int, int);\n"
-                #endif
                 #if LOBSTER_NATIVE_PROFILE
                 "struct ___tracy_c_zone_context RtNativeProfileStart(VMRef, int);\n"
                 "void RtNativeProfileEnd(struct ___tracy_c_zone_context);\n"
@@ -998,23 +980,6 @@ struct CodeGen  {
         static const RTType types[] = { RTT_INT, RTT_FLOAT, RTT_INVALID, RTT_FUNCTION,
                                         RTT_STRING, RTT_VECTOR, RTT_CLASS };
         return types[k];
-    }
-
-    // The name of one in the generated code, for the tag a Value in memory carries.
-    static const char *RttName(RTType t) {
-        switch (t) {
-            case RTT_STRUCT_R: return "RTT_STRUCT_R";
-            case RTT_RESOURCE: return "RTT_RESOURCE";
-            case RTT_STRING: return "RTT_STRING";
-            case RTT_CLASS: return "RTT_CLASS";
-            case RTT_VECTOR: return "RTT_VECTOR";
-            case RTT_NIL: return "RTT_NIL";
-            case RTT_INT: return "RTT_INT";
-            case RTT_FLOAT: return "RTT_FLOAT";
-            case RTT_FUNCTION: return "RTT_FUNCTION";
-            case RTT_STRUCT_S: return "RTT_STRUCT_S";
-            default: return "RTT_INVALID";
-        }
     }
 
     // Slot i of a value of this type, which for a struct is one of its fields.
@@ -1206,27 +1171,6 @@ struct CodeGen  {
         return cat("(", CType(k), ")", r);
     }
 
-    // In C the runtime type field, when there is one, is ours to keep correct on every write to
-    // memory, and a reference is only one when it is not nil.
-    string SetTypeText(string_view s, RTType t) {
-        #if RTT_ENABLED
-            return cat(" ", s, ".type = ", RttName(t), ";");
-        #else
-            (void)s;
-            (void)t;
-            return {};
-        #endif
-    }
-    string RefTypeText(string_view s, RTType t) {
-        #if RTT_ENABLED
-            return cat(" ", s, ".type = ", s, ".ref ? ", RttName(t), " : RTT_NIL;");
-        #else
-            (void)s;
-            (void)t;
-            return {};
-        #endif
-    }
-
     // Writing an expression of the place's kind to it. The C++ backend goes thru Value's
     // constructor for memory, which sets the tag from the type, the C one writes the field.
     string WriteText(const Place &d, string_view expr) {
@@ -1238,18 +1182,15 @@ struct CodeGen  {
         if (d.typed) return cat(d.s, " = ", expr, ";");
         if (cpp) {
             if (IsRefKind(d.k())) {
-                return cat(d.s, " = RefVal(", expr, ", lobster::", RttName(d.rtt), ");");
+                return cat(d.s, " = Value(", expr, ");");
             }
             return cat(d.s, " = Value(", expr, ");");
         }
         switch (d.k()) {
-            case VK_INT: return cat(d.s, ".ival = ", expr, ";", SetTypeText(d.s, RTT_INT));
-            case VK_FLOAT: return cat(d.s, ".fval = ", expr, ";", SetTypeText(d.s, RTT_FLOAT));
-            case VK_FUN:
-                return cat(d.s, ".ival = (long long)(", expr, ");",
-                           SetTypeText(d.s, RTT_FUNCTION));
-            default:
-                return cat(d.s, ".", Member(d.k()), " = ", expr, ";", RefTypeText(d.s, d.rtt));
+            case VK_INT: return cat(d.s, ".ival = ", expr, ";");
+            case VK_FLOAT: return cat(d.s, ".fval = ", expr, ";");
+            case VK_FUN: return cat(d.s, ".ival = (long long)(", expr, ");");
+            default: return cat(d.s, ".", Member(d.k()), " = ", expr, ";");
         }
     }
 
@@ -1266,11 +1207,7 @@ struct CodeGen  {
         if (d.typed || s.typed) return WriteText(d, ReadAs(s, d.k()));
         if (cpp) return cat(d.s, " = ", s.s, ";");
         auto fld = cat(".", Member(s.k()));
-        auto t = cat(d.s, fld, " = ", s.s, fld, ";");
-        #if RTT_ENABLED
-            append(t, " ", d.s, ".type = ", s.s, ".type;");
-        #endif
-        return t;
+        return cat(d.s, fld, " = ", s.s, fld, ";");
     }
 
     void CopyValue(string &sd, const Place &d, const Place &s, string_view lf = "\n") {
@@ -1295,7 +1232,7 @@ struct CodeGen  {
         if (d.slot >= 0 && &sd == &cb) Defer(d, d.k() == VK_FLOAT ? "0.0" : "0", "");
         else if (d.typed) Write(sd, d, d.k() == VK_FLOAT ? "0.0" : "0");
         else if (cpp) append(sd, "    ", d.s, " = Value(0, lobster::RTT_NIL);\n");
-        else append(sd, "    ", d.s, ".ival = 0;", SetTypeText(d.s, RTT_NIL), "\n");
+        else append(sd, "    ", d.s, ".ival = 0;\n");
     }
 
     // A Value a helper returned, as the expression of a kind.
@@ -1462,7 +1399,7 @@ struct CodeGen  {
             "file_names", "function_names", "udts", "specidents", "enums", "ser_ids",
             "subfunctions_to_function", "iint", "int2float64", "lobster", "std", "string_view",
             "span", "uint64_t", "int64_t", "memcpy", "memmove", "GLFrame", "Entry", "IDXErr",
-            "IDXErrS", "BackupVar", "DecOwned", "DecDelete", "AssertFailed", "RefVal",
+            "IDXErrS", "BackupVar", "DecOwned", "DecDelete", "AssertFailed",
             "RestoreBackup", "GetTypeSwitchID", "PushFunId", "PopFunId", "StartProfile",
             "EndProfile", "STRING_DATA", "sp", "nret", "pctx",
         };
@@ -1573,7 +1510,7 @@ struct CodeGen  {
     string Box(int slotidx, const Place &p) {
         if (cpp) {
             if (IsRefKind(p.k())) {
-                return cat("RefVal(", Read(p), ", lobster::", RttName(p.rtt), ")");
+                return cat("Value(", Read(p), ")");
             }
             return cat("Value(", Read(p), ")");
         }
@@ -1703,9 +1640,6 @@ struct CodeGen  {
         }
     }
 
-    // Slots that hold what they are rather than Values only come of a field, and only with the
-    // runtime types off, since with them on a field is a Value like everything else.
-    LvalKind NumPtrKind() { return RTT_ENABLED ? LVK_PTR : LVK_NUMPTR; }
 
     // The same as an address, for the helpers that take one, which a local never has since it
     // is a variable.
@@ -1752,16 +1686,9 @@ struct CodeGen  {
         return name;
     }
 
-    // The C type slot `i` of a value of this type holds. With the runtime types on it stays a
-    // Value, since that is what carries the tag they are, and a slot has no room for both.
+    // The C type slot `i` of a value of this type holds.
     string SlotCType(TypeRef type, int i) {
-        #if RTT_ENABLED
-            (void)type;
-            (void)i;
-            return "Value";
-        #else
-            return CType(KindOf(SlotType(type, i)));
-        #endif
+        return CType(KindOf(SlotType(type, i)));
     }
 
     // One member of the struct for an object type, which is one field, or one slot of a field
@@ -1822,12 +1749,7 @@ struct CodeGen  {
     // types on, where it is a Value so that it carries the tag, see SlotCType. Either way the
     // runtime only ever reads it a byte at a time, see LoadSlot.
     Place Field(string_view obj, const UDT &udt, int slot, RTType rtt) {
-        auto s = FieldName(obj, udt, slot);
-        #if RTT_ENABLED
-            return Mem(std::move(s), rtt);
-        #else
-            return Direct(std::move(s), rtt);
-        #endif
+        return Direct(FieldName(obj, udt, slot), rtt);
     }
     Place Field(string_view obj, const UDT &udt, int slot, TypeRef type) {
         return Field(obj, udt, slot, RtTypeOf(type));
@@ -1904,7 +1826,7 @@ struct CodeGen  {
         f_uses_lval = true;
         append(cb, "    lv = RtLvalIndexClass(vm, ", Read(Slot(2, VK_OBJECT)), ", ",
                Read(Slot(1, VK_INT)), ", ", offset, ");\n");
-        f_lval_kind = NumPtrKind();
+        f_lval_kind = LVK_NUMPTR;
     }
 
     // A struct indexed at runtime, the one case that steps into the lvalue it was handed.
@@ -1912,7 +1834,7 @@ struct CodeGen  {
         TrackUseDef(1, 0);
         f_uses_lval = true;
         string base;
-        auto kind = f_lval_kind == LVK_FIELD || f_lval_kind == LVK_NUMPTR ? NumPtrKind()
+        auto kind = f_lval_kind == LVK_FIELD || f_lval_kind == LVK_NUMPTR ? LVK_NUMPTR
                                                                          : LVK_PTR;
         if (f_lval_kind == LVK_FIELD) {
             // A field of a struct type is an array of what its slots hold, so indexing it is
@@ -2272,8 +2194,6 @@ struct CodeGen  {
     // the stack: both get a pointer to where their arguments are, the former leaving all of
     // its return values there, the latter all but the last, which it returns as the type it
     // is. The rest return their single value the same way and get no stack pointer at all.
-    // Only a builtin that returns an untyped Value can lie about what it returned, so only
-    // that one is checked in a debug build, see VM::BCallRetCheck.
     void EmitNativeCall(NativeFun *nf, const Types &args, const Types &rets,
                         const NativeArgs &nargs) {
         auto uses = (int)args.size();
@@ -2284,11 +2204,6 @@ struct CodeGen  {
         auto spref = nf->PushesValues() ? (cpp ? "sp, " : "&sp, ") : "";
         f_uses_sp = f_uses_sp || nf->PushesValues();
         auto sret = SretValues(nf);
-        #if RTT_ENABLED
-            auto checked = nf->ReturnsValue() && nf->RetKind() == BAK_VALUE;
-        #else
-            auto checked = false;
-        #endif
         EmitNativeProfile(true, nf->idx);
         auto base = regso - uses;
         auto argstr = NativeArgList(base, nf, args, nargs);
@@ -2305,13 +2220,9 @@ struct CodeGen  {
         } else {
             // The value it returns lands in the last of the slots the call leaves behind.
             auto ret = SlotVar(base + defs - 1, rets.back());
-            if (sret || checked) {
+            if (sret) {
                 f_uses_nret = true;
-                append(cb, "    ", sret ? call : cat("nret = ", call), ";");
-                if (checked) {
-                    if (cpp) append(cb, " vm.BCallRetCheck(nret, ", nf->idx, ");");
-                    else append(cb, " RtNativeRetCheck(vm, ", nf->idx, ", nret);");
-                }
+                append(cb, "    ", call, ";");
                 comment(nf->name);
                 SetValue(cb, ret, "nret");
             } else {
@@ -2321,15 +2232,7 @@ struct CodeGen  {
                 comment(nf->name);
             }
         }
-        // What it did push comes back out into the slots those values live in. Only the values
-        // pushed by a builtin that also returns one are checked: those of the V kind include
-        // the struct return values, whose slots hold their fields rather than the struct.
-        #if RTT_ENABLED
-            if (pushed && !nf->pushrets) {
-                append(cb, "    ", cpp ? "vm.BCallRetCheck(" : "RtNativeRetCheckStack(vm, ",
-                       StackArray(), " + ", base + pushed, ", ", nf->idx, ", ", pushed, ");\n");
-            }
-        #endif
+        // What it did push comes back out into the slots those values live in.
         for (int i = 0; i < pushed; i++) {
             CopyValue(cb, SlotVar(base + i, rets[i]), StackSlot(base + i, rets[i]));
         }

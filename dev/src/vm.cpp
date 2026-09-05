@@ -417,29 +417,12 @@ void VM::DumpStackTrace(string &sd, bool python_ordering) {
 
     DumperFun dumper = [&sd](VM &vm, string_view_nt name, const TypeInfo &ti, Value *x) {
         append(sd, "        ", name);
-        #if RTT_ENABLED
-            auto debug_type = x->type;
-        #else
-            auto debug_type = ti.t;
-        #endif
-        if (debug_type == RTT_NIL && !ti.is_nil) {
-            // Uninitialized.
-            append(sd, ":");
-            ti.Print(vm, sd, nullptr);
-            append(sd, " (uninitialized)");
-        } else if (ti.t != debug_type && !RTIsStruct(ti.t)) {
-            // Some runtime type corruption, show the problem rather than crashing.
-            append(sd, ":");
-            ti.Print(vm, sd, nullptr);
-            append(sd, " ERROR != ", BaseTypeName(debug_type));
+        append(sd, " = ");
+        PrintPrefs minipp { 1, 20, true, -1 };
+        if (RTIsStruct(ti.t)) {
+            vm.StructToString(sd, minipp, ti, x);
         } else {
-            append(sd, " = ");
-            PrintPrefs minipp { 1, 20, true, -1 };
-            if (RTIsStruct(ti.t)) {
-                vm.StructToString(sd, minipp, ti, x);
-            } else {
-                x->ToString(vm, sd, ti, minipp);
-            }
+            x->ToString(vm, sd, ti, minipp);
         }
         append(sd, "\n");
     };
@@ -497,16 +480,7 @@ void VM::DumpStackTraceMemory(const string &err) {
     #endif
 
     DumperFun dumper = [&fbc](VM &vm, string_view_nt name, const TypeInfo &ti, Value *x) {
-        #if RTT_ENABLED
-            auto debug_type = x->type;
-        #else
-            auto debug_type = ti.t;
-        #endif
-        if (debug_type == RTT_NIL && !ti.is_nil) {
-            // Just skip, only useful in debug.
-        } else if (ti.t != debug_type && !RTIsStruct(ti.t)) {
-            // Just skip, only useful in debug.
-        } else {
+        {
             fbc.builder.Key(name.data(), name.size());
             if (RTIsStruct(ti.t)) {
                 vm.StructToFlexBuffer(fbc, ti, x, false);
@@ -589,10 +563,6 @@ Value VM::SeriousError(string err) {
 Value VM::NormalExit(string err) {
     errmsg = err;
     UnwindOnError();
-}
-
-void VM::VMAssert(const char *what)  {
-    SeriousError(string("VM internal assertion failure: ") + what);
 }
 
 void VM::EndEval(Value ret, const TypeInfo &ti) {
@@ -709,43 +679,6 @@ string VM::ProperTypeName(const TypeInfo &ti) {
             break;
     }
     return ti.is_nil ? r + "?" : r;
-}
-
-// The first `n` return values of the builtin, which are the ones it pushed: it returns the
-// last one itself unless it is of the V kind, see the BUILTIN macros.
-void VM::BCallRetCheck(StackPtr sp, int nfi, int n) {
-    #if RTT_ENABLED
-        // See if any builtin function is lying about what type it returns
-        // other function types return intermediary values that don't correspond to final return
-        // values.
-        auto nf = vma.nfr.nfuns[nfi];
-        for (int i = 0; i < n; i++) {
-            #ifndef NDEBUG
-            auto t = (TopPtr(sp) - n + i)->type;
-            auto u = nf->retvals[i].rttype;
-            assert(t == u || u == RTT_INVALID || u == RTT_NIL || (u == RTT_VECTOR && RTIsUDT(t)));
-            #endif
-        }
-    #else
-        (void)nfi;
-        (void)sp;
-        (void)n;
-    #endif
-}
-
-void VM::BCallRetCheck(Value v, int nfi) {
-    #if RTT_ENABLED
-        auto nf = vma.nfr.nfuns[nfi];
-        if (!nf->retvals.empty()) {
-            auto u = nf->retvals[0].rttype;
-            assert(v.type == u || u == RTT_INVALID || u == RTT_NIL ||
-                   (u == RTT_VECTOR && RTIsUDT(v.type)));
-            (void)u;
-        }
-    #else
-        (void)nfi;
-        (void)v;
-    #endif
 }
 
 void VM::AssertFailed(int line, int fileidx, int stringidx) {
@@ -1077,12 +1010,6 @@ void CRtEndProfile(___tracy_c_zone_context ctx) {
 #endif
 
 LString *CRtPushStr(VM *vm, int i) { return RtPushStr(*vm, i); }
-#if RTT_ENABLED
-void CRtNativeRetCheck(VM *vm, int nfi, Value v) { vm->BCallRetCheck(v, nfi); }
-void CRtNativeRetCheckStack(VM *vm, StackPtr sp, int nfi, int n) {
-    vm->BCallRetCheck(sp, nfi, n);
-}
-#endif
 #if LOBSTER_NATIVE_PROFILE
 ___tracy_c_zone_context CRtNativeProfileStart(VM *vm, int nfi) { return RtNativeProfileStart(*vm, nfi); }
 void CRtNativeProfileEnd(___tracy_c_zone_context ctx) { RtNativeProfileEnd(ctx); }
@@ -1128,10 +1055,6 @@ extern "C" iint GLFrame(VM &vm);
 
 const void *vm_ops_jit_table[] = {
     "RtPushStr", (void *)&CRtPushStr,
-    #if RTT_ENABLED
-    "RtNativeRetCheck", (void *)&CRtNativeRetCheck,
-    "RtNativeRetCheckStack", (void *)&CRtNativeRetCheckStack,
-    #endif
     #if LOBSTER_NATIVE_PROFILE
     "RtNativeProfileStart", (void *)&CRtNativeProfileStart,
     "RtNativeProfileEnd", (void *)&CRtNativeProfileEnd,

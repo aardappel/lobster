@@ -13,12 +13,6 @@ namespace lobster {
 // ones that work on a run of values, like a constructor, which take a pointer to those, and
 // the calls to functions and natives that leave more than one value, which work on a stack.
 
-#if RTT_ENABLED
-    #define VMTYPEEQ(val, vt) VMASSERT(vm, (val).type == (vt))
-#else
-    #define VMTYPEEQ(val, vt) { (void)(val); (void)(vt); (void)vm; }
-#endif
-
 // Only still called when the constants are kept rather than borrowed; otherwise the code
 // generator emits the copy out of the VM itself, see EmitPushStr.
 // FIXME: have a way that constant strings can stay in the bytecode, so this doesn't need the
@@ -49,8 +43,7 @@ VM_INLINE void RtExitVoid(VM &vm) {
 }
 
 // The generated code calls builtins directly by their symbol, see CodeGen::EmitNativeCall,
-// which puts these around the call when they are compiled in, see LOBSTER_NATIVE_PROFILE. The
-// check of what a builtin returned that goes with them is VM::BCallRetCheck.
+// which puts these around the call when they are compiled in, see LOBSTER_NATIVE_PROFILE.
 #if LOBSTER_NATIVE_PROFILE
 VM_INLINE ___tracy_c_zone_context RtNativeProfileStart(VM &vm, int nfi) {
     #if LOBSTER_FRAME_PROFILER_GLOBAL

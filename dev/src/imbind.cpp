@@ -762,9 +762,6 @@ void VarsToGUI(VM &vm) {
                 if (!sid.global || sid.readonly != constants) continue;
                 auto name = string_view_nt(sid.name);
                 auto &ti = vm.GetVarTypeInfo(i);
-                #if RTT_ENABLED
-                if (ti.t != val.type) continue;  // Likely uninitialized.
-                #endif
                 ValToGUI(vm, &val, &ti, name, false);
                 if (RTIsStruct(ti.t)) i += ti.len - 1;
             }
@@ -856,28 +853,7 @@ void DumpStackTrace(VM &vm) {
     if (vm.fun_id_stack.empty()) return;
 
     VM::DumperFun dumper = [](VM &vm, string_view_nt name, const TypeInfo &ti, Value *x) {
-        #if RTT_ENABLED
-            auto debug_type = x->type;
-        #else
-            auto debug_type = ti.t;
-        #endif
-        if (debug_type == RTT_NIL && !ti.is_nil) {
-            // Uninitialized.
-            auto sd = string(name.sv);
-            append(sd, ":");
-            ti.Print(vm, sd, nullptr);
-            append(sd, " (uninitialized)");
-            Text(sd);
-        } else if (ti.t != debug_type && !RTIsStruct(ti.t)) {
-            // Some runtime type corruption, show the problem rather than crashing.
-            auto sd = string(name.sv);
-            append(sd, ":");
-            ti.Print(vm, sd, nullptr);
-            append(sd, " (ERROR != ", BaseTypeName(debug_type), ")");
-            Text(sd);
-        } else {
-            ValToGUI(vm, x, &ti, name, false);
-        }
+        ValToGUI(vm, x, &ti, name, false);
     };
 
     auto cur_fileidx = vm.last.fileidx;

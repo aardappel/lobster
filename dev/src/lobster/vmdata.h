@@ -23,14 +23,6 @@ namespace metadata {
 
 namespace lobster {
 
-#ifndef NDEBUG
-#define RTT_ENABLED 1
-#define RTT_TYPE_ERRORS 1
-#else
-#define RTT_ENABLED 0
-#define RTT_TYPE_ERRORS 0
-#endif
-
 #define STRING_CONSTANTS_KEEP 0
 
 // For debugging hairier issues.
@@ -408,14 +400,6 @@ public:
     }
 };
 
-#if RTT_ENABLED
-    #define TYPE_INIT(t) ,type(t)
-    #define TYPE_ASSERT(c) assert(c)
-#else
-    #define TYPE_INIT(t)
-    #define TYPE_ASSERT(c)
-#endif
-
 typedef Value *StackPtr;
 
 // A generated function takes its arguments and returns its result the way its signature says,
@@ -525,48 +509,41 @@ struct Value {
         TypeInfoPtr ti_;
     };
     public:
-    #if RTT_ENABLED
-        // This one comes second, since that allows e.g. the Wasm codegen to access the above
-        // data without knowing if we're in debug mode.
-        RTType type;
-    #endif
-
-    // These asserts help track down any invalid code generation issues.
-    VM_INLINEM iint        ival   () const { TYPE_ASSERT(type == RTT_INT);                         return ival_;        }
-    VM_INLINEM double      fval   () const { TYPE_ASSERT(type == RTT_FLOAT);                       return fval_;        }
-    VM_INLINEM int         intval () const { TYPE_ASSERT(type == RTT_INT);                         return (int)ival_;   }
-    VM_INLINEM float       fltval () const { TYPE_ASSERT(type == RTT_FLOAT);                       return (float)fval_; }
-    VM_INLINEM LString    *sval   () const { TYPE_ASSERT(type == RTT_STRING);                      return sval_;        }
-    VM_INLINEM LString    *svalnil() const { TYPE_ASSERT(type == RTT_STRING || type == RTT_NIL);   return sval_;        }
-    VM_INLINEM LVector    *vval   () const { TYPE_ASSERT(type == RTT_VECTOR);                      return vval_;        }
-    VM_INLINEM LVector    *vvalnil() const { TYPE_ASSERT(type == RTT_VECTOR || type == RTT_NIL);   return vval_;        }
-    VM_INLINEM LObject    *oval   () const { TYPE_ASSERT(type == RTT_CLASS);                       return oval_;        }
-    VM_INLINEM LObject    *ovalnil() const { TYPE_ASSERT(type == RTT_CLASS || type == RTT_NIL);    return oval_;        }
-    VM_INLINEM LResource  *xval   () const { TYPE_ASSERT(type == RTT_RESOURCE);                    return xval_;        }
-    VM_INLINEM LResource  *xvalnil() const { TYPE_ASSERT(type == RTT_RESOURCE || type == RTT_NIL); return xval_;        }
-    VM_INLINEM RefObj     *ref    () const { TYPE_ASSERT(RTIsRef(type));                           return ref_;         }
-    VM_INLINEM RefObj     *refnil () const { TYPE_ASSERT(RTIsRefNil(type));                        return ref_;         }
-    VM_INLINEM FunPtr      ip     () const { TYPE_ASSERT(type >= RTT_FUNCTION);                    return ip_;          }
+    VM_INLINEM iint        ival   () const { return ival_;        }
+    VM_INLINEM double      fval   () const { return fval_;        }
+    VM_INLINEM int         intval () const { return (int)ival_;   }
+    VM_INLINEM float       fltval () const { return (float)fval_; }
+    VM_INLINEM LString    *sval   () const { return sval_;        }
+    VM_INLINEM LString    *svalnil() const { return sval_;        }
+    VM_INLINEM LVector    *vval   () const { return vval_;        }
+    VM_INLINEM LVector    *vvalnil() const { return vval_;        }
+    VM_INLINEM LObject    *oval   () const { return oval_;        }
+    VM_INLINEM LObject    *ovalnil() const { return oval_;        }
+    VM_INLINEM LResource  *xval   () const { return xval_;        }
+    VM_INLINEM LResource  *xvalnil() const { return xval_;        }
+    VM_INLINEM RefObj     *ref    () const { return ref_;         }
+    VM_INLINEM RefObj     *refnil () const { return ref_;         }
+    VM_INLINEM FunPtr      ip     () const { return ip_;          }
     VM_INLINEM void       *any    () const {                                                       return ref_;         }
     // A global still holds a nil before its initializer has run, which the code that only
     // saves and restores one has to read past, see CodeGen::DefineFunction.
-    VM_INLINEM iint        ivalnil() const { TYPE_ASSERT(type == RTT_INT   || type == RTT_NIL);    return ival_;        }
-    VM_INLINEM double      fvalnil() const { TYPE_ASSERT(type == RTT_FLOAT || type == RTT_NIL);    return fval_;        }
-    VM_INLINEM FunPtr      ipnil  () const { TYPE_ASSERT(type >= RTT_FUNCTION || type == RTT_NIL); return ip_;          }
+    VM_INLINEM iint        ivalnil() const { return ival_;        }
+    VM_INLINEM double      fvalnil() const { return fval_;        }
+    VM_INLINEM FunPtr      ipnil  () const { return ip_;          }
     // The whole payload without regard for what it holds, for comparing two structs slot by
     // slot: a struct can mix field types, so there is nothing to assert per slot.
     VM_INLINEM iint        bits   () const {                                                       return ival_;        }
     // The reference whatever the tag says, for generated code, which knows the static type.
     VM_INLINEM RefObj     *refany () const {                                                       return ref_;         }
-    VM_INLINEM TypeInfo   *tival  () const { TYPE_ASSERT(type == RTT_STRUCT_S);                    return ti_;          }
+    VM_INLINEM TypeInfo   *tival  () const { return ti_;          }
 
     template<typename T> T ifval() const {
-        if constexpr (is_floating_point<T>()) { TYPE_ASSERT(type == RTT_FLOAT); return (T)fval_; }
-        else                                  { TYPE_ASSERT(type == RTT_INT);   return (T)ival_; }
+        if constexpr (is_floating_point<T>()) { return (T)fval_; }
+        else                                  { return (T)ival_; }
     }
 
-    VM_INLINEM void setival(iint i)   { TYPE_ASSERT(type == RTT_INT);   ival_ = i; }
-    VM_INLINEM void setfval(double f) { TYPE_ASSERT(type == RTT_FLOAT); fval_ = f; }
+    VM_INLINEM void setival(iint i)   { ival_ = i; }
+    VM_INLINEM void setfval(double f) { fval_ = f; }
 
     // We have NO default constructor! This is because a) doing so is typically an error,
     // you should always construct these values with an actual contained value, and b)
@@ -581,34 +558,29 @@ struct Value {
 
     // We underlying types here, because types like int64_t etc can be defined as different types
     // on different platforms, causing ambiguities between multiple types that are long or long long
-    VM_INLINEM Value(int i)                : ival_((iint)i)   TYPE_INIT(RTT_INT)      {}
-    VM_INLINEM Value(unsigned int i)       : ival_((iint)i)   TYPE_INIT(RTT_INT)      {}
-    VM_INLINEM Value(long i)               : ival_((iint)i)   TYPE_INIT(RTT_INT)      {}
-    VM_INLINEM Value(unsigned long i)      : ival_((iint)i)   TYPE_INIT(RTT_INT)      {}
-    VM_INLINEM Value(long long i)          : ival_((iint)i)   TYPE_INIT(RTT_INT)      {}
-    VM_INLINEM Value(unsigned long long i) : ival_((iint)i)   TYPE_INIT(RTT_INT)      {}
-    VM_INLINEM Value(int i, RTType t)      : ival_(i)         TYPE_INIT(t)            { (void)t; }
-    VM_INLINEM Value(bool b)               : ival_(b)         TYPE_INIT(RTT_INT)      {}
-    VM_INLINEM Value(float f)              : fval_(f)         TYPE_INIT(RTT_FLOAT)    {}
-    VM_INLINEM Value(double f)             : fval_((double)f) TYPE_INIT(RTT_FLOAT)    {}
-    VM_INLINEM Value(FunPtr i)             : ip_(i)           TYPE_INIT(RTT_FUNCTION) {}
+    VM_INLINEM Value(int i)                : ival_((iint)i)      {}
+    VM_INLINEM Value(unsigned int i)       : ival_((iint)i)      {}
+    VM_INLINEM Value(long i)               : ival_((iint)i)      {}
+    VM_INLINEM Value(unsigned long i)      : ival_((iint)i)      {}
+    VM_INLINEM Value(long long i)          : ival_((iint)i)      {}
+    VM_INLINEM Value(unsigned long long i) : ival_((iint)i)      {}
+    VM_INLINEM Value(bool b)               : ival_(b)      {}
+    VM_INLINEM Value(float f)              : fval_(f)    {}
+    VM_INLINEM Value(double f)             : fval_((double)f)    {}
+    VM_INLINEM Value(FunPtr i)             : ip_(i) {}
 
-    VM_INLINEM Value(LString *s)         : sval_(s)         TYPE_INIT(RTT_STRING)     {}
-    VM_INLINEM Value(LVector *v)         : vval_(v)         TYPE_INIT(RTT_VECTOR)     {}
-    VM_INLINEM Value(LObject *s)         : oval_(s)         TYPE_INIT(RTT_CLASS)      {}
-    VM_INLINEM Value(LResource *r)       : xval_(r)         TYPE_INIT(RTT_RESOURCE)   {}
-    VM_INLINEM Value(RefObj *r)          : ref_(r)          TYPE_INIT(RTT_NIL)        { assert(false); }
-    // A reference of a known static type, tagged for it, or nil when it is null, which is how
-    // generated code writes one to memory.
-    VM_INLINEM Value(RefObj *r, RTType t) : ref_(r)         TYPE_INIT(r ? t : RTT_NIL) { (void)t; }
+    VM_INLINEM Value(LString *s)         : sval_(s)     {}
+    VM_INLINEM Value(LVector *v)         : vval_(v)     {}
+    VM_INLINEM Value(LObject *s)         : oval_(s)      {}
+    VM_INLINEM Value(LResource *r)       : xval_(r)   {}
+    VM_INLINEM Value(RefObj *r)          : ref_(r)        {}
 
-    VM_INLINEM Value(TypeInfo *ti) : ti_(ti) TYPE_INIT(RTT_STRUCT_S) {}
+    VM_INLINEM Value(TypeInfo *ti) : ti_(ti) {}
 
     VM_INLINEM bool True() const { return ival_ != 0; }
     VM_INLINEM bool False() const { return ival_ == 0; }
 
     inline void LTINCRT() {
-        TYPE_ASSERT(RTIsRef(type) && ref_);
         ref_->Inc();
     }
     inline void LTINCRTNIL() {
@@ -620,7 +592,6 @@ struct Value {
     }
 
     inline void LTDECRT(VM &vm) const {  // we already know its a ref type
-        TYPE_ASSERT(RTIsRef(type) && ref_);
         ref_->Dec(vm);
     }
     inline void LTDECRTNIL(VM &vm) const {
@@ -642,7 +613,6 @@ struct Value {
     Value CopyRef(VM &vm, iint depth);
 };
 
-inline Value RefVal(RefObj *r, RTType t) { return Value(r, t); }
 
 template<typename T> T get_T(Value) {
     assert(false);
@@ -1266,7 +1236,6 @@ struct VM : VMBase {
     Value SeriousError(string err);
     Value NormalExit(string err);
     void ErrorBase(const string &err);
-    void VMAssert(const char *what);
     bool JitNeedsLongJmp();
     [[noreturn]] void UnwindOnError();
 
@@ -1292,8 +1261,6 @@ struct VM : VMBase {
     void AssertFailed(int line, int fileidx, int stringidx);
     void IDXErr(iint i, iint n, const RefObj *v);
     void IDXErrS(iint i, iint n);
-    void BCallRetCheck(StackPtr sp, int nfi, int n);
-    void BCallRetCheck(Value v, int nfi);
 
     string_view StructName(const TypeInfo &ti);
     string_view ReverseLookupType(int v);
@@ -1345,7 +1312,7 @@ VM_INLINE void PopN(StackPtr &sp, iint n) { sp -= n; }
 // Codegen helpers.
 
 VM_INLINE Value NilVal() {
-    return Value(0, RTT_NIL);
+    return Value(0);
 }
 
 VM_INLINE void BackupVar(VM &vm, int i) {
@@ -1559,14 +1526,6 @@ inline LVector *ToValueOfVectorOfStringsEmpty(VM &vm, const int2 &size, char ini
 }
 
 void EscapeAndQuote(string_view s, string &sd, bool cpp = false);
-
-#if !defined(NDEBUG) && RTT_ENABLED
-    #define STRINGIFY(x) #x
-    #define TOSTRING(x) STRINGIFY(x)
-    #define VMASSERT(vm, test) { if (!(test)) vm.VMAssert(__FILE__ ": " TOSTRING(__LINE__) ": " #test); }
-#else
-    #define VMASSERT(vm, test) { (void)vm; }
-#endif
 
 #define RANGECHECK(vm, I, BOUND, VEC) \
     if ((uint64_t)I >= (uint64_t)BOUND) vm.IDXErr(I, BOUND, VEC);
