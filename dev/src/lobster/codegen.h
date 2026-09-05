@@ -112,6 +112,10 @@ struct CodeGen  {
     // The runtime type of each slot of a run of values, which says both the kind of variable it
     // is kept in and the tag it carries when it is written to memory, see RtTypeOf.
     typedef vector<RTType> Types;
+
+    // The struct a function with more than one return value comes back in, by its name, which
+    // the kinds of those values give it, see RetStruct.
+    map<string, Types> rets_used;
     // How each argument of a builtin reaches it, see EmitNativeCall: -1 for one that is a
     // single value, otherwise how many slots its values take, which it is passed a pointer to.
     typedef vector<int> NativeArgs;
@@ -608,6 +612,15 @@ struct CodeGen  {
             }
             decls += ");\n";
         }
+        // The structs the functions that return several values return, see RetStruct.
+        for (auto &[name, rets] : rets_used) {
+            decls += "typedef struct {\n";
+            for (auto [i, r] : enumerate(rets)) {
+                auto ct = CType(Kind(r));
+                append(decls, "    ", ct, ct.back() == '*' ? "" : " ", "r", i, ";\n");
+            }
+            append(decls, "} ", name, ";\n");
+        }
         // The object types whose fields the code names, see UDTName. Each is the header every
         // reference carries and a Value per slot, which is what an object is; Entry() checks
         // the size of both of those, so nothing here needs a check of its own.
@@ -951,10 +964,26 @@ struct CodeGen  {
         }
     }
 
-    // What a function returns: nothing, a value, or several values thru an array it is given.
+    // What a function returns: nothing, a value, or several values in a struct.
     enum RetKind { RK_VOID, RK_VALUE, RK_MULTI };
     static RetKind RetKindOf(int outw) {
         return outw == 0 ? RK_VOID : outw == 1 ? RK_VALUE : RK_MULTI;
+    }
+
+    // A letter per kind of value, which is what names the struct several of them come back in.
+    static char KindCode(VKind k) {
+        static const char codes[] = { 'i', 'f', 'p', 'n', 's', 'v', 'o' };
+        return codes[k];
+    }
+
+    // The struct a function returns several values in, one per list of kinds, whose members are
+    // those values. A struct rather than an array the caller passes a pointer to, since only
+    // this way can they stay in registers, and nothing else names the type.
+    string RetStruct(const Types &rets) {
+        string name = "ret_";
+        for (auto r : rets) name += KindCode(Kind(r));
+        rets_used.insert({ name, rets });
+        return name;
     }
 
     // The runtime type of a value of this type, for a nilable one that of what it holds. The
@@ -1273,10 +1302,10 @@ struct CodeGen  {
     string FunSignature(string_view name, const Types &args, const Types &rets,
                         const vector<Place> *params) {
         auto rk = RetKindOf((int)rets.size());
-        string s = cat("static ", rk == RK_VALUE ? CType(Kind(rets[0])) : "void", " ", name,
-                       "(VMRef");
+        string s = cat("static ", rk == RK_VALUE ? CType(Kind(rets[0]))
+                               : rk == RK_MULTI ? RetStruct(rets) : string("void"),
+                       " ", name, "(VMRef");
         if (params) s += " vm";
-        if (rk == RK_MULTI) append(s, ", Value *", params ? "rets" : "");
         for (auto [i, a] : enumerate(args)) {
             auto type = CType(Kind(a));
             append(s, ", ", type);
@@ -1289,8 +1318,8 @@ struct CodeGen  {
     // a dynamic dispatch lands in.
     string FunPtrType(const Types &args, const Types &rets) {
         auto rk = RetKindOf((int)rets.size());
-        string s = cat(rk == RK_VALUE ? CType(Kind(rets[0])) : "void", " (*)(VMRef");
-        if (rk == RK_MULTI) s += ", Value *";
+        string s = cat(rk == RK_VALUE ? CType(Kind(rets[0]))
+                     : rk == RK_MULTI ? RetStruct(rets) : string("void"), " (*)(VMRef");
         for (auto &a : args) append(s, ", ", CType(Kind(a)));
         return s + ")";
     }
@@ -1410,7 +1439,7 @@ struct CodeGen  {
             "reinterpret_cast", "requires", "static_assert", "static_cast", "template", "this",
             "thread_local", "throw", "true", "try", "typeid", "typename", "using", "virtual",
             "wchar_t", "xor", "xor_eq", "override", "final", "NULL",
-            "vm", "lv", "vals", "locals", "ctx", "tsld", "top", "rs", "ret", "rets",
+            "vm", "lv", "vals", "locals", "ctx", "tsld", "top", "rs", "ret",
             "epilogue", "main", "argc", "argv", "vmmeta", "Value", "VMRef", "StackPtr",
             "RefObj", "LVector", "LString", "LObject", "VMBase", "fun_base_t", "type_elem_t",
             "vtables", "object_decs", "funinfo_table", "compiled_entry_point",
@@ -1507,8 +1536,10 @@ struct CodeGen  {
     Place RetBufSlot(int i, RTType rtt) {
         return Mem(cpp ? cat("vm.ret_buf.v[", i, "]") : cat("vm->ret_buf[", i, "]"), rtt);
     }
-    // The function's own return value.
+    // The function's own return value, and slot i of it when it returns several, which are the
+    // members of the struct it returns them in, see RetStruct.
     Place RetVar() { return Var("ret", f_ret_types[0]); }
+    Place RetSlot(int i, RTType rtt) { return Var(cat("ret.r", i), rtt); }
     void comment(string_view c) { append(cb, " // ", c, "\n"); };
     string_view vmref() { return string_view(cpp ? "vm." : "vm->"); };
 
@@ -2333,7 +2364,7 @@ struct CodeGen  {
             CopyValue(cb, RetVar(), src(0));
         } else {
             for (auto [i, kr] : enumerate(f_ret_types)) {
-                CopyValue(cb, Mem(cat("rets[", i, "]"), kr), src((int)i));
+                CopyValue(cb, RetSlot((int)i, kr), src((int)i));
             }
         }
     }
@@ -2407,21 +2438,23 @@ struct CodeGen  {
         auto rk = RetKindOf(defs);
         auto base = regso - uses;
         string call = cat(callee, "(vm");
-        if (rk == RK_MULTI) {
-            // Several results come back thru the stack array.
-            f_uses_vals = true;
-            append(call, ", ", StackArray(), " + ", base);
-        }
         for (auto [i, a] : enumerate(args)) append(call, ", ", Read(SlotVar(base + (int)i, a)));
         call += ")";
+        if (rk == RK_MULTI) {
+            // Several results come back in a struct, whose members go into the slots they
+            // belong in.
+            append(cb, "    {");
+            if (cmt.empty()) cb += "\n"; else comment(cmt);
+            append(cb, "    ", RetStruct(rets), " _r = ", call, ";\n");
+            for (int i = 0; i < defs; i++) {
+                Write(cb, SlotVar(base + i, rets[i]), cat("_r.r", i));
+            }
+            cb += "    }\n";
+            return;
+        }
         if (rk == RK_VALUE) Write(cb, SlotVar(base, rets[0]), call, "");
         else append(cb, "    ", call, ";");
         if (cmt.empty()) cb += "\n"; else comment(cmt);
-        if (rk == RK_MULTI) {
-            for (int i = 0; i < defs; i++) {
-                CopyValue(cb, SlotVar(base + i, rets[i]), StackSlot(base + i, rets[i]));
-            }
-        }
     }
 
     void EmitCall(const SubFunction &sf, int inw) {
@@ -2695,7 +2728,11 @@ struct CodeGen  {
         if (f_uses_lval) append(sd, "    void *lv = 0;\n");
         if (f_uses_lobj) append(sd, "    LObject *lo = 0;\n");
         if (f_uses_lelem) append(sd, "    void *lvec = 0;\n    long long lidx = 0;\n");
-        if (f_ret_types.size() == 1) append(sd, "    ", CType(Kind(f_ret_types[0])), " ret;\n");
+        if (f_ret_types.size() == 1) {
+            append(sd, "    ", CType(Kind(f_ret_types[0])), " ret;\n");
+        } else if (f_ret_types.size() > 1) {
+            append(sd, "    ", RetStruct(f_ret_types), " ret;\n");
+        }
         for (int i = 0; i < (int)f_args.size(); i++) {
             auto varidx = f_args[i];
             auto &p = f_arg_places[i];
@@ -2742,6 +2779,12 @@ struct CodeGen  {
         for (int i = 0; i < (int)f_keeps.size(); i++) {
             SetNil(sd, KeepVar(i));
         }
+        // A return that has nothing of its own to say leaves these alone, since the caller then
+        // reads what a non-local return left in the buffer instead, see GenUnwind. Written one
+        // at a time rather than with an initializer, which libtcc compiles into a memset call.
+        if (f_ret_types.size() > 1) {
+            for (auto [i, kr] : enumerate(f_ret_types)) SetNil(sd, RetSlot((int)i, kr));
+        }
 
         sd += cb;
         cb.clear();
@@ -2763,7 +2806,7 @@ struct CodeGen  {
         if (runtime_checks >= RUNTIME_STACK_TRACE && f_function_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
             append(sd, "    PopFunId(vm);\n");
         }
-        if (f_ret_types.size() == 1) sd += "    return ret;\n";
+        if (!f_ret_types.empty()) sd += "    return ret;\n";
         sd += "}\n";
         ownedvars.clear();
         f_keeps.clear();
