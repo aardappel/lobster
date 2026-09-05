@@ -76,8 +76,6 @@ else()
     src/lobster/typecheck.h
     src/lobster/unicode.h
     src/lobster/vmdata.h
-    src/lobster/wasm_binary_writer.h
-    src/lobster/wasm_binary_writer_test.h
     src/lobster/wentropy.h
     src/lobster/wfc.h
     src/builtins.cpp
@@ -251,7 +249,6 @@ function(removecpp CPPNAME)
 endfunction()
 
 set(EXE_NAME lobster)
-removecpp(towasm)
 if(LOBSTER_TOCPP)
   add_definitions(-DVM_JIT_MODE=0)
   removecpp(main)

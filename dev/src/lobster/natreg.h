@@ -655,8 +655,6 @@ struct NativeFun : Named {
         auto k = ArgKind(i);
         return k == BAK_IVEC || k == BAK_FVEC || k == BAK_VALUEVEC;
     }
-
-    bool IsGLFrame() const { return codegen == BCG_GL_FRAME; }
 };
 
 struct NativeRegistry {
