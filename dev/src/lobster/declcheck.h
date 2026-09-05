@@ -195,7 +195,8 @@ struct DeclChecker {
         call.cand_function = FindLexical(call.name, call.ns);
         call.cand_native = FindNativeNS(call.name, call.ns);
         call.cand_field = st.FieldUse(call.name);
-        if (!call.cand_function && !call.cand_native && !call.cand_field) {
+        // A variable in scope at the call (cand_var) is a candidate the parser found.
+        if (!call.cand_function && !call.cand_native && !call.cand_field && !call.cand_var) {
             // Local functions can additionally be called from outside their
             // lexical scope while their enclosing function is active
             // ("functions as environments"); which one applies depends on the

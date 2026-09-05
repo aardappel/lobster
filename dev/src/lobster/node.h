@@ -464,6 +464,10 @@ struct GenericCall : List {
     // other scopes: which one (if any) applies depends on what is active on
     // the call path, so TypeCheck resolves it.
     bool cand_nonlexical = false;
+    // The variable of this name in scope at the call, set by the parser, which
+    // has the variable scopes: what is called when no function or builtin
+    // takes precedence over it, see TypeCheck.
+    SpecIdent *cand_var = nullptr;
     GenericCall(const Line &ln, string_view name, string_view ns, bool fromdot, bool noparens,
                 bool super, vector<UnTypeRef> *spec)
         : List(ln), name(name), ns(ns), fromdot(fromdot), noparens(noparens), super(super) {

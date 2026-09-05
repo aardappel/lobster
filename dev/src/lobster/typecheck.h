@@ -3941,6 +3941,23 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
     auto nf = cand_native;
     auto fld = cand_field;
     auto ff = cand_function;
+    // A variable holding a function value is what gets called when there is one in scope and
+    // no function of the name is declared in a deeper scope: a function opens a scope of its
+    // own, so one declared in the same block as the variable counts as deeper and wins. A
+    // builtin wins over both.
+    if (cand_var && !nf && (!ff || cand_var->id->scopelevel >= ff->scopelevel)) {
+        if (super) tc.Error(*this, "super must precede function call");
+        // This node stays in the tree until the new one has typechecked, since an error
+        // thrown from that leaves the tree to be deleted with this node in it.
+        unique_ptr<DynCall> dc(new DynCall(line, nullptr, cand_var));
+        dc->children = children;
+        children.clear();
+        auto r = tc.TypeCheckDynCall(dc.get(), reqret);
+        dc.release();
+        delete this;
+        return r;
+    }
+    if (ff && ff->istype) tc.Error(*this, "can\'t call function type ", Q(ff->name));
     if (!ff && cand_nonlexical) {
         // The name only refers to function(s) not lexically visible here
         // ("functions as environments"): callable while their enclosing

@@ -1375,8 +1375,11 @@ struct Parser {
         }
     }
 
-    List *ParseFunctionCall(Line line, Function *f, NativeFun *nf, string_view idname, Node *dotarg,
-                            bool noparenscall, vector<UnTypeRef> *specializers) {
+    // The arguments of a call to `idname`, into a GenericCall for the declchecker and the
+    // typechecker to decide what it calls. `f` is only what a function of that name is known
+    // to be here, for an error about how a constructor is called.
+    GenericCall *ParseFunctionCall(Line line, Function *f, string_view idname, Node *dotarg,
+                                   bool noparenscall, vector<UnTypeRef> *specializers) {
         node_small_vector list;
         bool parens_parsed = false;
         [&]() {
@@ -1453,25 +1456,16 @@ struct Parser {
                 }
             }
         }();
-        // FIXME: move more of the code below into the type checker, and generalize the remaining
-        // code to be as little dependent as possible on whether nf or f are available.
-        // It should only parse args and construct a GenericCall.
-        auto id = dotarg ? nullptr : st.Lookup(idname);
-        // If both a var and a function are in scope, the deepest scope wins.
-        // Note: <, because functions are inside their own scope.
-        if (nf || (f && (!id || id->scopelevel < f->scopelevel))) {
-            if (f && f->istype) Error("can\'t call function type ", Q(f->name));
-        } else {
-            if (noparenscall) Error("call requires ()");
-            if (id) {
-                auto dc = new DynCall(lex, nullptr, id->cursid);
-                dc->children = list;
-                return dc;
-            }
-        }
         auto call = new GenericCall(line, idname, st.current_namespace, dotarg != nullptr,
                                     !parens_parsed, false, specializers);
         call->children = list;
+        if (!dotarg) {
+            // A variable of this name is a candidate for what is called, see
+            // GenericCall::TypeCheck, which has to know about it since the variable scopes
+            // are gone by then.
+            auto id = st.Lookup(idname);
+            if (id) call->cand_var = id->cursid;
+        }
         return call;
     }
 
@@ -1493,7 +1487,7 @@ struct Parser {
                     auto nf = natreg.FindNative(idname);
                     auto f = st.FindFunction(idname);
                     auto specializers = ParseSpecializers(f && !nf);
-                    n = ParseFunctionCall(lex, f, nf, idname, n, false, &specializers);
+                    n = ParseFunctionCall(lex, f, idname, n, false, &specializers);
                 }
                 break;
             }
@@ -1638,12 +1632,10 @@ struct Parser {
             case T_SUPER: {
                 lex.Next();
                 auto idname = ExpectId();
-                auto n = ParseFunctionCall(lex, st.FindFunction(idname), nullptr, idname, nullptr, false,
-                                           nullptr);
-                auto call = Is<GenericCall>(*n);
-                if (!call) Error("super must precede function call");
+                auto call = ParseFunctionCall(lex, st.FindFunction(idname), idname, nullptr, false,
+                                              nullptr);
                 call->super = true;
-                return n;
+                return call;
             }
             case T_PAKFILE: {
                 lex.Next();
@@ -1939,11 +1931,11 @@ struct Parser {
                 Expect(T_RIGHTPAREN);
                 return ec;
             }
-            return ParseFunctionCall(lex, f, nf, idname, nullptr, false, nullptr);
+            return ParseFunctionCall(lex, f, idname, nullptr, false, nullptr);
         }
         auto specializers = ParseSpecializers(f && !nf && !e);
         if (!specializers.empty())
-            return ParseFunctionCall(lex, f, nf, idname, nullptr, false, &specializers);
+            return ParseFunctionCall(lex, f, idname, nullptr, false, &specializers);
         // Check for implicit variable.
         if (idname[0] == '_') {
             if (block_stack.empty())
@@ -1986,7 +1978,7 @@ struct Parser {
             (nf || f) &&
             lex.whitespacebefore > 0 &&
             lex.token != T_LINEFEED) {
-            return ParseFunctionCall(lex, f, nf, idname, nullptr, true, nullptr);
+            return ParseFunctionCall(lex, f, idname, nullptr, true, nullptr);
         }
         // Check for enum value.
         auto ev = st.EnumValLookup(idname, false);
