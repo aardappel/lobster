@@ -173,12 +173,15 @@ struct CodeGen  {
     // A field of an object is neither: it is a member of the struct for its type, which the
     // object it belongs to sits in "lo" for. LVK_NUMPTR is a pointer to slots that hold the one
     // numeric type they are rather than Values, which is what indexing such a field gives.
-    enum LvalKind { LVK_NONE, LVK_LOCAL, LVK_GLOBAL, LVK_PTR, LVK_FIELD, LVK_NUMPTR };
+    enum LvalKind { LVK_NONE, LVK_LOCAL, LVK_GLOBAL, LVK_PTR, LVK_FIELD, LVK_NUMPTR,
+                    LVK_ELEM };
     LvalKind f_lval_kind = LVK_NONE;
     int f_lval_idx = 0;
     const UDT *f_lval_udt = nullptr;
+    TypeRef f_lval_elem;
     bool f_uses_lval = false;
     bool f_uses_lobj = false;
+    bool f_uses_lelem = false;
     vector<int> ownedvars;
     vector<int> funstarttables;
     // The C name of each function, by its SubFunction index, see FunName.
@@ -609,7 +612,8 @@ struct CodeGen  {
         // the size of both of those, so nothing here needs a check of its own.
         for (auto &[idx, um] : udts_used) {
             auto &[udt, members] = um;
-            append(decls, "typedef struct {\n    int typeinfo;\n    int refc;\n");
+            decls += "typedef struct {\n";
+            if (!udt->g.is_struct) decls += "    int typeinfo;\n    int refc;\n";
             for (auto &m : members) {
                 append(decls, "    ", m.ctype, m.ctype.back() == '*' ? "" : " ", m.name);
                 if (m.count > 1) append(decls, "[", m.count, "]");
@@ -1633,6 +1637,7 @@ struct CodeGen  {
             case LVK_LOCAL: return Local(f_lval_idx + i);
             case LVK_GLOBAL: return Global(f_lval_idx + i);
             case LVK_FIELD: return Field("lo", *f_lval_udt, f_lval_idx + i, SlotType(type, i));
+            case LVK_ELEM: return Elem("lvec", f_lval_elem, "lidx", f_lval_idx + i);
             case LVK_NUMPTR:
                 return Direct(cat("((", SlotCType(type, i), " *)lv)[", i, "]"),
                               RtTypeOf(SlotType(type, i)));
@@ -1668,14 +1673,41 @@ struct CodeGen  {
         append(cb, "    // lval: ", IdName(offset, false, type), "\n");
     }
 
-    // The struct the generated code gets for an object type, whose members are its fields by
-    // the names they have in the program. It is emitted once the code is known to name them,
-    // the way the builtins it calls are, see udts_used.
+    // The struct the generated code gets for a type, whose members are its fields by the names
+    // they have in the program. It is emitted once the code is known to name them, the way the
+    // builtins it calls are, see udts_used. An object carries the header every reference does
+    // in front of its fields, where a struct is only the fields, since a run of them is what
+    // the elements of a vector are, see Elem.
     string UDTName(const UDT &udt) {
         MembersOf(udt);
-        auto name = cat("udt_", udt.name, udt.idx);
+        auto name = cat(udt.g.is_struct ? "elem_" : "udt_", udt.name, udt.idx);
         for (auto &c : name) if (!isalnum((uint8_t)c) && c != '_') c = '_';
         return name;
+    }
+
+    // Whether every slot of a value of this type holds the same C type, which makes a run of
+    // them a flat array of it, so that a slot is an index into that and no struct is needed.
+    bool UniformSlots(TypeRef type, int width) {
+        auto ct = SlotCType(type, 0);
+        for (int i = 1; i < width; i++) if (SlotCType(type, i) != ct) return false;
+        return true;
+    }
+
+    // Slot `slot` of the element at `idx` of a vector whose slots start at `elems`.
+    Place Elem(string_view elems, TypeRef elemtype, string_view idx, int slot) {
+        auto width = ValWidth(elemtype);
+        auto rtt = RtTypeOf(SlotType(elemtype, slot));
+        if (UniformSlots(elemtype, width)) {
+            auto i = width == 1
+                ? (slot ? cat("(", idx, ") + ", slot) : string(idx))
+                : cat("(", idx, ") * ", width, slot ? cat(" + ", slot) : string());
+            auto ct = SlotCType(elemtype, 0);
+            return Direct(cat("((", ct, ct.back() == '*' ? "" : " ", "*)", elems, ")[", i,
+                              "]"), rtt);
+        }
+        // A struct of more than one type is an array of the struct emitted for it.
+        return Direct(cat("((", UDTName(*elemtype->udt), " *)", elems, ")[", idx, "].",
+                          MemberAt(*elemtype->udt, slot)), rtt);
     }
 
     // A name from the program as a member of one, kept clear of the names C has of its own.
@@ -1729,20 +1761,21 @@ struct CodeGen  {
         return it->second.second;
     }
 
-    // The member slot `slot` lives in, as an expression at the object `obj`.
-    string FieldName(string_view obj, const UDT &udt, int slot) {
-        auto s = cat("((", UDTName(udt), " *)", obj, ")->");
+    // The member slot `slot` lives in, and where in it when that member is an array.
+    string MemberAt(const UDT &udt, int slot) {
         for (auto &m : MembersOf(udt)) {
             if (slot >= m.slot && slot < m.slot + m.count) {
-                append(s, m.name);
-                if (m.count > 1) append(s, "[", slot - m.slot, "]");
-                return s;
+                return m.count > 1 ? cat(m.name, "[", slot - m.slot, "]") : m.name;
             }
         }
         // A slot no field claims, which only a malformed type would have.
         assert(false);
-        append(s, "slot", slot);
-        return s;
+        return cat("slot", slot);
+    }
+
+    // The same as an expression at the object `obj`.
+    string FieldName(string_view obj, const UDT &udt, int slot) {
+        return cat("((", UDTName(udt), " *)", obj, ")->", MemberAt(udt, slot));
     }
 
     // One of those members as a place. It holds the type the field is, except with the runtime
@@ -1779,13 +1812,8 @@ struct CodeGen  {
         f_lval_idx = slot;
     }
 
-    // The elements of the vector in _o, and the index of one of them or of a slot of one, at
-    // the width the vector holds them at.
-    string Elems() { return cpp ? "((Value *)_o->ElemSlots())" : "_o->elems"; }
-    string ElemIndex(int width, int slot) {
-        if (width == 1) return slot ? cat("_i + ", slot) : "_i";
-        return cat("_i * ", width, " + ", slot);
-    }
+    // The slots the elements of the vector in _o live in, which Elem reads as what they hold.
+    string Elems() { return cpp ? "_o->ElemSlots()" : "_o->elems"; }
 
     // Steps into the vector in `vec` with the indices above it on the stack, one nested vector
     // per level, with a range check per level whose failure path stays a call, leaving the
@@ -1798,11 +1826,11 @@ struct CodeGen  {
             if (cpp) {
                 append(cb, "    if ((uint64_t)_i >= (uint64_t)_o->len)"
                            " vm.IDXErr(_i, _o->len, _o);\n");
-                if (j) append(cb, "    _o = _o->AtS(_i).vval();\n");
+                if (j) append(cb, "    _o = ((LVector **)_o->ElemSlots())[_i];\n");
             } else {
                 append(cb, "    if ((unsigned long long)_i >= (unsigned long long)_o->len)"
                            " IDXErr(vm, _i, _o->len, _o);\n");
-                if (j) append(cb, "    _o = _o->elems[_i].vval;\n");
+                if (j) append(cb, "    _o = ((LVector **)_o->elems)[_i];\n");
             }
         }
     }
@@ -1811,12 +1839,15 @@ struct CodeGen  {
     // thru the VM, so they read as a chain of assignments, and none of them leave anything on
     // the stack. An element of a vector is at the width the vector holds its elements at plus
     // wherever in one the assignment lands.
-    void EmitLvalVectorIndex(int levels, int offset, int width) {
+    void EmitLvalVectorIndex(int levels, int offset, TypeRef etype) {
         TrackUseDef(levels + 1, 0);
-        f_uses_lval = true;
+        f_uses_lelem = true;
         GenVectorDescent(levels, Slot(levels + 1, VK_VECTOR));
-        append(cb, "    lv = ", Elems(), " + ", ElemIndex(width, offset), ";\n    }\n");
-        f_lval_kind = LVK_PTR;
+        // The element outlives the block the descent opened, so where it is goes in locals.
+        append(cb, "    lvec = ", Elems(), "; lidx = _i;\n    }\n");
+        f_lval_kind = LVK_ELEM;
+        f_lval_elem = etype;
+        f_lval_idx = offset;
     }
 
     // A class indexed at runtime, whose range check needs the type info, so it stays a helper.
@@ -1834,12 +1865,16 @@ struct CodeGen  {
         TrackUseDef(1, 0);
         f_uses_lval = true;
         string base;
-        auto kind = f_lval_kind == LVK_FIELD || f_lval_kind == LVK_NUMPTR ? LVK_NUMPTR
-                                                                         : LVK_PTR;
+        auto typed = f_lval_kind == LVK_FIELD || f_lval_kind == LVK_NUMPTR ||
+                     f_lval_kind == LVK_ELEM;
+        auto kind = typed ? LVK_NUMPTR : LVK_PTR;
         if (f_lval_kind == LVK_FIELD) {
             // A field of a struct type is an array of what its slots hold, so indexing it is
             // an index into that, see Members.
             base = FieldArray("lo", *f_lval_udt, f_lval_idx);
+        } else if (f_lval_kind == LVK_ELEM) {
+            // The same for an element, which a vector of one type holds in a flat run of them.
+            base = cat("&", Elem("lvec", f_lval_elem, "lidx", f_lval_idx).s);
         } else if (f_lval_kind == LVK_LOCAL) {
             // A struct in variables has to be in memory to be indexed at runtime, so it goes
             // thru the stack array above what is in use, and comes back out once the modifier
@@ -2097,64 +2132,54 @@ struct CodeGen  {
         cb += "    {";
         comment(cmt);
         append(cb, "    LVector *_v = ", Read(SlotVar(base, RTT_VECTOR)), ";\n");
-        return cpp ? "((Value *)_v->ElemSlots())" : "_v->elems";
+        return cpp ? "_v->ElemSlots()" : "_v->elems";
     }
 
     // The element at `idx` of that vector, in the slots starting at `base`. A struct takes more
     // than one load, at the width the vector holds its elements at, so its start goes in a
     // local first.
-    void EmitVectorElem(const Types &elem, int base, string_view idx, string_view elems) {
-        auto width = (int)elem.size();
-        if (width == 1) {
-            CopyValue(cb, SlotVar(base, elem[0]), Mem(cat(elems, "[", idx, "]"), elem[0]));
-            return;
-        }
-        append(cb, "    Value *_e = ", elems, " + (", idx, ") * ", width, ";\n");
-        for (int i = 0; i < width; i++) {
-            CopyValue(cb, SlotVar(base + i, elem[i]), Mem(cat("_e[", i, "]"), elem[i]));
+    void EmitVectorElem(const Types &elem, int base, string_view idx, string_view elems,
+                        TypeRef elemtype) {
+        for (int i = 0; i < (int)elem.size(); i++) {
+            CopyValue(cb, SlotVar(base + i, elem[i]), Elem(elems, elemtype, idx, i));
         }
     }
 
     // A push of one element onto a vector, which the code writes out rather than calling
     // push(), see EmitCodegenBuiltin. The vector stays in the slot it came in, which is where
     // the value push returns belongs anyway.
-    void EmitVectorPush(const Types &args, string_view cmt) {
+    void EmitVectorPush(const Types &args, string_view cmt, TypeRef elemtype) {
         auto width = (int)args.size() - 1;
         auto base = regso - (int)args.size();
         auto elems = EmitVectorLocal(base, cmt);
         append(cb, "    if (_v->len == _v->maxl) ", cpp ? "lobster::" : "",
                "RtVectorGrow(vm, _v);\n");
-        if (width == 1) {
-            CopyValue(cb, Mem(cat(elems, "[_v->len]"), args[1]), SlotVar(base + 1, args[1]));
-        } else {
-            append(cb, "    Value *_e = ", elems, " + _v->len * ", width, ";\n");
-            for (int i = 1; i <= width; i++) {
-                CopyValue(cb, Mem(cat("_e[", i - 1, "]"), args[i]), SlotVar(base + i, args[i]));
-            }
+        for (int i = 0; i < width; i++) {
+            CopyValue(cb, Elem(elems, elemtype, "_v->len", i), SlotVar(base + 1 + i, args[1 + i]));
         }
         cb += "    _v->len++;\n    }\n";
     }
 
     // The last element of a vector, which pop() also takes out of it where top() leaves it.
-    void EmitVectorPop(NativeFun *nf, const Types &rets, bool take) {
+    void EmitVectorPop(NativeFun *nf, const Types &rets, bool take, TypeRef elemtype) {
         auto base = regso - 1;
         auto elems = EmitVectorLocal(base, nf->name);
         append(cb, "    if (!_v->len) ", cpp ? "lobster::" : "", "RtVectorEmptyErr(vm, ",
                nf->idx, ");\n");
         if (take) cb += "    _v->len--;\n";
-        EmitVectorElem(rets, base, take ? "_v->len" : "_v->len - 1", elems);
+        EmitVectorElem(rets, base, take ? "_v->len" : "_v->len - 1", elems, elemtype);
         cb += "    }\n";
     }
 
     // The element of a vector at an index, which the ones behind it then shift down over.
-    void EmitVectorRemove(NativeFun *nf, const Types &rets) {
+    void EmitVectorRemove(NativeFun *nf, const Types &rets, TypeRef elemtype) {
         auto base = regso - 2;
         auto uint = cpp ? "uint64_t" : "unsigned long long";
         auto elems = EmitVectorLocal(base, nf->name);
         append(cb, "    long long _i = ", Read(SlotVar(base + 1, RTT_INT)), ";\n");
         append(cb, "    if ((", uint, ")_i >= (", uint, ")_v->len) ", cpp ? "lobster::" : "",
                "RtVectorIdxErr(vm, ", nf->idx, ", _i, _v->len);\n");
-        EmitVectorElem(rets, base, "_i", elems);
+        EmitVectorElem(rets, base, "_i", elems, elemtype);
         append(cb, "    ", cpp ? "lobster::" : "", "RtVectorErase(_v, _i);\n    }\n");
     }
 
@@ -2162,7 +2187,8 @@ struct CodeGen  {
     // often enough for the call to be worth avoiding, see BuiltinCodegen. Each reads its
     // arguments from the slots below regso and leaves its return values in the same ones, just
     // as a call would. Returns whether this was one of them.
-    bool EmitCodegenBuiltin(NativeFun *nf, const Types &args, const Types &rets) {
+    bool EmitCodegenBuiltin(NativeFun *nf, const Types &args, const Types &rets,
+                            TypeRef elemtype) {
         // No default, so that a kind added without a case here is a compile error.
         switch (nf->codegen) {
             case BCG_NONE:
@@ -2173,16 +2199,16 @@ struct CodeGen  {
                 comment(nf->name);
                 return true;
             case BCG_PUSH:
-                EmitVectorPush(args, nf->name);
+                EmitVectorPush(args, nf->name, elemtype);
                 return true;
             case BCG_POP:
-                EmitVectorPop(nf, rets, true);
+                EmitVectorPop(nf, rets, true, elemtype);
                 return true;
             case BCG_TOP:
-                EmitVectorPop(nf, rets, false);
+                EmitVectorPop(nf, rets, false, elemtype);
                 return true;
             case BCG_REMOVE:
-                EmitVectorRemove(nf, rets);
+                EmitVectorRemove(nf, rets, elemtype);
                 return true;
         }
         assert(false);
@@ -2195,11 +2221,11 @@ struct CodeGen  {
     // its return values there, the latter all but the last, which it returns as the type it
     // is. The rest return their single value the same way and get no stack pointer at all.
     void EmitNativeCall(NativeFun *nf, const Types &args, const Types &rets,
-                        const NativeArgs &nargs) {
+                        const NativeArgs &nargs, TypeRef elemtype) {
         auto uses = (int)args.size();
         auto defs = (int)rets.size();
         TrackUseDef(uses, defs);
-        if (EmitCodegenBuiltin(nf, args, rets)) return;
+        if (EmitCodegenBuiltin(nf, args, rets, elemtype)) return;
         natives_used[nf->idx] = nf;
         auto spref = nf->PushesValues() ? (cpp ? "sp, " : "&sp, ") : "";
         f_uses_sp = f_uses_sp || nf->PushesValues();
@@ -2417,15 +2443,16 @@ struct CodeGen  {
         cb += "    }\n";
     }
 
-    void EmitNewVec(int type_idx, const Types &args, int len) {
+    void EmitNewVec(int type_idx, const Types &args, int len, TypeRef elemtype) {
         auto n = (int)args.size();
+        auto width = ValWidth(elemtype);
         TrackUseDef(n, 1);
         auto base = regso - n;
         append(cb, "    {\n    LVector *_v = RtNewVec(vm, (type_elem_t)", type_idx, ", ", len,
                ");\n");
+        auto elems = cpp ? "_v->ElemSlots()" : "_v->elems";
         for (int i = 0; i < n; i++) {
-            CopyValue(cb, Mem(cat(cpp ? "((Value *)_v->ElemSlots())" : "_v->elems", "[", i, "]"),
-                              args[i]),
+            CopyValue(cb, Elem(elems, elemtype, cat(i / width), i % width),
                       SlotVar(base + i, args[i]));
         }
         Write(cb, SlotVar(base, RTT_VECTOR), "_v");
@@ -2614,6 +2641,7 @@ struct CodeGen  {
         if (ShadowLocals() && numlocals) append(sd, "    Value locals[", numlocals, "];\n");
         if (f_uses_lval) append(sd, "    void *lv = 0;\n");
         if (f_uses_lobj) append(sd, "    LObject *lo = 0;\n");
+        if (f_uses_lelem) append(sd, "    void *lvec = 0;\n    long long lidx = 0;\n");
         if (f_ret_types.size() == 1) append(sd, "    ", CType(Kind(f_ret_types[0])), " ret;\n");
         for (int i = 0; i < (int)f_args.size(); i++) {
             auto varidx = f_args[i];
@@ -2694,6 +2722,7 @@ struct CodeGen  {
         f_uses_pctx = false;
         f_uses_lval = false;
         f_uses_lobj = false;
+        f_uses_lelem = false;
         f_lval_kind = LVK_NONE;
         local_names.clear();
         local_types.clear();
@@ -3122,23 +3151,14 @@ struct CodeGen  {
             Write(cb, Slot(0, VK_INT), cat("(long long)", data, "[", idx, "]"));
             return;
         }
-        auto elems = cpp ? cat("((Value *)", Read(Slot(1, VK_VECTOR)), "->ElemSlots())")
-                         : cat(Read(Slot(1, VK_VECTOR)), "->elems");
-        if (width > 1) {
-            // A struct element is the same load per slot it occupies, at the width the vector
-            // holds them at, which is what the element type says it is.
-            append(cb, "    {\n    Value *_e = ", elems, " + ", idx, " * ", width, ";\n");
-            for (int i = 0; i < width; i++) {
-                CopyValue(cb, Slot(-i, elemtype, i), Mem(cat("_e[", i, "]"), SlotType(elemtype, i)));
-            }
-            cb += "    }\n";
-            for (int i = 0; i < width; i++) {
-                if ((1 << i) & bitmask) GenIncRef(Slot(-i, elemtype, i));
-            }
-            return;
+        auto elems = cat(Read(Slot(1, VK_VECTOR)), cpp ? "->ElemSlots()" : "->elems");
+        // A struct element is the same load per slot it occupies.
+        for (int i = 0; i < width; i++) {
+            CopyValue(cb, Slot(-i, elemtype, i), Elem(elems, elemtype, cat(idx), i));
         }
-        CopyValue(cb, Slot(0, elemtype), Mem(cat(elems, "[", idx, "]"), elemtype));
-        if (bitmask & 1) GenIncRef(Slot(0, elemtype));
+        for (int i = 0; i < width; i++) {
+            if ((1 << i) & bitmask) GenIncRef(Slot(-i, elemtype, i));
+        }
     }
 
     // Reading an element out of a vector, or just the part of it asked for, with the index
@@ -3147,12 +3167,10 @@ struct CodeGen  {
     void GenPushIdxNested(int levels, TypeRef elemtype, int subwidth, int offset) {
         // The vector plus one index per level it steps thru, replaced by the element.
         TrackUseDef(levels + 1, subwidth);
-        auto elemwidth = ValWidth(elemtype);
         GenVectorDescent(levels, Slot(levels + 1, VK_VECTOR));
         for (int i = 0; i < subwidth; i++) {
             CopyValue(cb, Slot(levels + 1 - i, elemtype, offset + i),
-                      Mem(cat(Elems(), "[", ElemIndex(elemwidth, offset + i), "]"),
-                          SlotType(elemtype, offset + i)));
+                      Elem(Elems(), elemtype, "_i", offset + i));
         }
         cb += "    }\n";
     }
@@ -3185,7 +3203,6 @@ struct CodeGen  {
     void GenPushIdx(bool str, TypeRef elemtype, int subwidth, int offset) {
         // The object and the index it is subscripted with, replaced by the element.
         TrackUseDef(2, subwidth);
-        auto elemwidth = ValWidth(elemtype);
         // A string index may read the terminating 0-byte, one past its length.
         auto bound = str ? "_o->len + 1" : "_o->len";
         append(cb, "    {\n    ", str ? "LString" : "LVector", " *_o = ",
@@ -3204,8 +3221,7 @@ struct CodeGen  {
         } else {
             for (int i = 0; i < subwidth; i++) {
                 CopyValue(cb, Slot(2 - i, elemtype, offset + i),
-                          Mem(cat(Elems(), "[", ElemIndex(elemwidth, offset + i), "]"),
-                              SlotType(elemtype, offset + i)));
+                          Elem(Elems(), elemtype, "_i", offset + i));
             }
         }
         cb += "    }\n";
@@ -3337,7 +3353,8 @@ struct CodeGen  {
                 CopyValue(cb, Lval(i, type), Slot(width - i, type, i));
         } else if (op == LV_SADD) {
             auto rhs = Read(Slot(1, VK_STRING));
-            if (f_lval_kind == LVK_LOCAL || f_lval_kind == LVK_FIELD) {
+            if (f_lval_kind == LVK_LOCAL || f_lval_kind == LVK_FIELD ||
+                f_lval_kind == LVK_ELEM) {
                 // The old string is an operand, so it loses its reference only once the new
                 // one exists.
                 auto v = Lval(0, type);
@@ -3426,7 +3443,7 @@ struct CodeGen  {
                     auto levels = ValWidth(indexing->index->exptype);
                     auto etype = indexing->object->exptype;
                     for (int i = 0; i < levels; i++) etype = etype->Element();
-                    EmitLvalVectorIndex(levels, offset, ValWidth(etype));
+                    EmitLvalVectorIndex(levels, offset, etype);
                     break;
                 }
                 case V_CLASS:
@@ -4132,7 +4149,13 @@ void NativeCall::Generate(CodeGen &cg, size_t retval) const {
     size_t nargs = children.size();
     cg.TakeTemp(nargs, true);
     assert(nargs == nf->args.size());
-    cg.EmitNativeCall(nf, args, CodeGen::TypesOf(nattype, nattype->NumValues()), nargtypes);
+    // The ones the code writes out itself work on a vector, whose element type says what its
+    // elements hold, see CodeGen::Elem.
+    auto elemtype = !children.empty() && children[0]->exptype->t == V_VECTOR
+        ? children[0]->exptype->Element()
+        : type_undefined;
+    cg.EmitNativeCall(nf, args, CodeGen::TypesOf(nattype, nattype->NumValues()), nargtypes,
+                      elemtype);
     if (nf->retvals.size() > 0) {
         assert(nf->retvals.size() == nattype->NumValues());
         for (size_t i = 0; i < nattype->NumValues(); i++) {
@@ -4629,7 +4652,7 @@ void VectorConstructor::Generate(CodeGen &cg, size_t retval) const {
     CodeGen::Types args;
     for (auto c : children) CodeGen::AddTypes(args, c->exptype);
     assert((int)args.size() == arg_width); (void)arg_width;
-    cg.EmitNewVec((int)offset, args, (int)Arity());
+    cg.EmitNewVec((int)offset, args, (int)Arity(), exptype->Element());
 }
 
 void ObjectConstructor::Generate(CodeGen &cg, size_t retval) const {
