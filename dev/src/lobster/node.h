@@ -80,10 +80,9 @@ struct Node {
         }
         return true;
     }
-    // Used by type-checker to and optimizer.
-    // If it returns true, sets val to a value that gives the correct True().
-    // Also sets correct scalar values.
-    virtual ValueType ConstVal(TypeChecker *, VTValue &) const = 0;
+    // Used by the type-checker and optimizer: the type of the constant this node folds to,
+    // with `val` set to it, or V_VOID for a node that is not constant, which is the default.
+    virtual ValueType ConstVal(TypeChecker *, VTValue &) const { return V_VOID; }
     virtual Node *TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_bound = {}) = 0;
     virtual Node *Optimize(Optimizer &opt);
     virtual void Generate(CodeGen &cg, size_t retval) const = 0;
@@ -133,8 +132,7 @@ template<typename T> T *DoClone(T *dest, T *src, bool notype) {
     string_view Name() const { return STR; } \
     bool SideEffect() const { return SE; } \
     void Generate(CodeGen &cg, size_t retval) const; \
-    Node *Clone(bool notype) { return DoClone<NAME>(new NAME(), this, notype); } \
-    ValueType ConstVal(TypeChecker *tc, VTValue &val) const;
+    Node *Clone(bool notype) { return DoClone<NAME>(new NAME(), this, notype); }
 #define SHARED_SIGNATURE(NAME, STR, SE) \
     Node *TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_bound); \
     SHARED_SIGNATURE_NO_TT(NAME, STR, SE)
@@ -237,6 +235,7 @@ struct TypeAnnotation : Node {
 #define OPTMETHOD Node *Optimize(Optimizer &opt);
 #define INITMETHOD bool IsConstInit() const;
 #define SIMPLEMETHOD TypeRef SimpleType(SymbolTable &);
+#define CONSTMETHOD ValueType ConstVal(TypeChecker *tc, VTValue &val) const;
 #define STATEMENTMETHOD bool ValidStatement() const { return true; }
 
 // generic node types
@@ -244,28 +243,28 @@ NARY_NODE(List, "list", false, )
 BINARY_NODE(BinOp, "binop", false, left, right, SIMPLEMETHOD)
 UNARY_NODE(Coercion, "coercion", false, )
 
-BINOP_NODE(Plus, TName(T_PLUS), false, )
-BINOP_NODE(Minus, TName(T_MINUS), false, )
-BINOP_NODE(Multiply, TName(T_MULT), false, )
-BINOP_NODE(Divide, TName(T_DIV), false, )
-BINOP_NODE(Mod, TName(T_MOD), false, )
-BINOP_NODE(And, TName(T_AND), false, )
-BINOP_NODE(Or, TName(T_OR), false, )
-UNARY_NODE(Not, TName(T_NOT), false, )
+BINOP_NODE(Plus, TName(T_PLUS), false, CONSTMETHOD)
+BINOP_NODE(Minus, TName(T_MINUS), false, CONSTMETHOD)
+BINOP_NODE(Multiply, TName(T_MULT), false, CONSTMETHOD)
+BINOP_NODE(Divide, TName(T_DIV), false, CONSTMETHOD)
+BINOP_NODE(Mod, TName(T_MOD), false, CONSTMETHOD)
+BINOP_NODE(And, TName(T_AND), false, CONSTMETHOD)
+BINOP_NODE(Or, TName(T_OR), false, CONSTMETHOD)
+UNARY_NODE(Not, TName(T_NOT), false, CONSTMETHOD)
 UNARY_NODE(PreIncr, TName(T_INCR), true, )
 UNARY_NODE(PreDecr, TName(T_DECR), true, )
-BINOP_NODE(Equal, TName(T_EQ), false, )
-BINOP_NODE(NotEqual, TName(T_NEQ), false, )
-BINOP_NODE(LessThan, TName(T_LT), false, )
-BINOP_NODE(GreaterThan, TName(T_GT), false, )
-BINOP_NODE(LessThanEq, TName(T_LTEQ), false, )
-BINOP_NODE(GreaterThanEq, TName(T_GTEQ), false, )
-BINOP_NODE(BitAnd, TName(T_BITAND), false, )
-BINOP_NODE(BitOr, TName(T_BITOR), false, )
-BINOP_NODE(Xor, TName(T_XOR), false, )
-UNARY_NODE(Negate, TName(T_NEG), false, )
-BINOP_NODE(ShiftLeft, TName(T_ASL), false, )
-BINOP_NODE(ShiftRight, TName(T_ASR), false, )
+BINOP_NODE(Equal, TName(T_EQ), false, CONSTMETHOD)
+BINOP_NODE(NotEqual, TName(T_NEQ), false, CONSTMETHOD)
+BINOP_NODE(LessThan, TName(T_LT), false, CONSTMETHOD)
+BINOP_NODE(GreaterThan, TName(T_GT), false, CONSTMETHOD)
+BINOP_NODE(LessThanEq, TName(T_LTEQ), false, CONSTMETHOD)
+BINOP_NODE(GreaterThanEq, TName(T_GTEQ), false, CONSTMETHOD)
+BINOP_NODE(BitAnd, TName(T_BITAND), false, CONSTMETHOD)
+BINOP_NODE(BitOr, TName(T_BITOR), false, CONSTMETHOD)
+BINOP_NODE(Xor, TName(T_XOR), false, CONSTMETHOD)
+UNARY_NODE(Negate, TName(T_NEG), false, CONSTMETHOD)
+BINOP_NODE(ShiftLeft, TName(T_ASL), false, CONSTMETHOD)
+BINOP_NODE(ShiftRight, TName(T_ASR), false, CONSTMETHOD)
 BINOP_NODE(Assign, TName(T_ASSIGN), true, )
 BINOP_NODE(PlusEq, TName(T_PLUSEQ), true, )
 BINOP_NODE(MinusEq, TName(T_MINUSEQ), true, )
@@ -284,11 +283,11 @@ BINARY_NODE(Seq, "statements", false, head, tail, )
 BINARY_NODE(Indexing, "indexing operation", false, object, index, )
 UNARY_NODE(PostIncr, TName(T_INCR), true, )
 UNARY_NODE(PostDecr, TName(T_DECR), true, )
-UNARY_NODE(UnaryMinus, TName(T_MINUS), false, INITMETHOD SIMPLEMETHOD)
-COER_NODE(ToFloat, "tofloat", )
+UNARY_NODE(UnaryMinus, TName(T_MINUS), false, INITMETHOD SIMPLEMETHOD CONSTMETHOD)
+COER_NODE(ToFloat, "tofloat", CONSTMETHOD)
 COER_NODE(ToString, "tostring", )
-COER_NODE(ToBool, "tobool", )
-COER_NODE(ToInt, "toint", )
+COER_NODE(ToBool, "tobool", CONSTMETHOD)
+COER_NODE(ToInt, "toint", CONSTMETHOD)
 NARY_NODE(Block, "block", false, RETURNSMETHOD)
 BINARY_NODE_T(IfThen, "if", false, Node, condition, Block, truepart, STATEMENTMETHOD)
 TERNARY_NODE_T(IfElse, "if", false, Node, condition, Block, truepart, Block, falsepart, RETURNSMETHOD STATEMENTMETHOD)
@@ -311,7 +310,7 @@ BINARY_NODE_T(Case, "case", false, List, pattern, Node, cbody, \
 BINARY_NODE(Range, "range", false, start, end, )
 ZERO_NODE(Break, "break", false, RETURNSMETHOD STATEMENTMETHOD)
 ZERO_NODE(Continue, "continue", false, RETURNSMETHOD STATEMENTMETHOD)
-UNARY_NODE(Assert, TName(T_ASSERT), false, RETURNSMETHOD STATEMENTMETHOD)
+UNARY_NODE(Assert, TName(T_ASSERT), false, RETURNSMETHOD STATEMENTMETHOD CONSTMETHOD)
 
 struct Nil : Node {
     UnTypeRef giventype;
@@ -322,6 +321,7 @@ struct Nil : Node {
     SHARED_SIGNATURE(Nil, TName(T_NIL), false)
     OPTMETHOD
     SIMPLEMETHOD
+    CONSTMETHOD
 };
 
 struct IdentRef : Node {
@@ -362,6 +362,7 @@ struct IntConstant : Node {
     }
     SHARED_SIGNATURE(IntConstant, TName(T_INT), false)
     OPTMETHOD
+    CONSTMETHOD
 };
 
 struct FloatConstant : Node {
@@ -376,6 +377,7 @@ struct FloatConstant : Node {
     }
     SHARED_SIGNATURE(FloatConstant, TName(T_FLOAT), false)
     OPTMETHOD
+    CONSTMETHOD
 };
 
 struct StringConstant : Node {
@@ -678,6 +680,7 @@ struct IsType : Unary {
         return giventype->Equal(*((IsType *)o)->giventype);
     }
     SHARED_SIGNATURE(IsType, TName(T_IS), false)
+    CONSTMETHOD
 };
 
 struct EnumCoercion : Unary {
@@ -689,6 +692,7 @@ struct EnumCoercion : Unary {
     }
     SHARED_SIGNATURE(EnumCoercion, e->name, false)
     SIMPLEMETHOD
+    CONSTMETHOD
 };
 
 struct ToLifetime : Coercion {
