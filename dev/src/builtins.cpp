@@ -173,35 +173,20 @@ BUILTIN(append_into, "dest,src", "A]*A]1c", "Ab]1",
     return v1;
 }
 
-BUILTIN(vector_capacity, "xs,len", "A]*I", "Ab]1",
+BUILTIN_CODEGEN(BCG_VECTOR_CAPACITY, vector_capacity, "xs,len", "A]*I", "Ab]1",
     "ensures the vector capacity (number of elements it can contain before re-allocating)"
     " is at least \"len\". Does not actually add (or remove) elements. This function is"
     " just for efficiency in the case the amount of \"push\" operations is known."
-    " returns original vector.")
-(VM &vm, LVector *vec, iint len) {
-    vec->MinCapacity(vm, len);
-    return vec;
-}
+    " returns original vector.");
 
-BUILTIN_OVERLOAD(length_int, "length", "x", "I", "I",
-    "length of int (identity function, useful in combination with string/vector version)")
-(VM &, iint a) {
-    return a;
-}
+BUILTIN_CODEGEN_OVERLOAD(BCG_LENGTH, length_int, "length", "x", "I", "I",
+    "length of int (identity function, useful in combination with string/vector version)");
 
-BUILTIN_OVERLOAD(length_string, "length", "s", "S", "I",
-    "length of string")
-(VM &, LString *a) {
-    auto len = a->len;
-    return len;
-}
+BUILTIN_CODEGEN_OVERLOAD(BCG_LENGTH, length_string, "length", "s", "S", "I",
+    "length of string");
 
-BUILTIN_OVERLOAD(length_vector, "length", "xs", "A]*", "I",
-    "length of vector")
-(VM &, LVector *a) {
-    auto len = a->len;
-    return len;
-}
+BUILTIN_CODEGEN_OVERLOAD(BCG_LENGTH, length_vector, "length", "xs", "A]*", "I",
+    "length of vector");
 
 BUILTIN(equal, "a,b", "AA", "B",
     "structural equality between any two values (recurses into vectors/objects,"
@@ -683,65 +668,51 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
     VECTOROPVMW(sym, name, ids, T, CT, RT, RCT, 3, help, op) \
     VECTOROPVMW(sym, name, ids, T, CT, RT, RCT, 4, help, op)
 
-// A builtin that works on its numeric struct argument as a vector `v` of that width: VECMATH
-// pushes the single value `expr` makes of it, VECVEC a struct of the same width.
-#define VECMATHW(sym, name, ids, T, CT, RT, W, help, expr) \
-    BUILTIN_OVERLOAD(sym##W, name, ids, T "}:" #W, RT, help) \
-    (VM &, vec<CT, W> v) { \
-        return expr; \
-    }
-#define VECMATH1234(sym, name, ids, T, CT, RT, help, expr) \
-    VECMATHW(sym, name, ids, T, CT, RT, 1, help, expr) \
-    VECMATHW(sym, name, ids, T, CT, RT, 2, help, expr) \
-    VECMATHW(sym, name, ids, T, CT, RT, 3, help, expr) \
-    VECMATHW(sym, name, ids, T, CT, RT, 4, help, expr)
+// The shapes a builtin that the generated code writes out itself comes in, which are only the
+// declaration: it has no function, and so no operation to give either, see BuiltinCodegen.
+// `T` is the type of the elements of the numeric struct it works on and `RT` of the value it
+// leaves behind, which CGVECOP gives a struct of the same width and CGVECMATH a single one.
+#define CGVECOPW(cg, sym, name, ids, T, RT, W, help) \
+    BUILTIN_CODEGEN_OVERLOAD(cg, sym##W, name, ids, T "}:" #W, RT "}:" #W, help);
+#define CGVECOP1234(cg, sym, name, ids, T, RT, help) \
+    CGVECOPW(cg, sym, name, ids, T, RT, 1, help) \
+    CGVECOPW(cg, sym, name, ids, T, RT, 2, help) \
+    CGVECOPW(cg, sym, name, ids, T, RT, 3, help) \
+    CGVECOPW(cg, sym, name, ids, T, RT, 4, help)
 
-#define VECVECW(sym, name, ids, T, CT, W, help, expr) \
-    BUILTIN_OVERLOAD(sym##W, name, ids, T "}:" #W, T "}:" #W, help) \
-    (VM &, vec<CT, W> v) { \
-        return expr; \
-    }
-#define VECVEC1234(sym, name, ids, T, CT, help, expr) \
-    VECVECW(sym, name, ids, T, CT, 1, help, expr) \
-    VECVECW(sym, name, ids, T, CT, 2, help, expr) \
-    VECVECW(sym, name, ids, T, CT, 3, help, expr) \
-    VECVECW(sym, name, ids, T, CT, 4, help, expr)
+#define CGVECMATHW(cg, sym, name, ids, T, RT, W, help) \
+    BUILTIN_CODEGEN_OVERLOAD(cg, sym##W, name, ids, T "}:" #W, RT, help);
+#define CGVECMATH1234(cg, sym, name, ids, T, RT, help) \
+    CGVECMATHW(cg, sym, name, ids, T, RT, 1, help) \
+    CGVECMATHW(cg, sym, name, ids, T, RT, 2, help) \
+    CGVECMATHW(cg, sym, name, ids, T, RT, 3, help) \
+    CGVECMATHW(cg, sym, name, ids, T, RT, 4, help)
 
-// The same for two numeric structs of that width, as vectors `a` and `b`.
-#define VEC2MATHW(sym, name, ids, T, CT, RT, W, help, expr) \
-    BUILTIN_OVERLOAD(sym##W, name, ids, T "}:" #W T "}:" #W "1", RT, help) \
-    (VM &, vec<CT, W> a, vec<CT, W> b) { \
-        return expr; \
-    }
-#define VEC2MATH1234(sym, name, ids, T, CT, RT, help, expr) \
-    VEC2MATHW(sym, name, ids, T, CT, RT, 1, help, expr) \
-    VEC2MATHW(sym, name, ids, T, CT, RT, 2, help, expr) \
-    VEC2MATHW(sym, name, ids, T, CT, RT, 3, help, expr) \
-    VEC2MATHW(sym, name, ids, T, CT, RT, 4, help, expr)
+// The same for two numeric structs of that width, and for three of them.
+#define CGVEC2MATHW(cg, sym, name, ids, T, RT, W, help) \
+    BUILTIN_CODEGEN_OVERLOAD(cg, sym##W, name, ids, T "}:" #W T "}:" #W "1", RT, help);
+#define CGVEC2MATH1234(cg, sym, name, ids, T, RT, help) \
+    CGVEC2MATHW(cg, sym, name, ids, T, RT, 1, help) \
+    CGVEC2MATHW(cg, sym, name, ids, T, RT, 2, help) \
+    CGVEC2MATHW(cg, sym, name, ids, T, RT, 3, help) \
+    CGVEC2MATHW(cg, sym, name, ids, T, RT, 4, help)
 
-#define VEC2VECW(sym, name, ids, T, CT, W, help, expr) \
-    BUILTIN_OVERLOAD(sym##W, name, ids, T "}:" #W T "}:" #W "1", T "}:" #W, help) \
-    (VM &, vec<CT, W> a, vec<CT, W> b) { \
-        return expr; \
-    }
-#define VEC2VEC1234(sym, name, ids, T, CT, help, expr) \
-    VEC2VECW(sym, name, ids, T, CT, 1, help, expr) \
-    VEC2VECW(sym, name, ids, T, CT, 2, help, expr) \
-    VEC2VECW(sym, name, ids, T, CT, 3, help, expr) \
-    VEC2VECW(sym, name, ids, T, CT, 4, help, expr)
+#define CGVEC2VECW(cg, sym, name, ids, T, W, help) \
+    BUILTIN_CODEGEN_OVERLOAD(cg, sym##W, name, ids, T "}:" #W T "}:" #W "1", T "}:" #W, help);
+#define CGVEC2VEC1234(cg, sym, name, ids, T, help) \
+    CGVEC2VECW(cg, sym, name, ids, T, 1, help) \
+    CGVEC2VECW(cg, sym, name, ids, T, 2, help) \
+    CGVEC2VECW(cg, sym, name, ids, T, 3, help) \
+    CGVEC2VECW(cg, sym, name, ids, T, 4, help)
 
-// And for three of them, as `a`, `b` and `c`.
-#define VEC3VECW(sym, name, ids, T, CT, W, help, expr) \
-    BUILTIN_OVERLOAD(sym##W, name, ids, T "}:" #W T "}:" #W "1" T "}:" #W "1", \
-                     T "}:" #W, help) \
-    (VM &, vec<CT, W> a, vec<CT, W> b, vec<CT, W> c) { \
-        return expr; \
-    }
-#define VEC3VEC1234(sym, name, ids, T, CT, help, expr) \
-    VEC3VECW(sym, name, ids, T, CT, 1, help, expr) \
-    VEC3VECW(sym, name, ids, T, CT, 2, help, expr) \
-    VEC3VECW(sym, name, ids, T, CT, 3, help, expr) \
-    VEC3VECW(sym, name, ids, T, CT, 4, help, expr)
+#define CGVEC3VECW(cg, sym, name, ids, T, W, help) \
+    BUILTIN_CODEGEN_OVERLOAD(cg, sym##W, name, ids, \
+                             T "}:" #W T "}:" #W "1" T "}:" #W "1", T "}:" #W, help);
+#define CGVEC3VEC1234(cg, sym, name, ids, T, help) \
+    CGVEC3VECW(cg, sym, name, ids, T, 1, help) \
+    CGVEC3VECW(cg, sym, name, ids, T, 2, help) \
+    CGVEC3VECW(cg, sym, name, ids, T, 3, help) \
+    CGVEC3VECW(cg, sym, name, ids, T, 4, help)
 
 BUILTIN_OVERLOAD(pow_int, "pow", "a,b", "II", "I",
     "a raised to the power of b, for integers, using exponentiation by squaring")
@@ -772,37 +743,28 @@ BUILTIN(log2, "a", "F", "F",
     "base 2 logaritm of a")
 (VM &, double a) { return log2(a); }
 
-BUILTIN(sqrt, "f", "F", "F",
-    "square root")
-(VM &, double a) { return sqrt(a); }
+BUILTIN_CODEGEN(BCG_SQRT, sqrt, "f", "F", "F",
+    "square root");
 
-BUILTIN_OVERLOAD(ceiling_float, "ceiling", "f", "F", "I",
-    "the nearest int >= f")
-(VM &, double a) { return fceil<iint>(a); }
-VECTOROP1234(ceiling_fvec, "ceiling", "v", "F", double, "I", iint,
-    "the nearest ints >= each component of v",
-    iint(fceil<iint>(f)))
+BUILTIN_CODEGEN_OVERLOAD(BCG_CEILING, ceiling_float, "ceiling", "f", "F", "I",
+    "the nearest int >= f");
+CGVECOP1234(BCG_CEILING, ceiling_fvec, "ceiling", "v", "F", "I",
+    "the nearest ints >= each component of v")
 
-BUILTIN_OVERLOAD(floor_float, "floor", "f", "F", "I",
-    "the nearest int <= f")
-(VM &, double a) { return ffloor<iint>(a); }
-VECTOROP1234(floor_fvec, "floor", "v", "F", double, "I", iint,
-    "the nearest ints <= each component of v",
-    ffloor<iint>(f))
+BUILTIN_CODEGEN_OVERLOAD(BCG_FLOOR, floor_float, "floor", "f", "F", "I",
+    "the nearest int <= f");
+CGVECOP1234(BCG_FLOOR, floor_fvec, "floor", "v", "F", "I",
+    "the nearest ints <= each component of v")
 
-BUILTIN_OVERLOAD(int_float, "int", "f", "F", "I",
-    "converts a float to an int by dropping the fraction")
-(VM &, double a) { return iint(a); }
-VECTOROP1234(int_fvec, "int", "v", "F", double, "I", iint,
-    "converts a struct of floats to ints by dropping the fraction",
-    iint(f))
+BUILTIN_CODEGEN_OVERLOAD(BCG_CONVERT, int_float, "int", "f", "F", "I",
+    "converts a float to an int by dropping the fraction");
+CGVECOP1234(BCG_CONVERT, int_fvec, "int", "v", "F", "I",
+    "converts a struct of floats to ints by dropping the fraction")
 
-BUILTIN_OVERLOAD(round_float, "round", "f", "F", "I",
-    "converts a float to the closest int")
-(VM &, double a) { return iint(a + (double(a >= 0) - 0.5)); }
-VECTOROP1234(round_fvec, "round", "v", "F", double, "I", iint,
-    "converts a struct of floats to the closest ints",
-    iint(f + (double(f >= 0) - 0.5)))
+BUILTIN_CODEGEN_OVERLOAD(BCG_ROUND, round_float, "round", "f", "F", "I",
+    "converts a float to the closest int");
+CGVECOP1234(BCG_ROUND, round_fvec, "round", "v", "F", "I",
+    "converts a struct of floats to the closest ints")
 
 BUILTIN_OVERLOAD(fraction_float, "fraction", "f", "F", "F",
     "returns the fractional part of a float: short for f - floor(f)")
@@ -811,12 +773,10 @@ VECTOROP1234(fraction_fvec, "fraction", "v", "F", double, "F", double,
     "returns the fractional part of a struct of floats",
     f - floor(f))
 
-BUILTIN_OVERLOAD(float_int, "float", "i", "I", "F",
-    "converts an int to float")
-(VM &, iint a) { return double(a); }
-VECTOROP1234(float_ivec, "float", "v", "I", iint, "F", double,
-    "converts a struct of ints to floats",
-    double(f))
+BUILTIN_CODEGEN_OVERLOAD(BCG_CONVERT, float_int, "float", "i", "I", "F",
+    "converts an int to float");
+CGVECOP1234(BCG_CONVERT, float_ivec, "float", "v", "I", "F",
+    "converts a struct of ints to floats")
 
 BUILTIN_OVERLOAD(sin_float, "sin", "angle", "F", "F",
     "the y coordinate of the normalized vector indicated by angle (in degrees)")
@@ -867,38 +827,32 @@ BUILTIN(atan2, "vec", "F}:2" , "F",
     return atan2(v.y, v.x) / RAD_D;
 }
 
-VECVEC1234(normalize_f, "normalize", "vec", "F", double,
-    "returns a vector of unit length",
-    (squaredlength(v) == 0.0 ? decltype(v)(0.0) : normalize(v)))
+CGVECOP1234(BCG_NORMALIZE, normalize_f, "normalize", "vec", "F", "F",
+    "returns a vector of unit length")
 
-VEC2MATH1234(dot_f, "dot", "a,b", "F", double, "F",
-    "the length of vector a when projected onto b (or vice versa)", dot(a, b))
+CGVEC2MATH1234(BCG_DOT, dot_f, "dot", "a,b", "F", "F",
+    "the length of vector a when projected onto b (or vice versa)")
 
-VECMATH1234(magnitude_f, "magnitude", "v", "F", double, "F",
-    "the geometric length of a vector", length(v))
+CGVECMATH1234(BCG_MAGNITUDE, magnitude_f, "magnitude", "v", "F", "F",
+    "the geometric length of a vector")
 
-VECMATH1234(magnitude_squared_fvec, "magnitude_squared", "v", "F", double, "F",
-    "the geometric length of a vector squared", squaredlength(v))
+CGVECMATH1234(BCG_MAGNITUDE_SQUARED, magnitude_squared_fvec, "magnitude_squared", "v", "F", "F",
+    "the geometric length of a vector squared")
 
-VECMATH1234(magnitude_squared_ivec, "magnitude_squared", "v", "I", iint, "I",
-    "the geometric length of a vector squared", squaredlength(v))
+CGVECMATH1234(BCG_MAGNITUDE_SQUARED, magnitude_squared_ivec, "magnitude_squared", "v", "I", "I",
+    "the geometric length of a vector squared")
 
-VECMATH1234(manhattan_i, "manhattan", "v", "I", iint, "I",
-    "the manhattan distance of a vector", manhattan(v))
+CGVECMATH1234(BCG_MANHATTAN, manhattan_i, "manhattan", "v", "I", "I",
+    "the manhattan distance of a vector")
 
-BUILTIN(cross, "a,b", "F}:3F}:3", "F}:3",
-    "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)")
-(VM &, double3 a_, double3 b_) {
-    auto b = ToVec<double3>(b_);
-    auto a = ToVec<double3>(a_);
-    return cross(a, b);
-}
+BUILTIN_CODEGEN(BCG_CROSS, cross, "a,b", "F}:3F}:3", "F}:3",
+    "a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)");
 
-VECMATH1234(volume_fvec, "volume", "v", "F", double, "F",
-    "the volume of the area spanned by the vector", v.volume())
+CGVECMATH1234(BCG_VOLUME, volume_fvec, "volume", "v", "F", "F",
+    "the volume of the area spanned by the vector")
 
-VECMATH1234(volume_ivec, "volume", "v", "I", iint, "I",
-    "the volume of the area spanned by the vector", v.volume())
+CGVECMATH1234(BCG_VOLUME, volume_ivec, "volume", "v", "I", "I",
+    "the volume of the area spanned by the vector")
 
 BUILTIN_OVERLOAD(rnd_int, "rnd", "max", "I", "I",
     "a random value [0..max).")
@@ -952,83 +906,58 @@ BUILTIN(rndm_seed, "seed", "I", "",
     vm.rndm.seed((int)seed);
 }
 
-BUILTIN(div, "a,b", "II", "F",
-    "forces two ints to be divided as floats")
-(VM &, iint a, iint b) { return double(a) / double(b); }
+BUILTIN_CODEGEN(BCG_DIV, div, "a,b", "II", "F",
+    "forces two ints to be divided as floats");
 
-BUILTIN_OVERLOAD(clamp_int, "clamp", "x,min,max", "III", "I",
-    "forces an integer to be in the range between min and max (inclusive)")
-(VM &, iint a, iint b, iint c) {
-    return geom::clamp(a, b, c);
-}
+BUILTIN_CODEGEN_OVERLOAD(BCG_CLAMP, clamp_int, "clamp", "x,min,max", "III", "I",
+    "forces an integer to be in the range between min and max (inclusive)");
 
-BUILTIN_OVERLOAD(clamp_float, "clamp", "x,min,max", "FFF", "F",
-    "forces a float to be in the range between min and max (inclusive)")
-(VM &, double a, double b, double c) {
-    return geom::clamp(a, b, c);
-}
+BUILTIN_CODEGEN_OVERLOAD(BCG_CLAMP, clamp_float, "clamp", "x,min,max", "FFF", "F",
+    "forces a float to be in the range between min and max (inclusive)");
 
-VEC3VEC1234(clamp_ivec, "clamp", "x,min,max", "I", iint,
-    "forces an integer struct to be in the range between min and max (inclusive)",
-    clamp(a, b, c))
+CGVEC3VEC1234(BCG_CLAMP, clamp_ivec, "clamp", "x,min,max", "I",
+    "forces an integer struct to be in the range between min and max (inclusive)")
 
-VEC3VEC1234(clamp_fvec, "clamp", "x,min,max", "F", double,
-    "forces a float struct to be in the range between min and max (inclusive)",
-    clamp(a, b, c))
+CGVEC3VEC1234(BCG_CLAMP, clamp_fvec, "clamp", "x,min,max", "F",
+    "forces a float struct to be in the range between min and max (inclusive)")
 
-BUILTIN_OVERLOAD(in_range_int, "in_range", "x,range,bias", "III?", "B",
-    "checks if an integer is >= bias and < bias + range. Bias defaults to 0.")
-(VM &, iint x, iint range, iint bias) {
-    return x >= bias && x < bias + range;
-}
+BUILTIN_CODEGEN_OVERLOAD(BCG_IN_RANGE, in_range_int, "in_range", "x,range,bias", "III?", "B",
+    "checks if an integer is >= bias and < bias + range. Bias defaults to 0.");
 
-BUILTIN_OVERLOAD(in_range_float, "in_range", "x,range,bias", "FFF?", "B",
-    "checks if a float is >= bias and < bias + range. Bias defaults to 0.")
-(VM &, double x, double range, double bias) {
-    return x >= bias && x < bias + range;
-}
+BUILTIN_CODEGEN_OVERLOAD(BCG_IN_RANGE, in_range_float, "in_range", "x,range,bias", "FFF?", "B",
+    "checks if a float is >= bias and < bias + range. Bias defaults to 0.");
 
-// A left out bias is a struct of zeroes the typechecker adds, so it is always there.
-#define INRANGEW(sym, D, T, CT, W) \
-    BUILTIN_OVERLOAD(sym##W, "in_range", "x,range,bias", \
+// A left out bias is a struct of zeroes the typechecker adds, so it is always there, and the
+// generated code recognises those zeroes and leaves them out of the comparisons again.
+#define INRANGEW(sym, D, T, W) \
+    BUILTIN_CODEGEN_OVERLOAD(BCG_IN_RANGE, sym##W, "in_range", "x,range,bias", \
         T "}:" #W T "}:" #W "1" T "}:" #W "1?", "B", \
         "checks if a " #W "d " D " vector is >= bias and < bias + range." \
-        " Bias defaults to 0.") \
-    (VM &, vec<CT, W> x, vec<CT, W> range, vec<CT, W> bias) { \
-        return in_range(x, range, bias); \
-    }
-INRANGEW(in_range_ivec, "integer", "I", iint, 2)
-INRANGEW(in_range_ivec, "integer", "I", iint, 3)
-INRANGEW(in_range_fvec, "float", "F", double, 2)
-INRANGEW(in_range_fvec, "float", "F", double, 3)
+        " Bias defaults to 0.");
+INRANGEW(in_range_ivec, "integer", "I", 2)
+INRANGEW(in_range_ivec, "integer", "I", 3)
+INRANGEW(in_range_fvec, "float", "F", 2)
+INRANGEW(in_range_fvec, "float", "F", 3)
 #undef INRANGEW
 
 
-BUILTIN_OVERLOAD(abs_int, "abs", "x", "I", "I",
-    "absolute value of an integer")
-(VM &, iint a) { return std::abs(a); }
-BUILTIN_OVERLOAD(abs_float, "abs", "x", "F", "F",
-    "absolute value of a float")
-(VM &, double a) { return fabs(a); }
-VECTOROP1234(abs_ivec, "abs", "x", "I", iint, "I", iint,
-    "absolute value of an int vector",
-    std::abs(f))
-VECTOROP1234(abs_fvec, "abs", "x", "F", double, "F", double,
-    "absolute value of a float vector",
-    fabs(f))
+BUILTIN_CODEGEN_OVERLOAD(BCG_ABS, abs_int, "abs", "x", "I", "I",
+    "absolute value of an integer");
+BUILTIN_CODEGEN_OVERLOAD(BCG_ABS, abs_float, "abs", "x", "F", "F",
+    "absolute value of a float");
+CGVECOP1234(BCG_ABS, abs_ivec, "abs", "x", "I", "I",
+    "absolute value of an int vector")
+CGVECOP1234(BCG_ABS, abs_fvec, "abs", "x", "F", "F",
+    "absolute value of a float vector")
 
-BUILTIN_OVERLOAD(sign_int, "sign", "x", "I", "I",
-    "sign (-1, 0, 1) of an integer")
-(VM &, iint a) { return signum(a); }
-BUILTIN_OVERLOAD(sign_float, "sign", "x", "F", "I",
-    "sign (-1, 0, 1) of a float")
-(VM &, double a) { return signum(a); }
-VECTOROP1234(sign_ivec, "sign", "x", "I", iint, "I", iint,
-    "signs of an int vector",
-    signum(f))
-VECTOROP1234(sign_fvec, "sign", "x", "F", double, "I", iint,
-    "signs of a float vector",
-    signum(f))
+BUILTIN_CODEGEN_OVERLOAD(BCG_SIGN, sign_int, "sign", "x", "I", "I",
+    "sign (-1, 0, 1) of an integer");
+BUILTIN_CODEGEN_OVERLOAD(BCG_SIGN, sign_float, "sign", "x", "F", "I",
+    "sign (-1, 0, 1) of a float");
+CGVECOP1234(BCG_SIGN, sign_ivec, "sign", "x", "I", "I",
+    "signs of an int vector")
+CGVECOP1234(BCG_SIGN, sign_fvec, "sign", "x", "F", "I",
+    "signs of a float vector")
 
 #define VECSCALAROP(type, init, fun, len, at) \
     type v = init; \
@@ -1039,24 +968,18 @@ VECTOROP1234(sign_fvec, "sign", "x", "F", double, "I", iint,
     } \
     return v;
 
-BUILTIN_OVERLOAD(min_int, "min", "x,y", "II", "I",
-    "smallest of 2 integers.")
-(VM &, iint x, iint y) {
-    return std::min(x, y);
-}
-BUILTIN_OVERLOAD(min_float, "min", "x,y", "FF", "F",
-    "smallest of 2 floats.")
-(VM &, double x, double y) {
-    return std::min(x, y);
-}
-VEC2VEC1234(min_ivec, "min", "x,y", "I", iint,
-    "smallest components of 2 int vectors", min(a, b))
-VEC2VEC1234(min_fvec, "min", "x,y", "F", double,
-    "smallest components of 2 float vectors", min(a, b))
-VECMATH1234(min_of_ivec, "min", "v", "I", iint, "I",
-    "smallest component of a int vector.", min(v))
-VECMATH1234(min_of_fvec, "min", "v", "F", double, "F",
-    "smallest component of a float vector.", min(v))
+BUILTIN_CODEGEN_OVERLOAD(BCG_MIN, min_int, "min", "x,y", "II", "I",
+    "smallest of 2 integers.");
+BUILTIN_CODEGEN_OVERLOAD(BCG_MIN, min_float, "min", "x,y", "FF", "F",
+    "smallest of 2 floats.");
+CGVEC2VEC1234(BCG_MIN, min_ivec, "min", "x,y", "I",
+    "smallest components of 2 int vectors")
+CGVEC2VEC1234(BCG_MIN, min_fvec, "min", "x,y", "F",
+    "smallest components of 2 float vectors")
+CGVECMATH1234(BCG_MIN_OF, min_of_ivec, "min", "v", "I", "I",
+    "smallest component of a int vector.")
+CGVECMATH1234(BCG_MIN_OF, min_of_fvec, "min", "v", "F", "F",
+    "smallest component of a float vector.")
 BUILTIN_OVERLOAD(min_of_int_vector, "min", "v", "I]", "I",
     "smallest component of a int vector, or INT64_MAX if length 0.")
 (VM &, LVector *x) {
@@ -1068,24 +991,18 @@ BUILTIN_OVERLOAD(min_of_float_vector, "min", "v", "F]", "F",
     VECSCALAROP(double, DBL_MAX, v = std::min(v, f.fval()), len, AtS(i))
 }
 
-BUILTIN_OVERLOAD(max_int, "max", "x,y", "II", "I",
-    "largest of 2 integers.")
-(VM &, iint x, iint y) {
-    return std::max(x, y);
-}
-BUILTIN_OVERLOAD(max_float, "max", "x,y", "FF", "F",
-    "largest of 2 floats.")
-(VM &, double x, double y) {
-    return std::max(x, y);
-}
-VEC2VEC1234(max_ivec, "max", "x,y", "I", iint,
-    "largest components of 2 int vectors", max(a, b))
-VEC2VEC1234(max_fvec, "max", "x,y", "F", double,
-    "largest components of 2 float vectors", max(a, b))
-VECMATH1234(max_of_ivec, "max", "v", "I", iint, "I",
-    "largest component of a int vector.", max(v))
-VECMATH1234(max_of_fvec, "max", "v", "F", double, "F",
-    "largest component of a float vector.", max(v))
+BUILTIN_CODEGEN_OVERLOAD(BCG_MAX, max_int, "max", "x,y", "II", "I",
+    "largest of 2 integers.");
+BUILTIN_CODEGEN_OVERLOAD(BCG_MAX, max_float, "max", "x,y", "FF", "F",
+    "largest of 2 floats.");
+CGVEC2VEC1234(BCG_MAX, max_ivec, "max", "x,y", "I",
+    "largest components of 2 int vectors")
+CGVEC2VEC1234(BCG_MAX, max_fvec, "max", "x,y", "F",
+    "largest components of 2 float vectors")
+CGVECMATH1234(BCG_MAX_OF, max_of_ivec, "max", "v", "I", "I",
+    "largest component of a int vector.")
+CGVECMATH1234(BCG_MAX_OF, max_of_fvec, "max", "v", "F", "F",
+    "largest component of a float vector.")
 BUILTIN_OVERLOAD(max_of_int_vector, "max", "v", "I]", "I",
     "largest component of a int vector, or INT64_MIN if length 0.")
 (VM &, LVector *x) {
@@ -1347,14 +1264,11 @@ BUILTIN(call_function_value, "x", "L", "",
     vm.CallFunctionValue(f);
 }
 
-BUILTIN(type_id, "ref", "A", "I",
+BUILTIN_CODEGEN(BCG_TYPE_ID, type_id, "ref", "A", "I",
     "int uniquely representing the type of the given reference (object/vector/string/resource)."
     " this is the same as typeof, except dynamic (accounts for subtypes of the static type)."
     " useful to compare the types of objects quickly."
-    " specializations of a generic type will result in different ids.")
-(VM &, RefObj *a) {
-    return a->tti;
-}
+    " specializations of a generic type will result in different ids.");
 
 BUILTIN(type_string, "ref", "A", "S",
     "string representing the type of the given reference (object/vector/string/resource)")
@@ -1438,11 +1352,8 @@ BUILTIN(program_name, "", "", "S",
     return vm.NewString(vm.GetProgramName());
 }
 
-BUILTIN(vm_compiled_mode, "", "", "B",
-    "returns if the VM is running in compiled mode (Lobster -> C++), or false for JIT.")
-(VM &) {
-    return !VM_JIT_MODE;
-}
+BUILTIN_CODEGEN(BCG_VM_COMPILED_MODE, vm_compiled_mode, "", "", "B",
+    "returns if the VM is running in compiled mode (Lobster -> C++), or false for JIT.");
 
 BUILTIN(seconds_elapsed, "", "", "F",
     "seconds since program start as a float, unlike gl.time() it is calculated every time it is"
@@ -1526,10 +1437,8 @@ BUILTIN(get_memory_usage, "n", "I", "S",
     return vm.NewString(vm.MemoryUsage((int)n));
 }
 
-BUILTIN(pass, "", "", "",
-    "does nothing. useful for empty bodies of control structures.")
-(VM &) {
-}
+BUILTIN_CODEGEN(BCG_PASS, pass, "", "", "",
+    "does nothing. useful for empty bodies of control structures.");
 
 BUILTIN(reference_count, "val", "A", "I",
     "get the reference count of any value. for compiler debugging, mostly")

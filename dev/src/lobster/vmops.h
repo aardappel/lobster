@@ -97,6 +97,12 @@ VM_INLINE void RtVectorGrow(VM &vm, LVector *v) {
     v->Resize(vm, v->maxl ? v->maxl * 2 : 4);
 }
 
+// Room for a given number of elements, which is all vector_capacity() written out cannot do
+// on its own either, see CodeGen::EmitVectorCapacity.
+VM_INLINE void RtVectorResize(VM &vm, LVector *v, iint len) {
+    v->Resize(vm, len);
+}
+
 // The same for the ones that take an element out, see CodeGen::EmitCodegenBuiltin: the errors,
 // named after the builtin that ran into them, and closing the gap the element leaves behind.
 VM_INLINE void RtVectorEmptyErr(VM &vm, int nfi) {
@@ -159,6 +165,13 @@ VM_INLINE iint RtIMod(VM &vm, iint a, iint b) {
 
 VM_INLINE double RtFMod(double a, double b) {
     return fmod(a, b);
+}
+
+// The square root, which sqrt(), magnitude() and normalize() are written out in terms of:
+// the JIT links no libc, so the generated C cannot name the one there. The C++ backend
+// inlines this back into the instruction it is.
+VM_INLINE double RtSqrt(double a) {
+    return sqrt(a);
 }
 
 VM_INLINE LString *RtSAdd(VM &vm, LString *a, LString *b) {

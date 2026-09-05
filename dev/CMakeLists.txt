@@ -49,6 +49,7 @@ else()
   set(LOBSTER_SRCS
     src/lobster/bytecode_generated.h
     src/lobster/codegen.h
+    src/lobster/codegen_builtin.h
     src/lobster/compiler.h
     src/lobster/geom.h
     src/lobster/idents.h

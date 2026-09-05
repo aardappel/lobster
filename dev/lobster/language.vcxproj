@@ -419,6 +419,7 @@
     <ClInclude Include="..\src\lobster\accumulator.h" />
     <ClInclude Include="..\src\lobster\bytecode_generated.h" />
     <ClInclude Include="..\src\lobster\codegen.h" />
+    <ClInclude Include="..\src\lobster\codegen_builtin.h" />
     <ClInclude Include="..\src\lobster\compiler.h" />
     <ClInclude Include="..\src\lobster\constval.h" />
     <ClInclude Include="..\src\lobster\dllist.h" />

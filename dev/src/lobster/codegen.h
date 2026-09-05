@@ -902,6 +902,7 @@ struct CodeGen  {
                 "LVector *RtNewVec(VMRef, type_elem_t, int);\n"
                 "LObject *RtNewObject(VMRef, type_elem_t);\n"
                 "void RtVectorGrow(VMRef, LVector *);\n"
+                "void RtVectorResize(VMRef, LVector *, long long);\n"
                 "void RtVectorEmptyErr(VMRef, int);\n"
                 "void RtVectorIdxErr(VMRef, int, long long, long long);\n"
                 "void RtVectorErase(LVector *, long long);\n"
@@ -915,6 +916,7 @@ struct CodeGen  {
                 "long long RtIDiv(VMRef, long long, long long);\n"
                 "long long RtIMod(VMRef, long long, long long);\n"
                 "double RtFMod(double, double);\n"
+                "double RtSqrt(double);\n"
                 "LString *RtSAdd(VMRef, LString *, LString *);\n"
                 "long long RtSLt(LString *, LString *);\n"
                 "long long RtSGt(LString *, LString *);\n"
@@ -1122,7 +1124,8 @@ struct CodeGen  {
 
     // The C precedence of the operators the emitters build expressions from, lower binding
     // tighter: 1 a call or index, 2 a prefix operator or cast, 3 * / %, 4 + -, 5 the shifts,
-    // 6 the relational and 7 the equality comparisons, 8 &, 9 ^, 10 |.
+    // 6 the relational and 7 the equality comparisons, 8 &, 9 ^, 10 |, 11 &&, 12 ||,
+    // 13 the conditional operator.
     // Which pairs C groups in a way that reads wrong to most people, and that compilers warn
     // about under -Wparentheses even where the grouping is the one we mean: a comparison in a
     // comparison, arithmetic in a shift, and arithmetic, a comparison or a tighter bitwise
@@ -2172,112 +2175,9 @@ struct CodeGen  {
         return s;
     }
 
-    // The vector one of the builtins below works on, in a local, since the slot it comes in is
-    // also where the value the builtin leaves behind goes. `cmt` names the builtin.
-    string EmitVectorLocal(int base, string_view cmt) {
-        cb += "    {";
-        comment(cmt);
-        append(cb, "    LVector *_v = ", Read(SlotVar(base, RTT_VECTOR)), ";\n");
-        return cpp ? "_v->ElemSlots()" : "_v->elems";
-    }
-
-    // The element at `idx` of that vector, in the slots starting at `base`. A struct takes more
-    // than one load, at the width the vector holds its elements at, so its start goes in a
-    // local first.
-    void EmitVectorElem(const Types &elem, int base, string_view idx, string_view elems,
-                        TypeRef elemtype) {
-        for (int i = 0; i < (int)elem.size(); i++) {
-            CopyValue(cb, SlotVar(base + i, elem[i]), Elem(elems, elemtype, idx, i));
-        }
-    }
-
-    // A push of one element onto a vector, which the code writes out rather than calling
-    // push(), see EmitCodegenBuiltin. The vector stays in the slot it came in, which is where
-    // the value push returns belongs anyway.
-    void EmitVectorPush(const Types &args, string_view cmt, TypeRef elemtype) {
-        auto width = (int)args.size() - 1;
-        auto base = regso - (int)args.size();
-        auto elems = EmitVectorLocal(base, cmt);
-        append(cb, "    if (_v->len == _v->maxl) ", cpp ? "lobster::" : "",
-               "RtVectorGrow(vm, _v);\n");
-        for (int i = 0; i < width; i++) {
-            CopyValue(cb, Elem(elems, elemtype, "_v->len", i), SlotVar(base + 1 + i, args[1 + i]));
-        }
-        cb += "    _v->len++;\n    }\n";
-    }
-
-    // insert(), which makes room for the element at the index it goes at and then writes it
-    // there. The vector stays in the slot it came in, which is what it returns.
-    void EmitVectorInsert(NativeFun *nf, const Types &args, TypeRef elemtype) {
-        auto width = (int)args.size() - 2;
-        auto base = regso - (int)args.size();
-        auto elems = EmitVectorLocal(base, nf->name);
-        append(cb, "    long long _i = ", Read(SlotVar(base + 1, RTT_INT)), ";\n");
-        append(cb, "    ", cpp ? "lobster::" : "", "RtVectorInsert(vm, _v, ", nf->idx,
-               ", _i);\n");
-        for (int i = 0; i < width; i++) {
-            CopyValue(cb, Elem(elems, elemtype, "_i", i), SlotVar(base + 2 + i, args[2 + i]));
-        }
-        cb += "    }\n";
-    }
-
-    // The last element of a vector, which pop() also takes out of it where top() leaves it.
-    void EmitVectorPop(NativeFun *nf, const Types &rets, bool take, TypeRef elemtype) {
-        auto base = regso - 1;
-        auto elems = EmitVectorLocal(base, nf->name);
-        append(cb, "    if (!_v->len) ", cpp ? "lobster::" : "", "RtVectorEmptyErr(vm, ",
-               nf->idx, ");\n");
-        if (take) cb += "    _v->len--;\n";
-        EmitVectorElem(rets, base, take ? "_v->len" : "_v->len - 1", elems, elemtype);
-        cb += "    }\n";
-    }
-
-    // The element of a vector at an index, which the ones behind it then shift down over.
-    void EmitVectorRemove(NativeFun *nf, const Types &rets, TypeRef elemtype) {
-        auto base = regso - 2;
-        auto uint = cpp ? "uint64_t" : "unsigned long long";
-        auto elems = EmitVectorLocal(base, nf->name);
-        append(cb, "    long long _i = ", Read(SlotVar(base + 1, RTT_INT)), ";\n");
-        append(cb, "    if ((", uint, ")_i >= (", uint, ")_v->len) ", cpp ? "lobster::" : "",
-               "RtVectorIdxErr(vm, ", nf->idx, ", _i, _v->len);\n");
-        EmitVectorElem(rets, base, "_i", elems, elemtype);
-        append(cb, "    ", cpp ? "lobster::" : "", "RtVectorErase(_v, _i);\n    }\n");
-    }
-
-    // The builtins the code does not call but writes out itself, because they are leaned on
-    // often enough for the call to be worth avoiding, see BuiltinCodegen. Each reads its
-    // arguments from the slots below regso and leaves its return values in the same ones, just
-    // as a call would. Returns whether this was one of them.
-    bool EmitCodegenBuiltin(NativeFun *nf, const Types &args, const Types &rets,
-                            TypeRef elemtype) {
-        // No default, so that a kind added without a case here is a compile error.
-        switch (nf->codegen) {
-            case BCG_NONE:
-                return false;
-            case BCG_GL_FRAME:
-                // Called by a symbol of its own, which the engine defines outside the registry.
-                Write(cb, Slot(0, VK_INT), "GLFrame(vm)", "");
-                comment(nf->name);
-                return true;
-            case BCG_PUSH:
-                EmitVectorPush(args, nf->name, elemtype);
-                return true;
-            case BCG_INSERT:
-                EmitVectorInsert(nf, args, elemtype);
-                return true;
-            case BCG_POP:
-                EmitVectorPop(nf, rets, true, elemtype);
-                return true;
-            case BCG_TOP:
-                EmitVectorPop(nf, rets, false, elemtype);
-                return true;
-            case BCG_REMOVE:
-                EmitVectorRemove(nf, rets, elemtype);
-                return true;
-        }
-        assert(false);
-        return false;
-    }
+    // The builtins the generated code writes out itself, and the one that picks between
+    // them, which live in a file of their own.
+    #include "lobster/codegen_builtin.h"
 
     // One of the values a builtin hands back, out of the temporary it lands in, into the slots
     // it lives in. A numeric struct takes as many of them as it is wide.

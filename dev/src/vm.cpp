@@ -1016,6 +1016,7 @@ void CRtNativeProfileEnd(___tracy_c_zone_context ctx) { RtNativeProfileEnd(ctx);
 LVector *CRtNewVec(VM *vm, type_elem_t ti, int len) { return RtNewVec(*vm, ti, len); }
 LObject *CRtNewObject(VM *vm, type_elem_t ti) { return RtNewObject(*vm, ti); }
 void CRtVectorGrow(VM *vm, LVector *v) { RtVectorGrow(*vm, v); }
+void CRtVectorResize(VM *vm, LVector *v, iint len) { RtVectorResize(*vm, v, len); }
 void CRtVectorEmptyErr(VM *vm, int nfi) { RtVectorEmptyErr(*vm, nfi); }
 void CRtVectorIdxErr(VM *vm, int nfi, iint i, iint len) { RtVectorIdxErr(*vm, nfi, i, len); }
 void CRtVectorErase(LVector *v, iint i) { RtVectorErase(v, i); }
@@ -1029,6 +1030,7 @@ void CRtAbort(VM *vm) { RtAbort(*vm); }
 iint CRtIDiv(VM *vm, iint a, iint b) { return RtIDiv(*vm, a, b); }
 iint CRtIMod(VM *vm, iint a, iint b) { return RtIMod(*vm, a, b); }
 double CRtFMod(double a, double b) { return RtFMod(a, b); }
+double CRtSqrt(double a) { return RtSqrt(a); }
 LString *CRtSAdd(VM *vm, LString *a, LString *b) { return RtSAdd(*vm, a, b); }
 iint CRtSLt(LString *a, LString *b) { return RtSLt(a, b); }
 iint CRtSGt(LString *a, LString *b) { return RtSGt(a, b); }
@@ -1068,6 +1070,7 @@ const void *vm_ops_jit_table[] = {
     "RtNewVec", (void *)&CRtNewVec,
     "RtNewObject", (void *)&CRtNewObject,
     "RtVectorGrow", (void *)&CRtVectorGrow,
+    "RtVectorResize", (void *)&CRtVectorResize,
     "RtVectorEmptyErr", (void *)&CRtVectorEmptyErr,
     "RtVectorIdxErr", (void *)&CRtVectorIdxErr,
     "RtVectorErase", (void *)&CRtVectorErase,
@@ -1081,6 +1084,7 @@ const void *vm_ops_jit_table[] = {
     "RtIDiv", (void *)&CRtIDiv,
     "RtIMod", (void *)&CRtIMod,
     "RtFMod", (void *)&CRtFMod,
+    "RtSqrt", (void *)&CRtSqrt,
     "RtSAdd", (void *)&CRtSAdd,
     "RtSLt", (void *)&CRtSLt,
     "RtSGt", (void *)&CRtSGt,

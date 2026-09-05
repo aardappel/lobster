@@ -325,6 +325,14 @@ template<int W> struct BuiltinParamType<BAK_RESOURCE, W>     { typedef LResource
 template<int W> struct BuiltinParamType<BAK_IVEC, W>         { typedef vec<iint, W> type; };
 template<int W> struct BuiltinParamType<BAK_FVEC, W>         { typedef vec<double, W> type; };
 
+// Every vector a builtin can take or return, instantiated before any of them are declared:
+// MSVC gives C2526 for a C linkage function that returns one when that declaration is also
+// what instantiates it, which is what happens at a width no builtin before it used. The
+// pragma at the top of this file only turns off the warning form of the same complaint.
+static_assert(sizeof(vec<iint, 1>) + sizeof(vec<iint, 2>) + sizeof(vec<iint, 3>) +
+              sizeof(vec<iint, 4>) + sizeof(vec<double, 1>) + sizeof(vec<double, 2>) +
+              sizeof(vec<double, 3>) + sizeof(vec<double, 4>) > 0, "");
+
 template<typename TIDS, size_t P> struct BuiltinParam {
     typedef typename BuiltinParamType<BuiltinParamKindOf(TIDS::tids, (int)P),
                                       BuiltinArgWidthOf(TIDS::tids, (int)P)>::type type;
@@ -386,6 +394,32 @@ enum BuiltinCodegen {
     BCG_POP,
     BCG_TOP,
     BCG_REMOVE,
+    BCG_VECTOR_CAPACITY,
+    BCG_LENGTH,
+    BCG_ABS,
+    BCG_SIGN,
+    BCG_MIN,
+    BCG_MAX,
+    BCG_CLAMP,
+    BCG_IN_RANGE,
+    BCG_DOT,
+    BCG_MAGNITUDE,
+    BCG_MAGNITUDE_SQUARED,
+    BCG_NORMALIZE,
+    BCG_MANHATTAN,
+    BCG_VOLUME,
+    BCG_MIN_OF,
+    BCG_MAX_OF,
+    BCG_CROSS,
+    BCG_CONVERT,
+    BCG_FLOOR,
+    BCG_CEILING,
+    BCG_ROUND,
+    BCG_SQRT,
+    BCG_DIV,
+    BCG_TYPE_ID,
+    BCG_VM_COMPILED_MODE,
+    BCG_PASS,
 };
 
 struct BuiltinDef;
@@ -463,7 +497,9 @@ struct BuiltinDef {
 // suffix.
 // BUILTIN_CODEGEN declares one the generated code writes out itself, see BuiltinCodegen. It
 // has only the metadata the language needs, no function and thus no body, so it ends in a ';'
-// like any other declaration.
+// like any other declaration. Its _OVERLOAD variant takes the symbol and the Lobster name
+// separately the way the others do, which the ones that are written out at several types
+// need; the symbol names nothing, so it only has to be distinct.
 #define BUILTIN_CAT_(a, b) a##b
 #define BUILTIN_CAT(a, b) BUILTIN_CAT_(a, b)
 #define BUILTIN_STR_(a) #a
@@ -493,6 +529,9 @@ struct BuiltinDef {
     extern "C" void BUILTIN_SYM(sym)
 #define BUILTIN_CODEGEN(codegen, name, ids, typeids, rets, help) \
     BUILTIN_META_(BUILTIN_SYM(name), #name, ids, typeids, rets, help, false, \
+                  lobster::codegen, nullptr)
+#define BUILTIN_CODEGEN_OVERLOAD(codegen, sym, name, ids, typeids, rets, help) \
+    BUILTIN_META_(BUILTIN_SYM(sym), name, ids, typeids, rets, help, false, \
                   lobster::codegen, nullptr)
 
 struct NativeFun : Named {
