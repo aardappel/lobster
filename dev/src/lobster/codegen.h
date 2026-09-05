@@ -198,7 +198,6 @@ struct CodeGen  {
     // end of the codegen of the function like f_regs_max is.
     int f_stage_max[2] = { 0, 0 };
     bool has_profile = false;
-    string sdt;
     int numlocals = 0;
     int nlabel = 0;
 
@@ -2302,13 +2301,6 @@ struct CodeGen  {
                 GenDecRef(cb, Local(var_to_local[varidx]));
             }
         }
-        sdt.clear();  // FIXME: remove
-        for (int i = (int)f_defs.size() - 1; i >= 0; i--) {
-            auto varidx = f_defs[i];
-            if (sids[varidx].used_as_freevar()) {
-                append(sdt, "    RestoreBackup(vm, ", varidx, ");\n");
-            }
-        }
         if (kind == RET_ANY) {
             // What the call we are passing thru from left is still on the tstack.
             for (int i = 0; i < nretslots; i++)
@@ -2686,13 +2678,17 @@ struct CodeGen  {
         sd += cb;
         cb.clear();
 
-
         if (label) sd += "    epilogue:;\n";
         if (has_profile) {
             append(sd, "    ", cpp ? "lobster::" : "", "EndProfile(ctx);\n");
         }
-        if (!sdt.empty()) append(sd, sdt);
-        sdt.clear();
+        // The locals that live in a global get their old value back, see BackupVar above.
+        for (int i = (int)f_defs.size() - 1; i >= 0; i--) {
+            auto varidx = f_defs[i];
+            if (sids[varidx].used_as_freevar()) {
+                append(sd, "    RestoreBackup(vm, ", varidx, ");\n");
+            }
+        }
         for (int i = 0; i < (int)f_keeps.size(); i++) {
             GenDecRef(sd, KeepVar(i));
         }
@@ -3220,7 +3216,7 @@ struct CodeGen  {
         if (IsStruct(typelt.type->t)) {
             if (typelt.type->t == V_STRUCT_R) {
                 // TODO: alternatively call a single helper with a list or bitmask?
-                // See BitMaskForRefStuct.
+                // See BitMaskForRefStruct.
                 for (int j = typelt.type->udt->numslots - 1; j >= 0; j--) {
                     auto stype = FindSlot(*typelt.type->udt, j)->type;
                     if (IsRefNil(stype->t)) EmitPopRef(RtTypeOf(stype));
@@ -3291,7 +3287,7 @@ struct CodeGen  {
         return bits;
     }
 
-    int BitMaskForRefStuct(TypeRef type) {
+    int BitMaskForRefStruct(TypeRef type) {
         assert(type->t == V_STRUCT_R);
         return ComputeBitMask(*type->udt);
     }
@@ -3331,7 +3327,7 @@ struct CodeGen  {
             // Same copy, one per slot of the struct being written, preceded by a decrement for
             // each of those slots that holds a reference, which the bitmask says which are.
             if (op == LV_WRITEREFV) {
-                auto bitmask = BitMaskForRefStuct(type);
+                auto bitmask = BitMaskForRefStruct(type);
                 for (int i = 0; i < width; i++)
                     if ((1 << i) & bitmask) GenDecRef(cb, Lval(i, type));
             }
@@ -3726,19 +3722,11 @@ struct CodeGen  {
         TakeTemp(2, true);
         switch (object->exptype->t) {
             case V_VECTOR: {
-                auto etype = object->exptype;
-                if (index->exptype->t == V_INT) {
-                    etype = etype->Element();
-                } else {
-                    auto &udt = *index->exptype->udt;
-                    for (auto &sfield : udt.sfields) {
-                        (void)sfield;
-                        etype = etype->Element();
-                    }
-                }
-                auto elemwidth = ValWidth(etype);
                 // An int index is a single level, a struct one a level per component.
                 auto levels = ValWidth(index->exptype);
+                auto etype = object->exptype;
+                for (int i = 0; i < levels; i++) etype = etype->Element();
+                auto elemwidth = ValWidth(etype);
                 // Either the whole element or just the part of it asked for.
                 auto subwidth = struct_elem_sub_width < 0 ? elemwidth : struct_elem_sub_width;
                 auto suboffset = struct_elem_sub_width < 0 ? 0 : struct_elem_sub_offset;
@@ -4033,7 +4021,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                 assert(IsRefNil(type->t));
                 if (type->t == V_STRUCT_R) {
                     // TODO: alternatively call a single helper with a list or bitmask?
-                    // See BitMaskForRefStuct.
+                    // See BitMaskForRefStruct.
                     for (int j = 0; j < type->udt->numslots; j++) {
                         auto stype = FindSlot(*type->udt, j)->type;
                         if (IsRefNil(stype->t)) {
@@ -4049,7 +4037,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                 assert(IsRefNil(type->t));
                 if (type->t == V_STRUCT_R) {
                     // TODO: alternatively call a single helper with a list or bitmask?
-                    // See BitMaskForRefStuct.
+                    // See BitMaskForRefStruct.
                     for (int j = 0; j < type->udt->numslots; j++) {
                         auto stype = FindSlot(*type->udt, j)->type;
                         if (IsRefNil(stype->t)) {
@@ -4358,7 +4346,7 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
             // A single slot element is a reference the loop owns when its type says so, a
             // struct one has a whole bitmask of them.
             auto bitmask = !IsRefNil(sub->t)  ? 0
-                         : IsStruct(sub->t)   ? cg.BitMaskForRefStuct(sub)
+                         : IsStruct(sub->t)   ? cg.BitMaskForRefStruct(sub)
                                               : 1;
             cg.GenForElem(false, ValWidth(sub) + 2, bitmask, sub);
             break;
