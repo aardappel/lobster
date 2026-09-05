@@ -1235,7 +1235,21 @@ struct SymbolTable {
         }
     }
 
-    // The function of this name in the innermost scope that has one.
+    // Any function of this name, once parsing has cleaned up the scoped lookup above: the top
+    // level one if there is one, else the first declared. For the IDE queries.
+    Function *FindFunctionAnywhere(string_view name) {
+        if (MaybeNameSpace(name)) {
+            auto f = FindFunctionAnywhere(NameSpaced(name));
+            if (f) return f;
+        }
+        auto it = functions_by_name.find(name);
+        if (it == functions_by_name.end()) return nullptr;
+        // Top level functions are at scopelevel 2 (1 is the file scope).
+        for (auto f : it->second) if (f->scopelevel == 2) return f;
+        return it->second[0];
+    }
+
+    // The function of this name in the innermost scope that has one, while parsing.
     Function *GetFirstFunction(const string &name) {
         auto it = functions.find(name);
         return it == functions.end() || it->second.empty() ? nullptr : it->second.back();

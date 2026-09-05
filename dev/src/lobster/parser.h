@@ -131,12 +131,10 @@ struct Parser {
             if (terminator == T_ENDOFFILE) block->Add(new IntConstant(lex, 0));
             else Error("last expression in block can\'t be a definition");
         }
-        // Top level functions stay registered for whole-program lookups
-        // after parsing (queries, etc).
-        CleanupStatements(block, terminator != T_ENDOFFILE);
+        CleanupStatements(block);
     }
 
-    void CleanupStatements(Block *list, bool unregister_functions = true) {
+    void CleanupStatements(Block *list) {
         // See also Block::TypeCheck
         for (auto def : list->children) {
             if (auto er = Is<EnumRef>(def)) {
@@ -149,7 +147,7 @@ struct Parser {
                 UnregisterT(sr->udt, st.udts);
             } else if (auto fr = Is<FunRef>(def)) {
                 auto f = fr->sf->parent;
-                if (!f->anonymous && unregister_functions) st.Unregister(f);
+                if (!f->anonymous) st.Unregister(f);
             } else if (auto d = Is<Define>(def)) {
                 // TODO: move more of this to TypeCheckFunctionDef ?
                 for (auto p : d->tsids) {

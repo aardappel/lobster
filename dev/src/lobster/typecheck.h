@@ -2921,7 +2921,7 @@ struct TypeChecker {
         }
 
         // FIXME: may not work when namespaces are involved.
-        auto f = st.FindFunction(full_iden);
+        auto f = st.FindFunctionAnywhere(full_iden);
         if (f) {
             auto ov = f->overloads[0];
             if(parent) { //Try to find method of parent class with same name
