@@ -1495,20 +1495,17 @@ struct TypeChecker {
                                 " can\'t find destination ", Q(isf->parent->name));
             destination_found:;
         }
-        vector<SubFunction *> rec_sfs;
         for (auto [isf, type] : sf->reuse_return_events) {
             auto start_sf = scopes.back().sf;
             auto nretslots = ValWidthMulti(isf->returntype, isf->returntype->NumValues());
-            if (!RecursiveCheckReturns(start_sf, nretslots, isf, rec_sfs, call_context))
+            if (!RecursiveCheckReturns(start_sf, nretslots, isf, call_context))
                 Error(call_context, "return from ", Q(isf->parent->name), " called out of context");
-            assert(rec_sfs.empty());
         }
-    };
+    }
 
     // This more complex iteration is needed for recursion, see below in Return::TypeCheck
     // and TypeCheckCallStatic
-    bool RecursiveCheckReturns(SubFunction *sf, int nretslots,
-                               const SubFunction *dest_sf, vector<SubFunction *>rec_dest_sf,
+    bool RecursiveCheckReturns(SubFunction *sf, int nretslots, const SubFunction *dest_sf,
                                const Node &context) {
         if (sf->parent == dest_sf->parent) {
             // Reached destination for this particular trace.
@@ -1552,7 +1549,7 @@ struct TypeChecker {
                     dsf->returned_thru_to_max = std::max(dsf->returned_thru_to_max, nretslots);
                 }
             }
-            if (!RecursiveCheckReturns(caller.caller, nretslots, dest_sf, rec_dest_sf, context))
+            if (!RecursiveCheckReturns(caller.caller, nretslots, dest_sf, context))
                 return false;
         }
         return true;
@@ -4261,7 +4258,8 @@ Node *Assert::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
 
 Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (!children.empty() && children[0]->exptype->t == V_UNDEFINED) {
-        // Not from GenericCall.
+        // The string conversion a string interpolation starts with, which the parser makes
+        // directly rather than thru a GenericCall.
         tc.TypeCheckList(this, LT_ANY);
     }
     if (nf->first->overloads) {
@@ -4479,10 +4477,9 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
 
 Node *Call::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {
     STACK_PROFILE;
-    if (!children.empty() && children[0]->exptype->t == V_UNDEFINED) {
-        // Not from GenericCall.
-        tc.TypeCheckList(this, LT_ANY);
-    }
+    // The arguments were typechecked by the GenericCall this came from, and the root call has
+    // none.
+    assert(children.empty() || children[0]->exptype->t != V_UNDEFINED);
     sf = tc.PreSpecializeFunction(sf);
     exptype = tc.TypeCheckCall(sf, *this, reqret, vtable_idx, &specializers, super);
     lt = sf->ltret;
@@ -4599,8 +4596,7 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     // See also reuse code in TypeCheckCallStatic
     auto start_sf = tc.scopes.back().sf;
     auto nretslots = ValWidthMulti(sf->returntype, sf->returntype->NumValues());
-    vector<SubFunction *> rec_sfs;
-    if (!tc.RecursiveCheckReturns(start_sf, nretslots, sf, rec_sfs, *this))
+    if (!tc.RecursiveCheckReturns(start_sf, nretslots, sf, *this))
         tc.Error(*this, "return from ", Q(sf->parent->name), " called out of context");
     return this;
 }
@@ -4885,7 +4881,8 @@ Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /
 
 Node *Dot::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (child->exptype->t == V_UNDEFINED) {
-        // Not from GenericCall.
+        // A field of a :: argument, or an explicit free variable that is one, which the
+        // parser and FreeVarRef make directly rather than thru a GenericCall.
         tc.TT(child, 1, LT_ANY);
     }
     tc.AdjustLifetime(child, LT_BORROW);

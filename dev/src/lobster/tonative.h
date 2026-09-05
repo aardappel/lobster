@@ -19,9 +19,6 @@
 
 namespace lobster {
 
-struct CodeGen;
-struct SymbolTable;
-
 extern bool RunTCC(const char *source,
                    const char *object_name /* save instead of run if non-null */,
                    string &error,

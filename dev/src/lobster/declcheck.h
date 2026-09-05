@@ -80,7 +80,7 @@ struct DeclChecker {
     // copies now that all declarations are known.
     void InheritSuperFields(GUDT *gudt) {
         if (!fields_completed.insert(gudt).second) return;
-        auto sup = GetGUDTSuper(gudt->gsuperclass);
+        auto sup = GetGUDTAny(gudt->gsuperclass);
         if (!sup) return;
         InheritSuperFields(sup);
         size_t k = 0;
@@ -129,8 +129,8 @@ struct DeclChecker {
     }
 
     bool RelatedGUDT(GUDT *a, GUDT *b) {
-        for (auto g = a; g; g = GetGUDTSuper(g->gsuperclass)) if (g == b) return true;
-        for (auto g = b; g; g = GetGUDTSuper(g->gsuperclass)) if (g == a) return true;
+        for (auto g = a; g; g = GetGUDTAny(g->gsuperclass)) if (g == b) return true;
+        for (auto g = b; g; g = GetGUDTAny(g->gsuperclass)) if (g == a) return true;
         return false;
     }
 

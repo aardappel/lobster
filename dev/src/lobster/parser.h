@@ -138,7 +138,7 @@ struct Parser {
         // See also Block::TypeCheck
         for (auto def : list->children) {
             if (auto er = Is<EnumRef>(def)) {
-                st.UnregisterEnum(er->e, st.enums);
+                st.UnregisterEnum(er->e);
             } else if (auto sr = Is<GUDTRef>(def)) {
                 if (sr->gudt->predeclaration)
                     Error("pre-declared struct ", Q(sr->gudt->name), " never defined");
@@ -930,7 +930,7 @@ struct Parser {
             Expect(T_RIGHTBRACKET);
         }
         if (IsNext(T_RETURNTYPE)) {  // Return type decl.
-            sf->returngiventype = ParseTypes(sf, LT_KEEP);
+            sf->returngiventype = ParseTypes(sf);
         }
         if (!IsNext(T_COLON)) {
             // This must be a function type.
@@ -1008,7 +1008,8 @@ struct Parser {
         }
     }
 
-    UnTypeRef ParseTypes(SubFunction *sfreturntype, Lifetime lt) {
+    // The return types of a function, which are a tuple when there is more than one.
+    UnTypeRef ParseTypes(SubFunction *sfreturntype) {
         auto dest = ParseType(false, sfreturntype);
         if (!IsNext(T_COMMA)) return dest;
         vector<UnTypeRef> types;
@@ -1018,7 +1019,7 @@ struct Parser {
         } while (IsNext(T_COMMA));
         dest = st.NewTuple(types.size());
         for (auto [i, type] : enumerate(types))
-            dest->Set(i, &*type, IsRefNil(type->t) ? lt : LT_ANY);
+            dest->Set(i, &*type, IsRefNil(type->t) ? LT_KEEP : LT_ANY);
         return dest;
     }
 

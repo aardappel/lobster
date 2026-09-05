@@ -21,7 +21,6 @@ namespace lobster {
 // There is now a RTType equivalent, to which these values get mapped during codegen.
 enum ValueType : int {
     // refc types are negative
-    V_MINVTTYPES = -8,
     V_ANY = -7,         // any other reference type.
     V_VALUEBUF = -6,    // only used as memory type for vector buffers, not used by Value.
     V_STRUCT_R = -5,
@@ -44,7 +43,6 @@ enum ValueType : int {
                         // After the declchecker ran, guaranteed to involve
                         // unbound type variables (see collapse there).
     V_UNDEFINED,        // [typechecker only] this type should never be accessed.
-    V_MAXVTTYPES
 };
 
 inline bool IsScalar(ValueType t) { return t == V_INT || t == V_FLOAT; }
@@ -307,8 +305,6 @@ class TypeRef : public UnTypeRef {
     const Type *operator->() const { return type; }
 
     const Type *get() const { return type; }
-
-    bool Null() const { return type == nullptr; }
 };
 
 extern TypeRef type_int;

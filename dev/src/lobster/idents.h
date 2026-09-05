@@ -450,10 +450,6 @@ bool Type::FlowSensitive() const {
     }
 }
 
-GUDT *GetGUDTSuper(UnTypeRef type) {
-    return type->t == V_UNDEFINED ? nullptr : (type->t == V_UUDT ? type->spec_udt->gudt : &type->udt->g);
-}
-
 GUDT *GetGUDTAny(UnTypeRef type) {
     return type->t == V_UUDT ? type->spec_udt->gudt : (IsUDT(type->t) ? &type->udt->g : nullptr);
 }
@@ -486,7 +482,7 @@ int DistanceToSpecializedSuper(const GUDT *super, const UDT *subclass) {
 
 int DistanceFromSpecializedSub(const UDT *super, const GUDT *subclass) {
     int dist = 0;
-    for (auto t = subclass; t; t = GetGUDTSuper(t->gsuperclass)) {
+    for (auto t = subclass; t; t = GetGUDTAny(t->gsuperclass)) {
         for (auto u = t->first; u; u = u->next)
             if (u == super) return dist;
         dist++;
@@ -1007,15 +1003,15 @@ struct SymbolTable {
         defsubfunctionstack.push_back(sf);
     }
 
-    void UnregisterEnum(const Enum *e, unordered_map<string_view, Enum *> &dict) {
-        auto it = dict.find(e->name);
-        if (it != dict.end()) {
+    void UnregisterEnum(const Enum *e) {
+        auto it = enums.find(e->name);
+        if (it != enums.end()) {
             for (auto &ev : e->vals) {
-                auto it = enumvals.find(ev->name);
-                assert(it != enumvals.end());
-                enumvals.erase(it);
+                auto evit = enumvals.find(ev->name);
+                assert(evit != enumvals.end());
+                enumvals.erase(evit);
             }
-            dict.erase(it);
+            enums.erase(it);
         }
     }
 
@@ -1304,13 +1300,6 @@ struct SymbolTable {
         // Vars store a cycle of all vars its been unified with, starting with itself.
         var->sub = var;
         return var;
-    }
-
-    TypeRef NewNilTypeVar() {
-        auto nil = NewType();
-        *nil = Type(V_NIL);
-        nil->sub = &*NewTypeVar();
-        return nil;
     }
 
     TypeRef NewTuple(size_t sz) {

@@ -377,21 +377,21 @@ enum Tags {
     Table = 1,
     Row = 2,
     FirstRow = 3,
-    Td = 4,
-    Subsystem = 5,
-    Name = 6,
-    Params = 7,
-    Help = 8,
-    Font = 9,
-    Returns = 10,
-    ParamType = 11,
-    ParamName = 12,
-    ParamDefault = 13,
-    Param = 14,
-    RetTypeWrap = 15,
+    Subsystem = 4,
+    Name = 5,
+    Params = 6,
+    Help = 7,
+    Font = 8,
+    Returns = 9,
+    ParamType = 10,
+    ParamName = 11,
+    ParamDefault = 12,
+    Param = 13,
+    RetTypeWrap = 14,
+    NumTags
 };
 
-string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tags)[16][2], string (*escape)(string_view)) {
+string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tags)[NumTags][2], string (*escape)(string_view)) {
     string s = doc_tags[Tags::Doc][0];
     int cursubsystem = -1;
     bool is_first_row = true;
@@ -403,9 +403,9 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
             if (nf->subsystemid != cursubsystem) {
                 if (tablestarted) s += doc_tags[Tags::Table][1];
                 tablestarted = false;
-                if (group_subsystem) s += is_first_row ? doc_tags[Tags::FirstRow][0] : doc_tags[Tags::Row][0];
+                s += is_first_row ? doc_tags[Tags::FirstRow][0] : doc_tags[Tags::Row][0];
                 s += cat(doc_tags[Tags::Subsystem][0], nfr.subsystems[nf->subsystemid], doc_tags[Tags::Subsystem][1]);
-                if (group_subsystem) s += doc_tags[Tags::Row][1];
+                s += doc_tags[Tags::Row][1];
                 cursubsystem = nf->subsystemid;
             }
             if (!tablestarted) {
@@ -483,7 +483,7 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
 }
 
 void DumpBuiltinDoc(NativeRegistry &nfr, bool group_subsystem) {
-    string html_tags[16][2] = {
+    string html_tags[NumTags][2] = {
     /* Doc          */  {"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">\n"
     /*              */   "<html>\n<head>\n<title>lobster builtin function reference</title>\n"
     /*              */   "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
@@ -496,7 +496,6 @@ void DumpBuiltinDoc(NativeRegistry &nfr, bool group_subsystem) {
     /* Table        */  {"<tr><td><table class=\"a\" border=1 cellspacing=0 cellpadding=4>", "</table></td></tr>\n"},
     /* Row          */  {"<tr class=\"a\" valign=top>", "</tr>\n"},
     /* FirstRow     */  {"<tr class=\"a\" valign=top>", "</tr>\n"},
-    /* Td           */  {"<td>", "</td>"},
     /* Subsystem    */  {"<td><h3>", "</h3></td>"},
     /* Name         */  {"<td class=\"a\"><tt><b>", "</b>"},
     /* Params       */  {"(", ")"},
@@ -513,12 +512,11 @@ void DumpBuiltinDoc(NativeRegistry &nfr, bool group_subsystem) {
 }
 
 void DumpBuiltinDocJson(NativeRegistry &nfr) {
-    string json_tags[16][2] = {
+    string json_tags[NumTags][2] = {
     /* Doc          */ {"", ""},
     /* Table        */ {"[", "]"},
     /* Row          */ {",\n{", "}"},
     /* FirstRow     */ {"{", "}"},
-    /* Td           */ {"{", "}"},
     /* Subsystem    */ {"\"subsystem\": \"", "\", "},
     /* Name         */ {"\"funcname\": \"", "\", "},
     /* Params       */ {"\"args\":[", "]"},
