@@ -2012,9 +2012,9 @@ BUILTIN_OVERLOAD(id_start_int, "id_start", "label", "I", "",
 
 BUILTIN_OVERLOAD(id_start_ref, "id_start", "label", "A", "",
     "(reference version)")
-(VM &vm, Value r) {
+(VM &vm, RefObj *r) {
     IsInit(vm);
-    ImGui::PushID((const void *)r.ref());
+    ImGui::PushID((const void *)r);
     NPush(N_ID);
 }
 
@@ -2299,13 +2299,14 @@ BUILTIN(table_end, "", "", "",
 
 BUILTIN(edit_anything, "value,label", "AkS?", "A1",
     "creates a UI for any lobster reference value, and returns the edited version")
-(VM &vm, Value v, LString *label) {
+(VM &vm, RefObj *r, LString *label) {
     IsInit(vm);
     // FIXME: would be good to support structs, but that requires typeinfo, not just len.
-    auto &ti = vm.GetTypeInfo(v.True() ? v.ref()->tti : TYPE_ELEM_ANY);
+    auto v = Value(r);
+    auto &ti = vm.GetTypeInfo(r ? r->tti : TYPE_ELEM_ANY);
     ValToGUI(vm, &v, &ti, (label != nullptr) ? label->strvnt() : string_view_nt(""), true,
              false);
-    return v;
+    return v.refnil();
 }
 
 BUILTIN(graph, "label,values,ishistogram", "SF]I", "",

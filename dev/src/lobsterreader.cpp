@@ -402,11 +402,12 @@ BUILTIN_V(parse_data, "typeid,stringdata", "TS", "A1?S?",
 BUILTIN(flexbuffers_value_to_binary, "val,max_nesting,cycle_detection", "AI?B?", "S",
     "turns any reference value into a flexbuffer. max_nesting defaults to 100. "
     "cycle_detection is by default off (expensive)")
-(VM &vm, Value val, iint mn, iint cycle_detect) {
+(VM &vm, RefObj *ref, iint mn, iint cycle_detect) {
+    auto val = Value(ref);
     ToFlexBufferContext fbc(vm, 1024, flexbuffers::BUILDER_FLAG_SHARE_KEYS);
     if (mn > 0) fbc.max_depth = mn;
     fbc.cycle_detect = (cycle_detect != 0);
-    val.ToFlexBuffer(fbc, val.refnil() ? val.refnil()->ti(vm).t : RTT_NIL, {}, (type_elem_t)0);
+    val.ToFlexBuffer(fbc, ref ? ref->ti(vm).t : RTT_NIL, {}, (type_elem_t)0);
     fbc.builder.Finish();
     if (!fbc.cycle_hit.empty())
         vm.BuiltinError("flexbuffers_value_to_binary: data structure contains a cycle: " +
@@ -478,9 +479,10 @@ BUILTIN(lobster_value_to_binary, "val", "A", "S",
     "this is intended for threads/networking, not for storage (since it is not readable by other languages). "
     "data structures participating must have been marked by attribute serializable. "
     "does not provide protection against cycles, use flexbuffers if that is a concern. ")
-(VM &vm, Value val) {
+(VM &vm, RefObj *ref) {
     vector<uint8_t> buf;
-    val.ToLobsterBinary(vm, buf, val.refnil() ? val.refnil()->ti(vm).t : RTT_NIL);
+    auto val = Value(ref);
+    val.ToLobsterBinary(vm, buf, ref ? ref->ti(vm).t : RTT_NIL);
     // FIXME: since this is meant to be fast, worth seeing if this can be made 0-copy?
     auto s = vm.NewString(
         string_view((const char *)buf.data(), buf.size()));

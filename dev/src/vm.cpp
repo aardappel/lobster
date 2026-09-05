@@ -655,9 +655,8 @@ void VM::EvalProgram() {
 }
 
 // Only for a function value that takes nothing and returns nothing, see fun_base_t.
-void VM::CallFunctionValue(Value f) {
-    auto fv = f.ip();
-    fv(*this);
+void VM::CallFunctionValue(fun_base_t f) {
+    f(*this);
 }
 
 string VM::ProperTypeName(const TypeInfo &ti) {
@@ -1020,7 +1019,10 @@ void CRtVectorGrow(VM *vm, LVector *v) { RtVectorGrow(*vm, v); }
 void CRtVectorEmptyErr(VM *vm, int nfi) { RtVectorEmptyErr(*vm, nfi); }
 void CRtVectorIdxErr(VM *vm, int nfi, iint i, iint len) { RtVectorIdxErr(*vm, nfi, i, len); }
 void CRtVectorErase(LVector *v, iint i) { RtVectorErase(v, i); }
-void CRtExit(VM *vm, Value ret, type_elem_t ti) { RtExit(*vm, ret, ti); }
+void CRtExitInt(VM *vm, iint ret, type_elem_t ti) { RtExitInt(*vm, ret, ti); }
+void CRtExitFloat(VM *vm, double ret, type_elem_t ti) { RtExitFloat(*vm, ret, ti); }
+void CRtExitFun(VM *vm, fun_base_t ret, type_elem_t ti) { RtExitFun(*vm, ret, ti); }
+void CRtExitRef(VM *vm, RefObj *ret, type_elem_t ti) { RtExitRef(*vm, ret, ti); }
 void CRtExitVoid(VM *vm) { RtExitVoid(*vm); }
 void CRtAbort(VM *vm) { RtAbort(*vm); }
 iint CRtIDiv(VM *vm, iint a, iint b) { return RtIDiv(*vm, a, b); }
@@ -1036,7 +1038,10 @@ iint CRtSNe(LString *a, LString *b) { return RtSNe(a, b); }
 iint CRtSnEq(LString *a, LString *b) { return RtSnEq(a, b); }
 iint CRtSnNe(LString *a, LString *b) { return RtSnNe(a, b); }
 LString *CRtStrConcatN(VM *vm, Value *strs, int len) { return RtStrConcatN(*vm, strs, len); }
-LString *CRtToString(VM *vm, Value a, type_elem_t ti) { return RtToString(*vm, a, ti); }
+LString *CRtIntToString(VM *vm, iint a, type_elem_t ti) { return RtIntToString(*vm, a, ti); }
+LString *CRtFloatToString(VM *vm, double a, type_elem_t ti) { return RtFloatToString(*vm, a, ti); }
+LString *CRtFunToString(VM *vm, fun_base_t a, type_elem_t ti) { return RtFunToString(*vm, a, ti); }
+LString *CRtRefToString(VM *vm, RefObj *a, type_elem_t ti) { return RtRefToString(*vm, a, ti); }
 LString *CRtStructToString(VM *vm, Value *vals, type_elem_t ti) { return RtStructToString(*vm, vals, ti); }
 iint CRtIsSubType(VM *vm, LObject *v, int start, int end, int nilres) { return RtIsSubType(*vm, v, start, end, nilres); }
 fun_base_t CRtDynDispatch(VM *vm, LObject *self, int vtable_idx) { return RtDynDispatch(*vm, self, vtable_idx); }
@@ -1065,7 +1070,10 @@ const void *vm_ops_jit_table[] = {
     "RtVectorEmptyErr", (void *)&CRtVectorEmptyErr,
     "RtVectorIdxErr", (void *)&CRtVectorIdxErr,
     "RtVectorErase", (void *)&CRtVectorErase,
-    "RtExit", (void *)&CRtExit,
+    "RtExitInt", (void *)&CRtExitInt,
+    "RtExitFloat", (void *)&CRtExitFloat,
+    "RtExitFun", (void *)&CRtExitFun,
+    "RtExitRef", (void *)&CRtExitRef,
     "RtExitVoid", (void *)&CRtExitVoid,
     "RtAbort", (void *)&CRtAbort,
     "RtIDiv", (void *)&CRtIDiv,
@@ -1081,7 +1089,10 @@ const void *vm_ops_jit_table[] = {
     "RtSnEq", (void *)&CRtSnEq,
     "RtSnNe", (void *)&CRtSnNe,
     "RtStrConcatN", (void *)&CRtStrConcatN,
-    "RtToString", (void *)&CRtToString,
+    "RtIntToString", (void *)&CRtIntToString,
+    "RtFloatToString", (void *)&CRtFloatToString,
+    "RtFunToString", (void *)&CRtFunToString,
+    "RtRefToString", (void *)&CRtRefToString,
     "RtStructToString", (void *)&CRtStructToString,
     "RtIsSubType", (void *)&CRtIsSubType,
     "RtDynDispatch", (void *)&CRtDynDispatch,

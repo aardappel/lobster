@@ -1214,7 +1214,7 @@ struct VM : VMBase {
 
     void FrameStart(iint delta) { frame_count += delta; }
 
-    void CallFunctionValue(Value f);
+    void CallFunctionValue(fun_base_t f);
 
     string ProperTypeName(const TypeInfo &ti);
 

@@ -149,10 +149,12 @@ constexpr int BuiltinNumArgs(const char *typeids) {
 // A '}' argument is a numeric struct of the width the ':' after it gives, which becomes a
 // vector of that many ints or floats. A 'w' one may be passed a struct of any width, so it
 // stays a pointer to the stack slots its values are in. A ']' makes any of them a vector,
-// which is a reference. An 'A' argument can hold any kind of reference, and an 'L' one is only
-// ever passed on, so they stay a Value.
+// which is a reference. An 'A' is any value at all, which is a reference wherever the
+// typechecker says it has to be one, see BuiltinRetKindOf. An 'L' is a function value.
 enum BuiltinArgKind {
-    BAK_VALUE,     // A, L
+    BAK_VALUE,     // A
+    BAK_REF,       // A the typechecker requires a reference of
+    BAK_FUNCTION,  // L
     BAK_INT,       // I, B, T
     BAK_FLOAT,     // F
     BAK_STRING,    // S
@@ -180,6 +182,7 @@ constexpr BuiltinArgKind BuiltinArgKindOf(const char *typeids, int arg) {
                     case 'F': return BAK_FLOAT;
                     case 'S': return BAK_STRING;
                     case 'R': return BAK_RESOURCE;
+                    case 'L': return BAK_FUNCTION;
                     default: return BAK_VALUE;
                 }
             }
@@ -231,7 +234,75 @@ constexpr bool BuiltinArgIsVec(const char *typeids, int arg) {
     return k == BAK_IVEC || k == BAK_FVEC || k == BAK_VALUEVEC;
 }
 
-template<BuiltinArgKind K, int W> struct BuiltinParamType    { typedef Value type; };
+// The modifiers that follow the type letter of an argument, which is what says how much of a
+// type an 'A' really is, see Narg::Set. Only ever asked of one, which can carry none of the
+// modifiers that take an argument of their own.
+constexpr string_view BuiltinArgMods(const char *typeids, int arg) {
+    auto n = -1;
+    const char *start = typeids;
+    for (;; typeids++) {
+        auto c = *typeids;
+        if (!c || (c >= 'A' && c <= 'Z')) {
+            if (n == arg) return string_view(start, (size_t)(typeids - start));
+            if (!c) return string_view();
+            n++;
+            start = typeids + 1;
+        }
+    }
+}
+
+// Whether an 'A' is a value of any type at all or always a reference, which is what lets it be
+// a RefObj * rather than a Value. The typechecker requires a reference of an argument that
+// carries no modifiers at all, which is the only place in the language where any reference type
+// goes. A return value that is the same type as such an argument is one too, since none of the
+// rewrites the typechecker does for a vector, typeid or function argument apply to it, and so
+// is a nilable one, whose type it requires to be nillable.
+constexpr bool BuiltinModsPlain(string_view mods) {
+    for (auto c : mods) {
+        if (c == '1' || c == '2' || c == '3' || c == 'u' || c == '*' || c == 'c' || c == 's' ||
+            c == 'w') return false;
+    }
+    return true;
+}
+
+constexpr int BuiltinModsSubArg(string_view mods) {
+    for (auto c : mods) {
+        if (c >= '1' && c <= '3') return c - '1';
+    }
+    return -1;
+}
+
+constexpr bool BuiltinModsOptional(string_view mods) {
+    for (auto c : mods) if (c == '?') return true;
+    return false;
+}
+
+constexpr bool BuiltinArgIsPlainAny(const char *typeids, int arg) {
+    return BuiltinArgKindOf(typeids, arg) == BAK_VALUE &&
+           BuiltinModsPlain(BuiltinArgMods(typeids, arg));
+}
+
+// The kind an argument reaches the builtin as.
+constexpr BuiltinArgKind BuiltinParamKindOf(const char *typeids, int arg) {
+    return BuiltinArgIsPlainAny(typeids, arg) ? BAK_REF : BuiltinArgKindOf(typeids, arg);
+}
+
+// The same for a return value, which also knows the arguments it may say it is the type of.
+constexpr BuiltinArgKind BuiltinRetKindOf(const char *typeids, const char *rets, int ret) {
+    auto k = BuiltinArgKindOf(rets, ret);
+    if (k != BAK_VALUE) return k;
+    auto mods = BuiltinArgMods(rets, ret);
+    if (BuiltinModsPlain(mods)) return BAK_REF;
+    auto sa = BuiltinModsSubArg(mods);
+    if (sa < 0) return BAK_VALUE;
+    if (BuiltinModsOptional(mods)) return BAK_REF;
+    return BuiltinArgIsPlainAny(typeids, sa) ? BAK_REF : BAK_VALUE;
+}
+
+template<BuiltinArgKind K, int W> struct BuiltinParamType;
+template<int W> struct BuiltinParamType<BAK_VALUE, W>        { typedef Value type; };
+template<int W> struct BuiltinParamType<BAK_REF, W>          { typedef RefObj *type; };
+template<int W> struct BuiltinParamType<BAK_FUNCTION, W>     { typedef fun_base_t type; };
 template<int W> struct BuiltinParamType<BAK_INT, W>          { typedef iint type; };
 template<int W> struct BuiltinParamType<BAK_FLOAT, W>        { typedef double type; };
 template<int W> struct BuiltinParamType<BAK_STRING, W>       { typedef LString *type; };
@@ -242,7 +313,7 @@ template<int W> struct BuiltinParamType<BAK_FVEC, W>         { typedef vec<doubl
 template<int W> struct BuiltinParamType<BAK_VALUEVEC, W>     { typedef Value *type; };
 
 template<typename TIDS, size_t P> struct BuiltinParam {
-    typedef typename BuiltinParamType<BuiltinArgKindOf(TIDS::tids, (int)P),
+    typedef typename BuiltinParamType<BuiltinParamKindOf(TIDS::tids, (int)P),
                                       BuiltinArgWidthOf(TIDS::tids, (int)P)>::type type;
 };
 
@@ -254,7 +325,7 @@ template<typename TIDS, bool PushRets> struct BuiltinRet {
     static constexpr int n = BuiltinNumArgs(TIDS::rids);
     typedef std::conditional_t<
         PushRets || n == 0, void,
-        typename BuiltinParamType<BuiltinArgKindOf(TIDS::rids, n - 1),
+        typename BuiltinParamType<BuiltinRetKindOf(TIDS::tids, TIDS::rids, n - 1),
                                   BuiltinArgWidthOf(TIDS::rids, n - 1)>::type> type;
 };
 
@@ -477,17 +548,34 @@ struct NativeFun : Named {
             case V_FLOAT: return BAK_FLOAT;
             case V_STRING: return BAK_STRING;
             case V_RESOURCE: return BAK_RESOURCE;
+            case V_FUNCTION: return BAK_FUNCTION;
             default: return BAK_VALUE;
         }
     }
 
-    // The C++ type argument `i` reaches the builtin as.
-    BuiltinArgKind ArgKind(size_t i) const { return KindOf(args[i]); }
+    // An 'A' that carries no modifiers, which is the one the typechecker requires a reference
+    // of, see BuiltinRetKindOf.
+    bool IsPlainAny(const Narg &n) const { return KindOf(n) == BAK_VALUE && !n.flags; }
+
+    // The C++ type argument `i` reaches the builtin as, mirroring BuiltinParamKindOf.
+    BuiltinArgKind ArgKind(size_t i) const {
+        return IsPlainAny(args[i]) ? BAK_REF : KindOf(args[i]);
+    }
 
     // The one the builtin returns its last return value as, see BuiltinRet. Of the V kind, or
     // with nothing to return, it returns void, which has no kind of its own.
     bool ReturnsValue() const { return !pushrets && !retvals.empty(); }
-    BuiltinArgKind RetKind() const { return KindOf(retvals.back()); }
+    BuiltinArgKind RetKind() const {
+        auto &r = retvals.back();
+        auto k = KindOf(r);
+        if (k != BAK_VALUE) return k;
+        if (!r.flags) return BAK_REF;
+        auto sub = r.flags & (NF_SUBARG1 | NF_SUBARG2 | NF_SUBARG3);
+        if (!sub || sub != r.flags) return BAK_VALUE;
+        if (r.optional) return BAK_REF;
+        auto sa = (size_t)(sub == NF_SUBARG1 ? 0 : sub == NF_SUBARG2 ? 1 : 2);
+        return sa < args.size() && IsPlainAny(args[sa]) ? BAK_REF : BAK_VALUE;
+    }
 
     // Whether it takes a pointer to the stack, which only the ones that push anything do.
     bool PushesValues() const { return pushrets || retvals.size() > 1; }

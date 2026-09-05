@@ -558,8 +558,9 @@ struct CodeGen  {
         assert(type->NumValues() == (size_t)return_value);
         if (return_value) {
             TrackUseDef(1, 0);
-            auto v = Box(regso - 1, Slot(1, type));
-            append(cb, "    RtExit(vm, ", v, ", (type_elem_t)", GetTypeTableOffset(type), ");\n");
+            auto p = Slot(1, type);
+            append(cb, "    RtExit", KindName(p.k()), "(vm, ", ReadTyped(p), ", (type_elem_t)",
+                   GetTypeTableOffset(type), ");\n");
         } else {
             TrackUseDef(0, 0);
             append(cb, "    RtExitVoid(vm);\n");
@@ -867,6 +868,14 @@ struct CodeGen  {
                 "\n"
                 ;
 
+            // A value of a type only known at runtime, which is all a handful of builtins take
+            // and one returns, made from what the slot it comes from holds. A helper rather than
+            // a compound literal, which libtcc compiles into a call to memset. One per name
+            // KindName hands out, the reference one taking the type every reference has.
+            for (auto k : { VK_INT, VK_FLOAT, VK_FUN, VK_REF }) {
+                append(sd, "static Value mkval", KindName(k), "(", CType(k), " a) { Value v; v.",
+                       Member(k), " = ", k == VK_FUN ? "(long long)a" : "a", "; return v; }\n");
+            }
             // Every runtime helper the generated code can call. These mirror the Rt functions in
             // vmops.h, which is what the JIT links them to, see vm_ops_jit_table. Where the
             // C++ side takes any reference, it is void here, since the generated code holds
@@ -883,7 +892,10 @@ struct CodeGen  {
                 "void RtVectorEmptyErr(VMRef, int);\n"
                 "void RtVectorIdxErr(VMRef, int, long long, long long);\n"
                 "void RtVectorErase(LVector *, long long);\n"
-                "void RtExit(VMRef, Value, type_elem_t);\n"
+                "void RtExitInt(VMRef, long long, type_elem_t);\n"
+                "void RtExitFloat(VMRef, double, type_elem_t);\n"
+                "void RtExitFun(VMRef, fun_base_t, type_elem_t);\n"
+                "void RtExitRef(VMRef, RefObj *, type_elem_t);\n"
                 "void RtExitVoid(VMRef);\n"
                 "void RtAbort(VMRef);\n"
                 "long long RtIDiv(VMRef, long long, long long);\n"
@@ -899,7 +911,10 @@ struct CodeGen  {
                 "long long RtSnEq(LString *, LString *);\n"
                 "long long RtSnNe(LString *, LString *);\n"
                 "LString *RtStrConcatN(VMRef, Value *, int);\n"
-                "LString *RtToString(VMRef, Value, type_elem_t);\n"
+                "LString *RtIntToString(VMRef, long long, type_elem_t);\n"
+                "LString *RtFloatToString(VMRef, double, type_elem_t);\n"
+                "LString *RtFunToString(VMRef, fun_base_t, type_elem_t);\n"
+                "LString *RtRefToString(VMRef, RefObj *, type_elem_t);\n"
                 "LString *RtStructToString(VMRef, Value *, type_elem_t);\n"
                 "long long RtIsSubType(VMRef, LObject *, int, int, int);\n"
                 "fun_base_t RtDynDispatch(VMRef, LObject *, int);\n"
@@ -1238,13 +1253,13 @@ struct CodeGen  {
     }
 
     // A Value a helper returned, as the expression of a kind.
+    // A Value a helper returned as the kind the slot it goes into holds.
     string Unbox(string_view expr, VKind k) {
         if (cpp) return cat(expr, ".", Accessor(k));
         if (k == VK_FUN) return cat("(fun_base_t)", expr, ".ival");
         return cat(expr, ".", Member(k));
     }
 
-    // Writing a Value a helper returned to a variable, as the field for its kind.
     void SetValue(string &sd, const Place &d, string_view expr, string_view lf = "\n") {
         assert(d.typed);
         Write(sd, d, Unbox(expr, d.k()), lf);
@@ -1507,19 +1522,26 @@ struct CodeGen  {
     // The same for the top values the current op consumes.
     string StageArgs(const Types &ts) { return StageRange(regso - (int)ts.size(), ts); }
 
-    // A typed value as a Value, for a helper that takes one: the C++ backend constructs it, the C
-    // one goes thru the stack array, at the slot the value comes from.
-    string Box(int slotidx, const Place &p) {
-        if (cpp) {
-            if (IsRefKind(p.k())) {
-                return cat("Value(", Read(p), ")");
-            }
-            return cat("Value(", Read(p), ")");
+    // The helpers that work on a value of any type come one per kind of value rather than
+    // taking a Value, so the name of each ends in the kind it is for, and the value goes in as
+    // the type the code holds it as, references all as the one type they have in common.
+    static string KindName(VKind k) {
+        switch (k) {
+            case VK_INT: return "Int";
+            case VK_FLOAT: return "Float";
+            case VK_FUN: return "Fun";
+            default: return "Ref";
         }
-        auto m = StackSlot(slotidx, p.rtt);
-        f_uses_vals = true;
-        CopyValue(cb, m, p);
-        return m.s;
+    }
+    string ReadTyped(const Place &p) {
+        return IsRefKind(p.k()) ? ReadAs(p, VK_REF) : Read(p);
+    }
+
+    // A typed value as a Value, for the few builtins that take a value whose type is only known
+    // at runtime: the C++ backend constructs it, the C one goes thru a maker, see Prologue.
+    string Box(const Place &p) {
+        if (cpp) return cat("Value(", Read(p), ")");
+        return cat("mkval", KindName(p.k()), "(", ReadTyped(p), ")");
     }
 
     int Label() { return nlabel++; }
@@ -2004,11 +2026,11 @@ struct CodeGen  {
     // builtins that return an untyped Value are returned indirectly at all.
     bool SretValues(NativeFun *nf) {
         #ifdef _MSC_VER
-            // A numeric struct fails MSVC's rules for a return in a register on its base class
-            // alone, and an untyped Value on its private members, so both come back thru a
-            // pointer the caller passes first.
+            // A numeric struct fails MSVC's rules for a return in a register on its base
+            // class alone, and an untyped Value on its private members, so both come back thru
+            // a pointer the caller passes first.
             return !cpp && nf->ReturnsValue() &&
-                   (nf->RetKind() == BAK_VALUE || nf->RetWidth());
+                   (nf->RetWidth() || nf->RetKind() == BAK_VALUE);
         #else
             (void)nf;
             return false;
@@ -2034,6 +2056,9 @@ struct CodeGen  {
     // vector of its width, which the C side has its own layout compatible type for.
     string NativeArgCType(BuiltinArgKind k, int width) {
         switch (k) {
+            case BAK_VALUE:    return "Value";
+            case BAK_REF:      return "RefObj *";
+            case BAK_FUNCTION: return "fun_base_t";
             case BAK_INT:      return cpp ? "iint" : "long long";
             case BAK_FLOAT:    return "double";
             case BAK_STRING:   return "LString *";
@@ -2042,8 +2067,9 @@ struct CodeGen  {
             case BAK_IVEC:     return cpp ? cat("vec<iint, ", width, ">") : cat("ivec", width);
             case BAK_FVEC:     return cpp ? cat("vec<double, ", width, ">") : cat("fvec", width);
             case BAK_VALUEVEC: return "Value *";
-            default:           return "Value";
         }
+        assert(false);
+        return "";
     }
 
     // The type a builtin returns, which is that of its last return value, see BuiltinRet.
@@ -2066,6 +2092,7 @@ struct CodeGen  {
             case BAK_FLOAT:  return VK_FLOAT;
             case BAK_STRING: return VK_STRING;
             case BAK_VECTOR: return VK_VECTOR;
+            case BAK_FUNCTION: return VK_FUN;
             default:         return VK_REF;
         }
     }
@@ -2109,7 +2136,9 @@ struct CodeGen  {
                 case BAK_STRING:   append(s, ", ", ReadAs(p, VK_STRING)); break;
                 case BAK_VECTOR:   append(s, ", ", ReadAs(p, VK_VECTOR)); break;
                 case BAK_RESOURCE: append(s, ", ", cpp ? "(LResource *)" : "", Read(p)); break;
-                default:           append(s, ", ", Box(slot, p)); break;
+                case BAK_REF:      append(s, ", ", ReadAs(p, VK_REF)); break;
+                case BAK_VALUE:    append(s, ", ", Box(p)); break;
+                default:           append(s, ", ", Read(p)); break;
             }
             slot++;
         }
@@ -2236,10 +2265,10 @@ struct CodeGen  {
         if (!retslots) {
             append(cb, "    ", call, ";");
             comment(nf->name);
-        } else if (retslots > 1 || sret) {
-            // A value that does not go straight into its slot lands in a temporary of the type
-            // it comes back as first: a numeric struct, which is read a field at a time into
-            // the slots its values live in, or one the host compiler returns thru a pointer.
+        } else if (nf->RetWidth() || sret) {
+            // A value that cannot go straight into its slot lands in a temporary of the type it
+            // comes back as: a numeric struct, which is read a field at a time into the slots
+            // its values live in, or one the host compiler returns thru a pointer.
             append(cb, "    {");
             comment(nf->name);
             auto ct = NativeRetCType(nf);
@@ -2247,7 +2276,7 @@ struct CodeGen  {
             else append(cb, "    ", ct, " _nr = ", call, ";\n");
             for (int i = 0; i < retslots; i++) {
                 auto d = SlotVar(base + pushed + i, rets[pushed + i]);
-                if (retslots > 1) Write(cb, d, cat("_nr.", VecField(i)));
+                if (nf->RetWidth()) Write(cb, d, cat("_nr.", VecField(i)));
                 else SetValue(cb, d, "_nr");
             }
             cb += "    }\n";
@@ -4005,9 +4034,10 @@ void ToString::Generate(CodeGen &cg, size_t retval) const {
         default: {
             auto ti = (int)cg.GetTypeTableOffset(child->exptype->ElementIfNil());
             cg.TrackUseDef(1, 1);
-            auto v = cg.Box(cg.regso - 1, cg.Slot(1, child->exptype));
+            auto p = cg.Slot(1, child->exptype);
             cg.Write(cg.cb, cg.SlotVar(cg.regso - 1, RTT_STRING),
-                     cat("RtToString(vm, ", v, ", (type_elem_t)", ti, ")"));
+                     cat("Rt", CodeGen::KindName(p.k()), "ToString(vm, ", cg.ReadTyped(p),
+                         ", (type_elem_t)", ti, ")"));
             break;
         }
     }

@@ -206,8 +206,8 @@ BUILTIN_OVERLOAD(length_vector, "length", "xs", "A]*", "I",
 BUILTIN(equal, "a,b", "AA", "B",
     "structural equality between any two values (recurses into vectors/objects,"
     " unlike == which is only true for vectors/objects if they are the same object)")
-(VM &vm, Value a, Value b) {
-    bool eq = RefEqual(vm, a.refnil(), b.refnil(), true);
+(VM &vm, RefObj *a, RefObj *b) {
+    bool eq = RefEqual(vm, a, b, true);
     return eq;
 }
 
@@ -309,26 +309,26 @@ BUILTIN(binary_search_first_field_string, "xs,key", "A]*S", "II",
 
 BUILTIN(binary_search_first_field_object, "xs,key", "A]*A", "II",
     "object version where key is the first field (must be object, runtime error if it is not)")
-(StackPtr &sp, VM &vm, LVector *l, Value key) {
+(StackPtr &sp, VM &vm, LVector *l, RefObj *key) {
     auto &et = vm.GetTypeInfo(l->ti(vm).subt);
     if (et.t != RTT_CLASS || !et.len || vm.GetTypeInfo(et.elemtypes[0].type).t != RTT_CLASS)
         vm.BuiltinError(
             "binary_search_first_field_object: elements not objects with first object field");
-    auto r = BinarySearch(sp, l, key, FirstObjectCompare);
+    auto r = BinarySearch(sp, l, Value(key), FirstObjectCompare);
     return r;
 }
 
 BUILTIN(copy, "x", "A", "A1",
     "makes a shallow copy of any object/vector/string.")
-(VM &vm, Value v) {
-    return v.CopyRef(vm, 1);
+(VM &vm, RefObj *v) {
+    return Value(v).CopyRef(vm, 1).refnil();
 }
 
 BUILTIN(deepcopy, "x,depth", "AI", "A1",
     "makes a deep copy of any object/vector/string. DAGs become trees, and cycles will"
     " clone until it reach the given depth. depth == 1 would do the same as copy.")
-(VM &vm, Value v, iint depth) {
-    return v.CopyRef(vm, max((iint)1, depth));
+(VM &vm, RefObj *v, iint depth) {
+    return Value(v).CopyRef(vm, max((iint)1, depth)).refnil();
 }
 
 BUILTIN(slice, "xs,start,size", "A]*II", "A]1",
@@ -1315,14 +1315,14 @@ BUILTIN_OVERLOAD(hash_int, "hash", "x", "I", "I",
 }
 BUILTIN_OVERLOAD(hash_any, "hash", "x", "A", "I",
     "hashes any ref value into a positive int")
-(VM &vm, Value a) {
-    auto h = a.refnil() ? positive_bits(a.ref()->Hash(vm)) : (iint)0;
+(VM &vm, RefObj *a) {
+    auto h = a ? positive_bits(a->Hash(vm)) : (iint)0;
     return h;
 }
 BUILTIN_OVERLOAD(hash_function, "hash", "x", "L", "I",
     "hashes a function value into a positive int")
-(VM &vm, Value a) {
-    auto h = positive_bits(a.Hash(vm, RTT_FUNCTION));
+(VM &vm, fun_base_t a) {
+    auto h = positive_bits(Value(a).Hash(vm, RTT_FUNCTION));
     return h;
 }
 BUILTIN_OVERLOAD(hash_float, "hash", "x", "F", "I",
@@ -1351,7 +1351,7 @@ HASHW(hash_fvec, "F", double, 4)
 BUILTIN(call_function_value, "x", "L", "",
     "calls a void / no args function value.. you shouldn't need to use this, it is"
     " a demonstration of how native code can call back into Lobster")
-(VM &vm, Value f) {
+(VM &vm, fun_base_t f) {
     vm.CallFunctionValue(f);
 }
 
@@ -1360,14 +1360,14 @@ BUILTIN(type_id, "ref", "A", "I",
     " this is the same as typeof, except dynamic (accounts for subtypes of the static type)."
     " useful to compare the types of objects quickly."
     " specializations of a generic type will result in different ids.")
-(VM &, Value a) {
-    return a.ref()->tti;
+(VM &, RefObj *a) {
+    return a->tti;
 }
 
 BUILTIN(type_string, "ref", "A", "S",
     "string representing the type of the given reference (object/vector/string/resource)")
-(VM &vm, Value a) {
-    return vm.NewString(a.ref()->TypeName(vm));
+(VM &vm, RefObj *a) {
+    return vm.NewString(a->TypeName(vm));
 }
 
 BUILTIN(type_element_string, "v", "A]*", "S",
@@ -1381,15 +1381,15 @@ BUILTIN(type_element_string, "v", "A]*", "S",
 
 BUILTIN(type_field_count, "obj", "A", "I",
     "number of fields in an object, or 0 for other reference types")
-(VM &vm, Value a) {
-    auto &ti = a.ref()->ti(vm);
+(VM &vm, RefObj *a) {
+    auto &ti = a->ti(vm);
     return RTIsUDT(ti.t) ? ti.len : 0;
 }
 
 BUILTIN(type_field_string, "obj,idx", "AI", "S",
     "string representing the type of a field in an object, or empty for other reference types")
-(VM &vm, Value a, iint i) {
-    auto &ti = a.ref()->ti(vm);
+(VM &vm, RefObj *a, iint i) {
+    auto &ti = a->ti(vm);
     string sd;
     if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
         vm.GetTypeInfo(ti.elemtypes[i].type).Print(vm, sd, nullptr);
@@ -1399,9 +1399,9 @@ BUILTIN(type_field_string, "obj,idx", "AI", "S",
 
 BUILTIN(type_field_name, "obj,idx", "AI", "S",
     "name of a field in an object, or empty for other reference types")
-(VM &vm, Value a, iint idx) {
+(VM &vm, RefObj *a, iint idx) {
     auto i = (int)idx;
-    auto &ti = a.ref()->ti(vm);
+    auto &ti = a->ti(vm);
     string sd;
     if (RTIsUDT(ti.t) && i >= 0 && i < ti.len) {
         sd = vm.LookupFieldByOffset(ti.structidx, i);
@@ -1411,11 +1411,11 @@ BUILTIN(type_field_name, "obj,idx", "AI", "S",
 
 BUILTIN(type_field_value, "obj,idx", "AI", "S",
     "string representing the value of a field in an object, or empty for other reference types")
-(VM &vm, Value a, iint i) {
-    auto &ti = a.ref()->ti(vm);
+(VM &vm, RefObj *a, iint i) {
+    auto &ti = a->ti(vm);
     if (!RTIsUDT(ti.t) || i < 0 || i >= ti.len) return vm.NewString(0);
     auto &sti = vm.GetTypeInfo(ti.elemtypes[i].type);
-    return vm.ToString(a.oval()->At(i), sti);
+    return vm.ToString(((LObject *)a)->At(i), sti);
 }
 
 BUILTIN(type_enum_value_name, "enum_type_id,idx", "TI", "S",
@@ -1541,8 +1541,8 @@ BUILTIN(pass, "", "", "",
 
 BUILTIN(reference_count, "val", "A", "I",
     "get the reference count of any value. for compiler debugging, mostly")
-(VM &, Value x) {
-    auto refc = x.refnil() ? x.refnil()->refc - 1 : -1;
+(VM &, RefObj *x) {
+    auto refc = x ? x->refc - 1 : -1;
     return refc;
 }
 
@@ -1607,8 +1607,8 @@ BUILTIN(workers_alive, "", "", "B",
 
 BUILTIN(thread_write, "object", "A", "",
     "put this object in the thread queue")
-(VM &vm, Value s) {
-    vm.WorkerWrite(s.refnil());
+(VM &vm, RefObj *s) {
+    vm.WorkerWrite(s);
 }
 
 BUILTIN(thread_read, "type", "T", "A1?",
@@ -1616,14 +1616,14 @@ BUILTIN(thread_read, "type", "T", "A1?",
     " objects available. returns object, or nil if this was the result of thread_wake()"
     " or stop_worker_threads() was called")
 (VM &vm, iint t) {
-    return vm.WorkerRead((type_elem_t)t);
+    return vm.WorkerRead((type_elem_t)t).refnil();
 }
 
 BUILTIN(thread_check, "type", "T", "A1?",
     "tests if an object is available on the thread queue. pass the typeof object. "
     "returns object, or nil if none available, or if stop_worker_threads() was called")
 (VM &vm, iint t) {
-    return vm.WorkerCheck((type_elem_t)t);
+    return vm.WorkerCheck((type_elem_t)t).refnil();
 }
 
 BUILTIN(thread_wake, "type", "T", "",

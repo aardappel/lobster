@@ -34,8 +34,22 @@ VM_INLINE fun_base_t RtDynDispatch(VM &vm, LObject *self, int vtable_idx) {
     return target;
 }
 
-VM_INLINE void RtExit(VM &vm, Value ret, type_elem_t ti) {
-    vm.EndEval(ret, vm.GetTypeInfo(ti));
+// The program ends on the value it returned, which comes in as the type the generated code
+// holds it as rather than as a Value, so there is one of these per kind of value.
+VM_INLINE void RtExitInt(VM &vm, iint ret, type_elem_t ti) {
+    vm.EndEval(Value(ret), vm.GetTypeInfo(ti));
+}
+
+VM_INLINE void RtExitFloat(VM &vm, double ret, type_elem_t ti) {
+    vm.EndEval(Value(ret), vm.GetTypeInfo(ti));
+}
+
+VM_INLINE void RtExitFun(VM &vm, fun_base_t ret, type_elem_t ti) {
+    vm.EndEval(Value(ret), vm.GetTypeInfo(ti));
+}
+
+VM_INLINE void RtExitRef(VM &vm, RefObj *ret, type_elem_t ti) {
+    vm.EndEval(Value(ret), vm.GetTypeInfo(ti));
 }
 
 VM_INLINE void RtExitVoid(VM &vm) {
@@ -163,8 +177,22 @@ VM_INLINE iint RtSnNe(LString *a, LString *b) {
     return *a != *b;
 }
 
-VM_INLINE LString *RtToString(VM &vm, Value a, type_elem_t ti) {
-    return vm.ToString(a, vm.GetTypeInfo(ti));
+// The same split for a value as a string: the type info still says what it is, since a nilable
+// or enum type prints as more than the bits the slot holds.
+VM_INLINE LString *RtIntToString(VM &vm, iint a, type_elem_t ti) {
+    return vm.ToString(Value(a), vm.GetTypeInfo(ti));
+}
+
+VM_INLINE LString *RtFloatToString(VM &vm, double a, type_elem_t ti) {
+    return vm.ToString(Value(a), vm.GetTypeInfo(ti));
+}
+
+VM_INLINE LString *RtFunToString(VM &vm, fun_base_t a, type_elem_t ti) {
+    return vm.ToString(Value(a), vm.GetTypeInfo(ti));
+}
+
+VM_INLINE LString *RtRefToString(VM &vm, RefObj *a, type_elem_t ti) {
+    return vm.ToString(Value(a), vm.GetTypeInfo(ti));
 }
 
 VM_INLINE LString *RtStructToString(VM &vm, Value *vals, type_elem_t ti) {
