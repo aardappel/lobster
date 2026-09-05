@@ -101,7 +101,7 @@ struct CodeGen  {
     int f_regs_max = -1;
     // The C type a value is kept in, which its static type decides: the scalars as themselves,
     // every reference as a pointer to its header, and a function value as a pointer to it. Only
-    // memory, i.e. objects, globals and the stack array, holds Values.
+    // memory that any type can land in, the elements of a vector and the globals, holds Values.
     // The references split by what the static type says they are, so the generated code can
     // use them as such; VK_REF is what is left: a resource, a nil of no type, or any.
     enum VKind { VK_INT, VK_FLOAT, VK_REF, VK_FUN, VK_STRING, VK_VECTOR, VK_OBJECT, VK_COUNT };
@@ -113,7 +113,8 @@ struct CodeGen  {
     // the kinds of those values give it, see RetStruct.
     map<string, Types> rets_used;
     // How each argument of a builtin reaches it, see EmitNativeCall: -1 for one that is a
-    // single value, otherwise how many slots its values take, which it is passed a pointer to.
+    // single value, otherwise how many slots its values take, which it is passed as a vector
+    // of that width.
     typedef vector<int> NativeArgs;
     // Where a value lives: a variable of its kind, or a Value in memory, which is read thru the
     // field for the kind and written along with the tag its static type says it carries.
@@ -2125,8 +2126,7 @@ struct CodeGen  {
 
     // The arguments of a call to a builtin, whose values start at slot `base`. Each is the
     // slot it lives in, as the type the builtin takes it as. A numeric struct becomes a vector
-    // built from the slots its values are in; one that may be a struct of any width stays a
-    // pointer to them, so those slots are copied into the stack array to point at.
+    // built from the slots its values are in.
     string NativeArgList(int base, NativeFun *nf, const Types &args, const NativeArgs &nargs) {
         string s;
         auto slot = base;

@@ -144,10 +144,11 @@ constexpr int BuiltinNumArgs(const char *typeids) {
 
 // What C++ type an argument of a builtin becomes, from its type letter and what wraps it.
 // A '}' argument is a numeric struct of the width the ':' after it gives, which becomes a
-// vector of that many ints or floats. A 'w' one may be passed a struct of any width, so it
-// stays a pointer to the stack slots its values are in. A ']' makes any of them a vector,
-// which is a reference. An 'A' is any value at all, which is a reference wherever the
-// typechecker says it has to be one, see BuiltinRetKindOf. An 'L' is a function value.
+// vector of that many ints or floats. A 'w' one may be passed a struct of any width, which no
+// C++ type fits, so only a builtin the generated code writes out itself can take one, see
+// BuiltinCodegen. A ']' makes any of them a vector, which is a reference. An 'A' is any value
+// at all, which is a reference wherever the typechecker says it has to be one, see
+// BuiltinRetKindOf. An 'L' is a function value.
 enum BuiltinArgKind {
     BAK_VALUE,     // A
     BAK_REF,       // A the typechecker requires a reference of
@@ -374,8 +375,8 @@ template<typename TIDS, bool PushRets> using BuiltinSig =
                 std::make_index_sequence<BuiltinNumArgs(TIDS::tids)>>;
 
 // The builtins the generated code writes out itself rather than calling, because they are
-// leaned on often enough that the call, and moving their arguments thru the stack to make it,
-// is worth avoiding. CodeGen::EmitCodegenBuiltin has a case for each of these. One defined
+// leaned on often enough that the call, and marshalling their arguments for it, is worth
+// avoiding. CodeGen::EmitCodegenBuiltin has a case for each of these. One defined
 // with BUILTIN_CODEGEN has no function at all, only the metadata the language needs. The names
 // start with BCG since a BS_ prefix collides with the Windows button styles.
 enum BuiltinCodegen {
@@ -473,20 +474,16 @@ struct BuiltinDef {
 // full Lobster name with a "_" for the ".", which RegisterGroup() below verifies, and it is
 // what the generated code calls the builtin by. The function is declared ahead of the
 // definition with the type the argument and return types given imply, see BuiltinSig, so a
-// parameter list or return type that does not match them is a compile error. An argument that
-// lives in a run of stack slots (a numeric struct, or one that may be a struct) becomes a
-// vector of its width, or a pointer to those slots when its width is not fixed.
+// parameter list or return type that does not match them is a compile error. A numeric struct
+// argument becomes a vector of its width.
 // A builtin returns its last return value as the type its letter implies, or void when it has
-// none, and pushes the ones before it onto a stack it is given a pointer to, which it only
-// takes when it has any to push.
-// BUILTIN_V is for the kind of builtin that leaves all of its return values on that stack
-// rather than returning the last one, which is what a struct takes, and returns void.
-// The stack it gets starts where its arguments are, so those slots are what it writes its
-// return values into, and a builtin that takes a pointer to some of them must be done reading
-// it before it pushes anything. The _OVERLOAD variants take a distinct symbol name and the
-// Lobster name separately, for names that are defined more than once with different argument
-// types. The symbol must then still start with the plain one, followed by a distinguishing
-// suffix.
+// none, and writes the ones before it thru a pointer per value, each of that value's own type,
+// which it takes ahead of its arguments, see BuiltinOut.
+// BUILTIN_V is for the kind of builtin that writes all of its return values thru such
+// pointers, in order, and returns void. The _OVERLOAD variants take a distinct symbol name and
+// the Lobster name separately, for names that are defined more than once with different
+// argument types. The symbol must then still start with the plain one, followed by a
+// distinguishing suffix.
 // BUILTIN_CODEGEN declares one the generated code writes out itself, see BuiltinCodegen. It
 // has only the metadata the language needs, no function and thus no body, so it ends in a ';'
 // like any other declaration. Its _OVERLOAD variant takes the symbol and the Lobster name
@@ -534,7 +531,8 @@ struct NativeFun : Named {
     // C linkage name of the function, which is how the generated code calls it.
     const char *symbol;
 
-    // Of the V kind, which leaves its return values on the stack, see the BUILTIN macros.
+    // Of the V kind, which writes all of its return values thru out pointers, see the BUILTIN
+    // macros.
     bool pushrets;
 
     // See BuiltinDef::codegen and BuiltinDef::address.
