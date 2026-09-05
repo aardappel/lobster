@@ -1038,7 +1038,7 @@ iint CRtSEq(LString *a, LString *b) { return RtSEq(a, b); }
 iint CRtSNe(LString *a, LString *b) { return RtSNe(a, b); }
 iint CRtSnEq(LString *a, LString *b) { return RtSnEq(a, b); }
 iint CRtSnNe(LString *a, LString *b) { return RtSnNe(a, b); }
-LString *CRtStrConcatN(VM *vm, Value *strs, int len) { return RtStrConcatN(*vm, strs, len); }
+LString *CRtStrConcatN(VM *vm, LString **strs, int len) { return RtStrConcatN(*vm, strs, len); }
 LString *CRtIntToString(VM *vm, iint a, type_elem_t ti) { return RtIntToString(*vm, a, ti); }
 LString *CRtFloatToString(VM *vm, double a, type_elem_t ti) { return RtFloatToString(*vm, a, ti); }
 LString *CRtFunToString(VM *vm, fun_base_t a, type_elem_t ti) { return RtFunToString(*vm, a, ti); }

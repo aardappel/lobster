@@ -118,15 +118,15 @@ VM_INLINE void RtVectorInsert(VM &vm, LVector *v, int nfi, iint i) {
     v->MakeRoom(vm, i);
 }
 
-VM_INLINE LString *RtStrConcatN(VM &vm, Value *strs, int len) {
+VM_INLINE LString *RtStrConcatN(VM &vm, LString **strs, int len) {
     iint blen = 0;
     // Find total len.
-    for (int i = 0; i < len; i++) blen += strs[i].sval()->len;
+    for (int i = 0; i < len; i++) blen += strs[i]->len;
     // Just one alloc.
     auto ds = vm.NewString(blen);
     auto dest = (char *)ds->data();
     for (int i = 0; i < len; i++) {
-        auto s = strs[i].sval();
+        auto s = strs[i];
         memcpy(dest, s->data(), s->len);
         dest += s->len;
     }

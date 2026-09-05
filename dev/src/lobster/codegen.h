@@ -925,7 +925,7 @@ struct CodeGen  {
                 "long long RtSNe(LString *, LString *);\n"
                 "long long RtSnEq(LString *, LString *);\n"
                 "long long RtSnNe(LString *, LString *);\n"
-                "LString *RtStrConcatN(VMRef, Value *, int);\n"
+                "LString *RtStrConcatN(VMRef, LString **, int);\n"
                 "LString *RtIntToString(VMRef, long long, type_elem_t);\n"
                 "LString *RtFloatToString(VMRef, double, type_elem_t);\n"
                 "LString *RtFunToString(VMRef, fun_base_t, type_elem_t);\n"
@@ -1543,20 +1543,16 @@ struct CodeGen  {
     void comment(string_view c) { append(cb, " // ", c, "\n"); };
     string_view vmref() { return string_view(cpp ? "vm." : "vm->"); };
 
-    // The operands of a helper that works on a run of values, copied into the stack array,
-    // which is where it gets its pointer to them. Returns that pointer.
-    string StageRange(int first, const Types &ts, size_t off, size_t n) {
-        f_uses_vals = true;
-        for (size_t i = 0; i < n; i++) {
-            auto t = ts[off + i];
-            CopyValue(cb, StackSlot(first + (int)i, t), SlotVar(first + (int)i, t));
+    // The operands of a helper that works on a run of values, in an array of its own that it
+    // gets a pointer to, since the slots they come from are variables. Declares the array, so
+    // whoever calls this opens a block for it and closes it after the call.
+    void StageValues(string_view arr, const Types &ts) {
+        auto first = regso - (int)ts.size();
+        append(cb, "    {\n    Value ", arr, "[", ts.size(), "];\n");
+        for (auto [i, t] : enumerate(ts)) {
+            CopyValue(cb, Mem(cat(arr, "[", i, "]"), t), SlotVar(first + (int)i, t));
         }
-        return cat(StackArray(), " + ", first);
     }
-    string StageRange(int first, const Types &ts) { return StageRange(first, ts, 0, ts.size()); }
-
-    // The same for the top values the current op consumes.
-    string StageArgs(const Types &ts) { return StageRange(regso - (int)ts.size(), ts); }
 
     // The helpers that work on a value of any type come one per kind of value rather than
     // taking a Value, so the name of each ends in the kind it is for, and the value goes in as
@@ -2542,12 +2538,15 @@ struct CodeGen  {
         cb += "    }\n";
     }
 
+    // The fields of a struct are of the types they are, so the one helper that takes all of
+    // them at once gets them as the Values the slots of everything else in memory hold.
     void EmitStructToString(int type_idx, const Types &args, TypeRef type) {
         TrackUseDef((int)args.size(), 1);
-        auto vals = StageArgs(args);
+        StageValues("_ss", args);
         Write(cb, SlotVar(regso - (int)args.size(), RTT_STRING),
-              cat("RtStructToString(vm, ", vals, ", (type_elem_t)", type_idx, ")"), "");
+              cat("RtStructToString(vm, _ss, (type_elem_t)", type_idx, ")"), "");
         TypeComment(type);
+        cb += "    }\n";
     }
 
     // A constant is an expression like any other, so it goes in parentheses when it starts
@@ -3645,8 +3644,13 @@ struct CodeGen  {
             Write(cb, d, cat("RtSAdd(vm, ", Read(Slot(2, VK_STRING)), ", ", Read(Slot(1, VK_STRING)),
                              ")"));
         } else {
-            auto strs = StageArgs(Types(nstrs, RTT_STRING));
-            Write(cb, d, cat("RtStrConcatN(vm, ", strs, ", ", nstrs, ")"));
+            append(cb, "    {\n    LString *_cs[", nstrs, "];\n");
+            for (int i = 0; i < nstrs; i++) {
+                append(cb, "    _cs[", i, "] = ",
+                       Read(SlotVar(regso - nstrs + i, RTT_STRING)), ";\n");
+            }
+            Write(cb, d, cat("RtStrConcatN(vm, _cs, ", nstrs, ")"));
+            cb += "    }\n";
         }
     }
 
