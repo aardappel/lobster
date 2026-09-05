@@ -1019,6 +1019,7 @@ void CRtVectorGrow(VM *vm, LVector *v) { RtVectorGrow(*vm, v); }
 void CRtVectorEmptyErr(VM *vm, int nfi) { RtVectorEmptyErr(*vm, nfi); }
 void CRtVectorIdxErr(VM *vm, int nfi, iint i, iint len) { RtVectorIdxErr(*vm, nfi, i, len); }
 void CRtVectorErase(LVector *v, iint i) { RtVectorErase(v, i); }
+void CRtVectorInsert(VM *vm, LVector *v, int nfi, iint i) { RtVectorInsert(*vm, v, nfi, i); }
 void CRtExitInt(VM *vm, iint ret, type_elem_t ti) { RtExitInt(*vm, ret, ti); }
 void CRtExitFloat(VM *vm, double ret, type_elem_t ti) { RtExitFloat(*vm, ret, ti); }
 void CRtExitFun(VM *vm, fun_base_t ret, type_elem_t ti) { RtExitFun(*vm, ret, ti); }
@@ -1070,6 +1071,7 @@ const void *vm_ops_jit_table[] = {
     "RtVectorEmptyErr", (void *)&CRtVectorEmptyErr,
     "RtVectorIdxErr", (void *)&CRtVectorIdxErr,
     "RtVectorErase", (void *)&CRtVectorErase,
+    "RtVectorInsert", (void *)&CRtVectorInsert,
     "RtExitInt", (void *)&CRtExitInt,
     "RtExitFloat", (void *)&CRtExitFloat,
     "RtExitFun", (void *)&CRtExitFun,

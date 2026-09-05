@@ -310,7 +310,6 @@ template<int W> struct BuiltinParamType<BAK_VECTOR, W>       { typedef LVector *
 template<int W> struct BuiltinParamType<BAK_RESOURCE, W>     { typedef LResource *type; };
 template<int W> struct BuiltinParamType<BAK_IVEC, W>         { typedef vec<iint, W> type; };
 template<int W> struct BuiltinParamType<BAK_FVEC, W>         { typedef vec<double, W> type; };
-template<int W> struct BuiltinParamType<BAK_VALUEVEC, W>     { typedef Value *type; };
 
 template<typename TIDS, size_t P> struct BuiltinParam {
     typedef typename BuiltinParamType<BuiltinParamKindOf(TIDS::tids, (int)P),
@@ -364,6 +363,7 @@ enum BuiltinCodegen {
     BCG_NONE = 0,
     BCG_GL_FRAME,
     BCG_PUSH,
+    BCG_INSERT,
     BCG_POP,
     BCG_TOP,
     BCG_REMOVE,
@@ -525,6 +525,12 @@ struct NativeFun : Named {
         }
         for (auto &ret : retvals) {
             ret.Set(rets, LT_KEEP, this);
+        }
+        // An argument that may be a struct of any width has no one C++ type, so only a builtin
+        // the generated code writes out itself can take one, see BuiltinCodegen.
+        for (auto &arg : args) {
+            if ((arg.flags & NF_PUSHVALUEWIDTH) && codegen == BCG_NONE)
+                Error("an argument of any width needs a codegen builtin");
         }
         // A struct takes more than one slot, so one that is not the last return value has to
         // be pushed, which only the V kind has a way to do. The last one is returned as the

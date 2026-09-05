@@ -779,12 +779,13 @@ struct LVector : RefObj {
         len--;
     }
 
-    void Insert(VM &vm, const Value *vals, iint i) {
-        assert(i >= 0 && i <= len); // note: insertion right at the end is legal, hence <=
+    // Room for one more element at i, which the caller then writes, see
+    // CodeGen::EmitVectorInsert. Making it right at the end is legal, hence the <=.
+    void MakeRoom(VM &vm, iint i) {
+        assert(i >= 0 && i <= len);
         if (len + 1 > maxl) Resize(vm, std::max(len + 1, maxl ? maxl * 2 : 4));
         t_memmove(v + (i + 1) * width, v + i * width, (len - i) * width);
         len++;
-        tsnz_memcpy(v + i * width, vals, width);
     }
 
     void Remove(VM &vm, iint i, iint n);

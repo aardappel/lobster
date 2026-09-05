@@ -893,6 +893,7 @@ struct CodeGen  {
                 "void RtVectorEmptyErr(VMRef, int);\n"
                 "void RtVectorIdxErr(VMRef, int, long long, long long);\n"
                 "void RtVectorErase(LVector *, long long);\n"
+                "void RtVectorInsert(VMRef, LVector *, int, long long);\n"
                 "void RtExitInt(VMRef, long long, type_elem_t);\n"
                 "void RtExitFloat(VMRef, double, type_elem_t);\n"
                 "void RtExitFun(VMRef, fun_base_t, type_elem_t);\n"
@@ -2070,7 +2071,9 @@ struct CodeGen  {
             case BAK_RESOURCE: return cpp ? "LResource *" : "void *";
             case BAK_IVEC:     return cpp ? cat("vec<iint, ", width, ">") : cat("ivec", width);
             case BAK_FVEC:     return cpp ? cat("vec<double, ", width, ">") : cat("fvec", width);
-            case BAK_VALUEVEC: return "Value *";
+            // Only a builtin the generated code writes out itself takes one of these, so it
+            // has no C type of its own, see the check in BuiltinDef.
+            case BAK_VALUEVEC: break;
         }
         assert(false);
         return "";
@@ -2118,18 +2121,13 @@ struct CodeGen  {
         for (auto [i, len] : enumerate(nargs)) {
             auto kind = nf->ArgKind(i);
             if (len >= 0) {
-                if (kind == BAK_VALUEVEC) {
-                    StageRange(slot, args, slot - base, len);
-                    append(s, ", ", StackArray(), " + ", slot);
-                } else {
-                    // C has no constructors, so it makes one thru a helper, see Prologue.
-                    auto ctor = NativeArgCType(kind, len);
-                    append(s, ", ", cpp ? ctor : "mk" + ctor, "(");
-                    for (auto k = 0; k < len; k++) {
-                        append(s, k ? ", " : "", Read(SlotVar(slot + k, args[slot + k - base])));
-                    }
-                    s += ")";
+                // C has no constructors, so it makes one thru a helper, see Prologue.
+                auto ctor = NativeArgCType(kind, len);
+                append(s, ", ", cpp ? ctor : "mk" + ctor, "(");
+                for (auto k = 0; k < len; k++) {
+                    append(s, k ? ", " : "", Read(SlotVar(slot + k, args[slot + k - base])));
                 }
+                s += ")";
                 slot += len;
                 continue;
             }
@@ -2184,6 +2182,21 @@ struct CodeGen  {
         cb += "    _v->len++;\n    }\n";
     }
 
+    // insert(), which makes room for the element at the index it goes at and then writes it
+    // there. The vector stays in the slot it came in, which is what it returns.
+    void EmitVectorInsert(NativeFun *nf, const Types &args, TypeRef elemtype) {
+        auto width = (int)args.size() - 2;
+        auto base = regso - (int)args.size();
+        auto elems = EmitVectorLocal(base, nf->name);
+        append(cb, "    long long _i = ", Read(SlotVar(base + 1, RTT_INT)), ";\n");
+        append(cb, "    ", cpp ? "lobster::" : "", "RtVectorInsert(vm, _v, ", nf->idx,
+               ", _i);\n");
+        for (int i = 0; i < width; i++) {
+            CopyValue(cb, Elem(elems, elemtype, "_i", i), SlotVar(base + 2 + i, args[2 + i]));
+        }
+        cb += "    }\n";
+    }
+
     // The last element of a vector, which pop() also takes out of it where top() leaves it.
     void EmitVectorPop(NativeFun *nf, const Types &rets, bool take, TypeRef elemtype) {
         auto base = regso - 1;
@@ -2224,6 +2237,9 @@ struct CodeGen  {
                 return true;
             case BCG_PUSH:
                 EmitVectorPush(args, nf->name, elemtype);
+                return true;
+            case BCG_INSERT:
+                EmitVectorInsert(nf, args, elemtype);
                 return true;
             case BCG_POP:
                 EmitVectorPop(nf, rets, true, elemtype);

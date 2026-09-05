@@ -112,6 +112,12 @@ VM_INLINE void RtVectorErase(LVector *v, iint i) {
     v->Erase(i);
 }
 
+// Room for the element insert() then writes, at an index that may be the end of the vector.
+VM_INLINE void RtVectorInsert(VM &vm, LVector *v, int nfi, iint i) {
+    if ((uint64_t)i > (uint64_t)v->len) RtVectorIdxErr(vm, nfi, i, v->len);
+    v->MakeRoom(vm, i);
+}
+
 VM_INLINE LString *RtStrConcatN(VM &vm, Value *strs, int len) {
     iint blen = 0;
     // Find total len.

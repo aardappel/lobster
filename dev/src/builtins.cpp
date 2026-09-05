@@ -222,15 +222,9 @@ BUILTIN_CODEGEN(BCG_POP, pop, "xs", "A]*", "A1",
 BUILTIN_CODEGEN(BCG_TOP, top, "xs", "A]*", "Ab1",
     "returns last element from vector");
 
-BUILTIN(insert, "xs,i,x", "A]*IAkw1", "Ab]1",
+BUILTIN_CODEGEN(BCG_INSERT, insert, "xs,i,x", "A]*IAkw1", "Ab]1",
     "inserts a value into a vector at index i, existing elements shift upward,"
-    " returns original vector")
-(VM &vm, LVector *l, iint i, Value *x) {
-    if (i < 0 || i > l->len)
-        vm.BuiltinError("insert: index or n out of range");  // note: i==len is legal
-    l->Insert(vm, x, i);
-    return l;
-}
+    " returns original vector");
 
 BUILTIN_CODEGEN(BCG_REMOVE, remove, "xs,i", "A]*I", "A1",
     "remove element at index i, following elements shift down. returns the element removed.");
