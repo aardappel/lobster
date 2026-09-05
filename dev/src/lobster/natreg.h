@@ -551,13 +551,6 @@ struct NativeFun : Named {
             if ((arg.flags & NF_PUSHVALUEWIDTH) && codegen == BCG_NONE)
                 Error("an argument of any width needs a codegen builtin");
         }
-        // A struct takes more than one slot, so one that is not the last return value has to
-        // be pushed, which only the V kind has a way to do. The last one is returned as the
-        // vector of its width, see BuiltinRet.
-        for (size_t i = 0; i + 1 < retvals.size(); i++) {
-            if (retvals[i].vttype->t == V_STRUCT_NUM && !pushrets)
-                Error("a struct can only be returned before other values by a V builtin");
-        }
     }
 
     // The kind the type of an argument or a return value belongs to, which must agree with
