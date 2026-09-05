@@ -561,6 +561,10 @@
             case BCG_PASS:
                 // Does nothing, which is best done by emitting nothing at all.
                 return true;
+            case BCG_STRING:
+                // The typechecker converted the argument, which sits in the slot the result
+                // goes in.
+                return true;
         }
         assert(false);
         return false;

@@ -90,12 +90,10 @@ BUILTIN(print, "x", "Ss", "",
     }
 }
 
-// This is now the identity function, but still useful to force a coercion.
-BUILTIN(string, "x", "Ssk", "S",
-    "convert any value to string")
-(VM &, LString *a) {
-    return a;
-}
+// The identity function: the typechecker converts the argument, see NF_CONVERTANYTOSTRING,
+// so there is nothing left for the generated code to do, see BCG_STRING.
+BUILTIN_CODEGEN(BCG_STRING, string, "x", "Ssk", "S",
+    "convert any value to string");
 
 BUILTIN(set_print_depth, "depth", "I", "I",
     "for printing / string conversion: sets max vectors/objects recursion depth (default 10), "

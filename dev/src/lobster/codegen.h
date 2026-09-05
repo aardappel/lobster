@@ -4097,13 +4097,6 @@ void Assert::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void NativeCall::Generate(CodeGen &cg, size_t retval) const {
-    if (nf->name == "string") {
-        // A frequently used function that doesn't actually do anything by itself, so ensure it
-        // doesn't get emitted.
-        cg.Gen(children[0], retval);
-        if (retval) cg.TakeTemp(1, false);
-        return;
-    }
     // TODO: could pass arg types in here if most exps have types, cheaper than
     // doing it all in call instruction?
     CodeGen::Types args;

@@ -413,6 +413,7 @@ enum BuiltinCodegen {
     BCG_TYPE_ID,
     BCG_VM_COMPILED_MODE,
     BCG_PASS,
+    BCG_STRING,
 };
 
 struct BuiltinDef;
