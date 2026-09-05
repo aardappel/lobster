@@ -631,12 +631,6 @@ struct CodeGen  {
         if (!decls.empty()) c_codegen.insert(natives_decl_offset, decls + "\n");
     }
 
-    // FIXME: remove.
-    void Dummy(size_t retval) {
-        assert(!retval);
-        while (retval--) EmitPushNil(type_undefined);
-    }
-
     void GenStatDebug(const Node *c) {
         if (runtime_checks >= RUNTIME_STACK_TRACE) {
             if (cpp) {
@@ -719,12 +713,11 @@ struct CodeGen  {
             EmitProfile((int)stringtable.size() - 1);
         }
 
-        if (sf.sbody) for (auto c : sf.sbody->children) {
+        for (auto c : sf.sbody->children) {
             GenStatDebug(c);
             Gen(c, 0);
             assert(!tstack_size);
         }
-        else Dummy(sf.reqret);
 
         assert(temptypestack.empty());
         assert(breaks.empty());
@@ -4061,16 +4054,20 @@ void FunRef::Generate(CodeGen &cg, size_t retval) const {
     }
 }
 
-void EnumRef::Generate(CodeGen &cg, size_t retval) const {
-    cg.Dummy(retval);
+// The declarations produce no code, and the typechecker made them void.
+void EnumRef::Generate(CodeGen &, size_t retval) const {
+    assert(!retval);
+    (void)retval;
 }
 
-void GUDTRef::Generate(CodeGen &cg, size_t retval) const {
-    cg.Dummy(retval);
+void GUDTRef::Generate(CodeGen &, size_t retval) const {
+    assert(!retval);
+    (void)retval;
 }
 
-void UDTRef::Generate(CodeGen &cg, size_t retval) const {
-    cg.Dummy(retval);
+void UDTRef::Generate(CodeGen &, size_t retval) const {
+    assert(!retval);
+    (void)retval;
 }
 
 void Assert::Generate(CodeGen &cg, size_t retval) const {
@@ -4155,7 +4152,7 @@ void DynCall::Generate(CodeGen &cg, size_t retval) const {
     if (sf->reqret) {
         if (!retval) cg.GenPop({ exptype, lt });
     } else {
-        cg.Dummy(retval);
+        assert(!retval);
     }
 }
 
@@ -4282,7 +4279,8 @@ void While::Generate(CodeGen &cg, size_t retval) const {
     cg.EmitJumpBack(loopback);
     cg.EmitLabelDef(jumpout);
     cg.ApplyBreaks(break_level);
-    cg.Dummy(retval);
+    assert(!retval);
+    (void)retval;
 }
 
 void For::Generate(CodeGen &cg, size_t retval) const {
@@ -4311,7 +4309,8 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.PopTemp();
     cg.PopTemp();
     cg.ApplyBreaks(break_level);
-    cg.Dummy(retval);
+    assert(!retval);
+    (void)retval;
 }
 
 void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
