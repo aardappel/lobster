@@ -221,7 +221,7 @@ Node *Call::Optimize(Optimizer &opt) {
         ret->child = nullptr;
         delete ret;
     }
-    auto r = opt.Typed(exptype, sf->ltret, list);
+    auto r = opt.Typed(exptype, LT_KEEP, list);
     children.clear();
     r = r->Optimize(opt);
     delete this;  // Do this after, since Optimize may touch this same call.

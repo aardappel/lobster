@@ -615,7 +615,6 @@ struct SubFunction {
     size_t num_returns = 0;
     size_t num_returns_non_local = 0;
     size_t reqret = 0;  // Do the caller(s) want values to be returned?
-    const Lifetime ltret = LT_KEEP;
     vector<pair<const SubFunction *, TypeRef>> reuse_return_events;
     small_vector<Node *, 4> reuse_assign_events;
     bool isrecursivelycalled = false;

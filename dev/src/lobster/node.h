@@ -110,8 +110,9 @@ struct TypeLT {
     TypeLT(const Node &n, size_t i)
         : type(n.exptype->Get(i)), lt(n.exptype->GetLifetime(i, n.lt)) {}
 
+    // What a function returns is always owned, see Return::TypeCheck.
     TypeLT(const SubFunction &sf, size_t i)
-        : type(sf.returntype->Get(i)), lt(sf.ltret) {}
+        : type(sf.returntype->Get(i)), lt(LT_KEEP) {}
 };
 
 

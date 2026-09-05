@@ -754,7 +754,7 @@ struct TypeChecker {
         int vtable_idx = -1;
         vector<UnTypeRef> specializers;
         c->exptype = TypeCheckCall(c->sf, *c, 1, vtable_idx, &specializers, false);
-        c->lt = c->sf->ltret;
+        c->lt = LT_KEEP;
         delete &n;
         return c;
     }
@@ -2188,7 +2188,7 @@ struct TypeChecker {
             // Function types are always fully typed.
             // All calls thru this type must have same lifetimes, so we fix it to LT_BORROW.
             dc->exptype = TypeCheckMatchingCall(sf, *dc, true, false, true, nullptr);
-            dc->lt = sf->ltret;
+            dc->lt = LT_KEEP;
             dc->sf = sf;
             return dc;
         } else {
@@ -2197,7 +2197,7 @@ struct TypeChecker {
             dc->children.clear();
             c->exptype =
                 TypeCheckCallStatic(sf, *c, reqret, nullptr, *sf->parent->overloads[0], true, false, false, nullptr);
-            c->lt = sf->ltret;
+            c->lt = LT_KEEP;
             c->sf = sf;
             delete dc;
             return c;
@@ -4483,7 +4483,7 @@ Node *Call::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) 
     assert(children.empty() || children[0]->exptype->t != V_UNDEFINED);
     sf = tc.PreSpecializeFunction(sf);
     exptype = tc.TypeCheckCall(sf, *this, reqret, vtable_idx, &specializers, super);
-    lt = sf->ltret;
+    lt = LT_KEEP;
     return this;
 }
 
