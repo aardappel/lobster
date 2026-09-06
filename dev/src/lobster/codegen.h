@@ -2629,11 +2629,11 @@ struct CodeGen  {
             if (sids[varidx].used_as_freevar()) {
                 append(sd, "    BackupVar(vm, ", varidx, ");\n");
             } else {
-                // FIXME: it should even be unnecessary to initialize them, but its possible
-                // there is a return before they're fully initialized, and then the decr of
-                // owned vars may cause these to be accessed.
+                // A reference starts out nil, since a return before its definition has run
+                // still gives up what the variable holds, see EmitReturn. A number is always
+                // written before it is read, so it is left alone.
                 auto k = var_to_local[varidx];
-                SetNil(sd, Local(k));
+                if (IsRefKind(Local(k).k())) SetNil(sd, Local(k));
                 if (ShadowLocals()) SetNil(sd, Shadow(k));
             }
         }
