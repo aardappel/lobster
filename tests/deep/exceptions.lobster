@@ -43,6 +43,24 @@ def exceptions_tests():
         if v is DExcErr:
             code = v.code
     test_eq(code, 42)
+
+    // A tiny wrapper around a non-local throw has a void body, but can occur in
+    // a value-producing switch arm. Inlining must preserve that distinction.
+    def wrapped_throw(error_code):
+        let error = DExcErr { error_code }
+        throw error
+    for([0, 1]) selector:
+        var result = -1
+        var caught_code = 0
+        try():
+            result = switch selector:
+                case 0: 17
+                default: wrapped_throw(42)
+        fn error:
+            caught_code = error.code
+        test_eq(result, if selector == 0: 17 else: -1)
+        test_eq(caught_code, if selector == 0: 0 else: 42)
+
     var vlen = 0
     try():
         throw [ 1, 2, 3 ]
