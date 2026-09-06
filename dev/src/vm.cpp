@@ -959,6 +959,18 @@ void ProfDB::Advance() {
 
 #endif
 
+// The generated code knows what kind of reference it drops where the static type says, so it
+// goes to that kind's deleter directly rather than thru the type lookup and switch of DECDELETE,
+// see the three DecDelete wrappers below.
+template<typename T> void CRtDecDeleteKind(lobster::VM *vm, T *r) {
+    #if DELETE_DELAY
+        r->DECDELETE(*vm);
+    #else
+        if (r->refc) vm->SeriousError("double delete");
+        r->DeleteSelf(*vm);
+    #endif
+}
+
 // Make VM ops available as C functions for linking purposes:
 
 extern "C" {
@@ -992,6 +1004,9 @@ void CRtIDXErr(VM *vm, iint i, iint n, RefObj *v) { vm->IDXErr(i, n, v); }
 void CRtBackupVar(VM *vm, int i) { BackupVar(*vm, i); }
 void CRtDecOwned(VM *vm, int i) { DecOwned(*vm, i); }
 void CRtDecDelete(VM *vm, RefObj *ro) { ro->DECDELETE(*vm); }
+void CRtDecDeleteVec(VM *vm, LVector *v) { CRtDecDeleteKind(vm, v); }
+void CRtDecDeleteObj(VM *vm, LObject *o) { CRtDecDeleteKind(vm, o); }
+void CRtDecDeleteStr(VM *vm, LString *s) { CRtDecDeleteKind(vm, s); }
 void CRtAssertFailed(VM *vm, int line, int fileidx, int stringidx) {
     vm->AssertFailed(line, fileidx, stringidx);
 }
@@ -1113,6 +1128,9 @@ const void *vm_ops_jit_table[] = {
     "BackupVar", (void *)CRtBackupVar,
     "DecOwned", (void *)CRtDecOwned,
     "DecDelete", (void *)CRtDecDelete,
+    "DecDeleteVec", (void *)CRtDecDeleteVec,
+    "DecDeleteObj", (void *)CRtDecDeleteObj,
+    "DecDeleteStr", (void *)CRtDecDeleteStr,
     "AssertFailed", (void *)CRtAssertFailed,
     "RestoreBackup", (void *)CRtRestoreBackup,
     "GetTypeSwitchID", (void *)CRtGetTypeSwitchID,

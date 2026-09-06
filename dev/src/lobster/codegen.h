@@ -933,6 +933,9 @@ struct CodeGen  {
                   "extern void BackupVar(VMRef, int);\n"
                   "extern void DecOwned(VMRef, int);\n"
                   "extern void DecDelete(VMRef, void *);\n"
+                  "extern void DecDeleteVec(VMRef, LVector *);\n"
+                  "extern void DecDeleteObj(VMRef, LObject *);\n"
+                  "extern void DecDeleteStr(VMRef, LString *);\n"
                   "extern void AssertFailed(VMRef, int, int, int);\n"
                   "extern void RestoreBackup(VMRef, int);\n"
                   "extern int GetTypeSwitchID(VMRef, LObject *, int);\n"
@@ -1439,7 +1442,8 @@ struct CodeGen  {
             "file_names", "function_names", "udts", "specidents", "enums", "ser_ids",
             "subfunctions_to_function", "iint", "int2float64", "lobster", "std", "string_view",
             "span", "uint64_t", "int64_t", "memcpy", "memmove", "GLFrame", "Entry", "IDXErr",
-            "IDXErrS", "BackupVar", "DecOwned", "DecDelete", "AssertFailed",
+            "IDXErrS", "BackupVar", "DecOwned", "DecDelete", "DecDeleteVec", "DecDeleteObj",
+            "DecDeleteStr", "AssertFailed",
             "RestoreBackup", "GetTypeSwitchID", "PushFunId", "PopFunId", "StartProfile",
             "EndProfile", "STRING_DATA", "pctx",
         };
@@ -2566,20 +2570,33 @@ struct CodeGen  {
         return HasPending(p.slot) && pending[p.slot].vars.empty() && !pending[p.slot].prec;
     }
 
+    // The deleter for the kind of reference the static type says a place holds, which skips
+    // the type lookup and switch of the general one; a kind without one of its own goes thru
+    // that.
+    static const char *DecDeleteName(RTType rtt) {
+        switch (rtt) {
+            case RTT_VECTOR: return "DecDeleteVec";
+            case RTT_CLASS: return "DecDeleteObj";
+            case RTT_STRING: return "DecDeleteStr";
+            default: return "DecDelete";
+        }
+    }
+
     void GenDecRef(string &sd, const Place &p) {
         if (IsNilConstant(p)) return;
         auto r = Read(p);
+        auto dd = DecDeleteName(p.rtt);
         // Only a variable is free to be named more than once, so the rest go thru a local.
         if (p.var) {
             if (cpp) append(sd, "    if (", r, ") ", r, "->Dec(vm);\n");
-            else append(sd, "    if (", r, " && --", r, "->refc <= 0) DecDelete(vm, ", r, ");\n");
+            else append(sd, "    if (", r, " && --", r, "->refc <= 0) ", dd, "(vm, ", r, ");\n");
         } else if (cpp && !p.typed) {
             append(sd, "    ", p.s, ".LTDECRTNIL(vm);\n");
         } else if (cpp) {
             append(sd, "    { ", CType(p.k()), "_r = ", r, "; if (_r) _r->Dec(vm); }\n");
         } else {
             append(sd, "    { ", CType(p.k()), "_r = ", r, ";"
-                       " if (_r && --_r->refc <= 0) DecDelete(vm, _r); }\n");
+                       " if (_r && --_r->refc <= 0) ", dd, "(vm, _r); }\n");
         }
     }
 
