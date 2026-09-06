@@ -177,6 +177,9 @@ struct CodeGen  {
     int f_lval_idx = 0;
     const UDT *f_lval_udt = nullptr;
     TypeRef f_lval_elem;
+    // Where the elements of an LVK_ELEM lvalue are and its index: the lvec/lidx locals, or
+    // the variables they came from, see EmitLvalVectorIndex.
+    string f_lval_elems, f_lval_index;
     bool f_uses_lval = false;
     bool f_uses_lobj = false;
     bool f_uses_lelem = false;
@@ -1657,7 +1660,7 @@ struct CodeGen  {
             case LVK_LOCAL: return Local(f_lval_idx + i);
             case LVK_GLOBAL: return Global(f_lval_idx + i);
             case LVK_FIELD: return Field("lo", *f_lval_udt, f_lval_idx + i, SlotType(type, i));
-            case LVK_ELEM: return Elem("lvec", f_lval_elem, "lidx", f_lval_idx + i);
+            case LVK_ELEM: return Elem(f_lval_elems, f_lval_elem, f_lval_index, f_lval_idx + i);
             case LVK_NUMPTR:
                 return Direct(cat("((", SlotCType(type, i), " *)lv)[", i, "]"),
                               RtTypeOf(SlotType(type, i)));
@@ -1858,15 +1861,48 @@ struct CodeGen  {
     // thru the VM, so they read as a chain of assignments, and none of them leave anything on
     // the stack. An element of a vector is at the width the vector holds its elements at plus
     // wherever in one the assignment lands.
-    void EmitLvalVectorIndex(int levels, int offset, TypeRef etype) {
+    // An operand that is a variable or a constant, which can be named as often as needed rather
+    // than copied into a local first.
+    static bool PlainOperand(const Expr &e) {
+        return e.prec == 0 && e.pure &&
+               (e.vars.empty() || (e.vars.size() == 1 && e.text == e.vars[0]));
+    }
+
+    // The range check of an index, whose failure path stays a call.
+    void GenRangeCheck(string_view vec, string_view idx, string_view bound) {
+        if (cpp) {
+            append(cb, "    if ((uint64_t)", idx, " >= (uint64_t)(", bound, ")) vm.IDXErr(", idx,
+                   ", ", bound, ", ", vec, ");\n");
+        } else {
+            append(cb, "    if ((unsigned long long)", idx, " >= (unsigned long long)(", bound,
+                   ")) IDXErr(vm, ", idx, ", ", bound, ", ", vec, ");\n");
+        }
+    }
+
+    // `last` says the write follows right away, so that nothing can change the vector or the
+    // index in between and, when they are plain, they are named directly. Otherwise, or when
+    // the index steps thru nested vectors, they go thru the lvec/lidx locals.
+    void EmitLvalVectorIndex(int levels, int offset, TypeRef etype, bool last) {
         TrackUseDef(levels + 1, 0);
+        f_lval_kind = LVK_ELEM;
+        f_lval_elem = etype;
+        f_lval_idx = offset;
+        if (levels == 1 && last) {
+            auto vo = Operand(Slot(2, VK_VECTOR), 15);
+            auto io = Operand(Slot(1, VK_INT), 15);
+            if (PlainOperand(vo) && PlainOperand(io)) {
+                GenRangeCheck(vo.text, io.text, cat(vo.text, "->len"));
+                f_lval_elems = cat(vo.text, cpp ? "->ElemSlots()" : "->elems");
+                f_lval_index = io.text;
+                return;
+            }
+        }
         f_uses_lelem = true;
         GenVectorDescent(levels, Slot(levels + 1, VK_VECTOR));
         // The element outlives the block the descent opened, so where it is goes in locals.
         append(cb, "    lvec = ", Elems(), "; lidx = _i;\n    }\n");
-        f_lval_kind = LVK_ELEM;
-        f_lval_elem = etype;
-        f_lval_idx = offset;
+        f_lval_elems = "lvec";
+        f_lval_index = "lidx";
     }
 
     // A class indexed at runtime, whose range check needs the type info, so it stays a helper.
@@ -1893,7 +1929,7 @@ struct CodeGen  {
             base = FieldArray("lo", *f_lval_udt, f_lval_idx);
         } else if (f_lval_kind == LVK_ELEM) {
             // The same for an element, which a vector of one type holds in a flat run of them.
-            base = cat("&", Elem("lvec", f_lval_elem, "lidx", f_lval_idx).s);
+            base = cat("&", Elem(f_lval_elems, f_lval_elem, f_lval_index, f_lval_idx).s);
         } else if (f_lval_kind == LVK_LOCAL) {
             // A struct in variables has to be in memory to be indexed at runtime, so it goes
             // thru an array of the one numeric type all of its fields are, and comes back out
@@ -3234,6 +3270,38 @@ struct CodeGen  {
         TrackUseDef(2, subwidth);
         // A string index may read the terminating 0-byte, one past its length.
         auto bound = str ? "_o->len + 1" : "_o->len";
+        // A vector and index that are plain are named as they are, unless the element lands in
+        // one of them.
+        auto vo = Operand(Slot(2, str ? VK_STRING : VK_VECTOR), 15);
+        auto io = Operand(Slot(1, VK_INT), 15);
+        if (PlainOperand(vo) && PlainOperand(io)) {
+            bool clobbers = false;
+            if (str) {
+                auto d = Slot(2, VK_INT).s;
+                clobbers = d == vo.text || d == io.text;
+            } else {
+                for (int i = 0; i < subwidth; i++) {
+                    auto d = Slot(2 - i, elemtype, offset + i).s;
+                    if (d == vo.text || d == io.text) clobbers = true;
+                }
+            }
+            if (!clobbers) {
+                GenRangeCheck(vo.text, io.text, cat(vo.text, str ? "->len + 1" : "->len"));
+                if (str) {
+                    Write(cb, Slot(2, VK_INT),
+                          cpp ? cat("(long long)((unsigned char *)", vo.text, "->data())[",
+                                    io.text, "]")
+                              : cat("STRING_DATA(", vo.text, ")[", io.text, "]"));
+                } else {
+                    auto elems = cat(vo.text, cpp ? "->ElemSlots()" : "->elems");
+                    for (int i = 0; i < subwidth; i++) {
+                        CopyValue(cb, Slot(2 - i, elemtype, offset + i),
+                                  Elem(elems, elemtype, io.text, offset + i));
+                    }
+                }
+                return;
+            }
+        }
         append(cb, "    {\n    ", str ? "LString" : "LVector", " *_o = ",
                Read(Slot(2, str ? VK_STRING : VK_VECTOR)), "; long long _i = ",
                Read(Slot(1, VK_INT)), ";\n");
@@ -3435,7 +3503,10 @@ struct CodeGen  {
         GenLvalModifier(op, sid.type);
     }
 
-    void GenAssignLvalRec(const Node *lval, int offset, int take_temp, TypeRef type) {
+    // `more` says the lvalue this produces is stepped into further, with code of its own
+    // between here and the write, see EmitLvalVectorIndex.
+    void GenAssignLvalRec(const Node *lval, int offset, int take_temp, TypeRef type,
+                          bool more = false) {
         if (auto idr = Is<IdentRef>(lval)) {
             TakeTemp(take_temp, true);
             GenLvalVar(*idr->sid, offset);
@@ -3450,12 +3521,12 @@ struct CodeGen  {
                 TakeTemp(take_temp + 1, true);
                 EmitLvalField(*stype->udt, sfield.slot + offset);
             } else {
-                GenAssignLvalRec(dot->child, sfield.slot + offset, take_temp, type);
+                GenAssignLvalRec(dot->child, sfield.slot + offset, take_temp, type, more);
             }
         } else if (auto indexing = Is<Indexing>(lval)) {
             if (IsStruct(indexing->object->exptype->t)) {
                 // This generates an LVAL producing OP which is then indexed below and turned into another LVAL!
-                GenAssignLvalRec(indexing->object, offset, take_temp, type);
+                GenAssignLvalRec(indexing->object, offset, take_temp, type, true);
                 Gen(indexing->index, 1);
                 TakeTemp(1, true);
             } else {
@@ -3469,7 +3540,7 @@ struct CodeGen  {
                     auto levels = ValWidth(indexing->index->exptype);
                     auto etype = indexing->object->exptype;
                     for (int i = 0; i < levels; i++) etype = etype->Element();
-                    EmitLvalVectorIndex(levels, offset, etype);
+                    EmitLvalVectorIndex(levels, offset, etype, !more);
                     break;
                 }
                 case V_CLASS:
