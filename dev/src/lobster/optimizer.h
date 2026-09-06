@@ -132,6 +132,9 @@ Node *Call::Optimize(Optimizer &opt) {
         sf->num_returns_non_local == 0 &&
         vtable_idx < 0 &&
         sf->returntype->NumValues() <= 1 &&
+        // A terminal void function can be used where a value is expected. Removing its
+        // final Return would expose a void expression to the value-producing caller.
+        sf->returntype->NumValues() == exptype->NumValues() &&
         // Because we inline so aggressively, it is possible to generate huuge functions,
         // which may cause a problem for our stack, or that of e.g. V8 in Wasm.
         parent->locals.size() < 1024;
