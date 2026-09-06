@@ -110,7 +110,7 @@ int main(int argc, char* argv[]) {
             "--gen-builtins-html     Write builtin commands help file.\n"
             "--gen-builtins-names    Write builtin commands - just names.\n"
             #if LOBSTER_ENGINE
-            "--non-interactive-test  Quit after running 1 frame.\n"
+            "--non-interactive-test [N] Quit after N frames (default 1).\n"
             "--background            Open the window behind all others, without taking focus.\n"
             #endif
             "--tcc-out               Output tcc .o file instead of running.\n"
@@ -150,9 +150,16 @@ int main(int argc, char* argv[]) {
                 else if (a == "--full-error") { opts.full_error = true; }
                 #if LOBSTER_ENGINE
                 else if (a == "--non-interactive-test") {
-                    // Quits after a frame, with whatever that left alive.
+                    // Quits after the requested frames, with whatever that left alive.
                     ropts.dump_leaks = false;
-                    SDLTestMode();
+                    int test_frames = 1;
+                    if (arg + 1 < argc && IsDigitsOnly(argv[arg + 1])) {
+                        auto n = parse_int<int64_t>(string_view(argv[++arg]));
+                        if (n < 1 || n > 1000000)
+                            THROW_OR_ABORT("test frame count must be in 1..1000000");
+                        test_frames = (int)n;
+                    }
+                    SDLTestMode(test_frames);
                 }
                 else if (a == "--background") { SDLStartInBackground(); }
                 #endif

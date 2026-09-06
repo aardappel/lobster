@@ -85,7 +85,7 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
 -   `--parsedump` : dumps internal representations of the program as AST.
     Only useful for compiler development or if you are really curious.
 
--   `--non-interactive-test` : Quit after running 1 frame. Useful for running graphical
+-   `--non-interactive-test [N]` : Quit after running N frames (default 1). Useful for running graphical
     programs as part of a test suite.
 
 -   `--background` : Open the window at the bottom of the z-order and without giving it

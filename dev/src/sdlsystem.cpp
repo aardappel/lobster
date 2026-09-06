@@ -154,6 +154,7 @@ int cursorx = 0, cursory = 0;
 bool landscape = true;
 bool minimized = false;
 bool noninteractivetestmode = false;
+int noninteractivetestframes = 1;
 bool startinbackground = false;
 
 const int MAXAXES = 16;
@@ -882,7 +883,7 @@ bool SDLFrame() {
 
     TextToSpeechUpdate();
 
-    return closebutton || (noninteractivetestmode && frames == 2 /* has rendered one full frame */);
+    return closebutton || (noninteractivetestmode && frames >= noninteractivetestframes + 1);
 }
 
 void SDLWindowMinMax(int dir) {
@@ -1047,7 +1048,10 @@ bool ScreenShot(string_view_nt filename, int2 targetsize) {
     return ok != 0;
 }
 
-void SDLTestMode() { noninteractivetestmode = true; }
+void SDLTestMode(int num_frames) {
+    noninteractivetestmode = true;
+    noninteractivetestframes = num_frames;
+}
 void SDLStartInBackground() { startinbackground = true; }
 
 int SDLScreenDPI(int screen) {
