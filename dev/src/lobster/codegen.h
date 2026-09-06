@@ -1969,13 +1969,13 @@ struct CodeGen  {
 
     // Jump on the value on top of the stack testing false, or on it testing true for the
     // "no fail" version. Small enough to be worth not calling for. defslots is 1 when the value
-    // stays on the stack for whoever follows.
+    // stays on the stack for whoever follows. The jump goes to `lab`, or to a new label.
     // The value the jump keeps as the result can be of another kind than the result, when the
     // typechecker decided only its truth matters, see TypeCheckAndOr, in which case the jump
     // converts it: a false scalar is the nil, and either scalar the other.
-    int EmitJumpCond(bool onfail, int defslots, VKind k, VKind resk) {
+    int EmitJumpCond(bool onfail, int defslots, VKind k, VKind resk, int lab = -1) {
         TrackUseDef(1, defslots);
-        auto lab = Label();
+        if (lab < 0) lab = Label();
         auto v = Slot(1, k);
         // Read as the operand of the ! it may get, and otherwise as the whole condition, which
         // needs no parentheses of its own. When the value stays on the stack it is written to
@@ -2015,6 +2015,46 @@ struct CodeGen  {
     }
     int EmitJumpFail(int defslots, VKind k) { return EmitJumpCond(true, defslots, k, k); }
     int EmitJumpNoFail(int defslots, VKind k) { return EmitJumpCond(false, defslots, k, k); }
+
+    // A condition that is only jumped on, as that of an if or a while: the logical operators on
+    // numeric operands become the jumps directly, rather than a boolean that goes thru a slot
+    // to be tested again. Any other condition, including a logical operator whose value is a
+    // reference, is generated as a value and tested as a whole.
+    void GenCondJump(const Node *n, bool onfail, int lab) {
+        auto numeric = [](const Node *c) { return c->exptype->Numeric(); };
+        if (auto a = Is<And>(n); a && numeric(a) && numeric(a->left) && numeric(a->right)) {
+            if (onfail) {
+                GenCondJump(a->left, true, lab);
+                GenCondJump(a->right, true, lab);
+            } else {
+                auto skip = Label();
+                GenCondJump(a->left, true, skip);
+                GenCondJump(a->right, false, lab);
+                EmitLabelDef(skip);
+            }
+            return;
+        }
+        if (auto o = Is<Or>(n); o && numeric(o) && numeric(o->left) && numeric(o->right)) {
+            if (onfail) {
+                auto skip = Label();
+                GenCondJump(o->left, false, skip);
+                GenCondJump(o->right, true, lab);
+                EmitLabelDef(skip);
+            } else {
+                GenCondJump(o->left, false, lab);
+                GenCondJump(o->right, false, lab);
+            }
+            return;
+        }
+        if (auto nt = Is<Not>(n); nt && numeric(nt->child)) {
+            GenCondJump(nt->child, !onfail, lab);
+            return;
+        }
+        Gen(n, 1);
+        TakeTemp(1, false);
+        auto k = KindOf(n->exptype);
+        EmitJumpCond(onfail, 0, k, k, lab);
+    }
 
     // Jump over the initializer of a member or static that has already run this frame. The
     // member version reads the object it belongs to off the stack, the static one needs nothing.
@@ -4260,18 +4300,16 @@ void Not::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void IfThen::Generate(CodeGen &cg, size_t retval) const {
-    cg.Gen(condition, 1);
-    cg.TakeTemp(1, false);
-    auto lab = cg.EmitJumpFail(0, CodeGen::KindOf(condition->exptype));
+    auto lab = cg.Label();
+    cg.GenCondJump(condition, true, lab);
     assert(!retval); (void)retval;
     cg.Gen(truepart, 0);
     cg.EmitLabelDef(lab);
 }
 
 void IfElse::Generate(CodeGen &cg, size_t retval) const {
-    cg.Gen(condition, 1);
-    cg.TakeTemp(1, false);
-    auto lab = cg.EmitJumpFail(0, CodeGen::KindOf(condition->exptype));
+    auto lab = cg.Label();
+    cg.GenCondJump(condition, true, lab);
     CodeGen::BlockStack bs(cg.tstack_size);
     bs.Start();
     cg.Gen(truepart, retval);
@@ -4291,9 +4329,8 @@ void While::Generate(CodeGen &cg, size_t retval) const {
     auto loopback = cg.EmitLabelDefBackwards();
     cg.loops.push_back(this);
     cg.continues.push_back(loopback);
-    cg.Gen(condition, 1);
-    cg.TakeTemp(1, false);
-    auto jumpout = cg.EmitJumpFail(0, CodeGen::KindOf(condition->exptype));
+    auto jumpout = cg.Label();
+    cg.GenCondJump(condition, true, jumpout);
     auto break_level = cg.breaks.size();
     cg.Gen(wbody, 0);
     cg.loops.pop_back();
