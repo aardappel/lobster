@@ -3041,19 +3041,28 @@ struct CodeGen  {
         WriteExpr(Slot(2, BinKind(isfloat, op)), BinExpr(isfloat, op, Slot(2, k), Slot(1, k)));
     }
 
-    // Comparing two structs is a compare per slot, of whatever kind it is.
+    // Comparing two structs is a compare per slot, of whatever kind it is, joined by && (or ||
+    // for a !=) into one expression like a scalar compare is, so it can stay pending and a
+    // condition can jump on it directly.
     void GenStructCompare(bool eq, TypeRef type) {
         auto len = ValWidth(type);
-        append(cb, "    { long long _c = ", eq ? "1" : "0", ";\n");
+        auto prec = eq ? 11 : 12;
+        Expr acc;
         for (int j = 0; j < len; j++) {
-            append(cb, "    _c = _c ", eq ? "&&" : "||", " ",
-                   Operand(Slot(len * 2 - j, type, j), 7).text, " ", eq ? "==" : "!=", " ",
-                   Operand(Slot(len - j, type, j), 7, true).text, ";\n");
+            auto l = Operand(Slot(len * 2 - j, type, j), 7);
+            auto r = Operand(Slot(len - j, type, j), 7, true);
+            auto e = Combine(7, cat(l.text, eq ? " == " : " != ", r.text), l, r);
+            if (!j) {
+                acc = e;
+            } else {
+                Parens(acc, prec);
+                Parens(e, prec, true);
+                acc = Combine(prec, cat(acc.text, eq ? " && " : " || ", e.text), acc, e);
+            }
         }
         // Only written after all the reads, since the result lands in the first slot of the left
         // hand side.
-        Write(cb, Slot(len * 2, VK_INT), "_c != 0");
-        cb += "    }\n";
+        WriteExpr(Slot(len * 2, VK_INT), acc);
     }
 
     // Reading a field is a load at a constant offset from the object, whose fields sit right
