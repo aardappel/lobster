@@ -1255,6 +1255,19 @@ struct CodeGen  {
         }
     }
 
+    // A copy out of a slot this op consumes, which is the last read of it: an expression the
+    // slot holds goes into the copy and nowhere else, so it is dropped rather than written to
+    // the slot as well when the destination is a variable it reads, as in `x = x * 2`.
+    void CopyConsumed(string &sd, const Place &d, const Place &s) {
+        if (s.slot < 0 || !HasPending(s.slot) || !(d.typed || s.typed)) {
+            CopyValue(sd, d, s);
+            return;
+        }
+        auto r = ReadAs(s, d.k());
+        pending[s.slot].expr.clear();
+        Write(sd, d, r);
+    }
+
     void SetNil(string &sd, const Place &d) {
         if (d.slot >= 0 && &sd == &cb) Defer(d, d.k() == VK_FLOAT ? "0.0" : "0", "");
         else if (d.typed) Write(sd, d, d.k() == VK_FLOAT ? "0.0" : "0");
@@ -3300,11 +3313,11 @@ struct CodeGen  {
         auto width = ValWidth(type);
         TrackUseDef(LvalModifierUses(op, width), 0);
         if (op == LV_WRITE) {
-            CopyValue(cb, Lval(0, type), Slot(1, type));
+            CopyConsumed(cb, Lval(0, type), Slot(1, type));
         } else if (op == LV_WRITEREF) {
             // Whatever was there loses a reference to make way for what is written over it.
             GenDecRef(cb, Lval(0, type));
-            CopyValue(cb, Lval(0, type), Slot(1, type));
+            CopyConsumed(cb, Lval(0, type), Slot(1, type));
         } else if (op == LV_WRITEV || op == LV_WRITEREFV) {
             // Same copy, one per slot of the struct being written, preceded by a decrement for
             // each of those slots that holds a reference, which the bitmask says which are.
@@ -3314,7 +3327,7 @@ struct CodeGen  {
                     if ((1 << i) & bitmask) GenDecRef(cb, Lval(i, type));
             }
             for (int i = 0; i < width; i++)
-                CopyValue(cb, Lval(i, type), Slot(width - i, type, i));
+                CopyConsumed(cb, Lval(i, type), Slot(width - i, type, i));
         } else if (op == LV_SADD) {
             auto rhs = Read(Slot(1, VK_STRING));
             if (f_lval_kind == LVK_LOCAL || f_lval_kind == LVK_FIELD ||
