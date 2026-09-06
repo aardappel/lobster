@@ -35,13 +35,13 @@ struct Optimizer {
         for (auto f : st.functiontable) {
             again:
             for (auto ov : f->overloads) {
-                auto sf = ov->sf;
-                if (sf && sf->typechecked) {
-                    for (; sf; sf = sf->next) {
-                        functions_removed = false;
-                        OptimizeFunction(*sf);
-                        if (functions_removed) goto again;
-                    }
+                // The head of this chain is the newest specialization, which may be one that
+                // was cloned at a call site and then never typechecked, so this cannot stop at
+                // an untypechecked one: the ones behind it are what the codegen emits.
+                for (auto sf = ov->sf; sf; sf = sf->next) {
+                    functions_removed = false;
+                    OptimizeFunction(*sf);
+                    if (functions_removed) goto again;
                 }
             }
         }
