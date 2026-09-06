@@ -82,6 +82,17 @@ Node *Node::Optimize(Optimizer &opt) {
     VTValue cval;
     auto t = ConstVal(&opt.tc, cval);
     if (t == V_VOID) return this;
+    // The constant has to be of the type the node says it produces, since that type is what
+    // decides which stack slot codegen puts it in, and the code that reads it goes by the same
+    // type. An `and` or an `or` that short circuits to a false scalar out of an expression whose
+    // type is a reference is the case where the two disagree: what that produces is the nil of
+    // the reference type, which is what the jump the unfolded code emits writes, see
+    // EmitJumpCond. Anything else that disagrees is not ours to fold.
+    if (t != exptype->t && t != V_NIL) {
+        auto falsy = t == V_INT ? !cval.i : t == V_FLOAT ? !cval.f : false;
+        if (!falsy || !IsRefNilNoStruct(exptype->t)) return this;
+        t = V_NIL;
+    }
     Node *r;
     switch (t) {
         case V_INT:   r = new IntConstant(line, cval.i); break;
