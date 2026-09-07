@@ -84,6 +84,19 @@ a floor so every section keeps a real share.
   logic        the plumbing: small calls, multiple returns, boolean operators, asserts
   text         string building, comparison and interpolation
 
+WEIGHTS AND ALLOCATION
+The `runs` weights below were fitted on how often each construct runs, where an allocation
+counts the same as an integer add. It does not cost the same: an allocate and free is about
+4 ns, an average event in this benchmark a fraction of one, so the two sections that allocate
+came to about 60% of the time at the weights the fit gave them. `actions` and `text` were cut
+from 300 and 275 to 35 and 30, which puts allocation at about 15% of the run: 41.0M allocator
+calls, roughly 0.17 of 1.08 seconds. Nothing else changed, so every other section takes the
+time it did before and those measurements carry over; the two that were cut do not, and the
+printed checksum changed with them, while `verify` did not. The frequency tables below were
+measured at the fitted weights and still describe the code, not the mixture that now runs:
+the events of these two sections now weigh about a ninth of what those tables say. Recollect
+them, rather than trusting them, if the mixture matters again.
+
 An integer is threaded thru every path, folded into the checksums, and printed, so no section
 can be optimized away, and `verify` asserts that the meaning of all of it is unchanged.
 
@@ -854,6 +867,14 @@ class Section:
     runs:int
     best:float = 999999.0
 
+// The weights of `actions` and `text` are not the fitted ones: those two sections are the
+// only ones that allocate in any quantity, and at their fitted weights of 300 and 275 the
+// run spent about 60% of its time in the allocator rather than in the code the compiler
+// generates. Both sections are allocation to within measurement error: at 24 rounds they
+// ran 214.9M and 110.9M allocations in 0.90 and 0.44 seconds, about 4 ns each, which is
+// what an allocate and free of a small object costs on its own. They are down to 35 and 30
+// so that allocation is about 15% of the run, which keeps the allocator worth optimizing
+// without letting it decide the score. See WEIGHTS AND ALLOCATION in the header.
 let sections = [
     Section { "entities",   fn(): entity_pass(),     30 },
     Section { "query",      fn(): entity_query(),     2 },
@@ -861,9 +882,9 @@ let sections = [
     Section { "heights",    fn(): height_pass(),     15 },
     Section { "numeric",    fn(): numeric_pass(),    45 },
     Section { "containers", fn(): container_pass(),  12 },
-    Section { "actions",    fn(): action_pass(),    300 },
+    Section { "actions",    fn(): action_pass(),     35 },
     Section { "logic",      fn(): logic_pass(),      30 },
-    Section { "text",       fn(): text_pass(),      275 },
+    Section { "text",       fn(): text_pass(),       30 },
 ]
 
 // How often each section's `runs` weight is repeated, which is the one number to turn when the
