@@ -184,7 +184,7 @@ include_directories(SYSTEM
                     external/libtcc
                     external/mir
                     external/mir/c2mir
-                    $(STEAM_INCLUDES))
+                    ${STEAM_INCLUDES})
 
 if(LOBSTER_ENGINE)
   find_package(OpenGL REQUIRED)
