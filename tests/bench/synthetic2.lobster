@@ -161,6 +161,8 @@ compiler.
 
 import std
 import vec
+import from "../"
+import bench.aggregate
 
 // ---------------------------------------------------------------------------------------------
 // Shared state.
@@ -238,8 +240,8 @@ let null_entity = Entity { 0, ek_prop, int3_0, float3_0, float3_0, null_item, nu
                            "", [], [] }
 
 // Rebuilt at the start of every trial, then read as a global everywhere below.
-var world = World { [], null_entity, [], [], [], [], [], 0, int3_0, float3_0 }
-var frame_no = 0
+private var world = World { [], null_entity, [], [], [], [], [], 0, int3_0, float3_0 }
+private var frame_no = 0
 var tally = 0
 
 // A function value kept in a variable and one passed as a typed argument, which is how the
@@ -889,52 +891,68 @@ let sections = [
 
 // How often each section's `runs` weight is repeated, which is the one number to turn when the
 // whole benchmark should take longer or shorter. Everything else is a shape, not an amount.
-let work_scale = 24
-let meta_runs = 5
-let rounds = 30
+private let work_scale = 24
+private let meta_runs = 5
+private let rounds = 30
 
 // Optional program arguments: `-- <section> [work_scale]` runs only that section, which is how
 // the per section counter profiles behind the header above were measured.
-let args = command_line_arguments()
-let only = if args.length > 0: args[0] else: ""
-let scale = if args.length > 1: string_to_int(args[1]) else: work_scale
+def synthetic2_standalone():
+    let args = command_line_arguments()
+    let only = if args.length > 0: args[0] else: ""
+    let scale = if args.length > 1: string_to_int(args[1]) else: work_scale
 
-// A fixed amount of work whose result does not depend on how long the timed part runs, so the
-// assert below keeps its meaning when work_scale is turned up or down. Every value the sections
-// compute feeds into it, which is also what keeps the optimizer from throwing their bodies away.
-def verify() -> int:
-    var v = 0
-    for(4) r:
-        setup(r + 1)
+    // A fixed amount of work whose result does not depend on how long the timed part runs, so the
+    // assert below keeps its meaning when work_scale is turned up or down. Every value the sections
+    // compute feeds into it, which is also what keeps the optimizer from throwing their bodies away.
+    def verify() -> int:
+        var v = 0
+        for(4) r:
+            setup(r + 1)
+            for(sections) s:
+                let run = s.f
+                world.frame = r
+                v = (v * 31 + run()) & 0xFFFFFFFFFFFF
+        return v
+
+    let expected = verify()
+    print "verify: {expected}"
+    assert expected == 248898468858485
+
+    var checksum = 0
+    for(meta_runs) m:
         for(sections) s:
+            if only.length and s.name != only: continue
+            setup(1)
             let run = s.f
-            world.frame = r
-            v = (v * 31 + run()) & 0xFFFFFFFFFFFF
-    return v
+            let start = seconds_elapsed()
+            var local = 0
+            for(rounds) r:
+                world.frame = r
+                for(s.runs * scale): local += run()
+            let taken = seconds_elapsed() - start
+            s.best = min(s.best, taken)
+            if m == 0: checksum = (checksum * 31 + local) & 0xFFFFFFFFFFFF
 
-let expected = verify()
-print "verify: {expected}"
-assert expected == 248898468858485
-
-var checksum = 0
-for(meta_runs) m:
+    var total = 0.0
     for(sections) s:
         if only.length and s.name != only: continue
+        total += s.best
+        print "{s.name}: {s.best}"
+    print "TOTAL: {total}"
+    print "checksum: {checksum}"
+
+// What an aggregator runs instead of the driver above: one pass over every section at the work
+// scale it asks for, which is what the driver times, without the meta runs or the output.
+def synthetic2_pass(units:int) -> int:
+    var acc = 0
+    for(sections) s:
         setup(1)
         let run = s.f
-        let start = seconds_elapsed()
-        var local = 0
         for(rounds) r:
             world.frame = r
-            for(s.runs * scale): local += run()
-        let taken = seconds_elapsed() - start
-        s.best = min(s.best, taken)
-        if m == 0: checksum = (checksum * 31 + local) & 0xFFFFFFFFFFFF
+            for(s.runs * units): acc += run()
+    return acc
 
-var total = 0.0
-for(sections) s:
-    if only.length and s.name != only: continue
-    total += s.best
-    print "{s.name}: {s.best}"
-print "TOTAL: {total}"
-print "checksum: {checksum}"
+if aggregated: bench_register("synthetic2", fn(units): synthetic2_pass(units))
+else: synthetic2_standalone()

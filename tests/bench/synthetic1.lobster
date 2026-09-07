@@ -476,6 +476,8 @@ Comparison diagnostics (descriptive, not optimization targets):
 import std
 import vec
 import dictionary
+import from "../"
+import bench.aggregate
 
 enum_flags BenchFlags:
     bench_solid = 1
@@ -828,41 +830,54 @@ def benchmark_round(seed:int):
     let g, gf = collection_mix(seed)
     return v + a * 3 + b * 5 + c * 7 + d * 11 + e * 13 + f * 17 + g * 19, vf + af + bf + cf + df + ef + ff + gf
 
-let arguments = command_line_arguments()
-let iterations = if arguments.length > 0: string_to_int(arguments[0]) else: 3000
-let trials = if arguments.length > 1: string_to_int(arguments[1]) else: 7
-let seed = if arguments.length > 2: string_to_int(arguments[2]) else: 1
-assert iterations > 0 and iterations <= 100000
-assert trials > 0 and trials <= 100
-assert seed >= 0 and seed <= 1000000
+def synthetic1_standalone():
+    let arguments = command_line_arguments()
+    let iterations = if arguments.length > 0: string_to_int(arguments[0]) else: 3000
+    let trials = if arguments.length > 1: string_to_int(arguments[1]) else: 7
+    let seed = if arguments.length > 2: string_to_int(arguments[2]) else: 1
+    assert iterations > 0 and iterations <= 100000
+    assert trials > 0 and trials <= 100
+    assert seed >= 0 and seed <= 1000000
 
-// Runtime input reaches every kernel. Each trial reconstructs identical state;
-// output and assertions consume both the integer and floating point results.
-let warm_i, warm_f = benchmark_round(seed)
-if seed == 1:
-    assert warm_i == 87209904
-    assert abs(warm_f - 55757.103997806626) < 0.000001
-var expected_i = 0
-var expected_f = 0.0
-let times = []
-for(trials) trial:
-    var result_i = 0
-    var result_f = 0.0
-    let start = seconds_elapsed()
-    for(iterations) iteration:
-        let ri, rf = benchmark_round(seed + iteration)
-        result_i += ri
-        result_f += rf
-    times.push(seconds_elapsed() - start)
-    if seed == 1 and iterations == 3000:
-        assert result_i == 292510068371
-        assert abs(result_f - 167842704.0174107) < 0.01
-    if trial == 0:
-        expected_i = result_i
-        expected_f = result_f
-    else:
-        assert result_i == expected_i
-        assert abs(result_f - expected_f) <= 0.0000001 * max(1.0, abs(expected_f))
-let sorted_times = times.qsort(): _a < _b
-print "benchmark checksum: {expected_i}, {expected_f}; warmup: {warm_i}, {warm_f}"
-print "{iterations} rounds, {trials} trials: min {sorted_times[0]} s, median {sorted_times[trials / 2]} s"
+    // Runtime input reaches every kernel. Each trial reconstructs identical state;
+    // output and assertions consume both the integer and floating point results.
+    let warm_i, warm_f = benchmark_round(seed)
+    if seed == 1:
+        assert warm_i == 87209904
+        assert abs(warm_f - 55757.103997806626) < 0.000001
+    var expected_i = 0
+    var expected_f = 0.0
+    let times = []
+    for(trials) trial:
+        var result_i = 0
+        var result_f = 0.0
+        let start = seconds_elapsed()
+        for(iterations) iteration:
+            let ri, rf = benchmark_round(seed + iteration)
+            result_i += ri
+            result_f += rf
+        times.push(seconds_elapsed() - start)
+        if seed == 1 and iterations == 3000:
+            assert result_i == 292510068371
+            assert abs(result_f - 167842704.0174107) < 0.01
+        if trial == 0:
+            expected_i = result_i
+            expected_f = result_f
+        else:
+            assert result_i == expected_i
+            assert abs(result_f - expected_f) <= 0.0000001 * max(1.0, abs(expected_f))
+    let sorted_times = times.qsort(): _a < _b
+    print "benchmark checksum: {expected_i}, {expected_f}; warmup: {warm_i}, {warm_f}"
+    print "{iterations} rounds, {trials} trials: min {sorted_times[0]} s, median {sorted_times[trials / 2]} s"
+
+// What an aggregator runs instead of the driver above: whole rounds, the same work the driver
+// times, without the trials, the assertions or the output.
+def synthetic1_rounds(rounds:int) -> int:
+    var acc = 0
+    for(rounds) iteration:
+        let ri, rf = benchmark_round(1 + iteration)
+        acc += ri + int(rf)
+    return acc
+
+if aggregated: bench_register("synthetic1", fn(units): synthetic1_rounds(units))
+else: synthetic1_standalone()
