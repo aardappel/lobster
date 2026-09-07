@@ -167,6 +167,12 @@ VM_INLINE double RtFMod(double a, double b) {
     return fmod(a, b);
 }
 
+// A float division the generated code cannot write out, because its divisor is a literal zero,
+// see CodeGen::BinExpr.
+VM_INLINE double RtFDiv(double a, double b) {
+    return a / b;
+}
+
 // The square root, which sqrt(), magnitude() and normalize() are written out in terms of:
 // the JIT links no libc, so the generated C cannot name the one there. The C++ backend
 // inlines this back into the instruction it is.

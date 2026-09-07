@@ -901,6 +901,7 @@ struct CodeGen  {
                 "long long RtIDiv(VMRef, long long, long long);\n"
                 "long long RtIMod(VMRef, long long, long long);\n"
                 "double RtFMod(double, double);\n"
+                "double RtFDiv(double, double);\n"
                 "double RtSqrt(double);\n"
                 "LString *RtSAdd(VMRef, LString *, LString *);\n"
                 "long long RtSLt(LString *, LString *);\n"
@@ -1590,17 +1591,30 @@ struct CodeGen  {
         return lab;
     }
 
+    // Whether a place is the float constant zero, told by the literal a zero is written as,
+    // which is what a division needs to know about its divisor, see BinExpr.
+    bool IsFloatZeroLiteral(const Place &p) {
+        if (!HasPending(p.slot)) return false;
+        auto &q = pending[p.slot];
+        return q.vars.empty() && !q.prec &&
+               (q.expr == FloatLiteral(0.0) || q.expr == FloatLiteral(-0.0));
+    }
+
     // A binary operator on scalars is the C operator, except for integer division and modulo,
-    // which check their divisor and so have to run where they are, and float modulo, which
-    // is fmod.
+    // which check their divisor and so have to run where they are, float modulo, which is
+    // fmod, and a float division by a literal zero: Lobster wants the infinity or nan that
+    // produces, but C rejects the constant expression it would otherwise be written as (MSVC
+    // C2124), and a call is not a constant expression.
     Expr BinExpr(bool isfloat, MathOp op, const Place &a, const Place &b) {
         static const char *cops[] = { "+", "-", "*", "/", "%",
                                       "<", ">", "<=", ">=", "==", "!=" };
         static const int precs[] = { 4, 4, 3, 3, 3, 6, 6, 6, 6, 7, 7 };
-        if (op == MOP_MOD || (op == MOP_DIV && !isfloat)) {
+        auto fdivzero = op == MOP_DIV && isfloat && IsFloatZeroLiteral(b);
+        if (op == MOP_MOD || (op == MOP_DIV && !isfloat) || fdivzero) {
             auto x = Operand(a, 15), y = Operand(b, 15);
             // The only helper without an argument the C++ backend could find it thru.
-            auto call = op == MOP_DIV ? cat("RtIDiv(vm, ", x.text, ", ", y.text, ")")
+            auto call = fdivzero ? cat(cpp ? "lobster::" : "", "RtFDiv(", x.text, ", ", y.text, ")")
+                      : op == MOP_DIV ? cat("RtIDiv(vm, ", x.text, ", ", y.text, ")")
                       : isfloat ? cat(cpp ? "lobster::" : "", "RtFMod(", x.text, ", ", y.text, ")")
                                 : cat("RtIMod(vm, ", x.text, ", ", y.text, ")");
             auto e = Combine(1, call, x, y);

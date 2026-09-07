@@ -1045,6 +1045,7 @@ void CRtAbort(VM *vm) { RtAbort(*vm); }
 iint CRtIDiv(VM *vm, iint a, iint b) { return RtIDiv(*vm, a, b); }
 iint CRtIMod(VM *vm, iint a, iint b) { return RtIMod(*vm, a, b); }
 double CRtFMod(double a, double b) { return RtFMod(a, b); }
+double CRtFDiv(double a, double b) { return RtFDiv(a, b); }
 double CRtSqrt(double a) { return RtSqrt(a); }
 LString *CRtSAdd(VM *vm, LString *a, LString *b) { return RtSAdd(*vm, a, b); }
 iint CRtSLt(LString *a, LString *b) { return RtSLt(a, b); }
@@ -1099,6 +1100,7 @@ const void *vm_ops_jit_table[] = {
     "RtIDiv", (void *)&CRtIDiv,
     "RtIMod", (void *)&CRtIMod,
     "RtFMod", (void *)&CRtFMod,
+    "RtFDiv", (void *)&CRtFDiv,
     "RtSqrt", (void *)&CRtSqrt,
     "RtSAdd", (void *)&CRtSAdd,
     "RtSLt", (void *)&CRtSLt,
