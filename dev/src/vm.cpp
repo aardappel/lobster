@@ -1029,7 +1029,7 @@ ___tracy_c_zone_context CRtNativeProfileStart(VM *vm, int nfi) { return RtNative
 void CRtNativeProfileEnd(___tracy_c_zone_context ctx) { RtNativeProfileEnd(ctx); }
 #endif
 LVector *CRtNewVec(VM *vm, type_elem_t ti, int len) { return RtNewVec(*vm, ti, len); }
-LObject *CRtNewObject(VM *vm, type_elem_t ti) { return RtNewObject(*vm, ti); }
+LObject *CRtNewObject(VM *vm, type_elem_t ti, int len) { return RtNewObject(*vm, ti, len); }
 void CRtVectorGrow(VM *vm, LVector *v) { RtVectorGrow(*vm, v); }
 void CRtVectorResize(VM *vm, LVector *v, iint len) { RtVectorResize(*vm, v, len); }
 void CRtVectorEmptyErr(VM *vm, int nfi) { RtVectorEmptyErr(*vm, nfi); }

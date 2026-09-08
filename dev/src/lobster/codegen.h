@@ -888,7 +888,7 @@ struct CodeGen  {
                 "void RtNativeProfileEnd(struct ___tracy_c_zone_context);\n"
                 #endif
                 "LVector *RtNewVec(VMRef, type_elem_t, int);\n"
-                "LObject *RtNewObject(VMRef, type_elem_t);\n"
+                "LObject *RtNewObject(VMRef, type_elem_t, int);\n"
                 "void RtVectorGrow(VMRef, LVector *);\n"
                 "void RtVectorResize(VMRef, LVector *, long long);\n"
                 "void RtVectorEmptyErr(VMRef, int);\n"
@@ -2506,7 +2506,8 @@ struct CodeGen  {
         auto n = (int)args.size();
         TrackUseDef(n, 1);
         auto base = regso - n;
-        append(cb, "    {\n    LObject *_o = RtNewObject(vm, (type_elem_t)", type_idx, ");");
+        append(cb, "    {\n    LObject *_o = RtNewObject(vm, (type_elem_t)", type_idx, ", ",
+               type->udt->numslots, ");");
         TypeComment(type);
         for (int i = 0; i < n; i++) {
             CopyValue(cb, Field("_o", *type->udt, i, args[i]), SlotVar(base + i, args[i]));

@@ -87,8 +87,11 @@ VM_INLINE LVector *RtNewVec(VM &vm, type_elem_t ti, int len) {
     return vm.NewVec(len, len, ti);
 }
 
-VM_INLINE LObject *RtNewObject(VM &vm, type_elem_t ti) {
-    return vm.NewObject(vm.GetTypeInfo(ti).len, ti);
+// The number of slots is what the type says, and the generated code knows the type, so it
+// passes it rather than have the allocation walk the type table to find it again.
+VM_INLINE LObject *RtNewObject(VM &vm, type_elem_t ti, int len) {
+    assert(len == vm.GetTypeInfo(ti).len);
+    return vm.NewObject(len, ti);
 }
 
 // Room for one more element in a vector that has none left, which is all a push the generated
