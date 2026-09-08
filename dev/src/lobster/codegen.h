@@ -3696,7 +3696,52 @@ struct CodeGen  {
         }
     }
 
+    // The longest constant still worth comparing a byte at a time rather than by calling the
+    // helper, which does the same compare but has to load the length of both sides first.
+    static const size_t max_inline_string_compare = 16;
+
+    // A string compared against a string constant. The length of the constant is known here and
+    // is nowhere in the generated code, since the table of them is filled when the VM starts,
+    // so neither backend can reduce the call to the length test that already decides almost
+    // every one of these. Written out as that test followed by a compare of the bytes, which
+    // leaves nothing to call. Returns whether it emitted the comparison.
+    bool GenStringConstCompare(const BinOp *n, MathOp op) {
+        // A nilable string keeps the helper that gives nil an answer of its own.
+        if (n->left->exptype->t != V_STRING || n->right->exptype->t != V_STRING) return false;
+        auto lc = Is<StringConstant>(n->left);
+        auto rc = Is<StringConstant>(n->right);
+        // Two constants would have been folded, so exactly one of them is the case here.
+        if (!lc == !rc) return false;
+        auto &str = (lc ? lc : rc)->str;
+        if (str.size() > max_inline_string_compare) return false;
+        Gen(lc ? n->right : n->left, 1);
+        TakeTemp(1, false);
+        TrackUseDef(1, 1);
+        // The string goes into a local first: the slot it comes in may hold a whole expression,
+        // and the comparison names it once per byte.
+        append(cb, "    { LString *_s = ", Read(Slot(1, VK_STRING)),
+               "; const unsigned char *_d = ",
+               cpp ? "(const unsigned char *)_s->data()" : "STRING_DATA(_s)", ";");
+        string q;
+        EscapeAndQuote(str, q, true);
+        comment(q);
+        auto e = cat("_s->len == ", str.size());
+        for (size_t i = 0; i < str.size(); i++) {
+            auto c = (uint8_t)str[i];
+            // A printable byte reads as the character it is; the rest as their value.
+            auto lit = c >= 0x20 && c < 0x7f && c != '\'' && c != '\\'
+                ? cat("'", string(1, (char)c), "'")
+                : cat((int)c);
+            append(e, " && _d[", i, "] == ", lit);
+        }
+        if (op == MOP_NE) e = cat("!(", e, ")");
+        Write(cb, Slot(1, VK_INT), e);
+        cb += "    }\n";
+        return true;
+    }
+
     void GenMathOp(const BinOp *n, size_t retval, MathOp op, bool divisor_safe = false) {
+        if (retval && (op == MOP_EQ || op == MOP_NE) && GenStringConstCompare(n, op)) return;
         Gen(n->left, retval);
         Gen(n->right, retval);
         if (retval)
