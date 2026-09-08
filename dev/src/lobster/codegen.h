@@ -1608,12 +1608,17 @@ struct CodeGen  {
     // fmod, and a float division by a literal zero: Lobster wants the infinity or nan that
     // produces, but C rejects the constant expression it would otherwise be written as (MSVC
     // C2124), and a call is not a constant expression.
-    Expr BinExpr(bool isfloat, MathOp op, const Place &a, const Place &b) {
+    // An integer division or modulo whose divisor the optimizer proved safe skips the check and
+    // is the operator like the rest, which also keeps it a pending expression rather than
+    // forcing it through a slot.
+    Expr BinExpr(bool isfloat, MathOp op, const Place &a, const Place &b,
+                 bool divisor_safe = false) {
         static const char *cops[] = { "+", "-", "*", "/", "%",
                                       "<", ">", "<=", ">=", "==", "!=" };
         static const int precs[] = { 4, 4, 3, 3, 3, 6, 6, 6, 6, 7, 7 };
         auto fdivzero = op == MOP_DIV && isfloat && IsFloatZeroLiteral(b);
-        if (op == MOP_MOD || (op == MOP_DIV && !isfloat) || fdivzero) {
+        auto unchecked = divisor_safe && !isfloat && (op == MOP_DIV || op == MOP_MOD);
+        if (!unchecked && (op == MOP_MOD || (op == MOP_DIV && !isfloat) || fdivzero)) {
             auto x = Operand(a, 15), y = Operand(b, 15);
             // The only helper without an argument the C++ backend could find it thru.
             auto call = fdivzero ? cat(cpp ? "lobster::" : "", "RtFDiv(", x.text, ", ", y.text, ")")
@@ -3145,10 +3150,11 @@ struct CodeGen  {
     // both operands and the result thru memory where the compiler could otherwise keep them in
     // registers, so emit the operator directly instead, see BinExpr. Takes two operands off
     // the stack and leaves the result.
-    void GenScalarBinOp(bool isfloat, MathOp op) {
+    void GenScalarBinOp(bool isfloat, MathOp op, bool divisor_safe = false) {
         TrackUseDef(2, 1);
         auto k = ScalarKind(isfloat);
-        WriteExpr(Slot(2, BinKind(isfloat, op)), BinExpr(isfloat, op, Slot(2, k), Slot(1, k)));
+        WriteExpr(Slot(2, BinKind(isfloat, op)),
+                  BinExpr(isfloat, op, Slot(2, k), Slot(1, k), divisor_safe));
     }
 
     // Comparing two structs is a compare per slot, of whatever kind it is, joined by && (or ||
@@ -3690,10 +3696,11 @@ struct CodeGen  {
         }
     }
 
-    void GenMathOp(const BinOp *n, size_t retval, MathOp op) {
+    void GenMathOp(const BinOp *n, size_t retval, MathOp op, bool divisor_safe = false) {
         Gen(n->left, retval);
         Gen(n->right, retval);
-        if (retval) GenMathOp(n->left->exptype, n->right->exptype, n->exptype, op);
+        if (retval)
+            GenMathOp(n->left->exptype, n->right->exptype, n->exptype, op, divisor_safe);
     }
 
     // The type specialized helpers below come one per MathOp, in that order, so the name of each
@@ -3706,12 +3713,13 @@ struct CodeGen  {
         return cat(cpp ? "lobster::" : "", "Rt", prefix, ops[op]);
     }
 
-    void GenMathOp(TypeRef ltype, TypeRef rtype, TypeRef ptype, MathOp op) {
+    void GenMathOp(TypeRef ltype, TypeRef rtype, TypeRef ptype, MathOp op,
+                   bool divisor_safe = false) {
         TakeTemp(2, true);
         // Have to check right and left because comparison ops generate ints for node
         // overall.
         if (rtype->t == V_INT && ltype->t == V_INT) {
-            GenScalarBinOp(false, op);
+            GenScalarBinOp(false, op, divisor_safe);
         } else if (rtype->t == V_FLOAT && ltype->t == V_FLOAT) {
             GenScalarBinOp(true, op);
         } else if (rtype->t == V_STRING && ltype->t == V_STRING) {
@@ -3772,9 +3780,12 @@ struct CodeGen  {
                               BinExpr(isfloat, op, Slot(width * 2 - j, k), Slot(width - j, k)));
                 }
             } else if (leftisvec) {
+                // The one struct shape where the divisor is the scalar the proof is about; in
+                // the other two it is a component of a struct, which is never a constant.
                 for (int j = 0; j < width; j++) {
                     WriteExpr(Slot(width + 1 - j, rk),
-                              BinExpr(isfloat, op, Slot(width + 1 - j, k), Slot(1, k)));
+                              BinExpr(isfloat, op, Slot(width + 1 - j, k), Slot(1, k),
+                                      divisor_safe));
                 }
             } else {
                 // The scalar sits below the struct, in the slot the first result lands in, so
@@ -4064,8 +4075,8 @@ void GreaterThanEq::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(th
 void LessThanEq   ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_LE);  }
 void GreaterThan  ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_GT);  }
 void LessThan     ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_LT);  }
-void Mod          ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_MOD); }
-void Divide       ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_DIV); }
+void Mod          ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_MOD, divisor_safe); }
+void Divide       ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_DIV, divisor_safe); }
 void Multiply     ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_MUL); }
 void Minus        ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_SUB); }
 void Plus         ::Generate(CodeGen &cg, size_t retval) const {

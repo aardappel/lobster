@@ -127,3 +127,22 @@ run_test("operators"):
     var shb = 256
     shb >>= 64
     assert shb == 256
+    // A division or modulo by a literal divisor skips the check on it and becomes the C
+    // operator, see CodeGen::BinExpr; one by a variable stays the checked helper. The two
+    // paths have to agree on every sign combination, since C rounds a division towards zero
+    // and gives a modulo the sign of its dividend.
+    // `dv` is a re-assigned var on purpose, to keep it out of constant propagation.
+    var dv = 2
+    for(21) i:
+        let a = i - 10
+        assert a / 2 == a / dv and a % 2 == a % dv
+    dv = -2
+    for(21) i:
+        let a = i - 10
+        assert a / -2 == a / dv and a % -2 == a % dv
+    let big = 9223372036854775807
+    dv = 3
+    assert big / 3 == big / dv and big % 3 == big % dv
+    // int3 divided by a literal scalar takes the same path, once per component.
+    assert int3 { 7, -7, 8 } / 2 == int3 { 3, -3, 4 }
+    assert int3 { 7, -7, 8 } % 3 == int3 { 1, -1, 2 }
