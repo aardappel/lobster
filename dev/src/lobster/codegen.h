@@ -67,6 +67,9 @@ struct CodeGen  {
     map<small_vector<type_elem_t, 3>, type_elem_t> default_aggregate_lookup;
     vector<TypeLT> rettypes, temptypestack;
     vector<const Node *> loops;
+    // Per entry in `loops`, how deep the temp stack is just inside it, which is what a break
+    // or continue out of that loop needs it to still be at.
+    vector<size_t> loop_temp_levels;
     vector<int> breaks;
     vector<int> continues;
     vector<string_view> stringtable;  // sized strings.
@@ -3893,12 +3896,6 @@ struct CodeGen  {
         }
     }
 
-    size_t LoopTemps() {
-        size_t t = 0;
-        for (auto n : loops) if (Is<For>(n)) t += 2;
-        return t;
-    }
-
     void ApplyBreaks(size_t level) {
         while (breaks.size() > level) {
             EmitLabelDef(breaks.back());
@@ -4430,12 +4427,14 @@ void IfElse::Generate(CodeGen &cg, size_t retval) const {
 void While::Generate(CodeGen &cg, size_t retval) const {
     auto loopback = cg.EmitLabelDefBackwards();
     cg.loops.push_back(this);
+    cg.loop_temp_levels.push_back(cg.temptypestack.size());
     cg.continues.push_back(loopback);
     auto jumpout = cg.Label();
     cg.GenCondJump(condition, true, jumpout);
     auto break_level = cg.breaks.size();
     cg.Gen(wbody, 0);
     cg.loops.pop_back();
+    cg.loop_temp_levels.pop_back();
     cg.continues.pop_back();
     cg.EmitJumpBack(loopback);
     cg.EmitLabelDef(jumpout);
@@ -4449,6 +4448,7 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.temptypestack.push_back({ type_int, LT_ANY });
     cg.Gen(iter, 1);
     cg.loops.push_back(this);
+    cg.loop_temp_levels.push_back(cg.temptypestack.size());
     auto startloop = cg.EmitLabelDefBackwards();
     cg.continues.push_back(startloop);
     auto break_level = cg.breaks.size();
@@ -4464,6 +4464,7 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.EmitJumpBack(startloop);
     cg.EmitLabelDef(exitloop);
     cg.loops.pop_back();
+    cg.loop_temp_levels.pop_back();
     cg.continues.pop_back();
     cg.TakeTemp(2, false);
     assert(tstack_level == cg.tstack_size); (void)tstack_level;
@@ -4507,9 +4508,10 @@ void Break::Generate(CodeGen &cg, size_t retval) const {
     (void)retval;
     assert(!cg.rettypes.size());
     assert(!cg.loops.empty());
-    // FIXME: this code below likely doesn't work with inlined blocks
-    // whose parents have temps on the stack above the top for loop.
-    assert(cg.temptypestack.size() == cg.LoopTemps());
+    // The loop's own slots have to be the top of the stack for the pops below to name them.
+    // Temps underneath are fine: an inlined block can sit in an expression that has temps live
+    // across it, and those are still there at the break target, same as on the fall-out path.
+    assert(cg.temptypestack.size() == cg.loop_temp_levels.back());
     int lab = -1;
     if (Is<For>(cg.loops.back())) {
         // The loop's own two slots come off here, but the code after the break still expects
@@ -4530,6 +4532,9 @@ void Continue::Generate(CodeGen &cg, size_t retval) const {
     (void)retval;
     assert(!cg.rettypes.size());
     assert(!cg.loops.empty());
+    // The jump back lands on code generated for this stack depth, so nothing may be left
+    // on top of the loop's own slots here either.
+    assert(cg.temptypestack.size() == cg.loop_temp_levels.back());
     int startloop = cg.continues.back();
     cg.EmitJumpBack(startloop);
 }
