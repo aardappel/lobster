@@ -3393,3 +3393,45 @@ natreg.h
     vmdata.h
         il.h
             bytecode_generated.h
+
+
+NODE STATS
+==========
+From matvoxels:
+
+PRE-typecheck:
+    SF count: orig: 7647, cloned: 4510
+    Node count: orig: 257096, cloned: 96729
+
+PRE-optimizer (typecheck has added nodes):
+    Node count: orig: 331530, cloned: 105864
+
+POST-optimizer, always_inline == 0 (only single callers inlined):
+    optimizer: 12217 optimizations
+    SF count: orig: 4038, cloned: 984
+    Node count: orig: 373304, cloned: 66212
+
+POST-optimizer, always_inline == 8:
+    optimizer: 14187 optimizations
+    SF count: orig: 3092, cloned: 881
+    Node count: orig: 361879, cloned: 64916
+
+POST-optimizer, always_inline == 16:
+    optimizer: 16664 optimizations
+    SF count: orig: 2839, cloned: 831
+    Node count: orig: 391515, cloned: 66697
+
+POST-optimizer, always_inline == 32:
+    optimizer: 18922 optimizations
+    SF count: orig: 2619, cloned: 752
+    Node count: orig: 436591, cloned: 72211
+
+POST-optimizer, always_inline == 64:
+    optimizer: 20271 optimizations
+    SF count: orig: 2495, cloned: 747
+    Node count: orig: 495902, cloned: 78626
+
+POST-optimizer, always_inline == 128:
+    optimizer: 21394 optimizations
+    SF count: orig: 2412, cloned: 735
+    Node count: orig: 605144, cloned: 86208

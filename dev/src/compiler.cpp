@@ -226,10 +226,10 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
         if (!tc.ProcessQuery()) THROW_OR_ABORT("query_unknown_ident: " + opts.query->iden);
     }
     if (lex.num_errors) THROW_OR_ABORT("errors encountered, aborting");
-    tc.Stats(filenames);
     // Optimizer is not optional, must always run, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
     Optimizer opt(st, tc, opts.runtime_checks);
+    tc.Stats(filenames);
     if (parsedump) *parsedump = parser.DumpAll(true);
     auto src_hash = lex.HashAll();
     CodeGen cg(parser, st, opts, src_hash, c_codegen);

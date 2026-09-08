@@ -21,15 +21,15 @@ struct Optimizer {
     vector<SubFunction *> sfstack;
     bool functions_removed = false;
     int runtime_checks;
-    size_t always_inline = 16;
+    size_t always_inline = 32;
     size_t never_inline = 256;
 
     Optimizer(SymbolTable &_st, TypeChecker &_tc, int runtime_checks)
         : st(_st), tc(_tc), runtime_checks(runtime_checks) {
         if (runtime_checks >= RUNTIME_DEBUG) {
             // User wants to see useful stack-traces, only inline the tiniest of functions.
-            always_inline = 2;
-            never_inline = 4;
+            always_inline = 4;
+            never_inline = 8;
         }
         // We don't optimize parser.root, it only contains a single call.
         for (auto f : st.functiontable) {
@@ -55,6 +55,7 @@ struct Optimizer {
         if (!sf.typechecked) {
             delete sf.sbody;
             sf.sbody = nullptr;
+            sf.node_count = 0;
             return;
         }
         sfstack.push_back(&sf);
@@ -201,6 +202,7 @@ Node *Call::Optimize(Optimizer &opt) {
         sf->sbody->children.clear();
         delete sf->sbody;
         sf->sbody = nullptr;
+        sf->node_count = 0;
         opt.functions_removed = sf->parent->RemoveSubFunction(sf);
         assert(opt.functions_removed);
     } else {

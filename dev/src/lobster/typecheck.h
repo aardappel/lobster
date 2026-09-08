@@ -2987,7 +2987,10 @@ struct TypeChecker {
         int origsf = 0, clonesf = 0;
         size_t orignodes = 0, clonenodes = 0;
         map<Overload *, size_t> funstats;
+        // TODO: now that this function runs post-optimizer, would be good to include stats
+        // of how much the optimizer has increased node count too.
         for (auto sf : st.subfunctiontable) {
+            if (!sf->sbody) continue;
             auto count = sf->node_count;
             if (!sf->next)        {
                 origsf++;
