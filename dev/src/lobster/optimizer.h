@@ -241,9 +241,11 @@ Node *Call::Optimize(Optimizer &opt) {
         // decremented so it can be inlined after all.
         sf->num_returns_non_local == 0 &&
         vtable_idx < 0 &&
-        sf->returntype->NumValues() <= 1 &&
         // A terminal void function can be used where a value is expected. Removing its
         // final Return would expose a void expression to the value-producing caller.
+        // Several values are fine: the block produces them the way the call did, since
+        // Block::Generate asks its last child for as many as the caller wants, and a
+        // MultipleReturn gives just those, see Return::Generate.
         sf->returntype->NumValues() == exptype->NumValues() &&
         // Because we inline so aggressively, it is possible to generate huuge functions,
         // which may cause a problem for our stack, or that of e.g. V8 in Wasm.
@@ -326,7 +328,6 @@ Node *Call::Optimize(Optimizer &opt) {
     // Remove single return statement pointing to function that is now gone.
     auto ret = AssertIs<Return>(list->children.back());
     if (ret->sf == sf) {
-        assert(ret->child->exptype->NumValues() <= 1);
         assert(sf->num_returns <= 1);
         assert(sf->num_returns_non_local == 0);
         // This is not great: having to undo the optimization in Return::TypeCheck where this
@@ -350,12 +351,12 @@ Node *Call::Optimize(Optimizer &opt) {
     // by a lambda that was inlined into the body looks like. This works on the nodes of this
     // copy rather than thru sid->constprop, because AddToLocals shares one sid between every
     // copy of the same function inlined into the same parent, and the function the copy came
-    // from goes on using it too. The bindings it can say anything about are the ones binding one
-    // variable, assigned once, and not read from a body of its own.
+    // from goes on using it too. Each binds one variable; the ones it can say anything about are
+    // those assigned once and not read from a body of its own.
     Optimizer::ArgBindings bs;
     for (size_t i = 0; i < nargs; i++) {
         auto def = AssertIs<Define>(list->children[i]);
-        if (def->tsids.size() != 1) continue;
+        assert(def->tsids.size() == 1);
         auto sid = def->tsids[0].sid;
         if (!sid->id->single_assignment || sid->freevar_reads) continue;
         bs.push_back({ i, sid, def->child->IsConstProp(sid->type) ? def->child : nullptr, false });

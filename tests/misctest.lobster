@@ -216,6 +216,22 @@ run_test("misc"):
     let nn, mm = multirettyped()
     assert nn == 1.0
     assert mm == "a"
+    // Multi-value functions small enough to be inlined: in a loop, twice in one scope, and
+    // assigned to existing variables, with values that need releasing when overwritten.
+    def mrpair(ma, mb): return ma + mb, ma
+    var mrsum = 0
+    var mrlen = 0
+    for(4) mi:
+        let ms1, ms2 = mrpair(string(mi), "x")
+        let mv1, mv2 = mrpair(float2 { float(mi), 0.5 }, float2 { 0.25, 1.0 })
+        mrsum += mi + int(mv1.x + mv2.y)
+        mrlen += ms1.length + ms2.length
+    assert mrsum == 12 and mrlen == 12
+    let mp1, mp2 = mrpair("a", "b")
+    let mp3, mp4 = mrpair("c", "d")
+    assert mp1 == "ab" and mp2 == "a" and mp3 == "cd" and mp4 == "c"
+    ff, gg = mrpair(2, 3)
+    assert ff == 5 and gg == 2
     class mretfields:
         a = ""
         b = 0
