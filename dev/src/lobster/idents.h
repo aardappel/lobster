@@ -200,10 +200,11 @@ struct SharedField : Named {
 // have idx -1, which is what tells them apart from real fields.
 inline SharedField elem_field { "[]", -1 };
 inline SharedField *ElemField(int64_t i) {
-    static map<int64_t, SharedField *> fields;
-    auto &f = fields[i];
-    if (!f) f = new SharedField(cat("[", i, "]"), -1);
-    return f;
+    // Map nodes never move, so the pointers stay valid for the life of the program.
+    static map<int64_t, SharedField> fields;
+    auto it = fields.find(i);
+    if (it == fields.end()) it = fields.try_emplace(i, cat("[", i, "]"), -1).first;
+    return &it->second;
 }
 inline bool IsElemField(const SharedField *f) { return f->idx == -1; }
 

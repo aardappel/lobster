@@ -59,7 +59,8 @@ template<typename T, int N> class small_vector {
                 elems[i] = o.elems[i];
             }
         } else {
-            buf = new T[len];
+            // The capacity is what push_back trusts, so the buffer must be that big.
+            buf = new T[cap];
             t_memcpy(buf, o.buf, len);
         }
     }
@@ -67,10 +68,17 @@ template<typename T, int N> class small_vector {
     small_vector(small_vector<T, N> &&o) {
         len = o.len;
         cap = o.cap;
-        buf = o.buf;
-        o.buf = nullptr;
+        if (o.cap == N) {
+            // In-line elements are not a buffer that can be taken over: the pointer
+            // overlaps only the first of them.
+            for (uint32_t i = 0; i < len; i++) {
+                elems[i] = o.elems[i];
+            }
+        } else {
+            buf = o.buf;
+            o.cap = N;
+        }
         o.len = 0;
-        o.cap = N;
     }
 
     small_vector(const vector<T> &o) {
