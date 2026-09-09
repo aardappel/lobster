@@ -86,6 +86,12 @@ struct CodeGen  {
     vector<string_view> stringtable;  // sized strings.
     vector<const Node *> node_context;
     int runtime_checks;
+    // See --rcstats: what the inc/dec being emitted is for (rc_tag groups sites, rc_extra
+    // details one), and whether to leave the one being emitted uncounted because it is
+    // counted elsewhere.
+    bool rcstats;
+    string rc_tag, rc_extra;
+    bool rc_suppress = false;
     vector<int> vtables;  // -1 = uninit, -2 and lower is case idx, positive is code offset.
     // How many stack slots the code emitted so far leaves in use, and the most it has ever
     // held, which is how many registers the function needs.
@@ -420,7 +426,8 @@ struct CodeGen  {
 
     CodeGen(Parser &_p, SymbolTable &_st, const CompileOptions &opts, uint64_t src_hash,
             string &c_codegen)
-        : parser(_p), st(_st), runtime_checks(opts.runtime_checks), cpp(!opts.jit_mode),
+        : parser(_p), st(_st), runtime_checks(opts.runtime_checks), rcstats(opts.rcstats),
+          cpp(!opts.jit_mode),
           mir(opts.jit_mode && opts.jit_options.mir), c_codegen(c_codegen) {
         node_context.push_back(parser.root);
 
@@ -957,6 +964,7 @@ struct CodeGen  {
                   "extern long long GLFrame(VMRef);\n"
                   "extern void BackupVar(VMRef, int);\n"
                   "extern void DecOwned(VMRef, int);\n"
+                  "extern void RcStat(VMRef, int);\n"
                   "extern void DecDelete(VMRef, void *);\n"
                   "extern void DecDeleteVec(VMRef, LVector *);\n"
                   "extern void DecDeleteObj(VMRef, LObject *);\n"
@@ -1467,7 +1475,7 @@ struct CodeGen  {
             "file_names", "function_names", "udts", "specidents", "enums", "ser_ids",
             "subfunctions_to_function", "iint", "int2float64", "lobster", "std", "string_view",
             "span", "uint64_t", "int64_t", "memcpy", "memmove", "GLFrame", "Entry", "IDXErr",
-            "IDXErrS", "BackupVar", "DecOwned", "DecDelete", "DecDeleteVec", "DecDeleteObj",
+            "IDXErrS", "BackupVar", "DecOwned", "RcStat", "DecDelete", "DecDeleteVec", "DecDeleteObj",
             "DecDeleteStr", "AssertFailed",
             "RestoreBackup", "GetTypeSwitchID", "PushFunId", "PopFunId", "StartProfile",
             "EndProfile", "STRING_DATA", "pctx",
@@ -2371,7 +2379,13 @@ struct CodeGen  {
         TrackUseDef(0, 0);
         auto offset = (int)f_keeps.size();
         f_keeps.push_back(rtt);
+        // The reference is given up when the function returns (or when the loop this is in
+        // comes back around), which is counted here, where the site is known.
+        if (auto rs = RcStatCall(false, ":keep"); !rs.empty())
+            append(cb, "    if (", Read(Slot(stack_offset + 1, rtt)), ") ", rs, "\n");
+        rc_suppress = true;
         if (inloop) GenDecRef(cb, KeepVar(offset));
+        rc_suppress = false;
         CopyValue(cb, KeepVar(offset), Slot(stack_offset + 1, rtt));
     }
 
@@ -2415,11 +2429,18 @@ struct CodeGen  {
             if (f_ret_types.size() == 1) SetNil(cb, RetVar());
         }
         for (auto varidx : ownedvars) {
+            auto is_arg = find(f_args.begin(), f_args.end(), varidx) != f_args.end();
+            rc_tag = is_arg ? "scope-exit:arg" : "scope-exit:local";
+            rc_extra = IdName(varidx, var_types[varidx]);
             if (sids[varidx].used_as_freevar()) {
+                if (auto rs = RcStatCall(false); !rs.empty())
+                    append(cb, "    if (", Read(Global(varidx)), ") ", rs, "\n");
                 append(cb, "    DecOwned(vm, ", varidx, ");\n");
             } else {
                 GenDecRef(cb, Local(var_to_local[varidx]));
             }
+            rc_tag.clear();
+            rc_extra.clear();
         }
         if (kind == RET_ANY) {
             // What the call we are passing thru from left is still on the tstack.
@@ -2626,36 +2647,75 @@ struct CodeGen  {
         }
     }
 
+    static const Node *SkipCoercionsForRc(const Node *n) {
+        while (auto c = dynamic_cast<const Coercion *>(n)) n = c->child;
+        return n;
+    }
+
+    // A short description of what a value comes from, for the --rcstats site descriptions.
+    static string RcNodeDesc(const Node *n) {
+        if (auto c = Is<Call>(n)) return cat("call ", c->sf->parent->name);
+        if (auto c = dynamic_cast<const Coercion *>(n)) return cat(n->Name(), "(", RcNodeDesc(c->child), ")");
+        if (auto nc = Is<NativeCall>(n)) return cat("native ", nc->nf->name);
+        if (auto id = Is<IdentRef>(n)) return cat("ident ", id->sid->id->name);
+        if (auto d = Is<Dot>(n)) return cat(RcNodeDesc(d->child), ".", d->fld->name);
+        if (auto t = Is<ToLifetime>(n)) return RcNodeDesc(t->child);
+        return string(n->Name());
+    }
+
+    // The call that counts an executed inc/dec for --rcstats, with a site registered for it
+    // that says what the op is for (rc_tag, rc_extra), the node being generated, and where
+    // that is. Empty when not counting.
+    string RcStatCall(bool inc, string_view extra = {}) {
+        if (!rcstats || rc_suppress) return {};
+        auto n = node_context.back();
+        auto desc = cat(inc ? "inc " : "dec ", rc_tag, extra, " [", n->Name(), " ",
+                        rc_extra.empty() ? RcNodeDesc(n) : rc_extra, "] ",
+                        parser.lex.Location(n->line));
+        g_rcstat_sites.push_back({ desc, cat(rc_tag, extra), inc });
+        g_rcstat_counts.push_back(0);
+        return cat("RcStat(vm, ", g_rcstat_sites.size() - 1, "); ");
+    }
+
     void GenDecRef(string &sd, const Place &p) {
         if (IsNilConstant(p)) return;
         auto r = Read(p);
         auto dd = DecDeleteName(p.rtt);
+        auto rs = cpp ? string() : RcStatCall(false);
         // Only a variable is free to be named more than once, so the rest go thru a local.
         if (p.var) {
             if (cpp) append(sd, "    if (", r, ") ", r, "->Dec(vm);\n");
-            else append(sd, "    if (", r, " && --", r, "->refc <= 0) ", dd, "(vm, ", r, ");\n");
+            else if (rs.empty()) append(sd, "    if (", r, " && --", r, "->refc <= 0) ", dd, "(vm, ", r, ");\n");
+            else append(sd, "    if (", r, ") { ", rs, "if (--", r, "->refc <= 0) ", dd, "(vm, ", r, "); }\n");
         } else if (cpp && !p.typed) {
             append(sd, "    ", p.s, ".LTDECRTNIL(vm);\n");
         } else if (cpp) {
             append(sd, "    { ", CType(p.k()), "_r = ", r, "; if (_r) _r->Dec(vm); }\n");
-        } else {
+        } else if (rs.empty()) {
             append(sd, "    { ", CType(p.k()), "_r = ", r, ";"
                        " if (_r && --_r->refc <= 0) ", dd, "(vm, _r); }\n");
+        } else {
+            append(sd, "    { ", CType(p.k()), "_r = ", r, ";"
+                       " if (_r) { ", rs, "if (--_r->refc <= 0) ", dd, "(vm, _r); } }\n");
         }
     }
 
     void GenIncRef(const Place &p) {
         if (IsNilConstant(p)) return;
         auto r = Read(p);
+        auto rs = cpp ? string() : RcStatCall(true);
         if (p.var) {
             if (cpp) append(cb, "    if (", r, ") ", r, "->Inc();\n");
-            else append(cb, "    if (", r, ") ", r, "->refc++;\n");
+            else if (rs.empty()) append(cb, "    if (", r, ") ", r, "->refc++;\n");
+            else append(cb, "    if (", r, ") { ", rs, r, "->refc++; }\n");
         } else if (cpp && !p.typed) {
             append(cb, "    ", p.s, ".LTINCRTNIL();\n");
         } else if (cpp) {
             append(cb, "    { ", CType(p.k()), "_r = ", r, "; if (_r) _r->Inc(); }\n");
-        } else {
+        } else if (rs.empty()) {
             append(cb, "    { ", CType(p.k()), "_r = ", r, "; if (_r) _r->refc++; }\n");
+        } else {
+            append(cb, "    { ", CType(p.k()), "_r = ", r, "; if (_r) { ", rs, "_r->refc++; } }\n");
         }
     }
 
@@ -2681,7 +2741,9 @@ struct CodeGen  {
 
     void EmitPopRef(RTType rtt) {
         TrackUseDef(1, 0);
+        rc_tag = "pop";
         GenDecRef(cb, Slot(1, rtt));
+        rc_tag.clear();
     }
 
     // Turning a reference into a bool can drop it first: what is left only gets tested against
@@ -2689,7 +2751,9 @@ struct CodeGen  {
     void EmitBoolTest(string_view test, bool decref, VKind k) {
         TrackUseDef(1, 1);
         auto v = Slot(1, k);
+        rc_tag = "booltest";
         if (decref) GenDecRef(cb, v);
+        rc_tag.clear();
         auto e = Operand(v, 7);
         e.text = cat(e.text, " ", test);
         e.prec = 7;
@@ -2823,9 +2887,12 @@ struct CodeGen  {
                 append(sd, "    RestoreBackup(vm, ", varidx, ");\n");
             }
         }
+        // Counted for --rcstats where the keep was made, see EmitKeep.
+        rc_suppress = true;
         for (int i = 0; i < (int)f_keeps.size(); i++) {
             GenDecRef(sd, KeepVar(i));
         }
+        rc_suppress = false;
         for (int i = 0; i < (int)f_args.size(); i++) {
             auto varidx = f_args[i];
             if (sids[varidx].used_as_freevar()) CopyValue(sd, Global(varidx), f_arg_places[i]);
@@ -2865,10 +2932,14 @@ struct CodeGen  {
             // ask about. Nothing can construct one either, so it needs no deleter.
             if (udt->state != UDTState::CHECKED) continue;
             string body;
+            rc_tag = "udt-dec";
+            rc_extra = udt->name;
             for (int i = 0; i < udt->numslots; i++) {
                 auto rtt = RtTypeOf(FindSlot(*udt, i)->type);
                 if (RTIsRefNil(rtt)) GenDecRef(body, Field("o", *udt, i, rtt));
             }
+            rc_tag.clear();
+            rc_extra.clear();
             if (body.empty()) continue;
             decs[udt->idx] = UDTName(*udt) + "_dec";
             append(sd, "\nstatic void ", decs[udt->idx], "(VMRef vm, LObject *o) {\n", body,
@@ -3286,9 +3357,11 @@ struct CodeGen  {
         for (int i = 0; i < width; i++) {
             CopyValue(cb, Slot(-i, elemtype, i), Elem(elems, elemtype, cat(idx), i));
         }
+        rc_tag = "forelem";
         for (int i = 0; i < width; i++) {
             if ((1 << i) & bitmask) GenIncRef(Slot(-i, elemtype, i));
         }
+        rc_tag.clear();
     }
 
     // Reading an element out of a vector, or just the part of it asked for, with the index
@@ -3498,15 +3571,19 @@ struct CodeGen  {
             CopyConsumed(cb, Lval(0, type), Slot(1, type));
         } else if (op == LV_WRITEREF) {
             // Whatever was there loses a reference to make way for what is written over it.
+            rc_tag = cat("overwrite:", RcLvalKindName());
             GenDecRef(cb, Lval(0, type));
+            rc_tag.clear();
             CopyConsumed(cb, Lval(0, type), Slot(1, type));
         } else if (op == LV_WRITEV || op == LV_WRITEREFV) {
             // Same copy, one per slot of the struct being written, preceded by a decrement for
             // each of those slots that holds a reference, which the bitmask says which are.
             if (op == LV_WRITEREFV) {
                 auto bitmask = BitMaskForRefStruct(type);
+                rc_tag = cat("overwrite:", RcLvalKindName());
                 for (int i = 0; i < width; i++)
                     if ((1 << i) & bitmask) GenDecRef(cb, Lval(i, type));
+                rc_tag.clear();
             }
             for (int i = 0; i < width; i++)
                 CopyConsumed(cb, Lval(i, type), Slot(width - i, type, i));
@@ -3518,7 +3595,9 @@ struct CodeGen  {
                 // one exists.
                 auto v = Lval(0, type);
                 append(cb, "    {\n    LString *_s = RtSAdd(vm, ", Read(v), ", ", rhs, ");\n");
+                rc_tag = "overwrite:sadd";
                 GenDecRef(cb, v);
+                rc_tag.clear();
                 Write(cb, v, "_s");
                 cb += "    }\n";
             } else {
@@ -3882,6 +3961,16 @@ struct CodeGen  {
         }
     }
 
+    const char *RcLvalKindName() {
+        switch (f_lval_kind) {
+            case LVK_LOCAL: return "local";
+            case LVK_GLOBAL: return "global";
+            case LVK_FIELD: return "field";
+            case LVK_ELEM: return "elem";
+            default: return "other";
+        }
+    }
+
     LvalOp AssignBaseOp(TypeLT typelt) {
         auto dec = ShouldDec(typelt);
         return IsStruct(typelt.type->t)
@@ -4233,6 +4322,8 @@ void ToInt::Generate(CodeGen &cg, size_t retval) const {
 
 void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(child, retval);
+    cg.rc_tag = cat("tolt:", CodeGen::SkipCoercionsForRc(child)->Name());
+    cg.rc_extra = CodeGen::RcNodeDesc(child);
     int stack_offset = 0;
     for (int fi = 0; fi < (int)retval; fi++) {
         // We have to check for reftype again, since typechecker allowed V_VAR values that may
@@ -4276,6 +4367,8 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
         }
         stack_offset += ValWidth(type);
     }
+    cg.rc_tag.clear();
+    cg.rc_extra.clear();
     // We did not consume these, so we have to pass them on.
     for (size_t i = 0; i < retval; i++) {
         // Note: take LT from this node, not existing one on temptypestack, which we just changed!

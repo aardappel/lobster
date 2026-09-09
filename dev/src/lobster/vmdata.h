@@ -184,6 +184,17 @@ struct DynAlloc {
     DynAlloc(type_elem_t _tti) : tti(_tti) {}
 };
 
+// Reference count operation statistics, see --rcstats: the generated code counts every inc
+// and dec it executes per site the code generator handed out (see CodeGen::RcStatCall), and
+// the VM counts the ones its own C++ does (builtins, deleting the contents of objects and
+// vectors, globals given up at scope exit).
+struct RcStatSite { string desc; string tag; bool inc; };
+extern bool g_rcstats_enabled;
+extern vector<RcStatSite> g_rcstat_sites;
+extern vector<int64_t> g_rcstat_counts;
+extern int64_t g_rcstat_vm_inc, g_rcstat_vm_dec;
+extern string RcStatsReport(size_t top_n);
+
 struct RefObj : DynAlloc {
     int refc = 1;
 
@@ -199,6 +210,7 @@ struct RefObj : DynAlloc {
             }
         #endif
         refc++;
+        if (g_rcstats_enabled) g_rcstat_vm_inc++;
         #if DELETE_DELAY
             LOG_DEBUG("inc: ", (size_t)this, " - ", refc);
         #endif
@@ -206,6 +218,7 @@ struct RefObj : DynAlloc {
 
     void Dec(VM &vm) {
         refc--;
+        if (g_rcstats_enabled) g_rcstat_vm_dec++;
         #ifndef NDEBUG
             DECSTAT(vm);
         #endif

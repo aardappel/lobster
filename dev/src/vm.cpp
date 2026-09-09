@@ -20,6 +20,47 @@
 
 namespace lobster {
 
+bool g_rcstats_enabled = false;
+vector<RcStatSite> g_rcstat_sites;
+vector<int64_t> g_rcstat_counts;
+int64_t g_rcstat_vm_inc = 0, g_rcstat_vm_dec = 0;
+
+// The --rcstats report: totals, then per kind of site (its tag) the executed ops and the
+// number of sites of that kind, then the sites that executed the most ops.
+string RcStatsReport(size_t top_n) {
+    string sd;
+    int64_t inc = 0, dec = 0;
+    map<string, pair<int64_t, int>> tags;
+    for (auto [i, s] : enumerate(g_rcstat_sites)) {
+        auto c = g_rcstat_counts[i];
+        (s.inc ? inc : dec) += c;
+        auto &t = tags[cat(s.inc ? "inc " : "dec ", s.tag)];
+        t.first += c;
+        t.second++;
+    }
+    append(sd, "RCSTATS generated code: inc ", inc, ", dec ", dec, ", sites ",
+           g_rcstat_sites.size(), "\n");
+    append(sd, "RCSTATS inside the VM: inc ", g_rcstat_vm_inc, ", dec ", g_rcstat_vm_dec,
+           " (includes the DecOwned ones counted under scope-exit)\n");
+    vector<pair<string, pair<int64_t, int>>> tv(tags.begin(), tags.end());
+    sort(tv.begin(), tv.end(), [](auto &a, auto &b) { return a.second.first > b.second.first; });
+    sd += "RCSTATS by kind (executed, sites):\n";
+    for (auto &[tag, cs] : tv) {
+        append(sd, "  ", cs.first, "\t", cs.second, "\t", tag, "\n");
+    }
+    vector<size_t> order;
+    for (size_t i = 0; i < g_rcstat_sites.size(); i++) order.push_back(i);
+    sort(order.begin(), order.end(),
+         [](size_t a, size_t b) { return g_rcstat_counts[a] > g_rcstat_counts[b]; });
+    append(sd, "RCSTATS top ", top_n, " sites:\n");
+    for (size_t i = 0; i < order.size() && i < top_n; i++) {
+        auto c = g_rcstat_counts[order[i]];
+        if (!c) break;
+        append(sd, "  ", c, "\t", g_rcstat_sites[order[i]].desc, "\n");
+    }
+    return sd;
+}
+
 #if LOBSTER_FRAME_PROFILER_GLOBAL
 // This is only here to debug difficult crashes on platforms without a stack trace.
 thread_local vector<___tracy_source_location_data> g_function_locations;
@@ -1003,6 +1044,7 @@ void CRtIDXErr(VM *vm, iint i, iint n, RefObj *v) { vm->IDXErr(i, n, v); }
 
 void CRtBackupVar(VM *vm, int i) { BackupVar(*vm, i); }
 void CRtDecOwned(VM *vm, int i) { DecOwned(*vm, i); }
+void CRtRcStat(VM *, int site) { g_rcstat_counts[site]++; }
 void CRtDecDelete(VM *vm, RefObj *ro) { ro->DECDELETE(*vm); }
 void CRtDecDeleteVec(VM *vm, LVector *v) { CRtDecDeleteKind(vm, v); }
 void CRtDecDeleteObj(VM *vm, LObject *o) { CRtDecDeleteKind(vm, o); }
@@ -1129,6 +1171,7 @@ const void *vm_ops_jit_table[] = {
     "IDXErrS", (void *)CRtIDXErrS,
     "BackupVar", (void *)CRtBackupVar,
     "DecOwned", (void *)CRtDecOwned,
+    "RcStat", (void *)CRtRcStat,
     "DecDelete", (void *)CRtDecDelete,
     "DecDeleteVec", (void *)CRtDecDeleteVec,
     "DecDeleteObj", (void *)CRtDecDeleteObj,

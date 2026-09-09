@@ -172,6 +172,7 @@ int main(int argc, char* argv[]) {
                         opts.jit_options.optimize_level = parse_int<int>(string_view(argv[++arg]));
                 }
                 else if (a == "--c-out") { c_out = true; }
+                else if (a == "--rcstats") { opts.rcstats = true; g_rcstats_enabled = true; }
                 else if (a == "--no-crash-dialog") { /* Handled before main arg parsing. */ }
                 else if (a == "--import") {
                     arg++;
@@ -305,6 +306,7 @@ int main(int argc, char* argv[]) {
                               ropts, error);
             if (!error.empty())
                 THROW_OR_ABORT(error);
+            if (opts.rcstats) LOG_PROGRAM(RcStatsReport(80));
             return (int)ret.second;
         } else {
             // FIXME: make less hard-coded.

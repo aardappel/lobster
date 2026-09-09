@@ -50,6 +50,8 @@ struct CompileOptions {
     string_view custom_pre_init_name = "nullptr";
     JitOptions jit_options;
     Query *query = nullptr;
+    // Count executed reference count operations per site that emits them, see --rcstats.
+    bool rcstats = false;
 };
 
 // Compiles the source in `stringsource`, or the file `fn` when that is empty, into the
