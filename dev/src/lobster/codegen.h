@@ -313,6 +313,15 @@ struct CodeGen  {
                     type_elem_t parent = (type_elem_t)-1,
                     type_elem_t dvs_overrides = (type_elem_t)0) {
         for (auto [i, sfield] : enumerate(udt->sfields)) {
+            if (sfield.type.Null()) {
+                // An inferred field of a class declared in a function that is never used, so it
+                // never got a type. Nothing can construct it, and ComputeSizes already gave it
+                // the single slot described here.
+                tt.push_back(TYPE_ELEM_ANY);
+                tt.push_back(parent);
+                tt.push_back((type_elem_t)0);
+                continue;
+            }
             auto ti = GetTypeTableOffset(sfield.type);
             auto dvs = PushDefaultValues(sfield);
             if (IsStruct(sfield.type->t)) {
@@ -2840,6 +2849,9 @@ struct CodeGen  {
         vector<string> decs(st.udttable.size());
         for (auto udt : st.udttable) {
             if (udt->g.is_struct || udt->numslots <= 0) continue;
+            // Declared in a function that never got typechecked, so the slots have no types to
+            // ask about. Nothing can construct one either, so it needs no deleter.
+            if (udt->state != UDTState::CHECKED) continue;
             string body;
             for (int i = 0; i < udt->numslots; i++) {
                 auto rtt = RtTypeOf(FindSlot(*udt, i)->type);
