@@ -23,6 +23,12 @@ var slot_total = float3_0
 def slot_add(a:float3, b:float3, c:float3, d:float):
     slot_total += a + b + c * d
 
+// Every copy of a function inlined into the same parent shares its variables, so a copy
+// inside the arguments of another would overwrite what the outer one bound before the body
+// there has read it, see Call::Optimize.
+def nested_inline(a:int, b:int) -> int:
+    return a * 100 + b
+
 // Called twice, so it stays a function of its own for slot_chain to end in.
 def slot_pair(center:float3, yaw:float, radius:float3, c1:float3, c2:float3, duration:float):
     slot_add(center, radius, c1, yaw)
@@ -381,5 +387,14 @@ def functions_tests():
     slot_pair(float3_0, 0.5, float3_1, float3_x, float3_y, 0.0)
     slot_chain(float3_1, 1.0, 2.0, 3.0, 4.0, float3_x, float3_y, 0.0)
     test_approx(slot_total, float3 { 11.5, 13.0, 17.0 })
+
+    // A copy of one function inlined inside the arguments of another copy of it. `n` is a
+    // re-assigned var on purpose, to keep the inner call from folding away entirely.
+    var n = 7
+    n = 7
+    test_eq(nested_inline(1, nested_inline(n, 3)), 803)
+    test_eq(nested_inline(nested_inline(n, 3), 1), 70301)
+    n = 2
+    test_eq(nested_inline(1, nested_inline(n, nested_inline(n, 3))), 503)
 
 functions_tests()

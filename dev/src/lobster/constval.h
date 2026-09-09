@@ -40,6 +40,14 @@ template<int FL, typename F> ValueType BinOpConst(TypeChecker *tc, VTValue &val,
     return V_VOID;
 }
 
+// A block of one expression is that expression. Inlining leaves these behind once the
+// bindings it made for the arguments are gone, and without this the block hides the value from
+// everything that folds.
+ValueType Block::ConstVal(TypeChecker *tc, VTValue &val) const {
+    if (children.size() != 1) return V_VOID;
+    return children[0]->ConstVal(tc, val);
+}
+
 ValueType Nil::ConstVal(TypeChecker *, VTValue &val) const {
     val = VTValue();
     return V_NIL;
