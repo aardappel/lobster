@@ -1,19 +1,8 @@
-- New borrow-checker bug:
-
-    class E:
-        x:int
-
-    class O:
-        f:E
-
-    def clear(o:O): o.f = E { 99 }
-
-    def use(e:E, o:O) -> int:
-        clear(o)
-        return e.x
-
-    let o = O { E { 1 } }
-    print use(o.f, o)
+- Borrow checker: writes thru a borrowed parameter (or `this`) are now checked against what
+  the callers borrowed or promoted (tests/errors/borrow_param_alias.lobster and friends), and
+  vector elements are locations of their own. What remains unsound is aliasing thru an owning
+  variable that gets reassigned, see the "Detect this case" example under "A more conservative
+  mode" below: with `let c = a` it errors, with `var c` that is later reassigned it does not.
 
 - assert(cg.temptypestack.size() == cg.LoopTemps()); fires on matvoxels
 
@@ -1565,7 +1554,7 @@
   Frankly though, the above is a LOT of complexity, for something that really doesn't ever
   happen.
   Existing examples.
-    - fix this:
+    - fixed (now "cannot modify `b.a` while borrowed", see BindParamAliases in typecheck.h):
         class A
         class B
         let b:B
@@ -1591,7 +1580,8 @@
         but adding two stack items for one access doesn't work since the lifetime value only refers to one of them.
         Alternatively, CheckLvalBorrowed must check these on the fly but that is likely slower and more complicated.
         */
-    - Detect this case:
+    - Detect this case (it does error as written, since `c` is never reassigned so it borrows
+      `a` and aliases it; add `c = a` after the `if` and it doesn't):
         class Test:
             t:Test?
         var a:Test? = Test { Test { Test { Test { nil } } } }
@@ -1676,13 +1666,15 @@
     https://smallcultfollowing.com/babysteps/blog/2024/03/04/borrow-checking-without-lifetimes/
   - AssignList with instance variables probably doesn't work.
   - on calls like qsort([..]) the xs arg will be KEEP, but the recursive call will be borrow,
-    so now you end up with 2 specializations.
+    so now you end up with 2 specializations. (Only for small functions now: big ones get a
+    single borrowing specialization, see single_spec in TypeCheckCallStatic.)
   - split up incref/decref in VM for needing nil check and not, since we have this information
   - improvements to compile time lifetime analysis for reference counting.
     - things like "while n: ..." (see astar) are a source of unnecessary inc/dec
       see While::TypeCheck
-    - make indexing and for do LT_KEEP and all-element borrow respectively.
-      (see notes on sound lifetimes)
+    - (done differently: indexing borrows the element as a location, and for loop elements
+      and single-assignment lets borrow speculatively, flipping to own on a conflicting
+      write, see SpecIdent::speculative.)
     - need to track last use of variable, so that the variable can turn from own->borrow there
       and potentially pass on the value for free.
       - we already do this as a special case for "return var".
