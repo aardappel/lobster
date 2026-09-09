@@ -604,6 +604,29 @@ struct Return : Unary {
     STATEMENTMETHOD
 };
 
+// A return in a function body that inlining absorbed, see Call::Optimize: it leaves what it
+// returns where the InlineBlock the body became leaves its values, and jumps to the end of it.
+struct InlineReturn : Unary {
+    SubFunction *sf;
+    bool make_void;
+    InlineReturn(const Line &ln, Node *_a, SubFunction *sf, bool make_void)
+        : Unary(ln, _a), sf(sf), make_void(make_void) {}
+    bool EqAttr(const Node *o) const {
+        return sf == ((InlineReturn *)o)->sf && make_void == ((InlineReturn *)o)->make_void;
+    }
+    SHARED_SIGNATURE(InlineReturn, "inline return", true)
+    STATEMENTMETHOD
+};
+
+// The body of a function in place of a call to it, see Call::Optimize. Codegen puts a label at
+// its end for the InlineReturns in it to jump to.
+struct InlineBlock : Block {
+    SubFunction *sf;
+    InlineBlock(const Line &ln, SubFunction *sf) : Block(ln), sf(sf) {}
+    bool EqAttr(const Node *o) const { return sf == ((InlineBlock *)o)->sf; }
+    SHARED_SIGNATURE(InlineBlock, "inline block", false)
+};
+
 struct MultipleReturn : List {
     MultipleReturn(const Line &ln) : List(ln) {};
     SHARED_SIGNATURE(MultipleReturn, "multiple return", false)

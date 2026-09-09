@@ -66,6 +66,17 @@ struct CodeGen  {
     map<double, type_elem_t> default_floats_lookup;
     map<small_vector<type_elem_t, 3>, type_elem_t> default_aggregate_lookup;
     vector<TypeLT> rettypes, temptypestack;
+    // The inlined function bodies the code being emitted sits inside of, innermost last: what
+    // a return out of one needs to know, see InlineBlock::Generate and InlineReturn::Generate.
+    struct InlineBlockState {
+        const SubFunction *sf;
+        size_t tstack_start;  // Slots in use when the block began, where its values go.
+        size_t temp_level;    // Temp stack depth when it began, below which nothing is its own.
+        size_t nvals;         // How many values it leaves.
+        int label;            // Its end, emitted only when a return jumps there.
+        bool jumped;
+    };
+    vector<InlineBlockState> inline_blocks;
     vector<const Node *> loops;
     // Per entry in `loops`, how deep the temp stack is just inside it, which is what a break
     // or continue out of that loop needs it to still be at.
@@ -737,6 +748,7 @@ struct CodeGen  {
         assert(temptypestack.empty());
         assert(breaks.empty());
         assert(continues.empty());
+        assert(inline_blocks.empty());
         assert(!tstack_size);
         f_regs_max = (int)tstack_max;
         cursf = nullptr;
@@ -4947,6 +4959,75 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     for (size_t i = 0; i < retval; i++) {
         cg.rettypes.push_back({ type_undefined, LT_ANY });
         cg.PushTemp();  // FIXME: is this necessary? do more generally?
+    }
+}
+
+void InlineBlock::Generate(CodeGen &cg, size_t retval) const {
+    // Like any block, this leaves just the values asked for, and so does every return in it.
+    assert(retval <= exptype->NumValues());
+    cg.inline_blocks.push_back({ sf, cg.tstack_size, cg.temptypestack.size(), retval,
+                                 cg.Label(), false });
+    Block::Generate(cg, retval);
+    auto ib = cg.inline_blocks.back();
+    cg.inline_blocks.pop_back();
+    if (!ib.jumped) return;
+    // The jumps arrive with the values in their slots. The code falling thru here leaves the
+    // same, unless nothing ever falls thru, in which case what a terminal statement leaves
+    // stands in for them, and that can be fewer slots than they take, see Return::Generate.
+    assert(cg.temptypestack.size() == ib.temp_level);
+    auto end = ib.tstack_start + ValWidthMulti(exptype, retval);
+    assert(cg.tstack_size <= end);
+    while (cg.tstack_size < end) cg.PushTemp();
+    cg.EmitLabelDef(ib.label);
+}
+
+void InlineReturn::Generate(CodeGen &cg, size_t retval) const {
+    assert(!cg.rettypes.size());
+    // This is in the innermost inlined body: one in a body this body calls would be a
+    // non-local return, which inlining leaves as a call, see Call::Optimize.
+    assert(!cg.inline_blocks.empty());
+    auto ibi = cg.inline_blocks.size() - 1;
+    auto ib = cg.inline_blocks[ibi];
+    assert(ib.sf == sf);
+    auto typestackbackup = cg.temptypestack;
+    auto tstackbackup = cg.tstack_size;
+    auto pendingbackup = cg.pending;
+    if (make_void) {
+        // The implicit return at the end of a function that does return values wraps a
+        // statement that never completes, see Return::TypeCheck. Every way out of it is a jump
+        // of its own, so it is generated as the statement it is.
+        assert(!Is<DefaultVal>(child));
+        cg.Gen(child, 0);
+    } else {
+        // What the block's own constructs hold on the temp stack goes, the way a return out of
+        // a frame drops all of it: the iterator of a loop this is in, the arguments before this
+        // one of a call it is an argument of. Below that is the caller's, which stays.
+        assert(cg.temptypestack.size() >= ib.temp_level);
+        while (cg.temptypestack.size() > ib.temp_level) {
+            cg.GenPop(cg.temptypestack.back());
+            cg.temptypestack.pop_back();
+        }
+        // Nothing else of the block's is live, so the values land where the block leaves them.
+        assert(cg.tstack_size == ib.tstack_start);
+        if (!Is<DefaultVal>(child)) {
+            cg.Gen(child, ib.nvals);
+            cg.TakeTemp(ib.nvals, true);
+        } else if (ib.nvals) {
+            assert(ib.nvals == 1);
+            cg.EmitPushNil(sf->returntype);
+        }
+        assert(cg.tstack_size == ib.tstack_start + (size_t)ValWidthMulti(sf->returntype, ib.nvals));
+        cg.inline_blocks[ibi].jumped = true;
+        cg.EmitJumpBack(ib.label);
+    }
+    // What follows is not reached, but the code emitted for it has to see the stack the way it
+    // was, and the values it was promised, the same as after a return.
+    cg.temptypestack = typestackbackup;
+    cg.tstack_size = tstackbackup;
+    cg.pending = pendingbackup;
+    for (size_t i = 0; i < retval; i++) {
+        cg.rettypes.push_back({ type_undefined, LT_ANY });
+        cg.PushTemp();
     }
 }
 

@@ -135,6 +135,25 @@ struct Optimizer {
         return false;
     }
 
+    // Turns each return to sf in this tree into a jump to the end of the InlineBlock its body
+    // became, see Call::Optimize.
+    static void ReturnsToJumps(Node **slot, SubFunction *sf, size_t &count) {
+        auto n = *slot;
+        if (auto ret = Is<Return>(n)) {
+            if (ret->sf == sf) {
+                auto ir = new InlineReturn(ret->line, ret->child, sf, ret->make_void);
+                ir->exptype = ret->exptype;
+                ir->lt = ret->lt;
+                ret->child = nullptr;
+                delete ret;
+                *slot = n = ir;
+                count++;
+            }
+        }
+        auto ch = n->Children();
+        for (size_t i = 0; i < n->Arity(); i++) ReturnsToJumps(&ch[i], sf, count);
+    }
+
     Node *Typed(TypeRef type, Lifetime lt, Node *n) {
         n->exptype = type;
         n->lt = lt;
@@ -232,14 +251,15 @@ Node *Call::Optimize(Optimizer &opt) {
     // FIXME: Reduce these requirements where possible.
     bool is_inlinable =
         !sf->isrecursivelycalled &&
-        sf->num_returns <= 1 &&
-        // Have to double-check this, since last return may be a return from.
-        AssertIs<Return>(sf->sbody->children.back())->sf == sf &&
-        // This may happen even if num_returns==1 when body of sf is a non-local return also,
-        // See e.g. exception_handler
+        // Every return has to be in the body itself, where a jump to the end of the block can
+        // take its place, see InlineReturn. One in a function value the body calls, see e.g.
+        // exception_handler, would return to a frame that is gone.
         // FIXME: if the function that caused this to be !=0 gets inlined, this needs to be
         // decremented so it can be inlined after all.
         sf->num_returns_non_local == 0 &&
+        // The last statement is its own return, whose value the block falls thru with. What
+        // else it can be is a return-from, which is another function's, see above.
+        AssertIs<Return>(sf->sbody->children.back())->sf == sf &&
         vtable_idx < 0 &&
         // A terminal void function can be used where a value is expected. Removing its
         // final Return would expose a void expression to the value-producing caller.
@@ -285,7 +305,7 @@ Node *Call::Optimize(Optimizer &opt) {
     AddToLocals(sf->args);
     AddToLocals(sf->locals);
     int ai = 0;
-    auto list = new Block(line);
+    auto list = new InlineBlock(line, sf);
     auto nargs = children.size();
     for (auto c : children) {
         auto &arg = sf->args[ai];
@@ -325,11 +345,16 @@ Node *Call::Optimize(Optimizer &opt) {
         }
     }
     sf->numcallers--;
-    // Remove single return statement pointing to function that is now gone.
+    // The last statement is the function's own return, checked above. Its value is what the
+    // block falls thru with, so only its child stays. The exception is the implicit return of a
+    // function that does return values, which wraps a statement that never completes, see
+    // Return::TypeCheck: that stays a return, so the statement is generated as one, and the
+    // returns inside it are the only ways out.
     auto ret = AssertIs<Return>(list->children.back());
-    if (ret->sf == sf) {
-        assert(sf->num_returns <= 1);
-        assert(sf->num_returns_non_local == 0);
+    assert(ret->sf == sf);
+    assert(sf->num_returns_non_local == 0);
+    auto replaced = !ret->make_void || !exptype->NumValues();
+    if (replaced) {
         // This is not great: having to undo the optimization in Return::TypeCheck where this
         // flag was set.
         // Since the caller generally expects to keep the return value of the now inlined
@@ -338,13 +363,25 @@ Node *Call::Optimize(Optimizer &opt) {
         // var to be decreffed when overwritten on second use), we have to incref.
         // TODO: investigate if setting them to null at scope exit would be an alternative?
         if (sf->consumes_vars_on_return) {
+            // Only ever set on a return that is the function's only one, see Return::TypeCheck.
+            assert(sf->num_returns <= 1);
             AssertIs<IdentRef>(ret->child);
             opt.tc.MakeLifetime(ret->child, LT_KEEP, 1, 0);
         }
         list->children.back() = ret->child;
         ret->child = nullptr;
         delete ret;
+    } else {
+        assert(!sf->consumes_vars_on_return);
     }
+    // Every other return to this function becomes a jump to the end of the block. They are all
+    // in the body: one in a function value the body calls was excluded above, so a Return to
+    // this function can only be left behind by a body that was itself inlined into it, which is
+    // that same case.
+    size_t jumps = 0;
+    for (size_t i = nargs; i < list->children.size(); i++)
+        Optimizer::ReturnsToJumps(&list->children[i], sf, jumps);
+    assert(jumps + replaced <= sf->num_returns);
     // The bindings just made for the arguments, of which the first `nargs` children of the
     // block are the whole set: a constant argument is substituted into the body and its binding
     // goes, and so does one nothing names any more, which is what a function value left behind

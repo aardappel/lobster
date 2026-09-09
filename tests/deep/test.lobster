@@ -21,6 +21,7 @@ import .structs
 import .vecutils
 import .control
 import .functions
+import .inlining
 import .classes
 import .overloads
 import .generics

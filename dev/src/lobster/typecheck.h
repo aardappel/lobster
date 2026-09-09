@@ -1480,6 +1480,12 @@ struct TypeChecker {
                     // NOTE: will have to re-apply lifetimes as well if we change
                     // from default of LT_KEEP.
                     RetVal(type, isc.sf, call_context);
+                    // RetVal takes a return for a local one when the function it returns from
+                    // is the current scope, which here it is only because the function that
+                    // holds the return is being reused rather than typechecked. The return is
+                    // in that function, not in this one, and the inliner has to know that, see
+                    // Call::Optimize.
+                    if (isc.sf == scopes.back().sf) isc.sf->num_returns_non_local++;
                     // This should in theory not cause an error, since the previous
                     // specialization was also ok with this set of return types.
                     // It could happen though if this specialization has an
@@ -5038,6 +5044,17 @@ Node *Coercion::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound
 
 bool Return::Terminal(TypeChecker &) const {
     return true;
+}
+
+// Only the optimizer makes these, after typechecking, see Call::Optimize.
+Node *InlineReturn::TypeCheck(TypeChecker &, size_t /*reqret*/, TypeRef /*parent_bound*/) {
+    assert(false);
+    return this;
+}
+
+Node *InlineBlock::TypeCheck(TypeChecker &, size_t /*reqret*/, TypeRef /*parent_bound*/) {
+    assert(false);
+    return this;
 }
 
 bool Block::Terminal(TypeChecker &tc) const {
