@@ -66,6 +66,8 @@ def operators_tests():
     test_eq(1 & 3, 1)
     test_eq(1 | 4, 5)
     test_eq(5 ^ 3, 6)
+    test_eq(2 ^ 3, 1)      // What a C++ compiler would take for a power, if written out as is.
+    test_eq(10 ^ 5, 15)
     test_eq(~0, -1)
     test_eq(~1, -2)
     test_eq(1 << 4, 16)

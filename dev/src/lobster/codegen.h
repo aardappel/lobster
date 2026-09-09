@@ -1632,6 +1632,19 @@ struct CodeGen  {
                (q.expr == FloatLiteral(0.0) || q.expr == FloatLiteral(-0.0));
     }
 
+    // Whether a place is an integer constant, and which, told by the literal it is written as,
+    // see IntLiteral, which is what a bit op on two of them folds, see BitExpr.
+    bool IsIntLiteral(const Place &p, int64_t &val) {
+        if (!HasPending(p.slot)) return false;
+        auto &q = pending[p.slot];
+        if (!q.vars.empty() || q.prec) return false;
+        auto s = q.expr.c_str();
+        if (*s == '(') s++;
+        char *end;
+        val = strtoll(s, &end, 10);
+        return end != s && IntLiteral(val) == q.expr;
+    }
+
     // A binary operator on scalars is the C operator, except for integer division and modulo,
     // which check their divisor and so have to run where they are, float modulo, which is
     // fmod, and a float division by a literal zero: Lobster wants the infinity or nan that
@@ -1671,7 +1684,19 @@ struct CodeGen  {
 
     // The shifts mask their count to the width of an int, see MaskedShiftLeft, and both shift
     // what they are given as 64 bits, which a constant is not by itself.
+    // A bit op on two constants is written as its value, which reads better than the shift does,
+    // and keeps a C++ compiler from taking an xor of a literal 2 or 10 for a power gone wrong
+    // (clang -Wxor-used-as-pow).
     Expr BitExpr(BitOp op, const Place &a, const Place &b) {
+        int64_t x, y;
+        if (IsIntLiteral(a, x) && IsIntLiteral(b, y)) {
+            auto v = op == BIT_AND ? x & y
+                   : op == BIT_OR  ? x | y
+                   : op == BIT_XOR ? x ^ y
+                   : op == BIT_ASL ? MaskedShiftLeft(x, y)
+                                   : MaskedShiftRight(x, y);
+            return { IntLiteral(v), {}, true, 0 };
+        }
         switch (op) {
             case BIT_AND:
             case BIT_OR:
@@ -2591,13 +2616,18 @@ struct CodeGen  {
         return lit[0] == '-' ? cat("(", lit, ")") : lit;
     }
 
-    void EmitPushInt(int64_t val) {
-        TrackUseDef(0, 1);
-        // The most negative value has no literal of its own, since its negation does not fit.
+    // An integer as a C literal. The most negative value has no literal of its own, since its
+    // negation does not fit.
+    static string IntLiteral(int64_t val) {
         auto lit = val == INT64_MIN ? string("(-9223372036854775807LL - 1)")
                  : val == (int)val  ? to_string(val)
                                     : cat(val, "LL");
-        Defer(Slot(0, VK_INT), Parenthesized(lit), "");
+        return Parenthesized(lit);
+    }
+
+    void EmitPushInt(int64_t val) {
+        TrackUseDef(0, 1);
+        Defer(Slot(0, VK_INT), IntLiteral(val), "");
     }
 
     // A double as a C literal: its decimal form when that reads back to the same value, the
