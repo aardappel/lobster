@@ -17,6 +17,7 @@ namespace lobster {
 struct Borrow : LValContext {
     int refc = 1;  // Number of outstanding borrowed values. While >0 can't assign.
     Borrow(const Node &n) : LValContext(n) {}
+    Borrow(const LValContext &lv) : LValContext(lv) {}
 };
 
 enum ConvertFlags {
@@ -1404,6 +1405,28 @@ struct TypeChecker {
         return true;
     }
 
+    // A borrowed parameter is another name for what the call passed. When that is a variable or
+    // a path of fields from one, writes thru the parameter (in this function or its callees)
+    // are writes to that location, which the borrows and flow promotions of the callers name as
+    // that variable: the binding lets the checks of those compare the two, see
+    // LValContext::Step. Bound for every call, so a reused specialization gets checked (thru
+    // ReplayAssigns) against what the new call passed. A call to a function still being
+    // typechecked (recursion) keeps the binding of the call that entered it, since its body is
+    // being checked against that.
+    void BindParamAliases(SubFunction *sf, List &call_args) {
+        for (auto &sc : scopes) if (sc.sf == sf) return;
+        for (auto [i, c] : enumerate(call_args.children)) {
+            auto sid = sf->args[i].sid;
+            sid->alias_sid = nullptr;
+            sid->alias_derefs.clear();
+            if (!IsBorrow(sid->lt) || c->lt < 0) continue;
+            LValContext lv(*c);
+            if (!lv.IsValid() || lv.sid == sid) continue;
+            sid->alias_sid = lv.sid;
+            sid->alias_derefs = lv.derefs;
+        }
+    }
+
     TypeRef TypeCheckMatchingCall(SubFunction *sf, List &call_args, bool static_dispatch,
                                   bool first_dynamic, bool may_have_lambda_args,
                                   DispatchEntry *de) {
@@ -1419,6 +1442,7 @@ struct TypeChecker {
         sf->callers.push_back(Caller{ parent_sf, de });
         existing_caller:
         Function &f = *sf->parent;
+        BindParamAliases(sf, call_args);
         if (may_have_lambda_args && (static_dispatch || first_dynamic)) {
             for (auto [i, c] : enumerate(call_args.children)) {
                 auto &arg = sf->args[i];
@@ -2359,25 +2383,21 @@ struct TypeChecker {
         // Early out, numeric types are not nillable, nor do they make any sense for "is"
         auto &type = left.now;
         if (type->Numeric()) return type;
+        // Promotions and the write are compared as the variable that really holds the
+        // location, see CheckLvalBorrowed.
+        LValContext cleft = left;
+        cleft.Canonicalize();
+        // A single assignment may invalidate multiple promotions: of the location itself, and
+        // of everything reached thru it, which is a different object now.
         for (auto &flow : reverse(flowstack)) {
-            if (flow.sid == left.sid) {
-                if (left.derefs.empty()) {
-                    if (flow.derefs.empty()) {
-                        type = flow.old;
-                        goto found;
-                    } else {
-                        // We're writing to var V and V.f is in the stack: invalidate regardless.
-                        goto found;
-                    }
-                } else {
-                    if (flow.DerefsEqual(left)) {
-                        type = flow.old;
-                        goto found;
-                    }
-                }
+            LValContext cflow = flow;
+            cflow.Canonicalize();
+            if (!cflow.IsPrefix(cleft)) continue;
+            if (cflow.derefs.size() != cleft.derefs.size()) {
+                flow.now = flow.old;
+                continue;
             }
-            continue;
-            found:
+            type = flow.old;
             if (!ConvertsTo(overwritetype, flow.now, coercions)) {
                 // FLow based promotion is invalidated.
                 flow.now = flow.old;
@@ -2386,8 +2406,6 @@ struct TypeChecker {
                 // conservative approximation, so if this assignment happens conditionally it
                 // wouldn't work.
             }
-            // We continue with the loop here, since a single assignment may invalidate multiple
-            // promotions
         }
         return type;
     }
@@ -2503,17 +2521,34 @@ struct TypeChecker {
             // If any of the functions this assign sits in is reused, we need to be able to replay
             // checking the errors in CheckLvalBorrowed, since the contents of the borrowstack
             // may be different.
+            // The location written may be reached thru parameters that alias what their callers
+            // passed, in which case the functions further out know it under the path the call
+            // passed: each function on the stack up to the one that holds the variable records
+            // it as the path it can see.
+            LValContext ev = lv;
             for (auto &sc : reverse(scopes)) {
+                while (ev.sid->alias_sid && !LexicallyVisible(ev.sid, sc.sf)) ev.Step();
                 // we could uniqueify this vector, but that would entails comparing `n`
                 // structurally (construct a Borrow for each?), which would probably be
                 // slower than the redundant calls to CheckLvalBorrowed this causes later?
                 // Especially since this uniqueifying cost is paid always, even when there
                 // are no actual repeated assigns in a scope, which is not that common.
-                sc.sf->reuse_assign_events.push_back(n);
-                if (sc.sf == lv.sid->sf_def) break;  // Don't go further than where defined.
+                sc.sf->reuse_assign_events.push_back({ n, ev });
+                // Don't go further than where defined.
+                if (!ev.sid->alias_sid && sc.sf == ev.sid->sf_def) break;
             }
         }
         CheckLvalBorrowed(n, lv);
+    }
+
+    // Whether code in `sf` can name `sid`: a variable of its own, or of a function it is
+    // lexically inside of.
+    bool LexicallyVisible(const SpecIdent *sid, SubFunction *sf) {
+        if (sid->sf_def == sf || sid->sf_def == st.toplevel) return true;
+        for (auto ov = sf->overload; ov; ov = ov->sf->lexical_parent) {
+            if (ov == sid->sf_def->overload) return true;
+        }
+        return false;
     }
 
     void CheckLvalBorrowed(Node *n, Borrow &lv) {
@@ -2525,19 +2560,31 @@ struct TypeChecker {
             // This is not particularly elegant but should be rare.
             Error(*n, "cannot assign to borrowed argument ", Q(lv.sid->id->name));
         }
+        // Borrows and the write are compared as the variable that really holds the location:
+        // a function on the stack may have borrowed it thru a parameter that aliases it, and
+        // the write may be thru one as well.
+        LValContext clv = lv;
+        clv.Canonicalize();
         // FIXME: make this faster.
         for (auto &b : reverse(borrowstack)) {
-            if (!b.IsPrefix(lv)) continue;  // Not overwriting this one.
             if (!b.refc) continue;          // Lval is not borowed, writing is ok.
+            LValContext cb = b;
+            cb.Canonicalize();
+            if (!cb.IsPrefix(clv)) continue;  // Not overwriting this one.
             Error(*n, "cannot modify ", Q(lv.Name()), " while borrowed in ",
                       Q(lv.sid->sf_def->parent->name));
         }
     }
 
     void ReplayAssigns(SubFunction *sf) {
-        for (auto n : sf->reuse_assign_events) {
-            Borrow lv(*n);
-            CheckLvalBorrowed(n, lv);
+        for (auto &ev : sf->reuse_assign_events) {
+            Borrow lv(ev.lv);
+            CheckLvalBorrowed(ev.n, lv);
+            // The write also stands for any promotion this context has of what it overwrites.
+            if (auto a = Is<Assign>(ev.n)) {
+                FlowItem fi(ev.lv, a->left->exptype);
+                AssignFlowDemote(fi, a->right->exptype, CF_COERCIONS);
+            }
         }
     }
 

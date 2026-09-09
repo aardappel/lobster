@@ -110,6 +110,8 @@ struct Ident : Named {
     }
 };
 
+struct SharedField;
+
 struct SpecIdent {
     Ident *id;
     TypeRef type;
@@ -120,6 +122,11 @@ struct SpecIdent {
     int freevar_reads = 0;          // functions reading it from an enclosing scope, in the optimizer.
     bool withtype = false;
     Node *constprop = nullptr;      // We are going to constant propagate this var, which avoids it being a freevar, and the optimizer will replace it.
+    // For a borrowed parameter: the variable (and field path from it) the current call passed,
+    // which is then where the fields of this parameter really live, see LValContext::Step and
+    // TypeChecker::BindParamAliases. Null when the argument was not a variable or field path.
+    const SpecIdent *alias_sid = nullptr;
+    small_vector<SharedField *, 3> alias_derefs;
 
     SpecIdent(Ident *_id, TypeRef _type, int idx, bool withtype)
         : id(_id), type(_type), idx(idx), withtype(withtype) {}
@@ -550,12 +557,41 @@ struct LValContext {
         }
         return s;
     }
+    // When the variable is a borrowed parameter that names what its caller passed, rename this
+    // to the caller's path to the same location, so the paths of every function on the stack
+    // that have a name for it become comparable, see TypeChecker::BindParamAliases.
+    bool Step() {
+        if (!sid || !sid->alias_sid) return false;
+        small_vector<SharedField *, 3> d;
+        for (auto f : sid->alias_derefs) d.push_back(f);
+        for (auto f : derefs) d.push_back(f);
+        derefs = d;
+        sid = sid->alias_sid;
+        return true;
+    }
+    // The variable that really holds it, i.e. not a borrowed parameter.
+    void Canonicalize() {
+        // Bindings only ever point at a variable of a caller, so this terminates, and the
+        // bound is only a safety net.
+        for (int i = 0; i < 64 && Step(); i++) {}
+    }
 };
 
 struct FlowItem : LValContext {
     TypeRef old, now;
     FlowItem(const Node &n, TypeRef type);
     FlowItem(SpecIdent *sid, TypeRef old, TypeRef now) : LValContext(sid), old(old), now(now) {}
+    FlowItem(const LValContext &lv, TypeRef type) : LValContext(lv), old(type), now(type) {}
+};
+
+// A write to a reference, recorded for every function on the stack it happened inside of, so
+// that when that function gets called again without being typechecked again, the write can be
+// checked against the borrows and flow promotions of the new context, see
+// TypeChecker::ReplayAssigns. The path is what the function it is recorded in calls the
+// location: a variable it can see, or its own parameter that aliases the location.
+struct AssignEvent {
+    Node *n;
+    LValContext lv;
 };
 
 struct Arg {
@@ -617,7 +653,7 @@ struct SubFunction {
     size_t num_returns_non_local = 0;
     size_t reqret = 0;  // Do the caller(s) want values to be returned?
     vector<pair<const SubFunction *, TypeRef>> reuse_return_events;
-    small_vector<Node *, 4> reuse_assign_events;
+    vector<AssignEvent> reuse_assign_events;
     bool isrecursivelycalled = false;
     Block *sbody = nullptr;
     SubFunction *next = nullptr;
