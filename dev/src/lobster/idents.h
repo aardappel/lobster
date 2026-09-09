@@ -76,6 +76,8 @@ struct Ident : Named {
 
     bool predeclaration = false;
     bool preferfree = false;
+    // A for loop variable, which is not declared with let or var, so gets no suggestion to.
+    bool loop_var = false;
 
     SpecIdent *cursid = nullptr;
 
@@ -111,6 +113,7 @@ struct Ident : Named {
 };
 
 struct SharedField;
+struct Define;
 
 struct SpecIdent {
     Ident *id;
@@ -127,6 +130,14 @@ struct SpecIdent {
     // TypeChecker::BindParamAliases. Null when the argument was not a variable or field path.
     const SpecIdent *alias_sid = nullptr;
     small_vector<SharedField *, 3> alias_derefs;
+    // A variable that borrows what it was initialized with rather than owning a reference of
+    // its own (a single-assignment variable initialized from a variable, field or element,
+    // or a for loop element), as long as nothing writes to what it borrows from while it is
+    // alive: a write that does makes it own after all, see TypeChecker::FlipSpeculative,
+    // which uses the Define to give the initializer an inc. Null for a for loop element,
+    // whose loop does the inc, see ForLoopElem::Generate.
+    bool speculative = false;
+    Define *spec_define = nullptr;
 
     SpecIdent(Ident *_id, TypeRef _type, int idx, bool withtype)
         : id(_id), type(_type), idx(idx), withtype(withtype) {}
@@ -587,6 +598,11 @@ struct LValContext {
     // that have a name for it become comparable, see TypeChecker::BindParamAliases.
     bool Step() {
         if (!sid || !sid->alias_sid) return false;
+        // A variable that owns a reference (a speculative borrow that got flipped, see
+        // SpecIdent::speculative) is a location of its own: what it holds cannot be freed
+        // by a write to what it was initialized from. Its fields are still those of the
+        // shared object.
+        if (derefs.empty() && !IsBorrow(sid->lt)) return false;
         small_vector<SharedField *, 3> d;
         for (auto f : sid->alias_derefs) d.push_back(f);
         for (auto f : derefs) d.push_back(f);

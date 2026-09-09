@@ -4661,9 +4661,11 @@ void ForLoopElem::Generate(CodeGen &cg, size_t /*retval*/) const {
         case V_VECTOR: {
             auto sub = typelt.type->sub;
             // A single slot element is a reference the loop owns when its type says so, a
-            // struct one has a whole bitmask of them.
+            // struct one has a whole bitmask of them. Unless the loop variable borrows the
+            // element, see SpecIdent::speculative.
             auto bitmask = !IsRefNil(sub->t)  ? 0
                          : IsStruct(sub->t)   ? cg.BitMaskForRefStruct(sub)
+                         : sid && IsBorrow(sid->lt) ? 0
                                               : 1;
             cg.GenForElem(false, ValWidth(sub) + 2, bitmask, sub);
             break;

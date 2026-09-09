@@ -298,7 +298,13 @@ BINARY_NODE_T(IfThen, "if", false, Node, condition, Block, truepart, STATEMENTME
 TERNARY_NODE_T(IfElse, "if", false, Node, condition, Block, truepart, Block, falsepart, RETURNSMETHOD STATEMENTMETHOD)
 BINARY_NODE_T(While, "while", false, Node, condition, Block, wbody, RETURNSMETHOD STATEMENTMETHOD)
 BINARY_NODE_T(For, "for", false, Node, iter, Block, fbody, STATEMENTMETHOD)
-ZERO_NODE(ForLoopElem, "for loop element", false, )
+// The borrow of the elements of the vector being iterated, when that is a variable or field
+// path and the elements are references, which the loop variable may borrow rather than own,
+// see SpecIdent::speculative; whether it does is what its lt says. Set by For::TypeCheck.
+ZERO_NODE(ForLoopElem, "for loop element", false, \
+    Lifetime elem_borrow = LT_UNDEF; \
+    const Node *iter = nullptr; \
+    SpecIdent *sid = nullptr;)
 ZERO_NODE(ForLoopCounter, "for loop counter", false, )
 BINARY_NODE_T(Switch, "switch", false, Node, value, List, cases, \
     STATEMENTMETHOD \

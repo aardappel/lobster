@@ -16,6 +16,9 @@ namespace lobster {
 
 struct Borrow : LValContext {
     int refc = 1;  // Number of outstanding borrowed values. While >0 can't assign.
+    // Variables that hold one of those borrows speculatively, see SpecIdent::speculative:
+    // a write that conflicts flips them to owning rather than being an error.
+    small_vector<SpecIdent *, 2> spec_holders;
     Borrow(const Node &n) : LValContext(n) {}
     Borrow(const LValContext &lv) : LValContext(lv) {}
 };
@@ -781,6 +784,7 @@ struct TypeChecker {
 
     Node *TypeCheckMathOpEq(BinOp &n) {
         if (auto nn = OperatorOverload(n)) return nn;
+        if (auto idr = Is<IdentRef>(n.left)) FlipSpeculative(idr->sid);
         DecBorrowers(n.left->lt, n);
         TT(n.right, 1, LT_BORROW);
         CheckLval(n.left);
@@ -1261,7 +1265,8 @@ struct TypeChecker {
         }
         // Let variables go out of scope in reverse order of declaration.
         auto exit_scope = [&](const Arg &var) {
-            DecBorrowers(var.sid->lt, call_context);
+            if (var.sid->speculative) ReleaseSpeculative(var.sid);
+            else DecBorrowers(var.sid->lt, call_context);
         };
         for (auto &local : reverse(sf.locals)) {
             exit_scope(local);
@@ -1286,7 +1291,8 @@ struct TypeChecker {
             bool warn_all = true;
             for (auto p : def->tsids) {
                 auto id = p.sid->id;
-                if (!id->single_assignment || id->constant || id->struct_field_assign)
+                if (!id->single_assignment || id->constant || id->struct_field_assign ||
+                    id->loop_var)
                     warn_all = false;
             }
             if (warn_all) {
@@ -2541,16 +2547,18 @@ struct TypeChecker {
     // it can see.
     void RecordWrite(Node *n, const LValContext &lv) {
         LValContext ev = lv;
+        LValContext root = lv;
+        root.Canonicalize();
         for (auto &sc : reverse(scopes)) {
-            while (ev.sid->alias_sid && !LexicallyVisible(ev.sid, sc.sf)) ev.Step();
+            while (ev.sid->alias_sid && !LexicallyVisible(ev.sid, sc.sf) && ev.Step()) {}
             // we could uniqueify this vector, but that would entails comparing `n`
             // structurally (construct a Borrow for each?), which would probably be
             // slower than the redundant calls to CheckLvalBorrowed this causes later?
             // Especially since this uniqueifying cost is paid always, even when there
             // are no actual repeated assigns in a scope, which is not that common.
             sc.sf->reuse_assign_events.push_back({ n, ev });
-            // Don't go further than where defined.
-            if (!ev.sid->alias_sid && sc.sf == ev.sid->sf_def) break;
+            // Don't go further than where the variable really written is defined.
+            if (sc.sf == root.sid->sf_def) break;
         }
     }
 
@@ -2584,9 +2592,76 @@ struct TypeChecker {
             LValContext cb = b;
             cb.Canonicalize();
             if (!cb.IsPrefix(clv)) continue;  // Not overwriting this one.
+            if (!b.spec_holders.empty()) {
+                // Variables borrowing this speculatively own a reference instead from here on.
+                auto holders = b.spec_holders;
+                for (auto h : holders) FlipSpeculative(h);
+                if (!b.refc) continue;
+            }
+            // A borrow of (something reached thru) a variable that itself borrows
+            // speculatively: that variable owning a reference instead may be what makes the
+            // write safe, see LValContext::Step.
+            for (auto s = b.sid; s; s = s->alias_sid) {
+                if (s->speculative) FlipSpeculative(const_cast<SpecIdent *>(s));
+            }
+            cb = b;
+            cb.Canonicalize();
+            if (!cb.IsPrefix(clv)) continue;
             Error(*n, "cannot modify ", Q(lv.Name()), " while borrowed in ",
                       Q(lv.sid->sf_def->parent->name));
         }
+    }
+
+    // Whether a variable of this type could borrow what it is initialized with, see
+    // SpecIdent::speculative: a reference, but not a struct of them, which is several.
+    bool SpecBorrowable(TypeRef type) {
+        auto e = type->ElementIfNil();
+        return IsRefNil(type->t) && !IsStruct(e->t) && e->t != V_VAR;
+    }
+
+    // `sid` borrows the location `lt` (a borrow stack entry that has a count for it already)
+    // for the rest of its scope, and names the same location as `alias` when given.
+    void HoldSpeculative(SpecIdent *sid, Lifetime lt, Define *def, const LValContext *alias) {
+        assert(lt >= 0);
+        sid->lt = lt;
+        sid->speculative = true;
+        sid->spec_define = def;
+        borrowstack[lt].spec_holders.push_back(sid);
+        if (alias) {
+            sid->alias_sid = alias->sid;
+            sid->alias_derefs = alias->derefs;
+        }
+        LOG_DEBUG("speculative borrow: ", sid->id->name, " of ", borrowstack[lt].Name());
+    }
+
+    void DropSpeculative(SpecIdent *sid) {
+        auto &b = borrowstack[sid->lt];
+        for (auto [i, h] : enumerate(b.spec_holders)) {
+            if (h == sid) {
+                b.spec_holders.erase(i);
+                break;
+            }
+        }
+        b.refc--;
+        assert(b.refc >= 0);
+        sid->speculative = false;
+    }
+
+    // What `sid` borrows from is about to be written, so it owns a reference instead: its
+    // initializer gets an inc, and it gets a dec when it goes out of scope or is overwritten
+    // like any owning variable, see CodeGen::ShouldDec.
+    void FlipSpeculative(SpecIdent *sid) {
+        if (!sid->speculative) return;
+        LOG_DEBUG("speculative borrow of ", sid->id->name, " flipped to keep");
+        DropSpeculative(sid);
+        sid->lt = LT_KEEP;
+        if (sid->spec_define) MakeLifetime(sid->spec_define->child, LT_KEEP, 1, 0);
+    }
+
+    // The scope of `sid` ends without anything having written to what it borrows.
+    void ReleaseSpeculative(SpecIdent *sid) {
+        DropSpeculative(sid);
+        sid->lt = LT_BORROW;
     }
 
     void ReplayAssigns(SubFunction *sf) {
@@ -2607,9 +2682,13 @@ struct TypeChecker {
         // is locking it from overwrites, so in the worst case it gives an undeserved error?
         if (!IsRefNilVar(n->exptype->t)) return LT_ANY;
         Borrow lv(*n);
-        // FIXME: if this is an exp we don't know how to borrow from (like a[i].b) we
-        // return a generic borrow, but this disables lock checks so is unsafe.
+        // An expression that is not a path (like f()[i]) gets a generic borrow, which
+        // disables lock checks, so is unsafe.
         if (!lv.IsValid()) return LT_BORROW;
+        return PushBorrowPath(lv);
+    }
+
+    Lifetime PushBorrowPath(const LValContext &lv) {
         for (auto &b : reverse(borrowstack)) {
             if (b.sid == lv.sid && b.DerefsEqual(lv)) {
                 b.refc++;
@@ -2618,7 +2697,7 @@ struct TypeChecker {
         }
         // FIXME: this path is slow, should not have to scan all of borrowstack.
         auto lt = (Lifetime)borrowstack.size();
-        borrowstack.push_back(lv);
+        borrowstack.push_back(Borrow(lv));
         return lt;
     }
 
@@ -3237,8 +3316,6 @@ Node *While::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_boun
 }
 
 Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-    // FIXME: would be good to detect when iter is not written to, so ForLoopElem can be LT_BORROW.
-    // Alternatively we could IncBorrowers on iter, but that would be very restrictive.
     tc.TT(iter, 1, LT_BORROW);
     auto itertype = iter->exptype;
     if (itertype->t == V_INT) {}
@@ -3250,18 +3327,34 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*
                          Q(TypeName(itertype)));
     tc.st.BlockScopeStart();
     auto def = Is<Define>(fbody->children[0]);
+    ForLoopElem *fle = nullptr;
     if (def) {
-        auto fle = Is<ForLoopElem>(def->child);
+        fle = Is<ForLoopElem>(def->child);
         if (fle) {
             fle->exptype = itertype;
+            fle->iter = iter;
+            fle->elem_borrow = LT_UNDEF;
+            fle->sid = nullptr;
             if (def->tsids[0].sid->withtype)
                 tc.st.AddWithStructTT(itertype, def->tsids[0].sid->id, tc.scopes.back().sf);
+            // The loop variable may borrow the element rather than own it (see
+            // SpecIdent::speculative): the elements of the vector are borrowed for the
+            // duration of the loop, and a write to them in the body turns the variable into
+            // an owner. Whether the variable takes the borrow is up to its Define.
+            if (iter->exptype->t == V_VECTOR && tc.SpecBorrowable(itertype)) {
+                LValContext lv(*iter);
+                if (lv.IsValid()) {
+                    lv.derefs.push_back(&elem_field);
+                    fle->elem_borrow = tc.PushBorrowPath(lv);
+                }
+            }
         }
     }
     tc.scopes.back().loop_count++;
     fbody->TypeCheck(tc, 0, {});
     tc.scopes.back().loop_count--;
     tc.st.BlockScopeCleanup();
+    if (fle && fle->sid && fle->sid->speculative) tc.ReleaseSpeculative(fle->sid);
     tc.DecBorrowers(iter->lt, *this);
     // Currently always return V_NIL
     exptype = type_void;
@@ -3270,8 +3363,8 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*
 }
 
 Node *ForLoopElem::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-    // Already been assigned a type in For.
-    lt = LT_KEEP;
+    // Already been assigned a type in For, and possibly a borrow of the elements.
+    lt = elem_borrow >= 0 ? elem_borrow : LT_KEEP;
     return this;
 }
 
@@ -3535,7 +3628,29 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     auto parent_bound = tsids.size() == 1 && !tsids[0].giventype.Null()
         ? tsids[0].giventype->Resolved()
         : TypeRef{};
-    tc.TT(child, Is<DefaultVal>(child) ? 0 : tsids.size(), LT_KEEP, parent_bound);
+    // Except that a single variable that is never assigned to may borrow what it is
+    // initialized with when that is a variable, field or element (or a for loop element), see
+    // SpecIdent::speculative. That is decided from what the initializer turns out to be, so
+    // it is typechecked without a recipient lifetime and adjusted here.
+    auto may_borrow = tsids.size() == 1 && !Is<DefaultVal>(child) &&
+                      tsids[0].sid->id->single_assignment;
+    auto fle = Is<ForLoopElem>(child);
+    if (fle && !may_borrow && fle->elem_borrow >= 0) {
+        // The loop set up the borrow of its elements, which is not going to be used.
+        tc.DecBorrowers(fle->elem_borrow, *this);
+        fle->elem_borrow = LT_UNDEF;
+    }
+    tc.TT(child, Is<DefaultVal>(child) ? 0 : tsids.size(), may_borrow ? LT_ANY : LT_KEEP,
+          parent_bound);
+    auto speculate = may_borrow && child->lt >= 0 && tc.SpecBorrowable(child->exptype);
+    if (may_borrow && !speculate) {
+        if (fle && child->lt >= 0) {
+            tc.DecBorrowers(child->lt, *this);
+            child->lt = LT_KEEP;
+        } else {
+            tc.AdjustLifetime(child, LT_KEEP);
+        }
+    }
     for (auto [i, p] : enumerate(tsids)) {
         auto var = TypeLT(*child, i);
         if (!p.giventype.Null()) {
@@ -3575,6 +3690,17 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
             // We will have the optimizer remove this var, and not use it as a freevar.
             sid.constprop = child;
         }
+        if (speculate) {
+            if (fle) {
+                fle->sid = &sid;
+                LValContext lv(*fle->iter);
+                lv.derefs.push_back(&elem_field);
+                tc.HoldSpeculative(&sid, child->lt, nullptr, &lv);
+            } else {
+                LValContext lv(*child);
+                tc.HoldSpeculative(&sid, child->lt, this, lv.IsValid() ? &lv : nullptr);
+            }
+        }
     }
     tc.definestack.push_back(this);
     exptype = type_void;
@@ -3607,6 +3733,7 @@ Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
         if (c != children.back()) {
             tc.TT(c, 1, LT_BORROW);
             tc.DecBorrowers(c->lt, *this);
+            if (auto idr = Is<IdentRef>(c)) tc.FlipSpeculative(idr->sid);
             if (!Is<IdentRef>(c) && !Is<Dot>(c)) {
                 tc.Error(*this, "assignment list elements must be variables or class members");
             }
@@ -3979,6 +4106,8 @@ Node *FreeVarRef::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_bound
 }
 Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (auto nn = tc.OperatorOverload(*this)) return nn;
+    // An assigned variable owns, which decides how the right hand side is adjusted below.
+    if (auto idr = Is<IdentRef>(left)) tc.FlipSpeculative(idr->sid);
     tc.DecBorrowers(left->lt, *this);
     tc.TT(right, 1, tc.LvalueLifetime(*left, false));
     tc.CheckLval(left);

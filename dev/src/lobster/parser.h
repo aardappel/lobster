@@ -1794,7 +1794,7 @@ struct Parser {
                 ExpectId();
                 bool withtype = lex.token == T_TYPEIN;
                 auto id = st.LookupDef(lastid, true, withtype);
-                id->single_assignment = false;  // Mostly to stop warning that it is constant.
+                id->loop_var = true;
                 UnTypeRef type = (UnType *)nullptr;
                 if (parens && (lex.token == T_COLON || withtype)) {
                     lex.Next();
