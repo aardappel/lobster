@@ -258,13 +258,29 @@ This reference count decreases as borrowed values get "consumed". Mutating a
 borrowed L-value with a reference count > 0 produces the above error. The
 reference count not being 0 at the end is a bug in the ownership analysis :)
 
-Note that variables currently always own. This was done for simplicity, as in
-theory a variable could be made to either own or borrow depending on the needs
-of its initial RHS, but this was awkward in cases where the definition and
-subsequent assignments disagreed, and generally made ownership analysis more
-difficult. This could be revisited in the future once the consequences of
-the algorithm are better understood, or maybe when more accurate dataflow
-information is present.
+Variables that are assigned to always own. A variable that is never assigned to
+(a `let`, or a `for` loop element) and is initialized from a variable, field or
+vector element borrows it instead, for the rest of its scope: it holds a borrow
+of that L-value, so no reference count is touched when it is defined or goes out
+of scope. If something then writes to that L-value while the variable is alive,
+the analysis does not error like it does for other borrows, but retroactively
+makes the variable own (its initializer gets the reference count increase, and
+it gets the decrease at the end of its scope), so the program means the same
+either way, and only the cost differs. This is what makes the `old := cur`
+pattern work, where `cur` gets overwritten while `old` hangs on to the previous
+value. Such a variable is also another name for what it borrows, so a write
+through it is checked against borrows of the original.
+
+The same applies to a borrowed function argument: it is another name for the
+variable or field path the caller passed (when it passed one), and writes
+through it, in that function or the ones it calls, are checked against what the
+callers have borrowed or have flow-type promoted. Vector elements are locations
+too: writing an element, or calling a builtin that can drop elements (`pop`,
+`remove`, `truncate`, ..), is a write to the elements of that vector, which
+conflicts with a borrow of any element (or of the same constant index).
+What the analysis still cannot see is aliasing through a variable that owns a
+reference of its own and is reassigned, e.g. `var c = a` followed later by a
+write through `c` while a field of `a` is borrowed.
 
 The end of a variable's lifetime is typically the end of the scope, though
 making it its "last use" is being worked on, see `return` below.
@@ -295,6 +311,10 @@ you want to do this without help of the programmer).
 There are currently some exceptions to this:
 
 * Arguments that are assigned to are always owned.
+* Big functions (and all functions in a dynamic dispatch, which must agree)
+  get a single specialization with all arguments that allow it borrowing:
+  that costs a caller passing a variable nothing, and a caller passing an
+  owned value the same as an owning argument would.
 * The return value of a function is currently always owned.
 
 Much like variables, some of these could be relaxed/improved in the future.
@@ -328,8 +348,8 @@ is cool with any kind of ownership.
   deleted).
 * `while` borrows its condition and doesn't care about the body.
 * `for` borrows what it iterates over and doesn't care about its body.
-  It produces an element variable that wants to be owned.
-  Note: this may change in the future to also allow borrowing.
+  Its element variable borrows the elements of the vector (see above), unless
+  the body writes to them, in which case it owns each element in turn.
 * String constants conceptually result in an owned value (they are a heap
   object), but currently they actually result in a borrow. This is
   because strings are most frequently passed to contexts that would prefer
