@@ -1625,9 +1625,12 @@ struct TypeChecker {
         }
     }
 
+    // `dispatch_lts` are the argument lifetimes every function of a dynamic dispatch must
+    // agree on, see TypeCheckCallDispatch; null for a static call.
     TypeRef TypeCheckCallStatic(SubFunction *&sf, List &call_args, size_t reqret,
                                 vector<UnTypeRef> *specializers, Overload &ov,
-                                bool static_dispatch, bool first_dynamic, bool force_keep, DispatchEntry *de) {
+                                bool static_dispatch, bool first_dynamic,
+                                const vector<Lifetime> *dispatch_lts, DispatchEntry *de) {
         STACK_PROFILE;
         Function &f = *sf->parent;
         if (ov.isprivate && ov.declared_at.fileidx != call_args.line.fileidx)
@@ -1651,22 +1654,23 @@ struct TypeChecker {
             if (gtv.type.Null())
                 Error(call_args, "cannot implicitly bind type variable ", Q(gtv.tv->name),
                                  " in call to ", Q(f.name), " (argument doesn't match?)");
-        if (!force_keep) {
-            // Having a lifetime per arg is mostly useful on smaller functions to not get
-            // unnecessary refc overhead on the border, especially if they later get inlined.
-            // But for really big functions it just risks unnecessary specializations for no gain.
-            if (ov.sf->node_count > 25) force_keep = true;
-        }
+        // Having a lifetime per arg is mostly useful on smaller functions to not get
+        // unnecessary refc overhead on the border, especially if they later get inlined.
+        // But for really big functions it just risks unnecessary specializations for no gain,
+        // so those get one specialization that any caller adjusts to: borrowing where the
+        // function allows it, since that costs a caller passing a variable nothing, and a
+        // caller passing an owned value the same as an owning parameter would.
+        auto single_spec = ov.sf->node_count > 25;
         // Check if we need to specialize: generic args, free vars and need of retval
         // must match previous calls.
-        auto ArgLifetime = [&](const Node *c, const Arg &arg) {
-            if (force_keep)
-                return LT_KEEP;
+        auto ArgLifetime = [&](const Node *c, const Arg &arg, size_t i) {
+            if (dispatch_lts)
+                return (*dispatch_lts)[i];
             // We force !single_assignment to LT_KEEP, since any overwriting of the arg would be problematic
             // with incoming borrowed values at refc==1, and more generally if the pattern of overwriting is
             // complicated due to loops etc, this is the only way we can track the refc correctly.
             if (!arg.sid->id->single_assignment)
-                return LT_KEEP; 
+                return LT_KEEP;
             // Similarly, a V_STRUCT_R is an exception in that is essentially multiple ref arguments, subject
             // to the same pitfalls, so must get the same treatment.
             // FIXME: this is conservative, since V_STRUCT_R args that never get assigned to should not get this
@@ -1680,6 +1684,8 @@ struct TypeChecker {
             // TODO: how does this apply to borrows that are not IdentRef, like Dot?
             if (has_lambda_args && Is<IdentRef>(c) && !Is<IdentRef>(c)->sid->id->single_assignment)
                 return LT_KEEP;
+            if (single_spec)
+                return LT_BORROW;
             // No exceptions hold, it can be whatever lifetime it wants, including borrows.
             return c->lt;
         };
@@ -1690,7 +1696,7 @@ struct TypeChecker {
                 // should be ok to reuse.
                 for (auto [i, c] : enumerate(call_args.children)) {
                     auto &arg = sf->args[i];
-                    auto arg_lt = ArgLifetime(c, arg);
+                    auto arg_lt = ArgLifetime(c, arg, i);
                     auto unequal_lifetimes = IsBorrow(arg_lt) != IsBorrow(arg.sid->lt);
                     // TODO: we need this check here because arg type may rely on parent
                     // struct (or function) generic, and thus isn't covered by the checking
@@ -1747,7 +1753,7 @@ struct TypeChecker {
         st.bound_typevars_stack.push_back(sf->generics);
         for (auto [i, c] : enumerate(call_args.children)) {
             auto &arg = sf->args[i];
-            arg.sid->lt = ArgLifetime(c, arg);
+            arg.sid->lt = ArgLifetime(c, arg, i);
             arg.spec_type = st.ResolveTypeVars(sf->overload->givenargs[i], call_args.line);
             LOG_DEBUG("arg: ", arg.sid->id->name, ":", TypeName(arg.spec_type));
         }
@@ -1805,6 +1811,7 @@ struct TypeChecker {
                         // the list has a recursive call.
                         CheckFreeVariablesFromFunction(sf);
                         ReplayReturns(sf, call_args);
+                        BindParamAliases(sf, call_args);
                         ReplayAssigns(sf);
                     }
                 }
@@ -1878,14 +1885,22 @@ struct TypeChecker {
             // We are now going to type check all functions in the vtable for the given
             // call_args, which normally determines the lifetimes of the function args.
             // Problem is, function may change arg lifetimes based on things like internal
-            // assignment, and lifetimes must be the same for all, so either we have to
-            // guarantee that arg lifetimes never change, or for now,
-            // standardize on a lifetime convention of always using LT_KEEP, by passing
-            // force_keep = true below.          
+            // assignment, and lifetimes must be the same for all (a call adjusts to those of
+            // the root), so they are decided here for all of them: a borrow where none of
+            // them assigns the parameter (and it is not a struct of references, see
+            // ArgLifetime), which any caller can adjust to, and owning otherwise.
             // FIXME: if any of the overloads below contain recursive calls, it may run into
             // issues finding an existing dispatch above? would be good to guarantee..
             // The fact that in subudts the superclass comes first will help avoid problems
             // in many cases.
+            vector<Lifetime> dispatch_lts(call_args.children.size(), LT_BORROW);
+            for (auto [j, c] : enumerate(call_args.children)) {
+                if (c->exptype->t == V_STRUCT_R) dispatch_lts[j] = LT_KEEP;
+                for (auto &pick : overload_picks) {
+                    if (pick.ov && !pick.ov->sf->args[j].sid->id->single_assignment)
+                        dispatch_lts[j] = LT_KEEP;
+                }
+            }
             auto de = dispatch_udt.dispatch_table[vtable_idx].get();
             de->dispatch_root = &dispatch_udt;
             de->returntype = st.NewTypeVar();
@@ -1922,7 +1937,7 @@ struct TypeChecker {
                 // to fix that?
                 // FIXME: return value?
                 TypeCheckCallStatic(csf, call_args, reqret, specializers, *overload_picks[i].ov,
-                                    false, !last_sf, true, de);
+                                    false, !last_sf, &dispatch_lts, de);
                 sf = csf;
                 udt->dispatch_table[vtable_idx]->sf = sf;
                 if (sf->isrecursivelycalled) any_recursive = true;
@@ -2043,7 +2058,7 @@ struct TypeChecker {
                 pickfrom.clear();
                 matches.clear();
                 return TypeCheckCallStatic(csf, call_args, reqret, specializers, *pick, true,
-                                           false, false, nullptr);
+                                           false, nullptr, nullptr);
             }
             if ((int)f.nargs() == argidx) {
                 // Gotten to the end and we still have multiple matches!
@@ -2232,7 +2247,7 @@ struct TypeChecker {
             c->children.append(dc->children.data(), dc->children.size());
             dc->children.clear();
             c->exptype =
-                TypeCheckCallStatic(sf, *c, reqret, nullptr, *sf->parent->overloads[0], true, false, false, nullptr);
+                TypeCheckCallStatic(sf, *c, reqret, nullptr, *sf->parent->overloads[0], true, false, nullptr, nullptr);
             c->lt = LT_KEEP;
             c->sf = sf;
             delete dc;
