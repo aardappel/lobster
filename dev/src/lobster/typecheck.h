@@ -40,6 +40,9 @@ struct TypeChecker {
         SubFunction *sf = nullptr;
         const Node *call_context = nullptr;
         int loop_count = 0;
+        // Where in the writes recorded for the function the outermost loop currently being
+        // typechecked started, see LoopWroteBefore.
+        size_t loop_events_start = 0;
         vector<Member *> scoped_fields;
         size_t flowstack_size = 0;
     };
@@ -2635,18 +2638,40 @@ struct TypeChecker {
     }
 
     // `sid` borrows the location `lt` (a borrow stack entry that has a count for it already)
-    // for the rest of its scope, and names the same location as `alias` when given.
-    void HoldSpeculative(SpecIdent *sid, Lifetime lt, Define *def, const LValContext *alias) {
+    // for the rest of its scope, and names the same location as `alias`.
+    void HoldSpeculative(SpecIdent *sid, Lifetime lt, Define *def, const LValContext &alias) {
         assert(lt >= 0);
         sid->lt = lt;
         sid->speculative = true;
         sid->spec_define = def;
         borrowstack[lt].spec_holders.push_back(sid);
-        if (alias) {
-            sid->alias_sid = alias->sid;
-            sid->alias_derefs = alias->derefs;
-        }
+        sid->alias_sid = alias.sid;
+        sid->alias_derefs = alias.derefs;
         LOG_DEBUG("speculative borrow: ", sid->id->name, " of ", borrowstack[lt].Name());
+    }
+
+    // Whether a loop of the current function that the code being typechecked is inside of
+    // wrote to `path` earlier in its body. A variable defined in a loop lives across its
+    // iterations (a function value made after it can be called before its definition runs
+    // again), so such a write is one to what it would borrow from while it is alive.
+    bool LoopWroteBefore(const LValContext &path) {
+        auto &sc = scopes.back();
+        if (!sc.loop_count) return false;
+        LValContext hold = path;
+        hold.Canonicalize();
+        auto &evs = sc.sf->reuse_assign_events;
+        for (size_t i = sc.loop_events_start; i < evs.size(); i++) {
+            LValContext w = evs[i].lv;
+            w.Canonicalize();
+            if (hold.IsPrefix(w)) return true;
+        }
+        return false;
+    }
+
+    void EnterLoop() {
+        auto &sc = scopes.back();
+        if (!sc.loop_count) sc.loop_events_start = sc.sf->reuse_assign_events.size();
+        sc.loop_count++;
     }
 
     void DropSpeculative(SpecIdent *sid) {
@@ -3322,7 +3347,7 @@ Node *IfElse::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
 
 Node *While::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     tc.TypeCheckCondition(condition, this, "while");
-    tc.scopes.back().loop_count++;
+    tc.EnterLoop();
     tc.TypeCheckBranch(true, condition, wbody, 0);
     tc.scopes.back().loop_count--;
     exptype = type_void;
@@ -3365,7 +3390,7 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*
             }
         }
     }
-    tc.scopes.back().loop_count++;
+    tc.EnterLoop();
     fbody->TypeCheck(tc, 0, {});
     tc.scopes.back().loop_count--;
     tc.st.BlockScopeCleanup();
@@ -3658,6 +3683,16 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     tc.TT(child, Is<DefaultVal>(child) ? 0 : tsids.size(), may_borrow ? LT_ANY : LT_KEEP,
           parent_bound);
     auto speculate = may_borrow && child->lt >= 0 && tc.SpecBorrowable(child->exptype);
+    // What it would borrow: only a variable, field or element, since e.g. a builtin returning
+    // a borrow (top) borrows the vector, which says nothing about writes to its elements.
+    LValContext hold(*child);
+    if (speculate) {
+        if (fle) {
+            hold = LValContext(*fle->iter);
+            hold.derefs.push_back(&elem_field);
+        }
+        if (!hold.IsValid() || tc.LoopWroteBefore(hold)) speculate = false;
+    }
     if (may_borrow && !speculate) {
         if (fle && child->lt >= 0) {
             tc.DecBorrowers(child->lt, *this);
@@ -3706,15 +3741,8 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
             sid.constprop = child;
         }
         if (speculate) {
-            if (fle) {
-                fle->sid = &sid;
-                LValContext lv(*fle->iter);
-                lv.derefs.push_back(&elem_field);
-                tc.HoldSpeculative(&sid, child->lt, nullptr, &lv);
-            } else {
-                LValContext lv(*child);
-                tc.HoldSpeculative(&sid, child->lt, this, lv.IsValid() ? &lv : nullptr);
-            }
+            if (fle) fle->sid = &sid;
+            tc.HoldSpeculative(&sid, child->lt, fle ? nullptr : this, hold);
         }
     }
     tc.definestack.push_back(this);

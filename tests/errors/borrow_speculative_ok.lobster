@@ -72,3 +72,22 @@ let kept = []
 for(names) s: kept.push(s)
 names[1] = "q" + ""
 assert kept[1] == "b"
+
+// A variable defined in a loop lives across iterations: a function value made after it may be
+// called before its definition runs again, after the element it would borrow was overwritten.
+def thunk() -> void
+var sum = 0
+var g:thunk = fn: pass()
+let slots = [ "s0" + "", "s1" + "" ]
+for(3) i:
+    slots[0] = "n" + i
+    if i > 0: g()
+    let x = slots[0]
+    g = fn: sum += x.length
+assert sum == 4
+
+// A borrow returned by a builtin is of the vector, not the element it came from.
+let stack = [ "bottom" + "", "top" + "" ]
+let tp = stack.top()
+stack.pop()
+assert tp == "top"
