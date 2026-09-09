@@ -809,16 +809,28 @@ Overload::~Overload() {
 
 LValContext::LValContext(const Node &n) {
     auto t = &n;
-    while (auto dot = Is<Dot>(t)) {
-        derefs.insert(0, dot->fld);
-        t = dot->child;
+    for (;;) {
+        if (auto dot = Is<Dot>(t)) {
+            derefs.insert(0, dot->fld);
+            t = dot->child;
+        } else if (auto idx = Is<Indexing>(t)) {
+            auto ic = Is<IntConstant>(idx->index);
+            derefs.insert(0, ic ? ElemField(ic->integer) : &elem_field);
+            t = idx->object;
+        } else {
+            break;
+        }
     }
     auto idr = Is<IdentRef>(t);
     sid = idr ? idr->sid : nullptr;
 }
 
 FlowItem::FlowItem(const Node &n, TypeRef type)
-    : LValContext(n), old(n.exptype), now(type) {}
+    : LValContext(n), old(n.exptype), now(type) {
+    // Elements are one location to the borrow check, but not to flow typing, where a
+    // promotion of v[i] must not apply to v[j].
+    if (HasElem()) sid = nullptr;
+}
 
 }  // namespace lobster
 

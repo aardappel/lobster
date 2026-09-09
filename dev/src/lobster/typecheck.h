@@ -2517,28 +2517,41 @@ struct TypeChecker {
         }
         Borrow lv(*n);
         if (!lv.IsValid()) return;  // FIXME: force these to LT_KEEP?
-        if (IsRefNil(n->exptype->t)) {
-            // If any of the functions this assign sits in is reused, we need to be able to replay
-            // checking the errors in CheckLvalBorrowed, since the contents of the borrowstack
-            // may be different.
-            // The location written may be reached thru parameters that alias what their callers
-            // passed, in which case the functions further out know it under the path the call
-            // passed: each function on the stack up to the one that holds the variable records
-            // it as the path it can see.
-            LValContext ev = lv;
-            for (auto &sc : reverse(scopes)) {
-                while (ev.sid->alias_sid && !LexicallyVisible(ev.sid, sc.sf)) ev.Step();
-                // we could uniqueify this vector, but that would entails comparing `n`
-                // structurally (construct a Borrow for each?), which would probably be
-                // slower than the redundant calls to CheckLvalBorrowed this causes later?
-                // Especially since this uniqueifying cost is paid always, even when there
-                // are no actual repeated assigns in a scope, which is not that common.
-                sc.sf->reuse_assign_events.push_back({ n, ev });
-                // Don't go further than where defined.
-                if (!ev.sid->alias_sid && sc.sf == ev.sid->sf_def) break;
-            }
-        }
+        if (IsRefNil(n->exptype->t)) RecordWrite(n, lv);
         CheckLvalBorrowed(n, lv);
+    }
+
+    // A builtin that can drop elements of the vector `vec` names is a write to its elements,
+    // see elem_field.
+    void CheckElementWrite(Node *vec, Node *call) {
+        LValContext lv(*vec);
+        if (!lv.IsValid()) return;
+        lv.derefs.push_back(&elem_field);
+        RecordWrite(call, lv);
+        Borrow b(lv);
+        CheckLvalBorrowed(call, b);
+    }
+
+    // If any of the functions this write sits in is reused, we need to be able to replay
+    // checking the errors in CheckLvalBorrowed, since the contents of the borrowstack may be
+    // different.
+    // The location written may be reached thru parameters that alias what their callers
+    // passed, in which case the functions further out know it under the path the call passed:
+    // each function on the stack up to the one that holds the variable records it as the path
+    // it can see.
+    void RecordWrite(Node *n, const LValContext &lv) {
+        LValContext ev = lv;
+        for (auto &sc : reverse(scopes)) {
+            while (ev.sid->alias_sid && !LexicallyVisible(ev.sid, sc.sf)) ev.Step();
+            // we could uniqueify this vector, but that would entails comparing `n`
+            // structurally (construct a Borrow for each?), which would probably be
+            // slower than the redundant calls to CheckLvalBorrowed this causes later?
+            // Especially since this uniqueifying cost is paid always, even when there
+            // are no actual repeated assigns in a scope, which is not that common.
+            sc.sf->reuse_assign_events.push_back({ n, ev });
+            // Don't go further than where defined.
+            if (!ev.sid->alias_sid && sc.sf == ev.sid->sf_def) break;
+        }
     }
 
     // Whether code in `sf` can name `sid`: a variable of its own, or of a function it is
@@ -2581,7 +2594,7 @@ struct TypeChecker {
             Borrow lv(ev.lv);
             CheckLvalBorrowed(ev.n, lv);
             // The write also stands for any promotion this context has of what it overwrites.
-            if (auto a = Is<Assign>(ev.n)) {
+            if (auto a = Is<Assign>(ev.n); a && !ev.lv.HasElem()) {
                 FlowItem fi(ev.lv, a->left->exptype);
                 AssignFlowDemote(fi, a->right->exptype, CF_COERCIONS);
             }
@@ -4458,6 +4471,7 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
         tc.StorageType(c->exptype, *this);
         tc.AdjustLifetime(c, arg.lt);
         tc.DecBorrowers(c->lt, *this);
+        if (arg.flags & NF_MUTATES) tc.CheckElementWrite(c, this);
     }
 
     exptype = type_void;  // no retvals
@@ -5020,7 +5034,14 @@ Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_b
         }
         default: tc.RequiresError("int/struct of int", itype, *this, "index");
     }
-    lt = object->lt;  // Also LT_BORROW, also depending on the same variable.
+    // The element borrows from the vector's elements as one location (see elem_field), which
+    // a write to any element, or a builtin that drops elements, is a write to. Only when
+    // the vector is a variable or field path; otherwise the element just borrows whatever the
+    // vector expression borrowed, or nothing specific.
+    auto olt = object->lt;
+    lt = tc.PushBorrow(this);
+    if (lt == LT_BORROW) lt = olt;
+    else tc.DecBorrowers(olt, *this);
     return this;
 }
 

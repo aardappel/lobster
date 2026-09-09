@@ -182,6 +182,20 @@ struct SharedField : Named {
     SharedField() : SharedField("", 0) {}
 };
 
+// Stands for an element in a path of derefs (see LValContext), where indexing a vector sits.
+// Indexing with a constant gets a marker of its own per value, so elements with different
+// constant indices are different locations; anything else is "any element", which the borrow
+// check treats as the same location as every element (see LValContext::IsPrefix). All markers
+// have idx -1, which is what tells them apart from real fields.
+inline SharedField elem_field { "[]", -1 };
+inline SharedField *ElemField(int64_t i) {
+    static map<int64_t, SharedField *> fields;
+    auto &f = fields[i];
+    if (!f) f = new SharedField(cat("[", i, "]"), -1);
+    return f;
+}
+inline bool IsElemField(const SharedField *f) { return f->idx == -1; }
+
 struct Overload;
 
 struct Field {
@@ -539,14 +553,25 @@ struct LValContext {
     LValContext(SpecIdent *sid) : sid(sid) {}
     LValContext(const Node &n);
     bool IsValid() const { return sid; }
+    bool HasElem() const {
+        for (auto f : derefs) if (IsElemField(f)) return true;
+        return false;
+    }
     bool DerefsEqual(const LValContext &o) const {
         if (derefs.size() != o.derefs.size()) return false;
         for (auto &shf : derefs) if (shf != o.derefs[&shf - &derefs[0]]) return false;
         return true;
     }
+    // Whether two derefs can be the same location: the same field, or elements unless both are
+    // constant indices that differ.
+    static bool MayAlias(const SharedField *a, const SharedField *b) {
+        if (a == b) return true;
+        if (!IsElemField(a) || !IsElemField(b)) return false;
+        return a == &elem_field || b == &elem_field;
+    }
     bool IsPrefix(const LValContext &o) {  // Is o a prefix of this?
         if (sid != o.sid || derefs.size() < o.derefs.size()) return false;
-        for (auto &shf : o.derefs) if (shf != derefs[&shf - &o.derefs[0]]) return false;
+        for (auto &shf : o.derefs) if (!MayAlias(shf, derefs[&shf - &o.derefs[0]])) return false;
         return true;
     }
     string Name() {

@@ -199,7 +199,7 @@ BUILTIN(equal, "a,b", "AA", "B",
 BUILTIN_CODEGEN(BCG_PUSH, push, "xs,x", "A]*Akw1", "Ab]1",
     "appends one element to a vector, returns existing vector");
 
-BUILTIN_CODEGEN(BCG_POP, pop, "xs", "A]*", "A1",
+BUILTIN_CODEGEN(BCG_POP, pop, "xs", "A]*m", "A1",
     "removes last element from vector and returns it");
 
 BUILTIN_CODEGEN(BCG_TOP, top, "xs", "A]*", "Ab1",
@@ -209,10 +209,10 @@ BUILTIN_CODEGEN(BCG_INSERT, insert, "xs,i,x", "A]*IAkw1", "Ab]1",
     "inserts a value into a vector at index i, existing elements shift upward,"
     " returns original vector");
 
-BUILTIN_CODEGEN(BCG_REMOVE, remove, "xs,i", "A]*I", "A1",
+BUILTIN_CODEGEN(BCG_REMOVE, remove, "xs,i", "A]*mI", "A1",
     "remove element at index i, following elements shift down. returns the element removed.");
 
-BUILTIN(remove_range, "xs,i,n", "A]*II", "",
+BUILTIN(remove_range, "xs,i,n", "A]*mII", "",
     "remove n elements at index i, following elements shift down.")
 (VM &vm, LVector *l, iint i, iint amount) {
     if (amount < 0 || amount > l->len || i < 0 || i > l->len - amount)
@@ -221,7 +221,7 @@ BUILTIN(remove_range, "xs,i,n", "A]*II", "",
     l->Remove(vm, i, amount);
 }
 
-BUILTIN(remove_obj, "xs,obj", "A]*A1", "Ab2",
+BUILTIN(remove_obj, "xs,obj", "A]*mA1", "Ab2",
     "remove all elements equal to obj (==), returns obj.")
 (VM &vm, LVector *l, Value o) {
     auto vt = vm.GetTypeInfo(l->ti(vm).subt).t;
@@ -234,7 +234,7 @@ BUILTIN(remove_obj, "xs,obj", "A]*A1", "Ab2",
     return o;
 }
 
-BUILTIN(truncate, "xs,i", "A]*I", "",
+BUILTIN(truncate, "xs,i", "A]*mI", "",
     "removes all elements starting from index i, does nothing if i >= len")
 (VM &vm, LVector *l, iint i) {
     if (i < 0 || i >= l->len) return;

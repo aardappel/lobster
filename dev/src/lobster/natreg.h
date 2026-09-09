@@ -46,6 +46,9 @@ enum NArgFlags {
     NF_BOOL               = 1 << 6,
     NF_UNION              = 1 << 7,
     NF_CONST              = 1 << 8,
+    // The builtin can drop elements of this vector argument, so it counts as a write to its
+    // elements for the borrow check, see TypeChecker::CheckElementWrite.
+    NF_MUTATES            = 1 << 9,
 };
 DEFINE_BITWISE_OPERATORS_FOR_ENUM(NArgFlags)
 
@@ -88,6 +91,7 @@ struct Narg {
                 case 'w': flags = flags | NF_ANYWIDTH; break;
                 case 'k': lt = LT_KEEP; break;
                 case 'b': lt = LT_BORROW; break;
+                case 'm': flags = flags | NF_MUTATES; break;
                 case ']': {
                     auto wrapped = WrapKnown(vttype, V_VECTOR);
                     if (wrapped.Null()) nf->Error("unknown vector type");
