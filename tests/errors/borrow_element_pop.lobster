@@ -1,10 +1,12 @@
-// A builtin that drops elements counts as a write to them.
-// EXPECT-ERROR: cannot modify `v.[]` while borrowed
+// A builtin that drops elements counts as a write to them, and the caller keeps the argument
+// alive across it.
+// EXPECT-OK
 
 let v = [ "a" + "" ]
 
-def f(s:string):
+def f(s:string) -> string:
     v.pop()
-    print s
+    return s
 
-f(v[0])
+assert f(v[0]) == "a"
+assert v.length == 0

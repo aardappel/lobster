@@ -130,6 +130,10 @@ struct SpecIdent {
     // TypeChecker::BindParamAliases. Null when the argument was not a variable or field path.
     const SpecIdent *alias_sid = nullptr;
     small_vector<SharedField *, 3> alias_derefs;
+    // With the alias: where the argument of the current call sits in the call, so that when
+    // what the parameter names gets written while it is in use, the caller can be made to
+    // keep the value alive instead, see TypeChecker::KeepArgAlive.
+    Node **arg_slot = nullptr;
     // A variable that borrows what it was initialized with rather than owning a reference of
     // its own (a single-assignment variable initialized from a variable, field or element,
     // or a for loop element), as long as nothing writes to what it borrows from while it is
@@ -198,7 +202,7 @@ struct SharedField : Named {
 // constant indices are different locations; anything else is "any element", which the borrow
 // check treats as the same location as every element (see LValContext::IsPrefix). All markers
 // have idx -1, which is what tells them apart from real fields.
-inline SharedField elem_field { "[]", -1 };
+inline SharedField elem_field { "[..]", -1 };
 inline SharedField *ElemField(int64_t i) {
     // Map nodes never move, so the pointers stay valid for the life of the program.
     static map<int64_t, SharedField> fields;
@@ -589,7 +593,7 @@ struct LValContext {
     string Name() {
         auto s = sid ? sid->id->name : "<invalid>";
         for (auto &shf : derefs) {
-            s += ".";
+            if (!IsElemField(shf)) s += ".";
             s += shf->name;
         }
         return s;

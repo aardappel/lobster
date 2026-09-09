@@ -19,8 +19,10 @@ struct Borrow : LValContext {
     // Variables that hold one of those borrows speculatively, see SpecIdent::speculative:
     // a write that conflicts flips them to owning rather than being an error.
     small_vector<SpecIdent *, 2> spec_holders;
-    Borrow(const Node &n) : LValContext(n) {}
+    Line line { 0, 0 };  // Where the borrow was taken, for errors.
+    Borrow(const Node &n) : LValContext(n), line(n.line) {}
     Borrow(const LValContext &lv) : LValContext(lv) {}
+    Borrow(const LValContext &lv, const Line &line) : LValContext(lv), line(line) {}
 };
 
 enum ConvertFlags {
@@ -1428,17 +1430,43 @@ struct TypeChecker {
             auto sid = sf->args[i].sid;
             sid->alias_sid = nullptr;
             sid->alias_derefs.clear();
+            sid->arg_slot = nullptr;
             if (!IsBorrow(sid->lt) || c->lt < 0) continue;
             LValContext lv(*c);
             if (!lv.IsValid() || lv.sid == sid) continue;
             sid->alias_sid = lv.sid;
             sid->alias_derefs = lv.derefs;
+            sid->arg_slot = &call_args.children[i];
         }
     }
 
+    // What a borrowed parameter names is about to be written while the parameter, or
+    // something borrowed thru it, is still in use. Rather than an error, the caller of the
+    // current call keeps the value alive: its argument owns a reference for the rest of the
+    // caller's scope (an inc, and a temporary given up at its end), so the parameter no
+    // longer depends on the location, and stops naming it. Cheaper than making the parameter
+    // own, which every call would pay for.
+    void KeepArgAlive(SpecIdent *sid) {
+        auto &c = *sid->arg_slot;
+        LOG_DEBUG("argument for ", sid->id->name, " kept alive by the caller");
+        DecBorrowers(c->lt, *c);
+        MakeLifetime(c, LT_BORROW, 1, 1);
+        // The count TypeCheckFunctionDef took on the caller's borrow for the parameter, which
+        // exists only while the function is being typechecked.
+        for (auto &sc : scopes) {
+            if (sc.sf == sid->sf_def) {
+                DecBorrowers(sid->lt, *c);
+                break;
+            }
+        }
+        sid->lt = LT_BORROW;
+        sid->alias_sid = nullptr;
+        sid->alias_derefs.clear();
+        sid->arg_slot = nullptr;
+    }
+
     TypeRef TypeCheckMatchingCall(SubFunction *sf, List &call_args, bool static_dispatch,
-                                  bool first_dynamic, bool may_have_lambda_args,
-                                  DispatchEntry *de) {
+                                  bool first_dynamic, DispatchEntry *de) {
         STACK_PROFILE;
         // Here we have a SubFunction witch matching specialized types.
         sf->numcallers++;
@@ -1452,19 +1480,31 @@ struct TypeChecker {
         existing_caller:
         Function &f = *sf->parent;
         BindParamAliases(sf, call_args);
-        if (may_have_lambda_args && (static_dispatch || first_dynamic)) {
+        if (static_dispatch || first_dynamic) {
             for (auto [i, c] : enumerate(call_args.children)) {
                 auto &arg = sf->args[i];
-                // We prefer doing this after the SubType call below (for better errors?)
-                // But if we upgraded the args to LT_KEEP this can drop a borrow that could
-                // cause lambdas typechecked inside TypeCheckFunctionDef to give unnecessary
-                // borrow errors.
+                // An owning parameter gets its argument adjusted before the body is
+                // typechecked: that gives up the borrow the argument holds, which would
+                // otherwise conflict with a write in the body (or in lambdas typechecked
+                // inside it) to what the argument was borrowed from, e.g. f(v[i]) writing
+                // v[i], which the inc the adjustment makes is what keeps safe.
                 if (arg.sid->lt == LT_KEEP && IsBorrow(c->lt)) {
                     AdjustLifetime(c, arg.sid->lt);
                 }
             }
         }
+        auto reused = sf->typechecked;
         if (!f.istype) TypeCheckFunctionDef(*sf, call_args);
+        // A specialization typechecked for an earlier call has its writes checked against
+        // this context now, while the arguments still hold their borrows (which the adjusting
+        // below gives up), since it is those a write in the callee may conflict with. Not
+        // while it is still being typechecked (a recursive call): its writes are checked
+        // against the context of the call that entered it.
+        if (reused) {
+            auto active = false;
+            for (auto &sc : scopes) if (sc.sf == sf) { active = true; break; }
+            if (!active) ReplayAssigns(sf);
+        }
         // Finally check all args. We do this after checking the function
         // definition, since SubType below can cause specializations of the current function
         // to be typechecked with strongly typed function value arguments.
@@ -1732,10 +1772,7 @@ struct TypeChecker {
                     LOG_DEBUG("re-using: ", Signature(*sf));
                     CheckFreeVariablesFromFunction(sf);
                     ReplayReturns(sf, call_args);
-                    auto rtype = TypeCheckMatchingCall(sf, call_args, static_dispatch,
-                                                       first_dynamic, has_lambda_args, de);
-                    if (!sf->isrecursivelycalled) ReplayAssigns(sf);
-                    return rtype;
+                    return TypeCheckMatchingCall(sf, call_args, static_dispatch, first_dynamic, de);
                 }
                 fail:;
             }
@@ -1765,7 +1802,7 @@ struct TypeChecker {
         assert(!sf->freevars.size());
         LOG_DEBUG("specialization: ", Signature(*sf));
         auto rtype =
-            TypeCheckMatchingCall(sf, call_args, static_dispatch, first_dynamic, has_lambda_args, de);
+            TypeCheckMatchingCall(sf, call_args, static_dispatch, first_dynamic, de);
         if (udt) {
             st.PopSuperGenerics(udt);
         }
@@ -1814,12 +1851,15 @@ struct TypeChecker {
                         // the list has a recursive call.
                         CheckFreeVariablesFromFunction(sf);
                         ReplayReturns(sf, call_args);
-                        BindParamAliases(sf, call_args);
-                        ReplayAssigns(sf);
+                        // The root gets these from TypeCheckMatchingCall below.
+                        if (sf != disp->sf) {
+                            BindParamAliases(sf, call_args);
+                            ReplayAssigns(sf);
+                        }
                     }
                 }
                 // Type check this as if it is a static dispatch to just the root function.
-                TypeCheckMatchingCall(csf = disp->sf, call_args, true, false, true, disp.get());
+                TypeCheckMatchingCall(csf = disp->sf, call_args, true, false, disp.get());
                 vtable_idx = (int)i;
                 return disp->returntype;
             }
@@ -2241,7 +2281,7 @@ struct TypeChecker {
         if (sf->parent->istype) {
             // Function types are always fully typed.
             // All calls thru this type must have same lifetimes, so we fix it to LT_BORROW.
-            dc->exptype = TypeCheckMatchingCall(sf, *dc, true, false, true, nullptr);
+            dc->exptype = TypeCheckMatchingCall(sf, *dc, true, false, nullptr);
             dc->lt = LT_KEEP;
             dc->sf = sf;
             return dc;
@@ -2622,11 +2662,35 @@ struct TypeChecker {
             for (auto s = b.sid; s; s = s->alias_sid) {
                 if (s->speculative) FlipSpeculative(const_cast<SpecIdent *>(s));
             }
+            // The borrow may be the argument of an active call for a parameter bound to it,
+            // or be of (something reached thru) such a parameter: the caller of the
+            // outermost such call keeps the value alive instead, see KeepArgAlive.
+            auto bi = (Lifetime)(&b - &borrowstack[0]);
+            auto keep_args_of = [&](SubFunction *sf) {
+                for (auto &arg : sf->args) {
+                    if (arg.sid->arg_slot && (*arg.sid->arg_slot)->lt == bi) KeepArgAlive(arg.sid);
+                }
+            };
+            for (auto &sc : scopes) keep_args_of(sc.sf);
+            // A reused specialization is not on the stack while its writes are replayed.
+            if (replaying) keep_args_of(replaying);
+            {
+                LValContext walk = b;
+                const SpecIdent *pick = nullptr;
+                for (;;) {
+                    if (walk.derefs.empty() && walk.sid->arg_slot) pick = walk.sid;
+                    if (!walk.Step()) break;
+                }
+                if (pick) KeepArgAlive(const_cast<SpecIdent *>(pick));
+            }
+            if (!b.refc) continue;
             cb = b;
             cb.Canonicalize();
             if (!cb.IsPrefix(clv)) continue;
-            Error(*n, "cannot modify ", Q(lv.Name()), " while borrowed in ",
-                      Q(lv.sid->sf_def->parent->name));
+            auto same = cb.sid == clv.sid && cb.DerefsEqual(clv);
+            Error(*n, "cannot modify ", Q(lv.Name()), " while ",
+                      same ? string("it is borrowed") : cat(Q(b.Name()), " borrows it"),
+                      " at ", parser.lex.Location(b.line));
         }
     }
 
@@ -2704,7 +2768,13 @@ struct TypeChecker {
         sid->lt = LT_BORROW;
     }
 
+    // The specialization whose recorded writes are being checked against the current call's
+    // context, see ReplayAssigns.
+    SubFunction *replaying = nullptr;
+
     void ReplayAssigns(SubFunction *sf) {
+        auto outer = replaying;
+        replaying = sf;
         for (auto &ev : sf->reuse_assign_events) {
             Borrow lv(ev.lv);
             CheckLvalBorrowed(ev.n, lv);
@@ -2714,6 +2784,7 @@ struct TypeChecker {
                 AssignFlowDemote(fi, a->right->exptype, CF_COERCIONS);
             }
         }
+        replaying = outer;
     }
 
     Lifetime PushBorrow(Node *n) {
@@ -2725,10 +2796,10 @@ struct TypeChecker {
         // An expression that is not a path (like f()[i]) gets a generic borrow, which
         // disables lock checks, so is unsafe.
         if (!lv.IsValid()) return LT_BORROW;
-        return PushBorrowPath(lv);
+        return PushBorrowPath(lv, n->line);
     }
 
-    Lifetime PushBorrowPath(const LValContext &lv) {
+    Lifetime PushBorrowPath(const LValContext &lv, const Line &line) {
         for (auto &b : reverse(borrowstack)) {
             if (b.sid == lv.sid && b.DerefsEqual(lv)) {
                 b.refc++;
@@ -2737,7 +2808,8 @@ struct TypeChecker {
         }
         // FIXME: this path is slow, should not have to scan all of borrowstack.
         auto lt = (Lifetime)borrowstack.size();
-        borrowstack.push_back(Borrow(lv));
+        Borrow b(lv, line);
+        borrowstack.push_back(b);
         return lt;
     }
 
@@ -3385,7 +3457,7 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*
                 LValContext lv(*iter);
                 if (lv.IsValid()) {
                     lv.derefs.push_back(&elem_field);
-                    fle->elem_borrow = tc.PushBorrowPath(lv);
+                    fle->elem_borrow = tc.PushBorrowPath(lv, iter->line);
                 }
             }
         }

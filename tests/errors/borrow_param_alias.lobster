@@ -1,6 +1,7 @@
 // A borrowed argument aliases a field of what another (borrowed) argument names, and the
-// callee overwrites that field thru the alias: the borrow check must see thru the parameters.
-// EXPECT-ERROR: cannot modify `o.f` while borrowed
+// callee overwrites that field thru the alias: the borrow check sees thru the parameters, and
+// the caller keeps the value alive, so `e` stays the object it was passed.
+// EXPECT-OK
 
 class E:
     x:int
@@ -15,4 +16,5 @@ def use(e:E, o:O) -> int:
     return e.x
 
 let o = O { E { 1 } }
-print use(o.f, o)
+assert use(o.f, o) == 1
+assert o.f.x == 99

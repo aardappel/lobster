@@ -171,9 +171,16 @@ def errors_tests():
     expect_error("def f(b:bool): return b\nreturn f(2)", "error")
     // A void function call cannot be used as a value.
     expect_error("def f() -> void: return\nreturn \"\{f()\}\"", "requires 1")
-    // Lifetime analysis: assigning to a variable while an argument borrows it.
-    expect_error("var x = \"hello\"\ndef f(y):\n    x = \"world\"\n    return y\nreturn f(x)",
-                 "while borrowed")
+    // Lifetime analysis: assigning to a variable while an argument borrows it makes the
+    // caller keep the value alive, so the argument keeps what it was passed.
+    let bret, berr = compile_run_code(
+        "var x = \"hello\"\ndef f(y):\n    x = \"world\"\n    return y\nreturn f(x)", [])
+    test_eq(berr, nil)
+    test_eq(bret, "hello")
+    // But not for a borrow that is still being evaluated as an argument.
+    expect_error("let v = [ \"a\" + \"\" ]\ndef f(a:string, b:string): return a + b\n" +
+                 "return f(v[0], v.pop())",
+                 "borrows it")
 
     // A `member` initializer is the field's default, so it runs wherever the
     // class is constructed and cannot read the object or the method's locals.

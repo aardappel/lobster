@@ -166,10 +166,10 @@ These are errors that may happen as a consequence of ownership analysis, though
 all of them have proven to be very rare.
 
 ~~~~
-cannot assign to x while borrowed
+cannot modify x while y borrows it
 ~~~~
 
-This can be caused by code like:
+Consider code like:
 
 ~~~~
 var x = "hello"
@@ -179,11 +179,15 @@ def f(y):
 f(x)
 ~~~~
 
-Here, `y` borrows `x`, then `f` tries to overwrite `x` while still being borrowed,
-which would cause it to deallocate `"hello"` while `y` is still pointing at it.
-It is pretty rare for code that uses a borrowed value to be accessing the original
-value also. As I mentioned, this only happened twice in a large volume of test code,
-and is easy to avoid.
+Here, `y` borrows `x`, then `f` overwrites `x` while it is still borrowed,
+which would deallocate `"hello"` while `y` is still pointing at it. When the
+borrowed value is an argument of a call, like here, the caller is made to keep
+the value alive for the rest of its scope (a reference count increase for that
+call only), so this compiles and prints `hello`. The error remains for a borrow
+that no call can be made responsible for, typically an argument that is still
+being evaluated when a later argument modifies what it was borrowed from, like
+`f(v[0], v.pop())`. It is pretty rare for code that uses a borrowed value to be
+modifying the original value also, and easy to avoid.
 
 ~~~~
 cannot assign to borrowed argument: x

@@ -1,8 +1,10 @@
 - Borrow checker: writes thru a borrowed parameter (or `this`) are now checked against what
   the callers borrowed or promoted (tests/errors/borrow_param_alias.lobster and friends), and
-  vector elements are locations of their own. What remains unsound is aliasing thru an owning
-  variable that gets reassigned, see the "Detect this case" example under "A more conservative
-  mode" below: with `let c = a` it errors, with `var c` that is later reassigned it does not.
+  vector elements are locations of their own. When the borrow that conflicts is an argument of
+  a call, the caller keeps the value alive instead of it being an error (KeepArgAlive). What
+  remains unsound is aliasing thru an owning variable that gets reassigned, see the "Detect
+  this case" example under "A more conservative mode" below: with `let c = a` it is caught,
+  with `var c` that is later reassigned it is not.
 
 - assert(cg.temptypestack.size() == cg.LoopTemps()); fires on matvoxels
 
