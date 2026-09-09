@@ -2286,7 +2286,7 @@ struct TypeChecker {
             dc->sf = sf;
             return dc;
         } else {
-            auto c = new Call(dc->line, sf);
+            auto c = make_unique<Call>(dc->line, sf);
             c->children.append(dc->children.data(), dc->children.size());
             dc->children.clear();
             c->exptype =
@@ -2294,7 +2294,7 @@ struct TypeChecker {
             c->lt = LT_KEEP;
             c->sf = sf;
             delete dc;
-            return c;
+            return c.release();
         }
     }
 
