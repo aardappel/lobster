@@ -4133,6 +4133,10 @@ void DefaultVal::Generate(CodeGen &cg, size_t retval) const {
     cg.EmitPushNil(exptype);
 }
 
+void ErrorValue::Generate(CodeGen &, size_t) const {
+    assert(false);  // Compilation stops before codegen when there were errors.
+}
+
 void IdentRef::Generate(CodeGen &cg, size_t retval) const {
     cg.GenPushVar(retval, sid->type, sid->Idx(), sid->used_as_freevar);
 }

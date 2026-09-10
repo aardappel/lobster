@@ -57,3 +57,30 @@ def test_approx(a:float3, b:float3):
 def test_approx(a:float4, b:float4):
     num_checks++
     if max(abs(a - b)) > 1.0e-6: fail("{a} !~ {b}")
+
+// Compile error recovery checks (see recovery.lobster and
+// typecheck_recovery.lobster): compiles `code` sandboxed, collecting up to
+// max_errors errors (one per line of the error string, each followed by
+// context lines), and checks that those are exactly `expect`, in order, each
+// as a substring of its error line.
+
+def error_lines(err:string?) -> [string]:
+    let lines = []::string
+    guard err: return lines
+    for(tokenize(err, "\n", "")) l:
+        if l.find_string(": error: ") >= 0: lines.push(l)
+    return lines
+
+def expect_errors(code:string, expect:[string], max_errors:int):
+    let _, err = compile_run_code(code, [], max_errors)
+    let lines = error_lines(err)
+    num_checks++
+    if lines.length != expect.length:
+        fail("expected {expect.length} errors, got {lines.length}:\n{err}\n  for:\n{code}")
+        return
+    for(expect) e, i:
+        if lines[i].find_string(e) < 0:
+            fail("error {i + 1} did not contain \"{e}\": {lines[i]}\n  for:\n{code}")
+
+def expect_errors(code:string, expect:[string]):
+    expect_errors(code, expect, 100)

@@ -32,6 +32,14 @@ struct DeclChecker {
 
     DeclChecker(SymbolTable &st, NativeRegistry &natreg) : st(st), natreg(natreg) {}
 
+    // Errors don't stop this pass: they get collected (see Lex::Report), and every check
+    // below is one whose failure leaves the declarations usable as they are. The typechecker
+    // relies on the parser's guarantees, not on this pass having found nothing, and stops
+    // compilation before the optimizer if anything was reported (see Compile).
+    void Error(string_view msg, const Line &ln) {
+        st.lex.Report(msg, &ln);
+    }
+
     void Check() {
         // Inheritance cycles error at the moment they are formed (see
         // ResolveFields), so all superclass chains walked below terminate.
@@ -91,10 +99,12 @@ struct DeclChecker {
         if (k == sup->fields.size()) return;
         for (size_t i = k; i < sup->fields.size(); i++) {
             auto &fld = sup->fields[i];
+            // Inserted regardless, such that the field layout stays that of the superclass
+            // followed by the subclass's own fields, which the typechecker assumes.
             if (gudt->Has(fld.id) >= 0)
-                st.lex.Error(cat("field ", Q(fld.id->name), " of ", Q(gudt->name),
-                                 " is also a field of superclass ", Q(sup->name)),
-                             &gudt->line);
+                Error(cat("field ", Q(fld.id->name), " of ", Q(gudt->name),
+                          " is also a field of superclass ", Q(sup->name)),
+                      gudt->line);
             gudt->fields.insert(gudt->fields.begin() + i, Field(fld));
         }
         // Any specializations resolved against the old field list must be
@@ -160,12 +170,12 @@ struct DeclChecker {
                             // strictly related and still get here).
                             if (oov->method_of && oov->method_of != g0 &&
                                 RelatedGUDT(g0, oov->method_of)) {
-                                st.lex.Error(cat("method ", Q(f->name), " of ", Q(g0->name),
+                                Error(cat("method ", Q(f->name), " of ", Q(g0->name),
                                     " is in a nested scope, but a method of this name on"
                                     " related type ", Q(oov->method_of->name),
                                     " exists in another scope; methods must be declared in"
                                     " the same scope to dispatch together"),
-                                    &ov->declared_at);
+                                    ov->declared_at);
                             }
                         }
                     }
@@ -204,8 +214,9 @@ struct DeclChecker {
             if (FunctionExists(call.name, call.ns)) {
                 call.cand_nonlexical = true;
             } else {
-                st.lex.Error(cat("unknown field/function reference ", Q(call.name)),
-                             &call.line);
+                // The call stays without candidates, which is how GenericCall::TypeCheck
+                // knows this was reported.
+                Error(cat("unknown field/function reference ", Q(call.name)), call.line);
             }
         }
     }

@@ -3,30 +3,10 @@ import std
 // Parser error recovery (see Parser::Error in parser.h): with max_errors > 1,
 // compile_run_code collects every parse error rather than stopping at the
 // first, one per line of the error string (each followed by its "in:"/"at:"
-// context lines). These check that the errors reported for a program are
-// exactly the ones it has, in source order, with no consequential ones, and
-// that the parser survives whatever an error leaves behind.
-
-def error_lines(err:string?) -> [string]:
-    let lines = []::string
-    guard err: return lines
-    for(tokenize(err, "\n", "")) l:
-        if l.find_string(": error: ") >= 0: lines.push(l)
-    return lines
-
-def expect_errors(code:string, expect:[string], max_errors:int):
-    let _, err = compile_run_code(code, [], max_errors)
-    let lines = error_lines(err)
-    num_checks++
-    if lines.length != expect.length:
-        fail("expected {expect.length} errors, got {lines.length}:\n{err}\n  for:\n{code}")
-        return
-    for(expect) e, i:
-        if lines[i].find_string(e) < 0:
-            fail("error {i + 1} did not contain \"{e}\": {lines[i]}\n  for:\n{code}")
-
-def expect_errors(code:string, expect:[string]):
-    expect_errors(code, expect, 100)
+// context lines). These check (with expect_errors from test_helpers) that the
+// errors reported for a program are exactly the ones it has, in source order,
+// with no consequential ones, and that the parser survives whatever an error
+// leaves behind. Typechecker recovery is in typecheck_recovery.lobster.
 
 def recovery_tests():
     suite("recovery")

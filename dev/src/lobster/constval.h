@@ -111,6 +111,8 @@ ValueType IsType::ConstVal(TypeChecker *tc, VTValue &val) const {
         return V_INT;
     }
     auto ctype = child->exptype;
+    // Nothing is known about a value an error was reported for.
+    if (ctype->IsError() || resolvedtype->IsError()) return V_VOID;
     auto ce = ctype->ElementIfNil();
     auto te = resolvedtype->ElementIfNil();
     // A value's runtime type is always its static type or a subtype thereof,

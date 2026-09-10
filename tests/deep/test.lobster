@@ -41,6 +41,7 @@ import .noeffect
 import .errors
 import .errorfiles
 import .recovery
+import .typecheck_recovery
 import .declcheck
 
 print "deep tests: {num_checks} checks, {num_failures} failures"

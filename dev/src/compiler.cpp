@@ -48,6 +48,7 @@ const Type g_type_vector_resource(V_VECTOR, &g_type_resource);
 const Type g_type_typeid(V_TYPEID, &g_type_any);
 const Type g_type_void(V_VOID);
 const Type g_type_undefined(V_UNDEFINED);
+const Type g_type_error(V_ERROR);
 
 TypeRef type_int = &g_type_int;
 TypeRef type_float = &g_type_float;
@@ -61,6 +62,7 @@ TypeRef type_vector_resource = &g_type_vector_resource;
 TypeRef type_typeid = &g_type_typeid;
 TypeRef type_void = &g_type_void;
 TypeRef type_undefined = &g_type_undefined;
+TypeRef type_error = &g_type_error;
 
 const Type g_type_vector_string(V_VECTOR, &g_type_string);
 const Type g_type_vector_vector_int(V_VECTOR, &g_type_vector_int);
@@ -217,10 +219,9 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
     SymbolTable st(lex);
     Parser parser(nfr, lex, st);
     parser.Parse();
-    // The parser recovers from errors and collects them (see Parser::Error), the passes after
-    // it assume it had none, and any error they hit is fatal on the spot.
+    // The parser recovers from errors and collects them (see Parser::Error), and the passes
+    // after it assume it had none.
     if (lex.num_errors) THROW_OR_ABORT(lex.errors);
-    lex.max_errors = 1;
     DeclChecker dc(st, nfr);
     dc.Check();
     if (opts.query) PrepQuery(*opts.query, filenames);
@@ -229,6 +230,10 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
         // The typechecker did not come across the location.
         if (!tc.ProcessQuery()) THROW_OR_ABORT("query_unknown_ident: " + opts.query->iden);
     }
+    // The declchecker and typechecker recover as well (see TypeChecker::Error), leaving
+    // placeholders in the tree that the passes after them can't work with, so those never
+    // run with errors, and any error they hit is fatal on the spot.
+    if (lex.num_errors) THROW_OR_ABORT(lex.errors);
     // Optimizer is not optional, must always run, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
     Optimizer opt(st, tc, opts.runtime_checks);

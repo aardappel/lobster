@@ -282,6 +282,9 @@ BINOP_NODE(XorEq, TName(T_XOREQ), true, )
 BINOP_NODE(ShiftLeftEq, TName(T_ASLEQ), true, )
 BINOP_NODE(ShiftRightEq, TName(T_ASREQ), true, )
 ZERO_NODE(DefaultVal, "default value", false, STATEMENTMETHOD)
+// Stands in for an expression an error was reported for, where the typechecker has to replace
+// one to stop it from being used further, see TypeChecker::Error. Its type is the error type.
+ZERO_NODE(ErrorValue, "error", false, )
 UNARY_NODE(TypeOf, TName(T_TYPEOF), false, )
 
 BINARY_NODE(Seq, "statements", false, head, tail, )
@@ -559,6 +562,9 @@ struct Call : List {
     SubFunction *sf;
     vector<UnTypeRef> specializers;
     bool super;
+    // Typechecking gave up on this call (see TypeChecker::GiveUpCall), so `sf` says nothing
+    // about it.
+    bool failed = false;
     explicit Call(GenericCall &gc, SubFunction *sf)
         : List(gc.line), sf(sf), specializers(gc.specializers), super(gc.super) {};
     Call(Line &ln, SubFunction *sf) : List(ln), sf(sf) {};

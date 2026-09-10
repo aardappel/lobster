@@ -239,6 +239,8 @@ export async function queryDefinition(
         callLobster(
             settings,
             (i) => back(parseOutput(i)),
+            // Errors elsewhere in the program don't stop the query.
+            "--errors", "99",
             file,
             "--query",
             "definition",

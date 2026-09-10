@@ -112,3 +112,4 @@ dev/xcode-cmake
 *.swp
 tags
 /tests/parser_fuzz_last.lobster
+/tests/typecheck_fuzz_last.lobster

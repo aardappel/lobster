@@ -43,6 +43,8 @@ enum ValueType : int {
                         // After the declchecker ran, guaranteed to involve
                         // unbound type variables (see collapse there).
     V_UNDEFINED,        // [typechecker only] this type should never be accessed.
+    V_ERROR,            // [typechecker only] the type of an expression an error was reported
+                        // for, which every check accepts, see TypeChecker::Error.
 };
 
 inline bool IsScalar(ValueType t) { return t == V_INT || t == V_FLOAT; }
@@ -67,6 +69,7 @@ inline RTType VT2RT(ValueType t) {
             return RTT_INT;
         case V_VAR:
         case V_UNDEFINED:
+        case V_ERROR:
             // This happens when converting compiler values that are never accessed.
             // Would be better to assert here and remove those cases, but for now
             // emit a type the runtime can't do anything with.
@@ -229,6 +232,9 @@ struct Type {
         return IsRuntimeConcrete(t) || (Wrapped() && Element()->IsConcrete());
     }
 
+    // Whether an error was reported for (part of) the expression this is the type of.
+    bool IsError() const { return HasValueType(V_ERROR); }
+
     bool FlowSensitive() const;
 
     size_t NumValues() const {
@@ -319,6 +325,7 @@ extern TypeRef type_vector_resource;
 extern TypeRef type_typeid;
 extern TypeRef type_void;
 extern TypeRef type_undefined;
+extern TypeRef type_error;
 
 TypeRef WrapKnown(UnTypeRef elem, ValueType with);
 TypeRef FixedNumStruct(ValueType num, int flen);

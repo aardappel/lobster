@@ -98,7 +98,7 @@ struct Ident : Named {
 
     void StructAssign(Lex &lex,Line *ln = nullptr) {
         struct_field_assign = true;
-        if (constant) lex.Error("variable " + name + " is a constant struct, cannot modify its fields", ln);
+        if (constant) lex.Report("variable " + name + " is a constant struct, cannot modify its fields", ln);
     }
 
     Ident *Read() {
@@ -1448,8 +1448,10 @@ struct SymbolTable {
     template<typename T> T Wrap(T elem, ValueType with, const Line *errl = nullptr) {
         if (with == V_NIL) {
             if (elem->t == V_NIL) return elem;
-            if (elem->t != V_VAR && elem->t != V_TYPEVAR && !IsNillable(elem))
-                lex.Error("cannot construct nillable type from " + Q(TypeName(elem)), errl);
+            if (elem->t != V_VAR && elem->t != V_TYPEVAR && !IsNillable(elem)) {
+                lex.Report("cannot construct nillable type from " + Q(TypeName(elem)), errl);
+                return T(&*type_error);
+            }
         }
         auto wt = WrapKnown(elem, with);
         if (!wt.Null()) return wt;
@@ -1524,7 +1526,8 @@ struct SymbolTable {
 
     bool IsNillable(UnTypeRef type) {
         return (IsRef(type->t) && type->t != V_STRUCT_R) ||
-               (type->t == V_UUDT && !type->spec_udt->gudt->is_struct);
+               (type->t == V_UUDT && !type->spec_udt->gudt->is_struct) ||
+               type->t == V_ERROR;
     }
 
     TypeVariable *NewGeneric(string_view name) {
@@ -1592,8 +1595,8 @@ struct SymbolTable {
                         if (gtv.tv == type->tv && !gtv.type.Null()) return gtv.type;
                     }
                 }
-                lex.Error(cat("could not resolve type variable ", Q(type->tv->name)), &errl);
-                return type_undefined;
+                lex.Report(cat("could not resolve type variable ", Q(type->tv->name)), &errl);
+                return type_error;
             }
             default:
                 return &*type;
@@ -1908,6 +1911,8 @@ string TypeName(UnTypeRef type, bool tuple_brackets, int depth) {
             return "undefined";
         case V_ANY:
             return "any";
+        case V_ERROR:
+            return "error";
         default:
             return "<internal-error-type>";
     }

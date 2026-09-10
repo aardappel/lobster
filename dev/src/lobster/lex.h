@@ -91,6 +91,8 @@ struct Lex : LoadedFile {
     int num_errors = 0;
     // The errors reported so far, see Report(), one per line (plus context lines).
     string errors;
+    // The first line (location and message) of each, for reporting each error once.
+    set<string> reported_errors;
     // How many tokens Next() has produced, which is how Report() tells whether the parser
     // consumed anything since the last error.
     size_t token_count = 0;
@@ -820,18 +822,22 @@ struct Lex : LoadedFile {
         THROW_OR_ABORT(err);
     }
 
-    // An error the parser recovers from, see Parser::Error. It is collected in `errors`, and
-    // parsing continues, until max_errors have been collected, at which point they are all
-    // thrown, which with the default of 1 is the same as Error(). An error about the current
-    // token (no `ln`) is dropped when the last one reported was too: it is almost certainly a
-    // consequence of that one rather than an error of its own, like each construct enclosing
-    // a bad token expecting something else in its place.
+    // An error the parser (or a later pass, see TypeChecker::Error) recovers from, see
+    // Parser::Error. It is collected in `errors`, and compilation continues, until max_errors
+    // have been collected, at which point they are all thrown, which with the default of 1 is
+    // the same as Error(). An error about the current token (no `ln`) is dropped when the
+    // last one reported was too: it is almost certainly a consequence of that one rather than
+    // an error of its own, like each construct enclosing a bad token expecting something else
+    // in its place. The same error at the same location is reported once, since a function
+    // gets typechecked once per specialization.
     void Report(string_view msg, const Line *ln = nullptr) {
         if (!ln && token_count == last_error_token) return;
         last_error_token = token_count;
+        auto err = FormatError(msg, ln);
+        if (!reported_errors.insert(err.substr(0, err.find('\n'))).second) return;
         num_errors++;
         if (!errors.empty()) errors += "\n";
-        errors += FormatError(msg, ln);
+        errors += err;
         if (num_errors >= max_errors) THROW_OR_ABORT(errors);
     }
 
