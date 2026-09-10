@@ -217,6 +217,10 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
     SymbolTable st(lex);
     Parser parser(nfr, lex, st);
     parser.Parse();
+    // The parser recovers from errors and collects them (see Parser::Error), the passes after
+    // it assume it had none, and any error they hit is fatal on the spot.
+    if (lex.num_errors) THROW_OR_ABORT(lex.errors);
+    lex.max_errors = 1;
     DeclChecker dc(st, nfr);
     dc.Check();
     if (opts.query) PrepQuery(*opts.query, filenames);
@@ -225,7 +229,6 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
         // The typechecker did not come across the location.
         if (!tc.ProcessQuery()) THROW_OR_ABORT("query_unknown_ident: " + opts.query->iden);
     }
-    if (lex.num_errors) THROW_OR_ABORT("errors encountered, aborting");
     // Optimizer is not optional, must always run, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
     Optimizer opt(st, tc, opts.runtime_checks);
@@ -383,7 +386,7 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metad
 }
 
 LString *CompileRun(VM &parent_vm, LString **result, Value source, bool stringiscode,
-                 vector<string> &&args) {
+                 vector<string> &&args, int max_errors) {
     string_view fn = stringiscode ? "string" : source.sval()->strv();  // fixme: datadir + sanitize?
     #ifdef USE_EXCEPTION_HANDLING
     try
@@ -391,6 +394,7 @@ LString *CompileRun(VM &parent_vm, LString **result, Value source, bool stringis
     {
         CompileOptions opts;
         opts.return_value = true;
+        opts.max_errors = std::max(1, max_errors);
         // FIXME: let the caller decide on the runtime checks?
         opts.jit_options = parent_vm.vma.jit_options;
         string metadata_buffer;
@@ -525,20 +529,22 @@ BuiltinGroup compiler_builtins;
 #define BUILTIN_GROUP compiler_builtins
 #define BUILTIN_SYM(name) builtin_##name
 
-BUILTIN(compile_run_code, "code,args", "SS]", "SS?",
+BUILTIN(compile_run_code, "code,args,max_errors", "SS]I?:1", "SS?",
     "compiles and runs lobster source, sandboxed from the current program (in its own VM)."
     " the argument is a string of code. returns the return value of the program as a string,"
     " with an error string as second return value, or nil if none. using parse_data(),"
     " two program can communicate more complex data structures even if they don't have the same"
-    " version of struct definitions.")
-(VM &vm, LString **result, LString *filename, LVector *args) {
-    return CompileRun(vm, result, filename, true, ValueToVectorOfStrings(args));
+    " version of struct definitions. max_errors is how many parse errors are collected (in the"
+    " error string, one per line) before giving up, default 1.")
+(VM &vm, LString **result, LString *filename, LVector *args, iint max_errors) {
+    return CompileRun(vm, result, filename, true, ValueToVectorOfStrings(args),
+                      (int)max_errors);
 }
 
 BUILTIN(compile_run_file, "filename,args", "SS]", "SS?",
     "same as compile_run_code(), only now you pass a filename.")
 (VM &vm, LString **result, LString *filename, LVector *args) {
-    return CompileRun(vm, result, filename, false, ValueToVectorOfStrings(args));
+    return CompileRun(vm, result, filename, false, ValueToVectorOfStrings(args), 1);
 }
 
 BUILTIN(compile_run_c_code, "code,input", "SS", "S?S?",

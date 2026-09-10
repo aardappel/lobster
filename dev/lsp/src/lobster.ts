@@ -138,7 +138,7 @@ export async function parseLobster(
     return new Promise<Diagnostic[]>(back => callLobster(
         settings,
         i => back(parseOutput(i)),
-        ...(settings.experimental ? ["--errors", "99"] : []),
+        "--errors", "99",
         "--compile-only",
         file,
         ...args

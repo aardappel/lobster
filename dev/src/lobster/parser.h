@@ -39,12 +39,101 @@ struct Parser {
         delete root;
     }
 
+    // Errors don't stop parsing: they get collected (see Lex::Report), and the code that hit
+    // one carries on with a placeholder for whatever it could not parse, chosen such that the
+    // rest of the parser sees well-formed data and reports as few consequential errors as
+    // possible. Compilation stops after parsing if there were any, so placeholders never reach
+    // the typechecker. The helpers below this are the common recovery patterns.
+
     template<typename... Ts> void Error(const Ts &...args) {
-        lex.Error(cat(args...), nullptr);
+        lex.Report(cat(args...), nullptr);
     }
 
     template<typename... Ts> void ErrorAt(const Node *what, const Ts &...args) {
-        lex.Error(cat(args...), what ? &what->line : nullptr);
+        lex.Report(cat(args...), what ? &what->line : nullptr);
+    }
+
+    // Stands in for an expression that failed to parse.
+    Node *ErrorExp() { return new IntConstant(lex, 0); }
+
+    template<typename... Ts> Node *ErrorExp(const Ts &...args) {
+        Error(args...);
+        return ErrorExp();
+    }
+
+    // Stands in for a type that failed to parse.
+    template<typename T = UnTypeRef> T ErrorType() { return T(type_any); }
+
+    // Gives a reference to a generic type as many specializers as the type has generics, for
+    // after an error in (or the absence of) its specializer list, since everything downstream
+    // assumes those match.
+    void PadSpecializers(SpecUDT &su) {
+        while (su.specializers.size() < su.gudt->generics.size())
+            su.specializers.push_back(&*ErrorType());
+    }
+
+    // Skips tokens until one of `ts`, or, when that is not found first, the end of the current
+    // statement (the linefeed, dedent or end of file ending it), leaving that as the current
+    // token. Bracketed groups and indented blocks in between are skipped whole, since stopping
+    // inside one would make an enclosing construct end in the wrong place. Returns whether it
+    // found one of `ts`. Whatever it stopped at is not blamed for further errors, since it is
+    // not what the error was about.
+    template<typename... Ts> bool SkipTo(Ts... ts) {
+        int depth = 0;
+        for (;; lex.Next()) {
+            auto t = lex.token;
+            if (t == T_ENDOFFILE || t == T_ENDOFINCLUDE) break;
+            if (!depth && (((t == ts) || ...) || t == T_LINEFEED || t == T_DEDENT)) break;
+            switch (t) {
+                case T_INDENT:
+                case T_LEFTPAREN:
+                case T_LEFTBRACKET:
+                case T_LEFTCURLY:
+                case T_STR_INT_START:
+                    depth++;
+                    break;
+                case T_DEDENT:
+                case T_RIGHTPAREN:
+                case T_RIGHTBRACKET:
+                case T_RIGHTCURLY:
+                case T_STR_INT_END:
+                    // At depth 0 this closes a group the caller gave up on.
+                    if (depth) depth--;
+                    break;
+                default:
+                    break;
+            }
+        }
+        lex.SuppressErrorsHere();
+        return ((lex.token == ts) || ...);
+    }
+
+    // For loops over lines (statements, fields, enum values, cases): after parsing one, it
+    // must be at the end of its line. Anything else there is an error, unless one was already
+    // reported inside it (in which case it is what that error left behind), and gets skipped.
+    void EndOfLine(int errors_before) {
+        if (Either(T_LINEFEED, T_DEDENT, T_ENDOFFILE, T_ENDOFINCLUDE)) return;
+        if (lex.num_errors == errors_before)
+            Error("end of line expected, found ", Q(lex.TokStr()));
+        SkipTo();
+    }
+
+    // The separator between two elements of a list ending in `closing`. When it is missing,
+    // reports that and skips the rest of the list, leaving `closing` (if found) for the
+    // caller. Returns whether the list continues.
+    bool ListSep(TType sep, TType closing) {
+        if (IsNext(sep)) return true;
+        Expected(sep);
+        SkipTo(closing);
+        return false;
+    }
+
+    // The closing token of a bracketed group. When it is missing, skips to it (or the end of
+    // the statement), such that the caller continues after the group.
+    void ExpectClosing(TType t) {
+        if (IsNext(t)) return;
+        Expected(t);
+        if (SkipTo(t)) lex.Next();
     }
 
     template<typename... Ts> void Warn(const Ts &...args) {
@@ -88,31 +177,9 @@ struct Parser {
 
     void ParseStatements(Block *block, TType terminator) {
         for (;;) {
-            #ifdef USE_EXCEPTION_HANDLING
-                if (lex.max_errors > 1) {
-                    // We're going to attempt error recovery by catching parsing errors!
-                    try {
-                        ParseTopExp(block);
-                    } catch (string &s) {
-                        if (lex.num_errors >= lex.max_errors) {
-                            THROW_OR_ABORT(s);
-                        }
-                        LOG_ERROR(s);
-                        // Consume rest of statement tokens in the hope next statement is
-                        // again parseable.
-                        while (!Either(T_LINEFEED, T_DEDENT, T_ENDOFFILE, T_ENDOFINCLUDE))
-                            lex.Next();
-                        // In several places we assume a Block is never empty, and given that error
-                        // recovery is the exception, we fix that here by inserting a dummy statement,
-                        // rather than changing how we handle blocks.
-                        block->Add(new Nil(lex, { nullptr }));
-                    }
-                } else {
-                    ParseTopExp(block);
-                }
-            #else
-                ParseTopExp(block);
-            #endif
+            auto errors_before = lex.num_errors;
+            ParseTopExp(block);
+            EndOfLine(errors_before);
             if (lex.token == T_ENDOFINCLUDE) {
                 st.EndOfInclude();
                 lex.PopIncludeContinue();
@@ -125,11 +192,12 @@ struct Parser {
         if (!block->Arity()) {
             // Typically can't happen, but statements like "attribute" don't generate a node.
             Error("block can\'t be empty");
+            block->Add(ErrorExp());
         }
         auto b = block->children.back();
         if (Is<EnumRef>(b) || Is<GUDTRef>(b) || Is<UDTRef>(b) || Is<FunRef>(b) || Is<Define>(b)) {
-            if (terminator == T_ENDOFFILE) block->Add(new IntConstant(lex, 0));
-            else Error("last expression in block can\'t be a definition");
+            if (terminator != T_ENDOFFILE) Error("last expression in block can\'t be a definition");
+            block->Add(new IntConstant(lex, 0));
         }
         CleanupStatements(block);
     }
@@ -203,6 +271,7 @@ struct Parser {
             case T_INCLUDE: {
                 if (isprivate)
                     Error("import cannot be private");
+                auto errors_before = lex.num_errors;
                 lex.Next();
                 if (IsNext(T_FROM)) {
                     string fn = std::move(lex.sval);
@@ -240,6 +309,8 @@ struct Parser {
                     // The lexer generates no linefeed at the end of a file, so
                     // an import may be the last thing in one.
                     if (!AtEndOfFile()) Expect(T_LINEFEED);
+                    // What a malformed import names is not worth looking for.
+                    if (lex.num_errors != errors_before) break;
                     // A file already imported elsewhere is not included again,
                     // and thus also has no T_ENDOFINCLUDE to close a scope with.
                     if (lex.Include(fn, true, relative)) st.StartOfInclude();
@@ -284,28 +355,34 @@ struct Parser {
                 def->isprivate = isprivate;
                 def->flags = !incremental;
                 Expect(T_COLON);
-                Expect(T_INDENT);
-                for (;;) {
-                    auto evname = st.MaybeMakeNameSpace(ExpectId(), true);
-                    if (IsNext(T_ASSIGN)) {
-                        auto e = ParseExp();
-                        VTValue val;
-                        auto t = e->ConstVal(nullptr, val);
-                        delete e;
-                        if (t != V_INT)
-                            Error("enum value expression must evaluate to an integer constant");
-                        cur = val.i;
+                if (!IsNext(T_INDENT)) {
+                    Expected(T_INDENT);
+                } else {
+                    for (;;) {
+                        auto errors_before = lex.num_errors;
+                        auto evname = st.MaybeMakeNameSpace(ExpectId(), true);
+                        if (IsNext(T_ASSIGN)) {
+                            auto e = ParseExp();
+                            VTValue val;
+                            auto t = e->ConstVal(nullptr, val);
+                            delete e;
+                            if (t != V_INT)
+                                Error("enum value expression must evaluate to an integer constant");
+                            else
+                                cur = val.i;
+                        }
+                        auto ev = st.EnumValLookup(evname, true);
+                        ev->isprivate = isprivate;
+                        ev->val = cur;
+                        ev->e = def;
+                        def->vals.emplace_back(ev);
+                        if (incremental) cur++; else cur *= 2;
+                        if (IsNext(T_COMMA)) continue;
+                        EndOfLine(errors_before);
+                        if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
                     }
-                    auto ev = st.EnumValLookup(evname, true);
-                    ev->isprivate = isprivate;
-                    ev->val = cur;
-                    ev->e = def;
-                    def->vals.emplace_back(ev);
-                    if (incremental) cur++; else cur *= 2;
-                    if ((!IsNext(T_LINEFEED) && !IsNext(T_COMMA)) ||
-                        Either(T_ENDOFFILE, T_DEDENT)) break;
+                    Expect(T_DEDENT);
                 }
-                Expect(T_DEDENT);
                 list->Add(new EnumRef(line, def));
                 break;
             }
@@ -328,9 +405,9 @@ struct Parser {
                         st.declared_explicit_free_variables.insert(id);
                         if (!IsNext(T_COMMA)) break;
                     }
+                } else if (lex.token != T_VAR && lex.token != T_CONST) {
+                    Error("nonlocal must be followed by var, let or from");
                 } else {
-                    if (lex.token != T_VAR && lex.token != T_CONST)
-                        Error("nonlocal must be followed by var, let or from");
                     list->Add(ParseDefine(isprivate, false, true));
                 }
                 break;
@@ -387,7 +464,10 @@ struct Parser {
                 bool frame = lex.token == T_MEMBER_FRAME;
                 lex.Next();
                 if (isprivate) Error("member declaration is always private");
-                if (gudtstack.empty()) Error("member declaration outside of class scope");
+                if (gudtstack.empty()) {
+                    Error("member declaration outside of class scope");
+                    break;
+                }
                 // FIXME: this would also allow it to be declared in nested functions, which is
                 // not really a direct problem but may want to tighten it up.
                 auto gudt = gudtstack.back();
@@ -501,11 +581,13 @@ struct Parser {
         }
         if (IsNext(T_ASSIGN)) {
             def->child = iscond ? ParseOpExp(5 /* no and/or */) : ParseMultiRet(ParseOpExp());
+        } else if (iscond) {
+            Error("variable definition in condition must have initializer");
+            def->child = ErrorExp();
+        } else if (has_predeclaration_init) {
+            Error("missing initialization");
+            def->child = ErrorExp();
         } else {
-            if (iscond)
-                Error("variable definition in condition must have initializer");
-            if (has_predeclaration_init)
-                Error("missing initialization");
             if (st.scopelevels.size() != 1)
                 // For now, since we track it in Idents which don't work with specialization in TC.
                 Error("variable pre-declarations only allowed at top level");
@@ -559,13 +641,18 @@ struct Parser {
         }
         if (local_member && !init) {
             Error("must specify default value");
+            init = ErrorExp();
         }
         if (type.Null()) {
-            if (!init) Error("must specify either type or default value");
-            type = init->CFType();
-            if (type.Null()) {
-                // More complex exp, must be typechecked later.
-                type = type_any;
+            if (!init) {
+                Error("must specify either type or default value");
+                type = ErrorType();
+            } else {
+                type = init->CFType();
+                if (type.Null()) {
+                    // More complex exp, must be typechecked later.
+                    type = type_any;
+                }
             }
         }
         gudt->fields.push_back(Field(&sfield, type, init, member_private, !local_member, lex));
@@ -591,14 +678,20 @@ struct Parser {
             auto udt = st.MakeSpecialization(*gsup, sname, true, true);
             Expect(T_LT);
             ParseSpecializerList([&]() {
+                auto type = ParseType<TypeRef>(false, nullptr, false);
                 if (udt->bound_generics.size() == gsup->generics.size())
                     Error("too many type specializers");
-                udt->bound_generics.push_back(ParseType<TypeRef>(false, nullptr, false));
+                else
+                    udt->bound_generics.push_back(type);
             });
             if (isprivate != gsup->isprivate) Error("specialization must have same privacy level");
             if (gsup->predeclaration) Error("must specialize fully defined type");
             if (is_abstract) Error("specialization cannot be abstract");
-            if (udt->bound_generics.size() != gsup->generics.size()) Error("missing specializers");
+            if (udt->bound_generics.size() != gsup->generics.size()) {
+                Error("missing specializers");
+                while (udt->bound_generics.size() != gsup->generics.size())
+                    udt->bound_generics.push_back(ErrorType<TypeRef>());
+            }
             st.ResolveFields(*udt, lex);
             parent_list->Add(new UDTRef(line, udt));
             return;
@@ -614,15 +707,19 @@ struct Parser {
             if (IsNext(T_LT)) {
                 if (was_predeclaration)
                     Error("pre-declared type cannot be made generic afterwards");
-                for (;;) {
-                    auto id = ExpectId();
+                ParseSpecializerList([&]() {
+                    // A missing name declares nothing, rather than a placeholder generic
+                    // that then makes every use of the type have too few specializers.
+                    if (!IsNextId()) {
+                        Expected(T_IDENT);
+                        return;
+                    }
+                    auto id = lastid;
                     for (auto &g : gudt->generics)
                         if (g.tv->name == id)
                             Error("re-declaration of generic type");
                     gudt->generics.push_back({ TypeRef { nullptr }, st.NewGeneric(id) });
-                    if (IsNext(T_GT)) break;
-                    Expect(T_COMMA);
-                }
+                });
             }
             Expect(T_COLON);
             if (!gudt->IsGeneric()) {
@@ -640,7 +737,11 @@ struct Parser {
                 auto sup = ParseSup(is_struct);
                 auto gsup = sup.first;
                 auto ssup = sup.second;
-                if (gsup == gudt) Error("can\'t inherit from ", Q(lastid));
+                if (gsup == gudt) {
+                    Error("can\'t inherit from ", Q(lastid));
+                    gsup = &st.ErrorStruct();
+                    ssup = nullptr;
+                }
                 gsup->has_subclasses = true;
                 for (auto &fld : gsup->fields) {
                     gudt->fields.push_back(fld);
@@ -654,35 +755,41 @@ struct Parser {
                     auto &specializers = gudt->gsuperclass->spec_udt->specializers;
                     if (IsNext(T_LT)) {
                         ParseSpecializerList([&]() {
+                            auto type = ParseType(false);
                             if (specializers.size() == gsup->generics.size())
                                 Error("too many type specializers");
-                            specializers.push_back(&*ParseType(false));
+                            else
+                                specializers.push_back(&*type);
                         });
                     }
                     st.bound_typevars_stack.pop_back();
                     if (specializers.size() < gsup->generics.size())
                         Error("too few type specializers");
+                    PadSpecializers(*gudt->gsuperclass->spec_udt);
                 }
             }
             if (IsNext(T_INDENT)) {
                 bool fieldsdone = false;
                 st.bound_typevars_stack.push_back(gudt->generics);
                 for (;;) {
+                    auto errors_before = lex.num_errors;
                     if (IsNext(T_ATTRIBUTE)) {
                         auto [key, value] = ParseAttribute(gudt->attributes);
                         if (key == "serializable") {
-                            if (!udt || gudt->IsGeneric() || is_abstract || is_struct)
+                            if (!udt || gudt->IsGeneric() || is_abstract || is_struct) {
                                 Error("serializable attribute only for non-generic non-abstract classes");
-                            if (value.empty()) {
-                                ++serializable_id_last;
                             } else {
-                                serializable_id_last = parse_int<int>(value);
-                                if (serializable_id_last < 0 || serializable_id_last > 0x10000)
-                                    Error("serializable attribute value out of range");
+                                if (value.empty()) {
+                                    ++serializable_id_last;
+                                } else {
+                                    serializable_id_last = parse_int<int>(value);
+                                    if (serializable_id_last < 0 || serializable_id_last > 0x10000)
+                                        Error("serializable attribute value out of range");
+                                }
+                                udt->serializable_id = serializable_id_last;
+                                serializable_id_max =
+                                    std::max(serializable_id_last, serializable_id_max);
                             }
-                            udt->serializable_id = serializable_id_last;
-                            serializable_id_max =
-                                std::max(serializable_id_last, serializable_id_max);
                         }
                     } else {
                         bool member_private = IsNext(T_PRIVATE);
@@ -697,6 +804,7 @@ struct Parser {
                             ParseField(gudt, member_private, false);
                         }
                     }
+                    EndOfLine(errors_before);
                     if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
                 }
                 Expect(T_DEDENT);
@@ -781,7 +889,11 @@ struct Parser {
         size_t gen_generics = 0;
         {
             again:
-            if (gen_generics == 26) Error("too many implicit generics");
+            if (gen_generics == 26) {
+                Error("too many implicit generics");
+                ov->givenargs.push_back({ ErrorType() });
+                return;
+            }
             nn = { typevar_names + gen_generics++, 1 };
             for (auto &btv : sf->generics) if (btv.tv->name == nn) goto again;
         }
@@ -811,14 +923,17 @@ struct Parser {
             // TODO: can this be extended to non-named functions syntactically?
             if (IsNext(T_LT)) {
                 sf->explicit_generics = true;
-                for (;;) {
-                    auto ng = st.NewGeneric(ExpectId());
+                ParseSpecializerList([&]() {
+                    // See the same in ParseTypeDecl.
+                    if (!IsNextId()) {
+                        Expected(T_IDENT);
+                        return;
+                    }
+                    auto ng = st.NewGeneric(lastid);
                     for (auto &btv : sf->generics) if (btv.tv->name == ng->name)
                         Error("re-definition of generic ", Q(ng->name));
                     sf->generics.push_back({ { nullptr }, ng });
-                    if (IsNext(T_GT)) break;
-                    Expect(T_COMMA);
-                }
+                });
             }
         }
         st.bound_typevars_stack.push_back(sf->generics);
@@ -862,14 +977,15 @@ struct Parser {
                     st.PopOutOfFunctionScope([&]() {
                         default_args.push_back(ParseExp());
                     });
-                } else {
-                    if (first_default_arg >= 0) Error("missing default argument");
+                } else if (first_default_arg >= 0) {
+                    Error("missing default argument");
+                    default_args.push_back(ErrorExp());
                 }
                 if (!IsNext(T_COMMA)) break;
                 if (sf->args.size() == maxargs) Error("too many arguments for ", Q(*name));
             }
         }
-        if (parens) Expect(T_RIGHTPAREN);
+        if (parens) ExpectClosing(T_RIGHTPAREN);
         auto &f = name ? st.FunctionDecl(*name, nargs) : st.CreateFunction("");
         auto nf = natreg.FindNative(f.name);
         if (nf && nf->args.size() >= nargs) {
@@ -891,12 +1007,15 @@ struct Parser {
             f.default_args = default_args;
             f.is_constructor_of = is_constructor_of;
         } else {
-            if (f.first_default_arg != first_default_arg)
+            if (f.first_default_arg != first_default_arg) {
                 Error("number of default arguments must be the same as previous overload");
-            for (auto [i, da] : enumerate(f.default_args)) {
-                if (da && !da->Equal(default_args[i]))
-                    Error("default argument ", i + 1, " must be same as previous overload");
-                delete default_args[i];
+                for (auto da : default_args) delete da;
+            } else {
+                for (auto [i, da] : enumerate(f.default_args)) {
+                    if (da && !da->Equal(default_args[i]))
+                        Error("default argument ", i + 1, " must be same as previous overload");
+                    delete default_args[i];
+                }
             }
             if (f.is_constructor_of != is_constructor_of)
                 Error("either all overloads of ", Q(f.name), " must be a constructor, or none");
@@ -933,14 +1052,21 @@ struct Parser {
                 ov->freevardecls.push_back(new ExplicitFreeVar { id, type });
                 if (!IsNext(T_COMMA)) break;
             }
-            Expect(T_RIGHTBRACKET);
+            ExpectClosing(T_RIGHTBRACKET);
         }
         if (IsNext(T_RETURNTYPE)) {  // Return type decl.
             sf->returngiventype = ParseTypes(sf);
         }
-        if (!IsNext(T_COLON)) {
+        auto has_body = IsNext(T_COLON);
+        if (!has_body &&
+            (!name || !Either(T_LINEFEED, T_DEDENT, T_ENDOFFILE, T_ENDOFINCLUDE))) {
+            // An anonymous function always has a body, and so does a header that is followed
+            // by anything at all (an indented block, or a one-liner): the `:` is missing.
+            Expected(T_COLON);
+            has_body = true;
+        }
+        if (!has_body) {
             // This must be a function type.
-            if (lex.token == T_IDENT || !name) Expect(T_COLON);
             if (f.istype || f.overloads.size() > 1)
                 Error("redefinition of function type ", Q(*name));
             f.istype = true;
@@ -948,13 +1074,18 @@ struct Parser {
             if (in_class || st.scopelevels.size() != 2)
                 Error("function type must be declared at top level");
             for (auto [i, arg] : enumerate(sf->args)) {
-                if (st.IsGeneric(ov->givenargs[i]))
+                // The self argument of a method is of the class's unspecialized type, whose
+                // specializers are only filled in once its body is done, so can't be
+                // asked whether it is generic (a method can't be a function type anyway).
+                if (!in_class && st.IsGeneric(ov->givenargs[i]))
                     Error("function type arguments can\'t be generic (missing ", Q(":"), " ?)");
                 // No idea what the function is going to be, so have to default to borrow.
                 arg.sid->lt = LT_BORROW;
             }
-            if (sf->returngiventype.Null())
+            if (sf->returngiventype.Null()) {
                 Error("missing return type or ", Q(":"), " in function definition header");
+                sf->returngiventype = ErrorType();
+            }
             if (!sf->generics.empty())
                 Error("function type cannot have generics");
             sf->reqret = sf->returngiventype->NumValues();
@@ -998,20 +1129,18 @@ struct Parser {
         return new FunRef(line, sf);
     }
 
-    // The type specializers between < and >, `f` parsing each. The > is an operator to the
-    // lexer, which would take a line break after it as continuing the line.
+    // The type specializers (or generic type names) between < and >, `f` parsing each. The >
+    // is an operator to the lexer, which would take a line break after it as continuing the
+    // line.
     template<typename F> void ParseSpecializerList(F f) {
         lex.allow_shift_right = false;
         for (;;) {
             f();
-            if (lex.token == T_GT) {
-                lex.allow_shift_right = true;
-                lex.OverrideCont(false);
-                lex.Next();
-                break;
-            }
-            Expect(T_COMMA);
+            if (lex.token == T_GT || !ListSep(T_COMMA, T_GT)) break;
         }
+        lex.allow_shift_right = true;
+        lex.OverrideCont(false);
+        Expect(T_GT);
     }
 
     // The return types of a function, which are a tuple when there is more than one.
@@ -1060,12 +1189,16 @@ struct Parser {
                 Expect(T_LT);
                 auto id = ExpectId();
                 auto rt = LookupResourceType(id);
-                if (!rt) Error("unknown resource type ", Q(id));
+                if (rt) {
+                    dest = &rt->thistype;
+                } else {
+                    Error("unknown resource type ", Q(id));
+                    dest = ErrorType<T>();
+                }
                 // This may be the end of the line, so make sure Lex doesn't see it
                 // as a GT op.
                 lex.OverrideCont(false);
                 Expect(T_GT);
-                dest = &rt->thistype;
                 break;
             }
             case T_IDENT: {
@@ -1091,8 +1224,9 @@ struct Parser {
                 lex.Next();
                 if (udt) {
                     dest = &udt->thistype;
-                    if (lex.token == T_LT) {
+                    if (IsNext(T_LT)) {
                         Error("concrete type ", Q(udt->g.name), " does not take generic parameters");
+                        ParseSpecializerList([&]() { ParseType<T>(false, nullptr, allow_unresolved); });
                     }
                 } else {
                     if (IsNext(T_LT)) {
@@ -1103,18 +1237,26 @@ struct Parser {
                                     "named specialization)");
                         }
                         dest = (const Type *)st.NewSpecUDT(gudt).get();
+                        auto &specializers = dest->spec_udt->specializers;
                         ParseSpecializerList([&]() {
-                            dest->spec_udt->specializers.push_back(
-                                &*ParseType<T>(false, nullptr, allow_unresolved));
+                            auto type = ParseType<T>(false, nullptr, allow_unresolved);
+                            if (specializers.size() == gudt->generics.size())
+                                Error("too many type specializers");
+                            else
+                                specializers.push_back(&*type);
                         });
+                        if (specializers.size() < gudt->generics.size())
+                            Error("too few type specializers");
+                        PadSpecializers(*dest->spec_udt);
                     } else {
-                        if (gudt->predeclaration) {
-                            dest = (const Type *)st.NewSpecUDT(gudt).get();
-                        } else if (allow_unresolved) {
-                            Error("use of type ", Q(gudt->name), " requires specializers");
-                        } else {
-                            Error(Q(gudt->name), " is not a concrete type");
+                        if (!gudt->predeclaration) {
+                            if (allow_unresolved)
+                                Error("use of type ", Q(gudt->name), " requires specializers");
+                            else
+                                Error(Q(gudt->name), " is not a concrete type");
                         }
+                        dest = (const Type *)st.NewSpecUDT(gudt).get();
+                        PadSpecializers(*dest->spec_udt);
                     }
                 }
                 break;
@@ -1122,7 +1264,7 @@ struct Parser {
             case T_LEFTBRACKET: {
                 lex.Next();
                 T elem = ParseType<T>(false, nullptr, allow_unresolved);
-                Expect(T_RIGHTBRACKET);
+                ExpectClosing(T_RIGHTBRACKET);
                 dest = st.Wrap(elem, V_VECTOR);
                 break;
             }
@@ -1136,12 +1278,14 @@ struct Parser {
                 [[fallthrough]];
             default:
                 Error("illegal type syntax: ", Q(lex.TokStr()));
+                dest = ErrorType<T>();
         }
         assert(!dest.Null() && dest->t != V_UNDEFINED);
         if (IsNext(T_QUESTIONMARK)) {
             if (!st.IsNillable(dest) && dest->t != V_TYPEVAR)
                 Error("value types can\'t be made nilable");
-            dest = st.Wrap(dest, V_NIL);
+            else
+                dest = st.Wrap(dest, V_NIL);
         }
         if (withtype && dest->t != V_UUDT && !IsUDT(dest->t))
             Error(":: must be used with a class type");
@@ -1166,7 +1310,7 @@ struct Parser {
                 Node *iter;
                 if (IsNext(T_LEFTPAREN)) {
                     iter = ParseExp(false);
-                    Expect(T_RIGHTPAREN);
+                    ExpectClosing(T_RIGHTPAREN);
                     list->Add(new For(line, iter, ParseBlock(0, true, allow_multi_assign)));
                 } else {
                     iter = ParseExp(true);
@@ -1196,18 +1340,19 @@ struct Parser {
                 auto sf = st.toplevel;
                 if (IsNext(T_FROM)) {
                     if(!IsNext(T_PROGRAM)) {
-                        if (!IsNextId())
+                        if (!IsNextId()) {
                             Error(Q("return from"), " must be followed by function identifier or ",
                                   Q("program"));
-                        auto f = st.FindFunction(lastid);
-                        if (!f)
+                        } else if (auto f = st.FindFunction(lastid); !f) {
                             Error(Q(lastid), " is not a known function for use with ",
                                   Q("return from"));
-                        if (f->sibf || f->overloads.size() > 1)
+                        } else if (f->sibf || f->overloads.size() > 1) {
                             Error("function ", Q(lastid),
                                   " must have single implementation to be used with ",
                                   Q("return from"));
-                        sf = f->overloads[0]->sf;
+                        } else {
+                            sf = f->overloads[0]->sf;
+                        }
                     }
                 } else {
                     if (namedfunctionstack.size())
@@ -1239,11 +1384,9 @@ struct Parser {
                     auto al = new AssignList(lex, Modify(e));
                     while (IsNext(T_COMMA)) {
                         e = ParseDeref();
-                        if (Is<IdentRef>(e) || Is<Dot>(e) || Is<GenericCall>(e)) {
-                            al->children.push_back(Modify(e));
-                        } else {
+                        if (!Is<IdentRef>(e) && !Is<Dot>(e) && !Is<GenericCall>(e))
                             Error("assignment list elements must be variables or class members");
-                        }
+                        al->children.push_back(Modify(e));
                     }
                     Expect(T_ASSIGN);
                     al->children.push_back(ParseMultiRet(ParseOpExp()));
@@ -1259,7 +1402,7 @@ struct Parser {
     Node *ParseExpCond(Block *list) {
         if (lex.token == T_CONST || lex.token == T_VAR) {
             if (!list)
-                Error("declaration inside condition only allowed as statement");
+                return ErrorExp("declaration inside condition only allowed as statement");
             DS<bool> ds(call_noparens, true);
             Node *andexp = nullptr;
             for (;;) {
@@ -1271,8 +1414,11 @@ struct Parser {
                 andexp = andexp ? (Node *)new And(lex, andexp, idexp) : (Node *)idexp;
                 if (lex.token != T_AND) break;
                 lex.Next();
-                if (lex.token != T_CONST && lex.token != T_VAR)
+                if (lex.token != T_CONST && lex.token != T_VAR) {
                     Error("expected ", Q("let"), " or ", Q("var"), " after ", Q("and"));
+                    andexp = new And(lex, andexp, ParseExp(true));
+                    break;
+                }
             }
             return andexp;
         } else {
@@ -1414,7 +1560,10 @@ struct Parser {
                     }
                     break;
                 }
-                if (needscomma) Expect(T_COMMA);
+                if (needscomma && !ListSep(T_COMMA, T_RIGHTPAREN)) {
+                    if (lex.token == T_RIGHTPAREN) continue;
+                    break;
+                }
                 list.push_back(ParseExp(noparenscall));
                 if (noparenscall) {
                     if (lex.token == T_COLON) break;
@@ -1507,7 +1656,7 @@ struct Parser {
             case T_LEFTBRACKET: {
                 lex.Next();
                 n = new Indexing(lex, n, ParseExp());
-                Expect(T_RIGHTBRACKET);
+                ExpectClosing(T_RIGHTBRACKET);
                 break;
             }
             case T_INCR:
@@ -1566,7 +1715,7 @@ struct Parser {
                     if (lex.token == T_STR_INT_MIDDLE) {
                         lex.Next();
                     } else {
-                        Expect(T_STR_INT_END);
+                        ExpectClosing(T_STR_INT_END);
                         return si;
                     }
                 }
@@ -1575,8 +1724,11 @@ struct Parser {
                 lex.Next();
                 auto n = new Nil(lex, { nullptr });
                 if (IsNext(T_TYPEIN)) {
-                    n->giventype = ParseType(false);
-                    n->giventype = st.Wrap(n->giventype, V_NIL);
+                    auto type = ParseType(false);
+                    if (type->t != V_TYPEVAR && !st.IsNillable(type))
+                        Error("cannot construct nillable type from ", Q(TypeName(type)));
+                    else
+                        n->giventype = st.Wrap(type, V_NIL);
                 }
                 return n;
             }
@@ -1586,7 +1738,7 @@ struct Parser {
                 if (lex.token == T_COMMA) {
                     n = ParseMultiRet(n);
                 }
-                Expect(T_RIGHTPAREN);
+                ExpectClosing(T_RIGHTPAREN);
                 return n;
             }
             case T_LEFTBRACKET: {
@@ -1618,7 +1770,7 @@ struct Parser {
                 // identifier for calls.
                 auto idname = lex.sattr;
                 lex.Next();
-                if (lex.token != T_LEFTPAREN) Error("type used as expression");
+                if (lex.token != T_LEFTPAREN) return ErrorExp("type used as expression");
                 return IdentFactor(idname);
             }
             case T_TYPEOF: {  // ident or type.
@@ -1669,11 +1821,15 @@ struct Parser {
                 Line line = lex;
                 auto value = ParseExp(true);
                 Expect(T_COLON);
-                Expect(T_INDENT);
                 bool have_default = false;
                 bool have_out_of_range = false;
                 auto cases = new List(lex);
+                if (!IsNext(T_INDENT)) {
+                    Expected(T_INDENT);
+                    return new Switch(line, value, cases);
+                }
                 for (;;) {
+                    auto errors_before = lex.num_errors;
                     List *pattern = new List(lex);
                     Line cline = lex;
                     bool out_of_range = false;
@@ -1716,22 +1872,20 @@ struct Parser {
                                 }
                             }
                             pattern->Add(f);
-                            if (lex.token == T_COLON) break;
-                            Expect(T_COMMA);
+                            if (lex.token == T_COLON || !ListSep(T_COMMA, T_COLON)) break;
                         }
                     }
                     auto cas = new Case(cline, pattern, ParseBlock());
                     cas->out_of_range = out_of_range;
                     cases->Add(cas);
-                    if (!IsNext(T_LINEFEED)) break;
-                    if (lex.token == T_DEDENT) break;
+                    EndOfLine(errors_before);
+                    if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
                 }
                 Expect(T_DEDENT);
                 return new Switch(line, value, cases);
             }
             default:
-                Error("illegal start of expression: ", Q(lex.TokStr()));
-                return nullptr;
+                return ErrorExp("illegal start of expression: ", Q(lex.TokStr()));
         }
     }
 
@@ -1778,7 +1932,7 @@ struct Parser {
         else if (existing == 1)
             init = new ForLoopCounter(lex);
         else
-            Error("for loop takes at most an element and index variable");
+            init = ErrorExp("for loop takes at most an element and index variable");
         auto def = new Define(lex, init);
         def->tsids.push_back({ sid , type });
         list.insert(existing, def);
@@ -1808,7 +1962,7 @@ struct Parser {
                 for_args++;
                 if (!IsNext(T_COMMA)) break;
             }
-            if (parens) Expect(T_RIGHTPAREN);
+            if (parens) ExpectClosing(T_RIGHTPAREN);
         }
         Expect(T_COLON);
         ParseBody(block, for_args, allow_multi_assign);
@@ -1821,9 +1975,9 @@ struct Parser {
         assert(lex.token != T_INDENT);  // Not generated inside brackets/braces.
         for (;;) {
             f();
-            if (!IsNext(T_COMMA) || lex.token == closing) break;
+            if (lex.token == closing || !ListSep(T_COMMA, closing) || lex.token == closing) break;
         }
-        Expect(closing);
+        ExpectClosing(closing);
     }
 
     vector<UnTypeRef> ParseSpecializers(bool likely_named_function) {
@@ -1831,15 +1985,7 @@ struct Parser {
         // Check for function call with generic params.
         // This is not a great way to distinguish from < operator exps, but best we can do?
         if (likely_named_function && lex.whitespacebefore == 0 && IsNext(T_LT)) {
-            lex.allow_shift_right = false;
-            for (;;) {
-                specializers.push_back(ParseType(false));
-                if (IsNext(T_GT)) {
-                    lex.allow_shift_right = true;
-                    break;
-                }
-                Expect(T_COMMA);
-            }
+            ParseSpecializerList([&]() { specializers.push_back(ParseType(false)); });
         }
         return specializers;
     }
@@ -1912,16 +2058,14 @@ struct Parser {
         }
         if (!type.Null()) {
             Expect(T_LEFTCURLY);
-            if (type->t == V_TYPEVAR) {
-                // Which fields this has is only known once the type variable is
-                // bound, so tags, defaults and the arg count are all resolved
-                // by AutoConstructor::TypeCheck, same as for a named type.
-                auto constructor = AssertIs<AutoConstructor>(ParseAutoConstructor());
-                constructor->giventype = type;
-                return constructor;
-            } else {
+            if (type->t != V_TYPEVAR)
                 Error("type ", Q(TypeName(type)), " does not have a {} constructor");
-            }
+            // Which fields this has is only known once the type variable is
+            // bound, so tags, defaults and the arg count are all resolved
+            // by AutoConstructor::TypeCheck, same as for a named type.
+            auto constructor = AssertIs<AutoConstructor>(ParseAutoConstructor());
+            constructor->giventype = type;
+            return constructor;
         }
         // If we see "f(" the "(" is the start of an argument list, but for "f (", "(" is
         // part of an expression of a single argument with no extra "()".
@@ -1937,7 +2081,7 @@ struct Parser {
             if (e && !f && !nf) {
                 lex.Next();
                 auto ec = new EnumCoercion(lex, ParseExp(), e);
-                Expect(T_RIGHTPAREN);
+                ExpectClosing(T_RIGHTPAREN);
                 return ec;
             }
             return ParseFunctionCall(lex, f, idname, nullptr, false, nullptr);
@@ -1948,13 +2092,15 @@ struct Parser {
         // Check for implicit variable.
         if (idname[0] == '_') {
             if (block_stack.empty())
-                Error("cannot add implicit argument ", Q(idname), " at top level");
+                return ErrorExp("cannot add implicit argument ", Q(idname), " at top level");
             auto &bs = block_stack.back();
             auto id = st.Lookup(idname);
             auto sf = st.defsubfunctionstack.back();
             if (!id || id->cursid->sf_def != sf) {
                 if (bs.for_nargs >= 0) {
                     id = st.LookupDef(idname, true, false);
+                    // One of an enclosing function (an error LookupDef reported) is used as is.
+                    if (id->cursid->sf_def != sf) return new IdentRef(lex, id->cursid);
                     if (bs.for_nargs > 0) {
                         Error("cannot add implicit argument ", Q(idname), " to ", Q("for"),
                               " with existing arguments");
@@ -1964,6 +2110,7 @@ struct Parser {
                     bs.implicits++;
                 } else {
                     id = st.LookupDef(idname, false, false);
+                    if (id->cursid->sf_def != sf) return new IdentRef(lex, id->cursid);
                     if (st.defsubfunctionstack.size() <= 1)
                         Error("cannot add implicit argument ", Q(idname), " to top level");
                     if (!sf->parent->anonymous)
@@ -2017,8 +2164,8 @@ struct Parser {
         }
         // It's likely a regular variable.
         if (!id) {
-            if (f || nf) Error("can\'t use named function ", Q(idname), " as value");
-            else Error("unknown identifier ", Q(idname));
+            if (f || nf) return ErrorExp("can\'t use named function ", Q(idname), " as value");
+            else return ErrorExp("unknown identifier ", Q(idname));
         }
         if (OutsideFieldInit(id->cursid->sf_def))
             Error("local variable ", Q(idname), " cannot be used in a ", Q("member"),
@@ -2042,9 +2189,14 @@ struct Parser {
         return true;
     }
 
+    // Where an identifier is expected but there is none: a name nothing else can have, such
+    // that whatever gets declared with it clashes with nothing, and uses of it find nothing.
+    size_t error_ids = 0;
+
     string_view ExpectId() {
-        lastid = lex.sattr;
-        Expect(T_IDENT);
+        if (IsNextId()) return lastid;
+        Expected(T_IDENT);
+        lastid = st.StoreName(cat("<error ", ++error_ids, ">"));
         return lastid;
     }
 
@@ -2058,9 +2210,12 @@ struct Parser {
         return ((lex.token == ts) || ...);
     }
 
+    void Expected(TType t) {
+        Error(Q(lex.TokStr(t)), " expected, found ", Q(lex.TokStr()));
+    }
+
     void Expect(TType t) {
-        if (!IsNext(t))
-            Error(Q(lex.TokStr(t)) + " expected, found " + Q(lex.TokStr()));
+        if (!IsNext(t)) Expected(t);
     }
 
     string DumpAll(bool onlytypechecked = false) {

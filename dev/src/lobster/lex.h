@@ -89,6 +89,12 @@ struct Lex : LoadedFile {
     bool allow_shift_right = true;
     int max_errors = 1;
     int num_errors = 0;
+    // The errors reported so far, see Report(), one per line (plus context lines).
+    string errors;
+    // How many tokens Next() has produced, which is how Report() tells whether the parser
+    // consumed anything since the last error.
+    size_t token_count = 0;
+    size_t last_error_token = (size_t)-1;
 
     Lex(string_view fn, vector<pair<string, string>> &fns, const vector<string_view> &extra_namespaces,
         string_view _ss = {}, int max_errors = 1)
@@ -118,26 +124,38 @@ struct Lex : LoadedFile {
 
     // Returns false if this file was already included elsewhere, in which case
     // nothing was pushed and there will be no T_ENDOFINCLUDE for it either.
+    // The same when it can't be included at all, which is reported.
     bool Include(string_view _fn, bool do_cycle_check = true, bool relative = false) {
-        auto cycle_check = [&](const LoadedFile &pf) {
-            if (pf.filename == _fn) {
+        if (do_cycle_check) {
+            auto cycle_check = [&](const LoadedFile &pf) {
+                if (pf.filename != _fn) return false;
                 string err = "cyclic import: ";
                 for (auto &ef : parentfiles) append(err, ef.filename, " -> ");
                 append(err, filename, " -> ", _fn);
-                Error(err);
-            }
-        };
-        if (do_cycle_check) {
-            cycle_check(*this);
+                Report(err);
+                return true;
+            };
+            if (cycle_check(*this)) return false;
             for (auto &pf : parentfiles)
-                cycle_check(pf);
+                if (cycle_check(pf)) return false;
         }
         if (allfiles.find(_fn) != allfiles.end()) {
             return false;
         }
+        // Loaded before switching to it, such that a file that can't be found is an error in
+        // the file importing it, which then carries on.
+        string src;
+        if ((relative || LoadFile(cat("modules/", _fn), &src) < 0) && LoadFile(_fn, &src) < 0) {
+            // Do specialized message for this file, since it always confuses people
+            // that like to move the exe away from the standard location for some reason.
+            if (_fn == "stdtype.lobster")
+                Error("can't find the standard modules (../modules/) relative to the exe location (bin/)");
+            Report(cat("can't open file: ", _fn));
+            return false;
+        }
         allfiles.insert(string(_fn));
         parentfiles.push_back(*this);
-        *((LoadedFile *)this) = LoadedFile(_fn, filenames, {}, relative);
+        *((LoadedFile *)this) = LoadedFile(_fn, filenames, src, relative);
         allsources.push_back(source);
         FirstToken();
         return true;
@@ -164,6 +182,7 @@ struct Lex : LoadedFile {
     }
 
     void Next() {
+        token_count++;
         if (gentokens.size()) {
             token = gentokens.back().t;
             sattr = gentokens.back().a;
@@ -181,9 +200,11 @@ struct Lex : LoadedFile {
                 if (prevline)
                     for (const char *indentp = linestart;
                          indentp < tokenstart && prevline < prevlinetok; indentp++, prevline++)
-                        if (*indentp != *prevline)
-                            Error("adjacent lines do not start with the same sequence of spaces"
-                                  " and/or tabs");
+                        if (*indentp != *prevline) {
+                            Report("adjacent lines do not start with the same sequence of spaces"
+                                   " and/or tabs");
+                            break;
+                        }
                 prevline = linestart;
                 prevlinetok = tokenstart;
             } else {
@@ -191,7 +212,7 @@ struct Lex : LoadedFile {
             }
             if (lastcont) {
                 if (indent < indentstack.back().first)
-                    Error("line continuation can't indent less than the previous line");
+                    Report("line continuation can't indent less than the previous line");
                 if (indent > indentstack.back().first)
                     indentstack.push_back({ indent, true });
                 return;
@@ -213,7 +234,9 @@ struct Lex : LoadedFile {
                         }
                     }
                     if (iscont) goto tryagain;
-                    if (indent != indentstack.back().first) Error("inconsistent dedent");
+                    // A line indented to a level no block above it has is taken to be at the
+                    // level of the closest enclosing block.
+                    if (indent != indentstack.back().first) Report("inconsistent dedent");
                 }
             } else {
                 Push(T_LINEFEED);
@@ -225,11 +248,15 @@ struct Lex : LoadedFile {
     void OverrideCont(bool c) { cont = c; }
 
     void PopBracket(TType c) {
-        if (bracketstack.empty())
-            Error("unmatched \'" + TokStr(c) + "\'");
+        if (bracketstack.empty()) {
+            Report("unmatched \'" + TokStr(c) + "\'");
+            return;
+        }
+        // A mismatch is taken to close the innermost bracket regardless, since leaving it
+        // open would suppress linefeeds up to the end of the file.
         if (bracketstack.back().second != c)
-            Error("mismatched \'" + TokStr(c) + "\', expected \'" +
-                  TokStr(bracketstack.back().second) + "\'");
+            Report("mismatched \'" + TokStr(c) + "\', expected \'" +
+                   TokStr(bracketstack.back().second) + "\'");
         bracketstack.pop_back();
     }
 
@@ -258,9 +285,11 @@ struct Lex : LoadedFile {
                     islf = false; // avoid indents being generated because of this dedent
                     return T_DEDENT;
                 } else {
-                    if (!bracketstack.empty())
-                        Error("unmatched \'" + TokStr(bracketstack.back().first) +
-                              "\' at end of file");
+                    if (!bracketstack.empty()) {
+                        Report("unmatched \'" + TokStr(bracketstack.back().first) +
+                               "\' at end of file");
+                        bracketstack.clear();
+                    }
                     return parentfiles.empty() ? T_ENDOFFILE : T_ENDOFINCLUDE;
                 }
 
@@ -297,7 +326,8 @@ struct Lex : LoadedFile {
                 PopBracket(T_RIGHTCURLY); return T_RIGHTCURLY;
 
             case ';':
-                Error("\';\' isn\'t used as a statement terminator");
+                Report("\';\' isn\'t used as a statement terminator");
+                break;
 
             case ',':
                 cont = true;
@@ -347,7 +377,8 @@ struct Lex : LoadedFile {
             case '!':
                 cont = true;
                 second('=', T_NEQ);
-                Error("use \"not\" instead of !");
+                Report("use \"not\" instead of !");
+                return T_NOT;
             case '>':
                 cont = true;
                 second('=', T_GTEQ);
@@ -357,12 +388,12 @@ struct Lex : LoadedFile {
             case '&':
                 cont = true;
                 second('=', T_ANDEQ);
-                secondb('&', T_AND, Error("use \"and\" instead of &&"));
+                secondb('&', T_AND, Report("use \"and\" instead of &&"));
                 return T_BITAND;
             case '|':
                 cont = true;
                 second('=', T_OREQ);
-                secondb('|', T_OR, Error("use \"or\" instead of ||"));
+                secondb('|', T_OR, Report("use \"or\" instead of ||"));
                 return T_BITOR;
             case '^':
                 cont = true;
@@ -393,7 +424,10 @@ struct Lex : LoadedFile {
                 } else if (*p == '*') {
                     for (;;) {
                         p++;
-                        if (*p == '\0') Error("end of file in multi-line comment");
+                        if (*p == '\0') {
+                            Report("end of file in multi-line comment");
+                            break;
+                        }
                         if (*p == '\n') tokline++;
                         if (*p == '*' && *(p + 1) == '/') { p += 2; break; }
                     }
@@ -515,7 +549,10 @@ struct Lex : LoadedFile {
                         // unknown identifier.
                         //if (*p != '.') Error(cat("use of namespace ", Q(sattr), " must be directly followed by \".\""));
                         p++;
-                        if (!IsIdentStart(*p)) Error("missing namespace member after \".\"");
+                        if (!IsIdentStart(*p)) {
+                            Report("missing namespace member after \".\"");
+                            break;
+                        }
                         p++;
                         while (IsIdentCont(*p)) p++;
                         sattr = string_view(tokenstart, p - tokenstart);
@@ -531,7 +568,7 @@ struct Lex : LoadedFile {
                         sattr = string_view(tokenstart, p - tokenstart);
                         // Note: unsigned, we allow hex constants to poke into the sign bit.
                         ival = parse_int<uint64_t>(sattr.substr(2), 16, &ec);
-                        if (ec != std::errc()) Error("hex constant overflow");
+                        if (ec != std::errc()) Report("hex constant overflow");
                         return T_INT;
                     } else {
                         while (IsDigit(*p)) p++;
@@ -550,7 +587,7 @@ struct Lex : LoadedFile {
                             return Float();
                         } else {
                             ival = parse_int<int64_t>(sattr, 10, &ec);
-                            if (ec != std::errc()) Error("int constant overflow");
+                            if (ec != std::errc()) Report("int constant overflow");
                             return T_INT;
                         }
                     }
@@ -563,8 +600,8 @@ struct Lex : LoadedFile {
                 auto tok = c < ' ' || c >= 127
                     ? cat("[ascii ", int(c), "]")
                     : cat("\'", string(1, char(c)), "\'");
-                Error("illegal token: " + tok);
-                return T_NONE;
+                Report("illegal token: " + tok);
+                break;
             }
         }
     }
@@ -572,6 +609,13 @@ struct Lex : LoadedFile {
     TType Float() {
         fval = parse_float<double>(sattr, nullptr);
         return T_FLOAT;
+    }
+
+    TType CharConstant() {
+        if (sval.size() > 8) Report("character constant too long");
+        ival = 0;
+        for (auto c : sval) ival = (ival << 8) + (unsigned char)c;
+        return T_INT;
     }
 
     TType StringConstant(bool character_constant, bool interp) {
@@ -595,8 +639,10 @@ struct Lex : LoadedFile {
             for (;;) {
                 switch (c = *p++) {
                     case '\0':
-                        Error("end of file found in multi-line string constant");
-                        break;
+                        p--;
+                        Report("end of file found in multi-line string constant");
+                        sattr = string_view(start, p - start);
+                        return T_STR;
                     case '\r':
                         break;
                     case '\"':
@@ -627,19 +673,25 @@ struct Lex : LoadedFile {
             case '\r':
             case '\n':
                 p--;
-                Error("end of line found in string constant");
-                break;
-            case '\'':
-                if (!character_constant)
-                    Error("\' should be prefixed with a \\ in a string constant");
+                Report("end of line found in string constant");
+                // What there is of it, as if it was closed here.
                 sattr = string_view(start, p - start);
-                if (sval.size() > 8) Error("character constant too long");
-                ival = 0;
-                for (auto c : sval) ival = (ival << 8) + (unsigned char)c;
-                return T_INT;
+                if (character_constant) return CharConstant();
+                return interp ? T_STR_INT_END : T_STR;
+            case '\'':
+                if (!character_constant) {
+                    Report("\' should be prefixed with a \\ in a string constant");
+                    sval += c;
+                    break;
+                }
+                sattr = string_view(start, p - start);
+                return CharConstant();
             case '\"':
-                if (character_constant)
-                    Error("\" should be prefixed with a \\ in a character constant");
+                if (character_constant) {
+                    Report("\" should be prefixed with a \\ in a character constant");
+                    sval += c;
+                    break;
+                }
                 sattr = string_view(start, p - start);
                 return interp ? T_STR_INT_END : T_STR;
             case '\\': {
@@ -659,14 +711,18 @@ struct Lex : LoadedFile {
                     case '}':
                         break;
                     case 'x':
-                        if (!IsXDigit(*p) || !IsXDigit(p[1]))
-                            Error("illegal hexadecimal escape code in string constant");
+                        if (!IsXDigit(*p) || !IsXDigit(p[1])) {
+                            Report("illegal hexadecimal escape code in string constant");
+                            break;
+                        }
                         c = HexDigit(*p++) << 4;
                         c |= HexDigit(*p++);
                         break;
                     case 'u': {
-                        if (!IsXDigit(*p) || !IsXDigit(p[1]) || !IsXDigit(p[2]) || !IsXDigit(p[3]))
-                            Error("illegal unicode escape code in string constant");
+                        if (!IsXDigit(*p) || !IsXDigit(p[1]) || !IsXDigit(p[2]) || !IsXDigit(p[3])) {
+                            Report("illegal unicode escape code in string constant");
+                            break;
+                        }
                         int i = HexDigit(*p++) << 12;
                         i |= HexDigit(*p++) << 8;
                         i |= HexDigit(*p++) << 4;
@@ -677,8 +733,7 @@ struct Lex : LoadedFile {
                         continue;
                     }
                     default:
-                        p--;
-                        Error("unknown control code in string constant");
+                        Report("unknown control code in string constant");
                 };
                 sval += c;
                 break;
@@ -691,7 +746,8 @@ struct Lex : LoadedFile {
                     p++;
                 } else if (*p == '\"') {
                     // Special purpose error for the common case of "{".
-                    Error("{ in string constant must be escaped as {{");
+                    Report("{ in string constant must be escaped as {{");
+                    sval += c;
                 } else {
                     sattr = string_view(start, p - start);
                     bracketstack.push_back({ T_STR_INT_START, T_STR_INT_END });
@@ -705,13 +761,14 @@ struct Lex : LoadedFile {
                     sval += c;
                     p++;
                 } else {
-                    Error("} in string constant must be escaped as }}");
+                    Report("} in string constant must be escaped as }}");
+                    sval += c;
                 }
                 break;
             default:
                 // Allow UTF-8 chars.
                 if ((c >= 0 && c < ' ') || c == 127)
-                    Error("unprintable character in string constant");
+                    Report("unprintable character in string constant");
                 sval += c;
         };
     };
@@ -736,8 +793,7 @@ struct Lex : LoadedFile {
         return cat(filenames[ln.fileidx].first, "(", ln.line, ")");
     }
 
-    [[noreturn]] void Error(string_view msg, const Line *ln = nullptr) {
-        num_errors++;
+    string FormatError(string_view msg, const Line *ln) {
         auto err = Location(ln ? *ln : *this) + ": error: " + msg;
         if (!ln) {
             auto begin = prevtokenstart;
@@ -753,11 +809,41 @@ struct Lex : LoadedFile {
                 }
             }
         }
+        return err;
+    }
+
+    // A fatal error: reports it, together with any errors collected before it, by throwing.
+    [[noreturn]] void Error(string_view msg, const Line *ln = nullptr) {
+        num_errors++;
+        auto err = FormatError(msg, ln);
+        if (!errors.empty()) err = errors + "\n" + err;
         THROW_OR_ABORT(err);
     }
 
+    // An error the parser recovers from, see Parser::Error. It is collected in `errors`, and
+    // parsing continues, until max_errors have been collected, at which point they are all
+    // thrown, which with the default of 1 is the same as Error(). An error about the current
+    // token (no `ln`) is dropped when the last one reported was too: it is almost certainly a
+    // consequence of that one rather than an error of its own, like each construct enclosing
+    // a bad token expecting something else in its place.
+    void Report(string_view msg, const Line *ln = nullptr) {
+        if (!ln && token_count == last_error_token) return;
+        last_error_token = token_count;
+        num_errors++;
+        if (!errors.empty()) errors += "\n";
+        errors += FormatError(msg, ln);
+        if (num_errors >= max_errors) THROW_OR_ABORT(errors);
+    }
+
+    // Makes Report() treat the current token as one an error was already reported at, for
+    // after the parser skipped tokens to recover from an error: whatever it stopped at is
+    // not what the error was about.
+    void SuppressErrorsHere() { last_error_token = token_count; }
+
     std::set<string> all_warnings;
     void Warn(string_view msg, const Line *ln = nullptr) {
+        // Once there are errors, warnings are likely about what those left behind.
+        if (num_errors) return;
         auto warning = Location(ln ? *ln : *this) + ": warning: " + msg;
         auto [_it, was_inserted] = all_warnings.insert(warning);
         if (was_inserted) LOG_WARN(warning);

@@ -257,7 +257,7 @@ struct TypeChecker {
     template<typename... Ts> void Error(const Node &n, const Ts &...args) {
         auto err = cat(args...);
         AddStackTrace(err);
-        parser.ErrorAt(&n, err);
+        parser.lex.Error(err, &n.line);
     }
 
     template<typename... Ts> void Warn(const Node &n, const Ts &...args) {

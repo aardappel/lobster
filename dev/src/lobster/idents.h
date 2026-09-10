@@ -93,7 +93,7 @@ struct Ident : Named {
 
     void Assign(Lex &lex) {
         single_assignment = false;
-        if (constant) lex.Error("variable " + name + " is constant");
+        if (constant) lex.Report("variable " + name + " is constant");
     }
 
     void StructAssign(Lex &lex,Line *ln = nullptr) {
@@ -812,7 +812,8 @@ struct Function : Named {
 
 template<typename T> void UnregisterT(const T *x, unordered_map<string_view, T *> &dict) {
     auto it = dict.find(x->name);
-    if (it != dict.end()) dict.erase(it);
+    // A declaration that clashed with an existing one is not what is registered under its name.
+    if (it != dict.end() && it->second == x) dict.erase(it);
 }
 
 template<typename T> void ErasePrivate(unordered_map<string_view, T *> &dict) {
@@ -971,7 +972,7 @@ struct SymbolTable {
     Ident *LookupDefWS(string_view name) {
         Ident *ident = nullptr;
         if (LookupWithStruct(name, ident))
-            lex.Error("cannot define variable with same name as field in this scope: " + name);
+            lex.Report("cannot define variable with same name as field in this scope: " + name);
         return Lookup(name);
     }
 
@@ -979,9 +980,9 @@ struct SymbolTable {
         auto ident = LookupDefWS(name);
         if (ident) {
             if (scopelevels.size() != ident->scopelevel)
-                lex.Error(cat("identifier shadowing: ", name));
-            if (!ident->predeclaration)
-                lex.Error(cat("identifier redefinition: ", name));
+                lex.Report(cat("identifier shadowing: ", name));
+            else if (!ident->predeclaration)
+                lex.Report(cat("identifier redefinition: ", name));
             return ident;
         }
         auto sf = defsubfunctionstack.back();
@@ -993,8 +994,10 @@ struct SymbolTable {
 
     Ident *LookupDefStatic(string_view name) {
         auto ident = LookupDefWS(name);
-        if (ident)
-            lex.Error(cat("identifier shadowing/redefinition: ", name));
+        if (ident) {
+            lex.Report(cat("identifier shadowing/redefinition: ", name));
+            return ident;
+        }
         auto sf = defsubfunctionstack[0];
         // Is going to get removed as if it was part of the current function.
         ident = NewId(name, sf, false, 1, lex);
@@ -1003,10 +1006,16 @@ struct SymbolTable {
     }
 
     void AddWithStruct(GUDT *gudt, Ident *id, SubFunction *sf) {
-        if (!gudt) lex.Error(":: can only be used with struct/class types");
-        for (auto &wp : withstack)
-            if (wp.gudt == gudt)
-                lex.Error("type used twice in the same scope with ::");
+        if (!gudt) {
+            lex.Report(":: can only be used with struct/class types");
+            return;
+        }
+        for (auto &wp : withstack) {
+            if (wp.gudt == gudt) {
+                lex.Report("type used twice in the same scope with ::");
+                return;
+            }
+        }
         // FIXME: should also check if variables have already been defined in this scope that clash
         // with the struct, or do so in LookupUse
         withstack.push_back({ gudt, id, sf });
@@ -1023,7 +1032,7 @@ struct SymbolTable {
         assert(!id);
         for (auto &wse : withstack) {
             if (wse.gudt->Has(fld) >= 0) {
-                if (id) lex.Error("access to ambiguous field: " + fld->name);
+                if (id) lex.Report("access to ambiguous field: " + fld->name);
                 id = wse.id;
             }
         }
@@ -1085,14 +1094,14 @@ struct SymbolTable {
 
     void UnregisterEnum(const Enum *e) {
         auto it = enums.find(e->name);
-        if (it != enums.end()) {
-            for (auto &ev : e->vals) {
-                auto evit = enumvals.find(ev->name);
-                assert(evit != enumvals.end());
-                enumvals.erase(evit);
-            }
-            enums.erase(it);
+        // A declaration that clashed with an existing one is not what is registered under its
+        // name, and neither are its values, see EnumLookup.
+        if (it == enums.end() || it->second != e) return;
+        for (auto &ev : e->vals) {
+            auto evit = enumvals.find(ev->name);
+            if (evit != enumvals.end() && evit->second == ev.get()) enumvals.erase(evit);
         }
+        enums.erase(it);
     }
 
     void Unregister(const Function *f) {
@@ -1117,11 +1126,21 @@ struct SymbolTable {
         // Note: can't remove functions here, because final function lookup is in typechecker.
     }
 
+    // A declaration that clashes with an existing one gets parsed into an enum (or value) of its
+    // own that nothing can refer to (`registered` false), rather than into the existing one.
+    Enum *NewEnum(string_view name, bool registered) {
+        auto e = new Enum(name, (int)enumtable.size());
+        enumtable.push_back(e);
+        if (registered) enums[e->name /* must be in value */] = e;
+        return e;
+    }
+
     Enum *EnumLookup(string_view name, bool decl) {
         auto eit = enums.find(name);
         if (eit != enums.end()) {
-            if (decl) lex.Error("double declaration of enum: " + name);
-            return eit->second;
+            if (!decl) return eit->second;
+            lex.Report("double declaration of enum: " + name);
+            return NewEnum(name, false);
         }
         if (!decl) {
             if (MaybeNameSpace(name)) {
@@ -1130,10 +1149,7 @@ struct SymbolTable {
             }
             return nullptr;
         }
-        auto e = new Enum(name, (int)enumtable.size());
-        enumtable.push_back(e);
-        enums[e->name /* must be in value */] = e;
-        return e;
+        return NewEnum(name, true);
     }
 
     EnumVal *EnumValLookup(string_view name, bool decl) {
@@ -1145,8 +1161,9 @@ struct SymbolTable {
         }
         auto evit = enumvals.find(name);
         if (evit != enumvals.end()) {
-            if (decl) lex.Error("double declaration of enum value: " + name);
-            return evit->second;
+            if (!decl) return evit->second;
+            lex.Report("double declaration of enum value: " + name);
+            return new EnumVal(name, 0);
         }
         if (!decl) {
             return nullptr;
@@ -1156,23 +1173,49 @@ struct SymbolTable {
         return ev;
     }
 
+    // A declaration that clashes with an existing one gets parsed into a type of its own that
+    // nothing can refer to (`registered` false), rather than into the existing one.
+    GUDT *NewStruct(string_view name, bool is_struct, Line &line, bool registered) {
+        auto st = new GUDT(name, (int)gudttable.size(), is_struct, line);
+        if (registered) gudts[st->name /* must be in value */] = st;
+        gudttable.push_back(st);
+        return st;
+    }
+
     GUDT &StructDecl(string_view name, bool is_struct, Line &line) {
         auto udt = LookupSpecialization(name);
-        if (udt && !udt->g.predeclaration)
-            lex.Error("type previously declared as specialization: " + name);
+        if (udt && !udt->g.predeclaration) {
+            lex.Report("type previously declared as specialization: " + name);
+            return *NewStruct(name, is_struct, line, false);
+        }
         auto uit = gudts.find(name);
         if (uit != gudts.end()) {
-            if (!uit->second->predeclaration)
-                lex.Error("double declaration of type: " + name);
-            if (uit->second->is_struct != is_struct)
-                lex.Error("class/struct previously declared as different kind");
+            if (!uit->second->predeclaration) {
+                lex.Report("double declaration of type: " + name);
+                return *NewStruct(name, is_struct, line, false);
+            }
+            if (uit->second->is_struct != is_struct) {
+                lex.Report("class/struct previously declared as different kind");
+                return *NewStruct(name, is_struct, line, false);
+            }
             uit->second->predeclaration = false;
             return *uit->second;
         }
-        auto st = new GUDT(name, (int)gudttable.size(), is_struct, line);
-        gudts[st->name /* must be in value */] = st;
-        gudttable.push_back(st);
-        return *st;
+        return *NewStruct(name, is_struct, line, true);
+    }
+
+    // Stands in for a type the parser could not resolve or declare, such that it can go on as
+    // if it had one: a pre-declared class, a state everything in the parser already accepts,
+    // not registered under any name.
+    GUDT *error_gudt = nullptr;
+
+    GUDT &ErrorStruct() {
+        if (!error_gudt) {
+            error_gudt = NewStruct("<error>", false, lex, false);
+            error_gudt->predeclaration = true;
+            MakeSpecialization(*error_gudt, error_gudt->name, false, true);
+        }
+        return *error_gudt;
     }
 
     GUDT *LookupStruct(string_view name) {
@@ -1198,8 +1241,9 @@ struct SymbolTable {
 
     GUDT &StructUse(string_view name) {
         auto gudt = LookupStruct(name);
-        if (!gudt) lex.Error("unknown type: " + name);
-        return *gudt;
+        if (gudt) return *gudt;
+        lex.Report("unknown type: " + name);
+        return ErrorStruct();
     }
 
     UDT *MakeSpecialization(GUDT &gudt, string_view sname, bool named, bool from_generic) {
@@ -1210,11 +1254,14 @@ struct SymbolTable {
         gudt.first = st;
         udttable.push_back(st);
         if (named) {
-            if (LookupStruct(sname))
-                lex.Error("specialization previously declared as type: " + sname);
+            if (LookupStruct(sname)) {
+                lex.Report("specialization previously declared as type: " + sname);
+                return st;
+            }
             auto uit = udts.find(sname);
             if (uit != udts.end()) {
-                lex.Error("double declaration of specialization: " + sname);
+                lex.Report("double declaration of specialization: " + sname);
+                return st;
             }
         }
         if (named || !from_generic) {
@@ -1238,8 +1285,8 @@ struct SymbolTable {
         if (udt) return { &udt->g, udt };
         auto gudt = LookupStruct(name);
         if (gudt) return { gudt, nullptr };
-        lex.Error("unknown type: " + name);
-        return { nullptr, nullptr };
+        lex.Report("unknown type: " + name);
+        return { &ErrorStruct(), nullptr };
     }
 
     SharedField &FieldDecl(string_view name, GUDT *gudt) {
@@ -1250,7 +1297,7 @@ struct SymbolTable {
             fieldtable.push_back(fld);
         }
         if (gudt->Has(fld) >= 0) {
-            lex.Error("double declaration of field: " + name);
+            lex.Report("double declaration of field: " + name);
         }
         return *fld;
     }

@@ -111,3 +111,4 @@ dev/xcode-cmake
 
 *.swp
 tags
+/tests/parser_fuzz_last.lobster

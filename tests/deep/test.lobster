@@ -40,6 +40,7 @@ import .modules
 import .noeffect
 import .errors
 import .errorfiles
+import .recovery
 import .declcheck
 
 print "deep tests: {num_checks} checks, {num_failures} failures"
