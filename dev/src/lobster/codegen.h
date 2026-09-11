@@ -1895,15 +1895,15 @@ struct CodeGen  {
         return Field(obj, udt, slot, RtTypeOf(type));
     }
 
-    // The member a field that is an array starts at, which is where a runtime index into it
-    // goes from, and which decays to a pointer to what it holds.
-    string FieldArray(string_view obj, const UDT &udt, int slot) {
-        auto s = cat("((", UDTName(udt), " *)", obj, ")->");
+    // Pointer arithmetic is only valid within one actual C member (including a scalar as an
+    // array of length one). Consecutive Lobster slots can instead be separate C members.
+    bool MemberContainsRange(const UDT &udt, int slot, int numslots) {
         for (auto &m : MembersOf(udt)) {
-            if (slot >= m.slot && slot < m.slot + m.count) { s += m.name; return s; }
+            if (slot >= m.slot && slot < m.slot + m.count)
+                return slot + numslots <= m.slot + m.count;
         }
         assert(false);
-        return s;
+        return false;
     }
 
     // A field as an lvalue is at a constant offset from the object, same as reading one. That
@@ -2005,16 +2005,24 @@ struct CodeGen  {
         TrackUseDef(1, 0);
         f_uses_lval = true;
         string base;
+        auto separate_members = false;
         auto typed = f_lval_kind == LVK_FIELD || f_lval_kind == LVK_NUMPTR ||
                      f_lval_kind == LVK_ELEM || f_lval_kind == LVK_LOCAL;
         auto kind = typed ? LVK_NUMPTR : LVK_PTR;
         if (f_lval_kind == LVK_FIELD) {
-            // A field of a struct type is an array of what its slots hold, so indexing it is
-            // an index into that, see Members.
-            base = FieldArray("lo", *f_lval_udt, f_lval_idx);
+            // Start at the exact slot, which may be inside an array or a scalar member.
+            // A numeric struct nested in a mixed field can span separate members instead.
+            f_lval_idx += offset;
+            offset = 0;
+            base = cat("&", FieldName("lo", *f_lval_udt, f_lval_idx));
+            separate_members = !MemberContainsRange(*f_lval_udt, f_lval_idx, numslots);
         } else if (f_lval_kind == LVK_ELEM) {
             // The same for an element, which a vector of one type holds in a flat run of them.
+            f_lval_idx += offset;
+            offset = 0;
             base = cat("&", Elem(f_lval_elems, f_lval_elem, f_lval_index, f_lval_idx).s);
+            separate_members = !UniformSlots(f_lval_elem, ValWidth(f_lval_elem)) &&
+                               !MemberContainsRange(*f_lval_elem->udt, f_lval_idx, numslots);
         } else if (f_lval_kind == LVK_LOCAL) {
             // A struct in variables has to be in memory to be indexed at runtime, so it goes
             // thru an array of the one numeric type all of its fields are, and comes back out
@@ -2038,8 +2046,21 @@ struct CodeGen  {
             append(cb, "    if ((unsigned long long)_i >= ", numslots, ") IDXErrS(vm, _i, ",
                    numslots, ");\n");
         }
-        append(cb, "    lv = ", base, " + _i", offset ? cat(" + ", offset) : string(),
-               ";\n    }\n");
+        if (separate_members) {
+            // Select the address of a real member rather than stepping a pointer across
+            // members, even when their types and physical layout happen to match.
+            append(cb, "    switch (_i) {\n");
+            for (int i = 0; i < numslots; i++) {
+                auto member = f_lval_kind == LVK_FIELD
+                    ? FieldName("lo", *f_lval_udt, f_lval_idx + i)
+                    : Elem(f_lval_elems, f_lval_elem, f_lval_index, f_lval_idx + i).s;
+                append(cb, "        case ", i, ": lv = &", member, "; break;\n");
+            }
+            append(cb, "    }\n");
+        } else {
+            append(cb, "    lv = ", base, " + _i", offset ? cat(" + ", offset) : string(), ";\n");
+        }
+        append(cb, "    }\n");
         f_lval_kind = kind;
     }
 

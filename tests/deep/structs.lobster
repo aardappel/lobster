@@ -43,6 +43,46 @@ struct DSMix:
     s:string
     n:int
 
+// Shapes used to index numeric substructs inside homogeneous and mixed storage.
+struct DSIndexOne<T>:
+    x:T
+
+struct DSIndexPair<A, B>:
+    a:A
+    b:B
+
+struct DSIndexOuter<T>:
+    q:T
+
+class DSIndexHolder<T>:
+    q:T
+
+def check_struct_index_pair<T>(pair:T, values):
+    let h = DSIndexHolder<T> { pair }
+    let v = [ DSIndexOuter<T> { pair }, DSIndexOuter<T> { pair } ]
+    let vi = rnd(1) + 1
+    // The loop index stays dynamic, including in the width-one specialization.
+    for(values) value, i:
+        test_eq(h.q.b[i], value)
+        test_eq(v[vi].q.b[i], value)
+        h.q.b[i] = value + value
+        v[vi].q.b[i] = value + value
+        test_eq(h.q.b[i], value + value)
+        test_eq(v[vi].q.b[i], value + value)
+        h.q.b[i] += value
+        v[vi].q.b[i] += value
+        test_eq(h.q.b[i], value + value + value)
+        test_eq(v[vi].q.b[i], value + value + value)
+    test_eq(h.q.b[0], values[0] + values[0] + values[0])
+    test_eq(v[vi].q.b[0], values[0] + values[0] + values[0])
+    test_eq(h.q.a, pair.a)
+    test_eq(v[vi].q.a, pair.a)
+    test_eq(v[0].q, pair)
+
+def check_struct_index_storage<T>(value:T, values):
+    check_struct_index_pair(DSIndexPair<T, T> { value, value }, values)
+    check_struct_index_pair(DSIndexPair<string, T> { "untouched", value }, values)
+
 // Method defined with :: on a struct type.
 def area(s::DSA): return x * y
 
@@ -158,6 +198,23 @@ def structs_tests():
     let trivv = [ [ DSB { DSA { 5, 6 }, 7 } ] ]
     test_eq(trivv[int2 { 0, 0 }].a.y, 6)
     test_eq(trivv[0][0].a, DSA { 5, 6 })
+
+    // Runtime indexing must start at the nested field's slot, take the address of
+    // scalar storage, and avoid pointer arithmetic across separate C members.
+    check_struct_index_storage(DS1 { 1 }, [ 1 ])
+    check_struct_index_storage(int2 { 1, 2 }, [ 1, 2 ])
+    check_struct_index_storage(int3 { 1, 2, 3 }, [ 1, 2, 3 ])
+    check_struct_index_storage(int4 { 1, 2, 3, 4 }, [ 1, 2, 3, 4 ])
+    check_struct_index_storage(DSIndexOne<float> { 1.0 }, [ 1.0 ])
+    check_struct_index_storage(float2 { 1.0, 2.0 }, [ 1.0, 2.0 ])
+    check_struct_index_storage(float3 { 1.0, 2.0, 3.0 }, [ 1.0, 2.0, 3.0 ])
+    check_struct_index_storage(float4 { 1.0, 2.0, 3.0, 4.0 }, [ 1.0, 2.0, 3.0, 4.0 ])
+    let oneh = DSIndexHolder<DS1> { DS1 { 123 } }
+    let onei = rnd(1)
+    oneh.q[onei] = 99
+    test_eq(oneh.q, DS1 { 99 })
+    test_eq(oneh.q[onei]++, 99)
+    test_eq(++oneh.q[onei], 101)
 
     // Method with :: arg on a struct type, and dot calls on struct values.
     test_eq(DSA { 3, 4 }.area(), 12)
