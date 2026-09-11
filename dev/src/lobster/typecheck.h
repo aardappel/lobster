@@ -99,6 +99,9 @@ struct TypeChecker {
                         assert(n->exptype.Null() || !n->exptype->IsError());
                     });
                 }
+                for (auto sid : st.specidents) {
+                    assert(sid->type.Null() || !sid->type->IsError());
+                }
             }
         #endif
     }
@@ -121,6 +124,10 @@ struct TypeChecker {
         auto num_udts = st.udttable.size();
         vector<size_t> dt_sizes;
         for (auto udt : st.udttable) dt_sizes.push_back(udt->dispatch_table.size());
+        auto num_sids = st.specidents.size();
+        vector<bool> sid_typed;
+        sid_typed.reserve(num_sids);
+        for (auto sid : st.specidents) sid_typed.push_back(!sid->type.Null());
         checking_dead_code = true;
         // The top level scope is active whenever any of these functions could run, so it is
         // one here too: globals must resolve like they do during the rest of typechecking,
@@ -186,6 +193,16 @@ struct TypeChecker {
         }
         for (size_t i = num_udts; i < st.udttable.size(); i++) {
             st.udttable[i]->dispatch_table.clear();
+        }
+        // Same for the types of the variables in it: codegen gives every sid that has one
+        // a slot and a type table entry, so a variable of a function that does not get
+        // emitted must be left without, as it is before it is typechecked. Its type can
+        // also be the error type (see SkipDeadCode), which nothing downstream represents.
+        for (size_t i = 0; i < num_sids; i++) {
+            if (!sid_typed[i]) st.specidents[i]->type = nullptr;
+        }
+        for (size_t i = num_sids; i < st.specidents.size(); i++) {
+            st.specidents[i]->type = nullptr;
         }
     }
 
