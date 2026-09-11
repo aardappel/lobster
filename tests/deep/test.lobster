@@ -20,6 +20,7 @@ import .vectors
 import .structs
 import .vecutils
 import .control
+import .codegen_names
 import .functions
 import .inlining
 import .classes

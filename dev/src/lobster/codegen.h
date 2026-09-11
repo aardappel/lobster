@@ -1449,6 +1449,15 @@ struct CodeGen  {
         return cat("slot", slot);
     }
 
+    // These namespaces are synthesized by the emitters. Both reservation and
+    // allocation use this list: adding a suffix cannot escape a reserved prefix.
+    static bool HasReservedPrefix(string_view name) {
+        return (!name.empty() && name[0] == '_') || name.substr(0, 2) == "Rt" ||
+               name.substr(0, 8) == "builtin_" || name.substr(0, 4) == "fun_" ||
+               name.substr(0, 4) == "udt_" || name.substr(0, 5) == "elem_" ||
+               name.substr(0, 4) == "ret_" || name.substr(0, 5) == "mkval";
+    }
+
     // Whether the generated code uses a name for something of its own, which a local may then
     // not be called: the keywords of C and C++, what the prologues declare, the helpers, and the
     // names the emitters make up, which all end in a number or start with an underscore.
@@ -1467,9 +1476,10 @@ struct CodeGen  {
             "reinterpret_cast", "requires", "static_assert", "static_cast", "template", "this",
             "thread_local", "throw", "true", "try", "typeid", "typename", "using", "virtual",
             "wchar_t", "xor", "xor_eq", "override", "final", "NULL",
-            "vm", "lv", "locals", "ctx", "tsld", "top", "rs", "ret",
+            "vm", "lv", "lo", "lvec", "lidx", "locals", "ctx", "tsld", "top", "rs", "ret",
             "epilogue", "main", "argc", "argv", "vmmeta", "Value", "VMRef", "StackPtr",
             "RefObj", "LVector", "LString", "LObject", "VMBase", "fun_base_t", "type_elem_t",
+            "object_dec_t", "vec",
             "vtables", "object_decs", "funinfo_table", "compiled_entry_point",
             "type_table", "stringtable",
             "file_names", "function_names", "udts", "specidents", "enums", "ser_ids",
@@ -1481,8 +1491,7 @@ struct CodeGen  {
             "EndProfile", "STRING_DATA", "pctx",
         };
         if (reserved.count(name)) return true;
-        if (name[0] == '_' || name.substr(0, 2) == "Rt" || name.substr(0, 8) == "builtin_")
-            return true;
+        if (HasReservedPrefix(name)) return true;
         auto numbered = [&](string_view prefix) {
             if (name.size() <= prefix.size() || name.substr(0, prefix.size()) != prefix) return false;
             for (auto c : name.substr(prefix.size())) if (!isdigit((uint8_t)c)) return false;
@@ -1490,27 +1499,31 @@ struct CodeGen  {
         };
         return numbered("i") || numbered("f") || numbered("p") || numbered("fn") ||
                numbered("s") || numbered("v") || numbered("o") || numbered("keep") ||
-               numbered("block") || numbered("fun_") || name.substr(0, 4) == "udt_";
+               numbered("block") || numbered("ivec") || numbered("fvec") ||
+               numbered("mkivec") || numbered("mkfvec");
     }
 
-    // A C name for a local that is unique within the function: the name it has in the program,
+    // A C name unique within its namespace: the name it has in the program,
     // made a C identifier if it is not one, with a number behind it if that is taken. A prefix
     // the generated code claims for itself gets a letter in front instead, since a number
     // behind it would not lose it.
-    string UniqueName(string name) {
+    string UniqueName(string name, set<string> &names_used) {
         for (auto &c : name) if (!isalnum((uint8_t)c) && c != '_') c = '_';
-        if (name.empty() || isdigit((uint8_t)name[0]) || name[0] == '_' ||
-            name.substr(0, 2) == "Rt" || name == "fun" || name.substr(0, 4) == "fun_" ||
-            name.substr(0, 8) == "builtin_") {
+        // The suffix can itself enter a reserved namespace (ret -> ret_2), so
+        // check its separator as well before choosing a base for the loop.
+        if (name.empty() || isdigit((uint8_t)name[0]) || HasReservedPrefix(name) ||
+            HasReservedPrefix(cat(name, "_"))) {
             name = "v" + name;
         }
         auto base = name;
-        for (int n = 2; IsReservedName(name) || f_names_used.count(name); n++) {
+        for (int n = 2; IsReservedName(name) || names_used.count(name); n++) {
             name = cat(base, "_", n);
         }
-        f_names_used.insert(name);
+        names_used.insert(name);
         return name;
     }
+
+    string UniqueName(string name) { return UniqueName(std::move(name), f_names_used); }
 
     // Slot `slot` of the variable sid, which for a struct is one of its fields.
     string LocalName(const SpecIdent &sid, int slot) {
@@ -1817,14 +1830,6 @@ struct CodeGen  {
                           MemberAt(*elemtype->udt, slot)), rtt);
     }
 
-    // A name from the program as a member of one, kept clear of the names C has of its own.
-    // Members are in a namespace of their own, so that is all it takes for one to be unique.
-    string MemberName(string name) {
-        for (auto &c : name) if (!isalnum((uint8_t)c) && c != '_') c = '_';
-        if (name.empty() || isdigit((uint8_t)name[0]) || IsReservedName(name)) name += "_";
-        return name;
-    }
-
     // The C type slot `i` of a value of this type holds.
     string SlotCType(TypeRef type, int i) {
         return CType(KindOf(SlotType(type, i)));
@@ -1843,17 +1848,22 @@ struct CodeGen  {
     // is what lets the program index one at runtime be a real index, see EmitLvalStructIndex.
     vector<UDTMember> Members(const UDT &udt) {
         vector<UDTMember> ms;
+        // Renaming a keyword or flattening a nested field can produce another
+        // field's name. Allocate every member in this UDT's namespace, including
+        // the object header, and cache the resulting names in MembersOf.
+        set<string> names_used;
+        if (!udt.g.is_struct) names_used = { "typeinfo", "refc" };
         for (auto [k, sfield] : enumerate(udt.sfields)) {
             auto width = ValWidth(sfield.type);
             auto ct = SlotCType(sfield.type, 0);
             auto same = true;
             for (int i = 1; i < width; i++) same = same && SlotCType(sfield.type, i) == ct;
             if (same) {
-                ms.push_back({ MemberName(string(udt.g.fields[k].id->name)), ct, sfield.slot,
+                ms.push_back({ UniqueName(string(udt.g.fields[k].id->name), names_used), ct, sfield.slot,
                                width });
             } else {
                 for (int i = 0; i < width; i++) {
-                    ms.push_back({ MemberName(StructSlotName(udt, sfield.slot + i)),
+                    ms.push_back({ UniqueName(StructSlotName(udt, sfield.slot + i), names_used),
                                    SlotCType(sfield.type, i), sfield.slot + i, 1 });
                 }
             }
