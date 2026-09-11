@@ -1220,7 +1220,11 @@ struct Parser {
                     lex.Next();
                     break;
                 }
-                auto [gudt, udt] = st.StructOrSpecializationUse(lex.sattr);
+                // Not a structured binding, since those can't be captured by the lambdas
+                // below in C++17.
+                auto gudt_udt = st.StructOrSpecializationUse(lex.sattr);
+                auto gudt = gudt_udt.first;
+                auto udt = gudt_udt.second;
                 lex.Next();
                 if (udt) {
                     dest = &udt->thistype;

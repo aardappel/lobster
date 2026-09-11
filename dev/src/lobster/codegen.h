@@ -779,6 +779,10 @@ struct CodeGen  {
                 "\n"
                 // A program is free to assign a variable it never reads, or to compare a
                 // variable with itself.
+                // Older clang versions don't know all of the warnings below.
+                "#if defined(__clang__)\n"
+                "    #pragma clang diagnostic ignored \"-Wunknown-warning-option\"\n"
+                "#endif\n"
                 "#if defined(__clang__) || defined(__GNUC__)\n"
                 "    #pragma GCC diagnostic ignored \"-Wunused-but-set-variable\"\n"
                 "    #pragma GCC diagnostic ignored \"-Wunused-variable\"\n"
