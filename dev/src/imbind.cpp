@@ -898,7 +898,7 @@ string BreakPoint(VM &vm, string_view reason, bool also_flex_dump) {
         quit = SDLDebuggerFrame();
         if (quit) break;
 
-        ClearFrameBuffer(float3(0.5f));
+        ClearFrameBuffer(float4(0.5f, 0.5f, 0.5f, 1.0f));
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL3_NewFrame();

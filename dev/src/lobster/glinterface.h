@@ -257,7 +257,7 @@ extern bool Is2DMode();
 extern bool IsSRGBAwareMode();
 extern void CullFace(bool on);
 extern void CullFront(bool on);
-extern void ClearFrameBuffer(const float3 &c);
+extern void ClearFrameBuffer(const float4 &c);
 extern BlendMode SetBlendMode(BlendMode mode);
 extern void SetPointSprite(float size);
 

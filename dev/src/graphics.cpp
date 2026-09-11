@@ -530,7 +530,7 @@ BUILTIN(clear, "col", "F}:4", "",
     "clears the framebuffer (and depth buffer) to the given color")
 (VM &vm, double4 col) {
     TestGL(vm);
-    ClearFrameBuffer(ToVec<float3>(col));
+    ClearFrameBuffer(ToVec<float4>(col, 1.0f));
 }
 
 BUILTIN(color, "col", "F}:4", "F}:4",

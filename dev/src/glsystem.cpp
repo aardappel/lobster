@@ -75,8 +75,8 @@ BlendMode SetBlendMode(BlendMode mode) {
     return old;
 }
 
-void ClearFrameBuffer(const float3 &c) {
-    GL_CALL(glClearColor(c.x, c.y, c.z, 1.0));
+void ClearFrameBuffer(const float4 &c) {
+    GL_CALL(glClearColor(c.x, c.y, c.z, c.w));
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
@@ -222,7 +222,7 @@ string OpenGLInit(int samples, bool srgb) {
     GL_CHECK("before_init");
     LOG_INFO(OpenGLVendorStr());
     // If not called, flashes red framebuffer on OS X before first gl.clear() is called.
-    ClearFrameBuffer(float3(0.25f));
+    ClearFrameBuffer(float4(0.25f, 0.25f, 0.25f, 1.0f));
     #ifdef PLATFORM_WINNIX
         #define GLEXT(type, name, needed) { \
                 union { void (*proc)(); type fun; } funcast; /* regular cast causes gcc warning */ \
