@@ -122,6 +122,15 @@ struct TypeChecker {
         vector<size_t> dt_sizes;
         for (auto udt : st.udttable) dt_sizes.push_back(udt->dispatch_table.size());
         checking_dead_code = true;
+        // The top level scope is active whenever any of these functions could run, so it is
+        // one here too: globals must resolve like they do during the rest of typechecking,
+        // rather than count as free variables of a scope that would have to be active, which
+        // would abandon the check at the first use of one (see IdentRef::TypeCheck).
+        Scope top_level_scope;
+        top_level_scope.sf = st.toplevel;
+        top_level_scope.call_context = parser.root;
+        top_level_scope.flowstack_size = flowstack.size();
+        scopes.push_back(top_level_scope);
         for (size_t fi = 0; fi < st.functiontable.size(); fi++) {
             auto f = st.functiontable[fi];
             // Top level named functions only (scopelevel 2, 1 is file scope).
@@ -155,6 +164,7 @@ struct TypeChecker {
                 dead_code_skipped = false;
             }
         }
+        scopes.pop_back();
         checking_dead_code = false;
         // Revert to dead: functions that were already typechecked keep that,
         // everything else (including specializations of live functions
@@ -1814,6 +1824,13 @@ struct TypeChecker {
         if (ov.isprivate && ov.declared_at.fileidx != call_args.line.fileidx)
             ErrorAlways(call_args, "call to (partially) private function ", Q(f.name));
         sf = ov.sf;
+        // A method of a generic class takes the values of that class's type variables from
+        // the type of its receiver, so one that could not be typed leaves them unbound, and
+        // resolving the signature below would report an error per type variable on top of
+        // the one the receiver already got (SymbolTable::ResolveTypeVars reports directly,
+        // so those are not filtered as consequential).
+        if (sf->overload->method_of && call_args.children[0]->exptype->IsError())
+            return GiveUpCall(call_args);
         // Collect generic type values.
         vector<GenericTypeVariable> generics = sf->generics;
         for (auto &gtv : generics) gtv.type = nullptr;

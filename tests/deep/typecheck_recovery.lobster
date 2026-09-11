@@ -461,6 +461,33 @@ def typecheck_recovery_tests():
             return y + x
         return outer()
         """, [ "requires type `string`, got `int`" ])
+    // The top level scope is active for any caller an unreached function could have, so a
+    // global is not one of those uses: it resolves, and a method called on one of a generic
+    // class gets the type variables of that class.
+    expect_errors("""
+        class Box<T>:
+            v:T
+            def get(d:T) -> T: return v
+        let b = Box<int> { 1 }
+        def dead(x:int) -> int:
+            let z:string = b.get(x)
+            return x
+        let q:float = "s"
+        return 1
+        """, [ "requires type `float`, got `string`", "requires type `string`, got `int`" ])
+    // A receiver that could not be typed leaves those type variables with nothing to be
+    // bound to, which is not an error of its own.
+    expect_errors("""
+        class Box<T>:
+            v:T
+            def get(d:T) -> T: return v
+        def f() -> int:
+            let b = unknown_thing()
+            return b.get(1)
+        let q:float = "s"
+        return f()
+        """, [ "unknown field/function reference `unknown_thing`",
+               "requires type `float`, got `string`" ])
 
     // Errors that were fatal: the borrow checker's, the string assignment codegen used to
     // catch, and a duplicate serializable id.
