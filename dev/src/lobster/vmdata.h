@@ -1203,12 +1203,12 @@ struct VM : VMBase {
     LString *ResizeString(LString *s, iint size, int c, bool back);
     LResource *NewResource(const ResourceType *type, Resource *res);
 
-    // These end the program by unwinding the stack. Error says so, which is what lets the
-    // generated code leave a value unwritten on a path that errors; the others the compiler
-    // sees thru to the call below. They still return a Value so that a builtin can be written
-    // as `return vm.BuiltinError(..)`.
+    // These end the program by unwinding the stack. The ones that say so let the generated
+    // code leave a value unwritten on a path that errors, and let a caller whose only exit is
+    // such a call be [[noreturn]] itself. They still have a Value return type so a builtin can
+    // be written as `return vm.BuiltinError(..)`.
     [[noreturn]] Value Error(string err);
-    Value BuiltinError(string err) { return Error(err); }
+    [[noreturn]] Value BuiltinError(string err) { Error(err); }
     Value SeriousError(string err);
     Value NormalExit(string err);
     void ErrorBase(const string &err);
