@@ -51,49 +51,49 @@ enum GameState:
     GS_PLAYING
     GS_RESET
 
-abstract class message
+abstract struct message
 
-class m_start_game : message
+struct m_start_game : message
     attribute serializable
     players:[string]
 
-class m_host_welcome : message
+struct m_host_welcome : message
     attribute serializable
     new_ident:string
 
-class m_peer_joined : message
+struct m_peer_joined : message
     attribute serializable
     new_ident:string
 
-class m_end_game : message
+struct m_end_game : message
     attribute serializable
 
-class m_player_pos : message
+struct m_player_pos : message
     attribute serializable
     ident:string
     pos:float2
     dir:float2
 
-class m_player_died : message
+struct m_player_died : message
     attribute serializable
     ident:string
 
-class m_new_enemy : message
+struct m_new_enemy : message
     attribute serializable
     id:int
     pos:float2
 
-class m_enemy_hit : message
+struct m_enemy_hit : message
     attribute serializable
     player:string
     id:int
 
-class m_enemy_died : message
+struct m_enemy_died : message
     attribute serializable
     killed_by:string
     id:int
 
-class m_new_bullet : message
+struct m_new_bullet : message
     attribute serializable
     ident:string
     pos:float2
