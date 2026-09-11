@@ -349,6 +349,21 @@ def typecheck_recovery_tests():
         return 1
         """, [ "recursive function `f` must have explicit return type",
                "requires type `float`, got `string`" ])
+    // A function whose only returns are non-local never returns normally; its callers see
+    // the type it declared regardless.
+    expect_errors("""
+        def outer() -> int:
+            def inner() -> int:
+                return 1 from outer
+            return inner() + 1
+        let z:float = "s"
+        return outer()
+        """, [ "requires type `float`, got `string`", "missing return statement" ])
+    // A return from the program keeps one value, so extra ones are not an error.
+    let mret, merr = compile_run_code("def f():\n    return 1, 2 from program\nf()\nreturn 3",
+                                      [], 100)
+    test_eq(merr, nil)
+    test_eq(mret, "1")
 
     // Generics.
     expect_errors("""

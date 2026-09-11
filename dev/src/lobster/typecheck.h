@@ -1405,10 +1405,15 @@ struct TypeChecker {
         auto start_promoted_vars = flowstack.size();
         sf.sbody->TypeCheck(*this, 0, {});
         CleanUpFlow(start_promoted_vars);
+        // Every body ends in a return (the parser adds one), so this is a function whose
+        // returns are all non-local, i.e. that never returns normally.
         if (!sf.num_returns) {
-            if (!sf.returngiventype.Null() && sf.returngiventype->t != V_VOID)
+            if (!sf.returngiventype.Null() && sf.returngiventype->t != V_VOID) {
                 ErrorAlways(*sf.sbody->children.back(), "missing return statement");
-            sf.returntype = type_void;
+                // The declared type stands, such that callers see what was promised.
+            } else {
+                sf.returntype = type_void;
+            }
         }
         // Let variables go out of scope in reverse order of declaration.
         auto exit_scope = [&](const Arg &var) {
@@ -5064,11 +5069,9 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     }
     tc.TT(child, reqret, reqlt);
     tc.DecBorrowers(child->lt, *this);
-    if (sf == tc.st.toplevel) {
-        // return from program
-        if (child->exptype->NumValues() > 1)
-            tc.ErrorAlways(*this, "cannot return multiple values from top level");
-    }
+    // A return from the program has at most one value: TT above dropped whatever the
+    // expression produced beyond what the program returns.
+    assert(sf != tc.st.toplevel || child->exptype->NumValues() <= 1);
     auto never_returns = child->Terminal(tc);
     if (never_returns && make_void && sf->num_returns) {
         // A return with other returns inside of it that always bypass this return,
