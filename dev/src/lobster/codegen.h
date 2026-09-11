@@ -1566,6 +1566,11 @@ struct CodeGen  {
     // members of the struct it returns them in, see RetStruct.
     Place RetVar() { return Var("ret", f_ret_types[0]); }
     Place RetSlot(int i, RTType rtt) { return Var(cat("ret.r", i), rtt); }
+    // The type index an object carries, which both backends keep in the first field of the
+    // header every reference has, see Prologue and the C++ DynAlloc.
+    string TypeIdOf(string_view obj) {
+        return cpp ? cat("(int)", obj, "->tti") : cat(obj, "->typeinfo");
+    }
     void comment(string_view c) { append(cb, " // ", c, "\n"); }
     string_view vmref() { return string_view(cpp ? "vm." : "vm->"); }
 
@@ -4865,7 +4870,8 @@ bool Switch::GenerateJumpTable(CodeGen &cg, size_t retval) const {
     return true;
 }
 
-void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mini, int maxi) const {
+void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mini, int maxi,
+                                   const vector<vector<int>> *case_values) const {
     auto deflab = cg.Label();
     vector<int> ilab(range + 1, deflab);
     // Figure out labels first, so we can generate code for it all at once.
@@ -4888,7 +4894,11 @@ void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mi
     }
     // The cases are jump targets, so what is on the stack has to be in its slots.
     string on;
-    if (vtable_idx >= 0) {
+    if (case_values) {
+        // The case labels are the type indices themselves, so the value to switch on is the one
+        // the object carries, see GenerateTypeDispatch.
+        on = cg.TypeIdOf(cg.Read(cg.Slot(1, CodeGen::VK_OBJECT)));
+    } else if (vtable_idx >= 0) {
         on = cat("GetTypeSwitchID(vm, ", cg.Read(cg.Slot(1, CodeGen::VK_OBJECT)), ", ", vtable_idx,
                  ")");
     } else {
@@ -4913,12 +4923,17 @@ void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mi
         }
         cg.TrackUseDef(0, 0);
         cg.Flush();
-        auto t = ilab.data();
         append(cg.cb, "    ");
-        for (auto i = mini; i <= maxi; i++) {
-            if (*t++ == lab) append(cg.cb, "case ", i, ":");
+        if (case_values) {
+            for (auto v : (*case_values)[i]) append(cg.cb, "case ", v, ":");
+            if (lab == deflab) append(cg.cb, "default:");
+        } else {
+            auto t = ilab.data();
+            for (auto v = mini; v <= maxi; v++) {
+                if (*t++ == lab) append(cg.cb, "case ", v, ":");
+            }
+            if (*t++ == lab) append(cg.cb, "default:");
         }
-        if (*t++ == lab) append(cg.cb, "default:");
         cg.cb += "\n";
         cas->Generate(cg, retval);
         bs.End();
@@ -4942,7 +4957,18 @@ void Switch::GenerateTypeDispatch(CodeGen &cg, size_t retval) const {
     (void)de;
     cg.TrackUseDef(1, 0);
     int range = (int)cases->children.size();
-    GenerateJumpTableMain(cg, retval, range, 0, range - 1);
+    // Which case each type the value can have belongs to is known right here, and so is the
+    // type index each of those types carries, so the switch tests that index directly. Going
+    // thru GetTypeSwitchID instead would be two dependent loads at runtime (the type table for
+    // the vtable offset, then the vtable for the case) to arrive at the same constant.
+    vector<vector<int>> case_values(range);
+    for (auto sub : dispatch_udt->subudts) {
+        auto sde = sub->dispatch_table[vtable_idx].get();
+        if (!sde || sde->case_index < 0) continue;
+        assert(sde->case_index < range);
+        case_values[sde->case_index].push_back((int)cg.GetTypeTableOffset(&sub->thistype));
+    }
+    GenerateJumpTableMain(cg, retval, range, 0, range - 1, &case_values);
 }
 
 void Case::Generate(CodeGen &cg, size_t retval) const {
