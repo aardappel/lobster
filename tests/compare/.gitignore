@@ -1,0 +1,6 @@
+build/
+csharp/obj/
+csharp/bin/
+__pycache__/
+*.pyc
+lobster/compiled_lobster_jit.c
