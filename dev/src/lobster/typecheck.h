@@ -532,7 +532,12 @@ struct TypeChecker {
             case V_STRUCT_R:
             case V_STRUCT_S: {
                 if (type->t != bound->t) return false;
-                if (SuperDistance(bound->udt, type->udt) < 0) return false;
+                auto sd = SuperDistance(bound->udt, type->udt);
+                if (sd < 0) return false;
+                // The members of an abstract struct family all have the family's layout, so
+                // a value converts to any of its supertypes in it, like an object does (and
+                // like for those, only to the exact type as a vector element).
+                if (bound->udt->family_root) return cf & CF_EXACTTYPE ? sd == 0 : true;
                 // A struct is exactly its fields, so a subclass only converts to a superclass
                 // that adds none: losing the extra ones would be a silent truncation.
                 return type->udt->sfields.size() == bound->udt->sfields.size();
@@ -558,6 +563,7 @@ struct TypeChecker {
         assert(bound->t != V_UUDT && bound->t != V_TYPEVAR);
         return UnConvertsTo(type, bound, cf, type_parent, bound_parent);
     }
+
 
     bool ConvertsToTuple(const vector<Type::TupleElem> &ttup, const vector<Type::TupleElem> &stup) {
         if (ttup.size() != stup.size()) return false;
@@ -594,6 +600,11 @@ struct TypeChecker {
             return st.Wrap(et, V_NIL, err ? &err->line : nullptr);
         }
         if (at->t == V_CLASS && bt->t == V_CLASS) {
+            auto sstruc = CommonSuperType(at->udt, bt->udt);
+            if (sstruc) return &sstruc->thistype;
+        }
+        if (IsStruct(at->t) && at->t == bt->t && at->udt->family_root &&
+            at->udt->family_root == bt->udt->family_root) {
             auto sstruc = CommonSuperType(at->udt, bt->udt);
             if (sstruc) return &sstruc->thistype;
         }
@@ -955,7 +966,8 @@ struct TypeChecker {
                     RequiresError(TypeName(n.left->exptype), n.right->exptype, n,
                                   "right-hand side");
                     u = type_error;
-                } else if (u->t == V_STRUCT_S && !u->udt->sametype->Numeric()) {
+                } else if (u->t == V_STRUCT_S && !u->udt->sametype->Numeric() &&
+                           !u->udt->family_root) {
                     RequiresError("numeric struct", u, n);
                     u = type_error;
                 }
@@ -1246,7 +1258,24 @@ struct TypeChecker {
             if (!sfield.type.Null() && IsStruct(sfield.type->t))
                 EnsureUDTChecked(*sfield.type->udt, errn);
         }
-        if (!udt.ComputeSizes()) {
+        // The layout of an abstract struct family is decided over all its members (see
+        // SymbolTable::LayoutFamily), which needs their field types, so complete them first.
+        // A member whose own defaults are being typechecked further up the stack (which
+        // constructs this one) can still have fields with types to be inferred from them,
+        // and can't be laid out without.
+        if (udt.family_root) {
+            for (auto m : st.udttable) {
+                if (m->family_root != udt.family_root) continue;
+                if (m != &udt) EnsureUDTChecked(*m, errn);
+                for (auto [i, sfield] : enumerate(m->sfields)) {
+                    if (!sfield.type.Null()) continue;
+                    ErrorAlways(errn, "field ", Q(m->g.fields[i].id->name), " of ", Q(m->name),
+                                      " must be given an explicit type, since ", Q(m->name),
+                                      " is part of abstract struct ", Q(udt.family_root->name));
+                }
+            }
+        }
+        if (!udt.ComputeSizes(st)) {
             ErrorAlways(errn, cat("struct ", Q(udt.name), " cannot be self-referential"));
         }
         udts_in_progress.pop_back();
@@ -1827,12 +1856,17 @@ struct TypeChecker {
             }
         } else if (otype->t == V_UUDT &&
                    IsUDT(atype->t) &&
-                   otype->spec_udt->gudt != parent &&  // Avoid recursion!
-                   otype->spec_udt->gudt == &atype->udt->g) {
-            assert(otype->spec_udt->specializers.size() == atype->udt->bound_generics.size());
-            for (auto [i, s] : enumerate(otype->spec_udt->specializers)) {
-                BindTypeVar({ s }, atype->udt->bound_generics[i], generics,
-                            otype->spec_udt->gudt);
+                   otype->spec_udt->gudt != parent) {  // Avoid recursion!
+            // The argument may be of a subtype of the given type, in which case the type
+            // variables take their values from the specialization of the given type it
+            // derives from.
+            for (auto udt = atype->udt; udt; udt = udt->ssuperclass) {
+                if (otype->spec_udt->gudt != &udt->g) continue;
+                assert(otype->spec_udt->specializers.size() == udt->bound_generics.size());
+                for (auto [i, s] : enumerate(otype->spec_udt->specializers)) {
+                    BindTypeVar({ s }, udt->bound_generics[i], generics, otype->spec_udt->gudt);
+                }
+                break;
             }
         }
     }
@@ -2262,14 +2296,14 @@ struct TypeChecker {
         vtable_idx = -1;
         assert(!f.istype);
         // Check if we need to do dynamic dispatch. We only do this for functions that have a
-        // explicit first arg type of a class (not structs, since they can never dynamically be
-        // different from their static type), and only when there is a sub-class that has a
-        // method that can be called also.
+        // explicit first arg type of a class or a struct in an abstract struct family (not
+        // other structs, since they can never dynamically be different from their static
+        // type), and only when there is a sub-class that has a method that can be called also.
         UDT *dispatch_udt = nullptr;
         TypeRef type0;
         if (call_args.Arity()) {
             type0 = call_args.children[0]->exptype;
-            if (type0->t == V_CLASS) dispatch_udt = type0->udt;
+            if (IsDynamicType(type0)) dispatch_udt = type0->udt;
         }
         if (dispatch_udt) {
             if (super) {
@@ -2345,7 +2379,7 @@ struct TypeChecker {
             if (matches.empty()) {
                 for (auto ov : pickfrom) {
                     auto arg = ov->givenargs[argidx];
-                    if (arg->t != V_UUDT || type->t != V_CLASS) {
+                    if (arg->t != V_UUDT || !IsDynamicType(type)) {
                         continue;
                     }
                     auto dist = DistanceToSpecializedSuper(arg->spec_udt->gudt, type->udt);
@@ -2375,7 +2409,7 @@ struct TypeChecker {
                     if (!UnConvertsTo(type, arg, CF_NONE)) {
                         continue;
                     }
-                    if (matches.size() == 1 && type->t == V_CLASS) {
+                    if (matches.size() == 1 && IsDynamicType(type)) {
                         auto oarg = matches[0]->givenargs[argidx];
                         // Prefer "closest" supertype.
                         auto dist = SuperDistance(arg->udt, type->udt);
@@ -3761,8 +3795,9 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
     tc.TT(value, 1, LT_BORROW);
     tc.DecBorrowers(value->lt, *this);
     auto ptype = value->exptype;
-    if (!ptype->Numeric() && ptype->t != V_STRING && ptype->t != V_CLASS) {
-        tc.Error(*this, "switch value must be int / float / string / class");
+    auto on_types = IsDynamicType(ptype);
+    if (!ptype->Numeric() && ptype->t != V_STRING && !on_types) {
+        tc.Error(*this, "switch value must be int / float / string / class / abstract struct");
         ptype = type_error;
     }
     exptype = nullptr;
@@ -3785,7 +3820,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
         cas->pattern->exptype = type_void;
         cas->pattern->lt = LT_ANY;
         for (auto c : cas->pattern->children) {
-            if (ptype->t == V_CLASS) {
+            if (on_types) {
                 if (!Is<UDTRef>(c)) tc.Error(*c, "non-type value in switch on type");
             } else {
                 tc.SubTypeT(c->exptype, ptype, *c, "", "case");
@@ -3850,7 +3885,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
         }
     }
     if (exptype.Null()) exptype = type_void;  // Empty switch or all return statements.
-    if (ptype->t == V_CLASS) {
+    if (on_types) {
         auto &dispatch_udt = *ptype->udt;
         dispatch_udt.subudts_dispatched_where = "switch";
         vtable_idx = -1;
@@ -3931,7 +3966,7 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
     // A promotion made by every case only holds after the switch if some case
     // always runs; the errors above guarantee that for a class or enum value.
     // Demotions hold regardless, since any case may have run.
-    if (default_loc < 0 && ptype->t != V_CLASS && !ptype->IsEnum()) merged.promoted.clear();
+    if (default_loc < 0 && !on_types && !ptype->IsEnum()) merged.promoted.clear();
     tc.ApplyFlow(merged);
     lt = LT_KEEP;
     return this;
@@ -5239,8 +5274,9 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
             return intc;
         }
     } else {
-        // ConstVal should always be const for structs.
-        assert(!IsStruct(resolvedtype->t));
+        // ConstVal is always const for a struct that is not in an abstract struct family,
+        // since only those carry a dynamic type.
+        assert(!IsStruct(resolvedtype->t) || resolvedtype->udt->family_root);
     }
     return this;
 }
@@ -5738,7 +5774,7 @@ bool Switch::Terminal(TypeChecker &tc) const {
         if (!cas->cbody->Terminal(tc)) return false;
     }
     if (!value->exptype.Null() &&  // Should already been typechecked but just in case.
-        (value->exptype->t == V_CLASS || value->exptype->IsEnum()))  // Guaranteed exhaustive or runtime error.
+        (IsDynamicType(value->exptype) || value->exptype->IsEnum()))  // Guaranteed exhaustive or runtime error.
         return true;
     // Other types, cannot guarantee it is terminal without a default.
     return have_default;

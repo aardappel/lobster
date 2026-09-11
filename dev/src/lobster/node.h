@@ -528,6 +528,7 @@ struct VectorConstructor : List {
 struct ObjectConstructor : List {
     UnTypeRef giventype;
     ObjectConstructor(const Line &ln, UnTypeRef _type) : List(ln), giventype(_type) {};
+    void GenerateFamilyStruct(CodeGen &cg, size_t retval) const;
     bool IsConstInit() const {
         for (auto n : children) {
             if (!n->IsConstInit()) return false;

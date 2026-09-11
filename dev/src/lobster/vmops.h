@@ -29,8 +29,17 @@ VM_INLINE LString *RtPushStr(VM &vm, int i) {
 // The function a dynamic dispatch on the class of `self` lands in, which the generated code
 // then calls with the signature it knows the dispatch has.
 VM_INLINE fun_base_t RtDynDispatch(VM &vm, LObject *self, int vtable_idx) {
-    auto start = self->ti(vm).vtable_start_or_bitmask;
+    auto start = self->ti(vm).vtable_start;
     auto target = vm.vma.native_vtables[start + vtable_idx];
+    assert(target);
+    return target;
+}
+
+// The same for a value of a struct in an abstract struct family, for which the generated
+// code computes the entry from the family index in the value's type slot, the vtables of a
+// family's members sitting at one stride, see CodeGen::EmitDynDispatch.
+VM_INLINE fun_base_t RtDynDispatchStruct(VM &vm, iint entry) {
+    auto target = vm.vma.native_vtables[entry];
     assert(target);
     return target;
 }
@@ -250,6 +259,7 @@ VM_INLINE iint RtIsSubType(VM &vm, LObject *v, int start, int end, int nilres) {
     auto dfs = v->ti(vm).subtype_dfs;
     return start <= dfs && dfs <= end;
 }
+
 
 VM_INLINE void RtAbort(VM &vm) {
     vm.SeriousError("VM internal error: abort");

@@ -208,15 +208,17 @@ struct int3 : int2
     z:int
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can use either `class` or `struct` to define these, with the latter being more
-restrictive: they are stored in-inline in their parent and copied.
-This makes sense for small objects such as the one in this example.
+You can use either `class` to define these (which defines a dynamically allocated
+object copied by reference) or `struct` (stored in-inline in their parent and copied by value).
+`struct` makes sense for small objects such as the one in this example.
 
 You specify a list of fields using indentation.
 
 Optionally, you specify a supertype, which has the effect of adding all the
 fields of the supertype to the current type, thus making it an extension of the
 former.
+
+### Generic UDTs
 
 The above example uses ints directly, but you
 can also define types more generically, and then define named specializations of them:
@@ -229,6 +231,8 @@ struct vec2<T>:
 struct int2 = vec2<int>
 struct float2 = vec2<float>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+### Constructors
 
 You construct values of these types you use a similar syntax:
 
@@ -268,12 +272,38 @@ For more complex ways of constructing types, see constructor functions below.
 In generic code, `T {}` where `T` resolves to a non-struct/class type stands for
 the default value of that type: `0`, `0.0`, `""`, `[]`, or `nil` for nilable types.
 
+
+### Abstract and Discriminated unions
+
 To declare a type whose only purpose is to serve as a superclass for other
 types and is not to be instantiated, declare it with `abstract`:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 abstract class Node
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These are great for the "discriminated union" use cases: if you `switch` on a
+type like this you'll get errors if not all sub-classes are covered.
+
+Similarly, you can do the same with structs, if you want an in-line copied
+discriminated union:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+abstract struct Value
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This kind of `struct` automatically includes a type field that is inaccessible
+to the programmer but allows it to participate in `switch` and `is` constructs,
+and function dynamic dispatch (see below).
+
+Any `struct` that inherits from an `abstract struct`, besides the type field,
+may gain further invisible padding fields (equivalent to integer 0 or `nil`
+fields) such that all sub-structs are the same size. This guarantees any
+sub-structs can overwrite any others anywhere.
+
+Such a `struct` prints as the sub-struct it currently holds (without the
+invisible fields), and the serialization functions treat it like a class with
+sub-classes (`attribute serializable` is allowed on the sub-structs).
 
 
 Operators

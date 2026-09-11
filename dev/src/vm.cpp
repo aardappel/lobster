@@ -1106,6 +1106,7 @@ LString *CRtRefToString(VM *vm, RefObj *a, type_elem_t ti) { return RtRefToStrin
 LString *CRtStructToString(VM *vm, Value *vals, type_elem_t ti) { return RtStructToString(*vm, vals, ti); }
 iint CRtIsSubType(VM *vm, LObject *v, int start, int end, int nilres) { return RtIsSubType(*vm, v, start, end, nilres); }
 fun_base_t CRtDynDispatch(VM *vm, LObject *self, int vtable_idx) { return RtDynDispatch(*vm, self, vtable_idx); }
+fun_base_t CRtDynDispatchStruct(VM *vm, iint entry) { return RtDynDispatchStruct(*vm, entry); }
 void CRtEnumRangeErr(VM *vm) { RtEnumRangeErr(*vm); }
 Value *CRtLvalIndexClass(VM *vm, LObject *obj, iint i, int offset) { return RtLvalIndexClass(*vm, obj, i, offset); }
 void CRtLvSAdd(VM *vm, Value *lv, LString *b) { RtLvSAdd(*vm, lv, b); }
@@ -1161,6 +1162,7 @@ const void *vm_ops_jit_table[] = {
     "RtStructToString", (void *)&CRtStructToString,
     "RtIsSubType", (void *)&CRtIsSubType,
     "RtDynDispatch", (void *)&CRtDynDispatch,
+    "RtDynDispatchStruct", (void *)&CRtDynDispatchStruct,
     "RtEnumRangeErr", (void *)&CRtEnumRangeErr,
     "RtLvalIndexClass", (void *)&CRtLvalIndexClass,
     "RtLvSAdd", (void *)&CRtLvSAdd,

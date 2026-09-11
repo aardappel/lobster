@@ -66,6 +66,7 @@ struct DeclChecker {
         };
         for (auto ut : st.untypelist) collapse(*ut);
         for (auto gudt : st.gudttable) collapse(gudt->unspecialized_type);
+        FinalizeFamilies();
         for (auto f : st.functiontable) {
             if (f->anonymous || f->overloads.empty()) continue;
             auto &fs = st.functions_by_name[f->name];
@@ -129,6 +130,68 @@ struct DeclChecker {
             udt->sfields.clear();
             udt->state = UDTState::DECLARED;
             st.ResolveFields(*udt, gudt->line);
+        }
+    }
+
+    // Whether a field of this declared type may hold a reference in some specialization:
+    // anything but a definitely scalar type, including one still to be inferred.
+    static bool MayBeRef(UnTypeRef type) {
+        switch (type->t) {
+            case V_INT:
+            case V_FLOAT:
+            case V_FUNCTION:
+                return false;
+            case V_STRUCT_S: {
+                // A member of a family that may still turn out to hold references, see
+                // the fixpoint in FinalizeFamilies.
+                auto root = FamilyRootOf(&type->udt->g);
+                return root && root->family_hasref;
+            }
+            default:
+                // A generic struct (V_UUDT) can be given reference type arguments.
+                return true;
+        }
+    }
+
+    // Decides for every abstract struct family whether it is a family of structs of
+    // references (see GUDT::family_hasref), which makes every specialization in it one,
+    // as well as every struct that (transitively) has a field of such a type, whose
+    // kind was decided by the parser before that was known.
+    void FinalizeFamilies() {
+        // Over declarations, since a generic member's field may hold a reference in one
+        // specialization and not in another, and a family is one kind in all of them.
+        // A nested family value counts once its own family is known to hold references.
+        for (bool changed = true; changed;) {
+            changed = false;
+            for (auto gudt : st.gudttable) {
+                auto root = FamilyRootOf(gudt);
+                if (!root || root->family_hasref) continue;
+                for (auto &f : gudt->fields) {
+                    if (MayBeRef(f.giventype)) {
+                        root->family_hasref = true;
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+        for (bool changed = true; changed;) {
+            changed = false;
+            for (auto udt : st.udttable) {
+                if (!udt->g.is_struct) continue;
+                // The root's declaration may have followed the member's (a pre-declared
+                // struct that was then declared abstract).
+                udt->family_root = FamilyRootOf(udt);
+                if (udt->family_root) udt->sametype = type_undefined;
+                bool hasref = udt->family_root && udt->family_root->g.family_hasref;
+                for (auto &sfield : udt->sfields) {
+                    if (sfield.type.Null() || IsRefNil(sfield.type->t)) hasref = true;
+                }
+                if (hasref == udt->hasref) continue;
+                udt->hasref = hasref;
+                const_cast<ValueType &>(udt->thistype.t) = hasref ? V_STRUCT_R : V_STRUCT_S;
+                changed = true;
+            }
         }
     }
 

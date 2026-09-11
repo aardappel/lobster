@@ -119,10 +119,10 @@ void LVector::Truncate(VM &vm, iint n) {
 void LVector::DestructElementRange(VM& vm, iint from, iint to) {
     auto &eti = ElemType(vm);
     if (!RTIsRefNil(eti.t)) return;
-    if (eti.t == RTT_STRUCT_R && eti.vtable_start_or_bitmask != (1 << width) - 1) {
+    if (eti.t == RTT_STRUCT_R && eti.refbitmask != (1 << width) - 1) {
         // We only run this special loop for mixed ref/scalar.
         for (int j = 0; j < width; j++) {
-            if ((1 << j) & eti.vtable_start_or_bitmask) {
+            if ((1 << j) & eti.refbitmask) {
                 for (iint i = from; i < to; i++) {
                     AtSlot(i * width + j).LTDECRTNIL(vm);
                 }
@@ -138,10 +138,10 @@ void LVector::DestructElementRange(VM& vm, iint from, iint to) {
 void LVector::IncElementRange(VM &vm, iint from, iint to) {
     auto &eti = ElemType(vm);
     if (!RTIsRefNil(eti.t)) return;
-    if (eti.t == RTT_STRUCT_R && eti.vtable_start_or_bitmask != (1 << width) - 1) {
+    if (eti.t == RTT_STRUCT_R && eti.refbitmask != (1 << width) - 1) {
         // We only run this special loop for mixed ref/scalar.
         for (int j = 0; j < width; j++) {
-            if ((1 << j) & eti.vtable_start_or_bitmask) {
+            if ((1 << j) & eti.refbitmask) {
                 for (iint i = from; i < to; i++) {
                     AtSlot(i * width + j).LTINCRTNIL();
                 }
@@ -520,9 +520,14 @@ const TypeInfo &LVector::ElemType(VM &vm) const {
     return vm.GetTypeInfo(_ti.subt);
 }
 
+// The elements of a vector (`len` of them, `width` slots each), or the fields of an object or
+// struct (`len` slots, a nested struct's fields being flattened into it), or with `fields`
+// given, those of a struct in an abstract struct family (`len` of them, at the slots the
+// metadata says, since not every slot is a field), see TypeInfo::IsFamilyStruct.
 void VectorOrObjectToString(VM &vm, string &sd, PrintPrefs &pp, char openb, char closeb,
                             iint len, iint width, const void *elems, bool is_vector,
-                            std::function<const TypeInfo &(iint)> getti) {
+                            std::function<const TypeInfo &(iint)> getti,
+                            const VMField *fields = nullptr) {
     sd += openb;
     if (pp.indent) sd += '\n';
     auto start_size = sd.size();
@@ -541,16 +546,17 @@ void VectorOrObjectToString(VM &vm, string &sd, PrintPrefs &pp, char openb, char
             break;
         }
         auto &ti = getti(i);
+        auto slot = fields ? fields[i].offset : i * width;
         if (pp.depth || !RTIsRef(ti.t)) {
             PrintPrefs subpp(pp.depth - 1, pp.budget - iint(sd.size() - start_size), true,
                              pp.decimals);
             subpp.indent = pp.indent;
             subpp.cur_indent = pp.cur_indent;
             if (RTIsStruct(ti.t)) {
-                vm.StructToString(sd, subpp, ti, SubSlots(elems, i * width));
-                if (!is_vector) i += ti.len - 1;
+                vm.StructToString(sd, subpp, ti, SubSlots(elems, slot));
+                if (!is_vector && !fields) i += ti.len - 1;
             } else {
-                LoadSlot(elems, i).ToString(vm, sd, ti, subpp);
+                LoadSlot(elems, slot).ToString(vm, sd, ti, subpp);
             }
         } else {
             sd += "..";
@@ -587,6 +593,21 @@ void LResource::ToString(string &sd) {
 }
 
 void VM::StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const void *elems) {
+    if (ti.IsFamilyStruct()) {
+        // Printed as the member it dynamically is, by that member's fields, so neither
+        // the type slot nor the padding show.
+        auto &dti = FamilyDynType(ti, elems);
+        sd += ReverseLookupType(dti.structidx);
+        if (pp.indent) sd += ' ';
+        auto &fields = vma.meta->udts[dti.structidx].fields;
+        VectorOrObjectToString(*this, sd, pp, '{', '}', (iint)fields.size(), 1, elems, false,
+            [&](iint f) -> const TypeInfo & {
+                return GetTypeInfo(dti.GetElemOrParent(fields[f].offset));
+            },
+            fields.data()
+        );
+        return;
+    }
     sd += ReverseLookupType(ti.structidx);
     if (pp.indent) sd += ' ';
     VectorOrObjectToString(*this, sd, pp, '{', '}', ti.len, 1, elems, false,
@@ -685,6 +706,22 @@ void LVector::ToFlexBuffer(ToFlexBufferContext &fbc) {
 bool VM::StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &sti,
                             const void *elems, bool omit_if_empty) {
     auto start = fbc.builder.StartMap();
+    if (sti.IsFamilyStruct()) {
+        // The fields of the member it dynamically is, which the reader needs to know by
+        // name, like it does for an object of a subclass, see LObject::ToFlexBuffer.
+        auto &dti = FamilyDynType(sti, elems);
+        auto type_name = ReverseLookupType(dti.structidx);
+        fbc.builder.Key("_type");
+        fbc.builder.String(type_name.data(), type_name.size());
+        auto &fields = vma.meta->udts[dti.structidx].fields;
+        for (auto &field : fields) {
+            iint i = field.offset;
+            auto &ti = GetTypeInfo(dti.GetElemOrParent(i));
+            ElemToFlexBuffer(fbc, ti, i, 1, elems, field.name, dti.elemtypes[i].defval);
+        }
+        fbc.builder.EndMap(start);
+        return true;
+    }
     for (iint i = 0, f = 0; i < sti.len; i++, f++) {
         auto &ti = GetTypeInfo(sti.GetElemOrParent(i));
         auto fname = fbc.vm.LookupField(sti.structidx, f);
@@ -729,6 +766,22 @@ void LVector::ToLobsterBinary(VM &vm, vector<uint8_t> &buf) {
 
 void VM::StructToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &sti,
                                const void *elems) {
+    if (sti.IsFamilyStruct()) {
+        // The member it dynamically is, by its serializable id, then its fields, like an
+        // object, see LObject::ToLobsterBinary.
+        auto &dti = FamilyDynType(sti, elems);
+        if (dti.serializable_id < 0) {
+            vm.Error("cannot serialize (missing serializable attribute): " + StructName(dti));
+        }
+        EncodeVarintU(dti.serializable_id, buf);
+        auto &fields = vma.meta->udts[dti.structidx].fields;
+        for (auto &field : fields) {
+            iint i = field.offset;
+            auto &ti = GetTypeInfo(dti.GetElemOrParent(i));
+            ElemToLobsterBinary(vm, buf, ti, i, 1, elems, true);
+        }
+        return;
+    }
     for (iint i = 0; i < sti.len; i++) {
         auto &ti = GetTypeInfo(sti.GetElemOrParent(i));
         ElemToLobsterBinary(vm, buf, ti, i, 1, elems, true);

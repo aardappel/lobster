@@ -104,8 +104,8 @@ enum type_elem_t : int {  // Strongly typed element of typetable.
     TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 22,
     TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 25,
     TYPE_ELEM_VECTOR_OF_RESOURCE = 28,
-    TYPE_ELEM_VECTOR_OF_FLOAT4 = 82,
-    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT4 = 85,
+    TYPE_ELEM_VECTOR_OF_FLOAT4 = 94,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT4 = 97,
 };
 
 struct VM;
@@ -124,13 +124,24 @@ struct TypeInfo {
         struct {           // RTT_CLASS, RT_STRUCT_*
             int structidx;
             int len;
-            int vtable_start_or_bitmask;
+            // RTT_CLASS, and a struct in an abstract struct family, whose values carry
+            // their dynamic type in their first slot, see IsFamilyStruct. Negative for
+            // other structs, which have no dynamic type to dispatch on.
+            int vtable_start;
+            int refbitmask;    // RTT_STRUCT_R: which slots hold a reference.
             type_elem_t superclass;
             int serializable_id;
             // Pre-order index over the inheritance forest, such that the
             // indices of any UDT's subtree form a contiguous range, allowing
             // ISSUBTYPE to test subtype membership with a single range check.
             int subtype_dfs;
+            // For a struct in an abstract struct family (see IsFamilyStruct): the root of
+            // the family, this member's pre-order index within it (what a value's type slot
+            // holds), and on the root only, how many members it has, which follow the
+            // elemtypes, see FamilyMembers. Negative otherwise.
+            type_elem_t family_root;
+            int family_index;
+            int family_size;
             TIField elemtypes[1];  // len elems.
         };
         int enumidx;       // RTT_INT, -1 if not an enum.
@@ -156,6 +167,19 @@ struct TypeInfo {
                 return TYPE_ELEM_ANY;
         return elemtypes[0].type;
     }
+
+    // A struct in an abstract struct family: all members of one have the same slots, of
+    // which only some are its fields (which the metadata says, by their offsets, in
+    // whatever order the layout gave them), the first holds the family index of the
+    // value's dynamic type, and the rest are padding.
+    bool IsFamilyStruct() const { return RTIsStruct(t) && family_root >= 0; }
+    // On the root of a family: the type of each of its members, by family index.
+    const type_elem_t *FamilyMembers() const {
+        return (const type_elem_t *)(elemtypes + len);
+    }
+    // Whether such a struct is one no value is of (the abstract ones), which is what
+    // having no type id to default construct a value with says.
+    bool IsAbstractFamilyStruct() const { return IsFamilyStruct() && !elemtypes[0].defval; }
 };
 
 struct Value;
@@ -861,7 +885,7 @@ struct LVector : RefObj {
         auto &eti = ElemType(vm);
         if (!RTIsRefNil(eti.t)) return;
         for (int j = 0; j < width; j++) {
-            if (eti.t != RTT_STRUCT_R || (1 << j) & eti.vtable_start_or_bitmask) {
+            if (eti.t != RTT_STRUCT_R || (1 << j) & eti.refbitmask) {
                 for (iint i = 0; i < len; i++) {
                     auto l = i * width + j;
                     SetAtSlot(l, AtSlot(l).CopyRef(vm, depth));
@@ -1167,6 +1191,12 @@ struct VM : VMBase {
     const TypeInfo &GetTypeInfo(type_elem_t offset) const {
         return *(TypeInfo *)(typetable + offset);
     }
+    // The dynamic type of a value of a struct in an abstract struct family (`sti` being any
+    // type in it), from the family index in its first slot, see TypeInfo::IsFamilyStruct.
+    const TypeInfo &FamilyDynType(const TypeInfo &sti, const void *elems) const {
+        auto &root = GetTypeInfo(sti.family_root);
+        return GetTypeInfo(root.FamilyMembers()[LoadSlot(elems, 0).ival()]);
+    }
     template<typename T> T GetDefaultScalar(type_elem_t offset) const {
         if (!offset) return T{};
         T t;
@@ -1300,7 +1330,7 @@ VM_INLINE void RestoreBackup(VM &vm, int i) {
 }
 
 VM_INLINE int GetTypeSwitchID(VM &vm, LObject *self, int vtable_idx) {
-    auto start = self->ti(vm).vtable_start_or_bitmask;
+    auto start = self->ti(vm).vtable_start;
     auto id = (int)(size_t)vm.vma.native_vtables[start + vtable_idx];
     assert(id >= 0);
     return id;

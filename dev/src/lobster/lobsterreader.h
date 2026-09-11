@@ -50,11 +50,75 @@ struct Deserializer {
         is_ref.reserve(16);
     }
 
+    // Pushes a value of a struct in an abstract struct family, see TypeInfo::IsFamilyStruct:
+    // `field(f, slot, eti)` pushes the value of each field of `dti` (the member it is) in
+    // turn, in field order, which is the order the serialized forms have them in. Those
+    // then get moved to the slots the layout has the fields at (in whatever order, see
+    // SymbolTable::LayoutFamily), with the family index of the member in the first slot,
+    // and 0 or nil in the padding, by the kind of value the slot holds.
+    template<typename F> void PushFamilyStruct(const TypeInfo &dti, bool push, F field) {
+        auto &fields = vm.vma.meta->udts[dti.structidx].fields;
+        auto start = stack.size();
+        vector<size_t> starts;
+        for (size_t f = 0; f < fields.size(); f++) {
+            starts.push_back(stack.size() - start);
+            auto slot = fields[f].offset;
+            field(f, slot, dti.GetElemOrParent(slot));
+        }
+        if (!push) return;
+        vector<Value> vals(stack.begin() + start, stack.end());
+        vector<bool> refs(is_ref.begin() + start, is_ref.end());
+        stack.erase(stack.begin() + start, stack.end());
+        is_ref.erase(is_ref.begin() + start, is_ref.end());
+        for (int s = 0; s < dti.len;) {
+            if (!s) {
+                PushV((iint)dti.family_index);
+                s++;
+                continue;
+            }
+            size_t f = 0;
+            while (f < fields.size() && fields[f].offset != s) f++;
+            if (f < fields.size()) {
+                auto &ti = vm.GetTypeInfo(dti.GetElemOrParent(s));
+                auto width = RTIsStruct(ti.t) ? ti.len : 1;
+                for (int j = 0; j < width; j++) {
+                    auto k = starts[f] + j;
+                    // A field the parser could not complete leaves a gap, which the error
+                    // it reports covers.
+                    if (k < vals.size()) PushV(vals[k], refs[k]); else PushV(NilVal());
+                }
+                s += width;
+            } else {
+                auto &pti = vm.GetTypeInfo(dti.elemtypes[s].type);
+                if (pti.t == RTT_INT) PushV((iint)0); else PushV(NilVal());
+                s++;
+            }
+        }
+    }
+
     bool PushDefault(type_elem_t typeoff, type_elem_t defval, const TIField *fields) {
         auto &ti = vm.GetTypeInfo(typeoff);
         if (ti.is_nil) {
             PushV(NilVal());
             return true;
+        }
+        if (ti.IsFamilyStruct()) {
+            // The default of the type slot says which member the default value is (the
+            // type itself, or another member the parent's default constructs), by family
+            // index, and there is none for the abstract ones (which the root, at index 0,
+            // is).
+            auto index = vm.GetDefaultScalar<iint>(fields ? fields[0].defval
+                                                          : ti.elemtypes[0].defval);
+            if (!index) return false;
+            auto &root = vm.GetTypeInfo(ti.family_root);
+            auto &dti = vm.GetTypeInfo(root.FamilyMembers()[index]);
+            auto ok = true;
+            PushFamilyStruct(dti, true, [&](size_t, int slot, type_elem_t eti) {
+                auto dv = fields ? fields[slot].defval : dti.elemtypes[slot].defval;
+                if (ok && !PushDefault(eti, dv, fields ? &fields[slot] : &dti.elemtypes[slot]))
+                    ok = false;
+            });
+            return ok;
         }
         switch (ti.t) {
             case RTT_INT: {
@@ -242,6 +306,20 @@ struct LobsterBinaryParser : Deserializer {
             }
             case RTT_STRUCT_S:
             case RTT_STRUCT_R: {
+                if (ti->IsFamilyStruct()) {
+                    // The member it is by its serializable id, then its fields, like an
+                    // object, see VM::StructToLobsterBinary.
+                    auto ser_id = DecodeVarintU(data, end);
+                    typeoff = vm.GetSubClassFromSerID(typeoff, (uint32_t)ser_id);
+                    if (typeoff < 0)
+                        Error(cat("serialization id ", ser_id, " is not a sub-struct of ",
+                                  vm.StructName(*ti)));
+                    ti = &vm.GetTypeInfo(typeoff);
+                    PushFamilyStruct(*ti, true, [&](size_t, int, type_elem_t eti) {
+                        ParseElem(data, end, eti);
+                    });
+                    break;
+                }
                 auto stack_start = stack.size();
                 auto NumElems = [&]() { return iint(stack.size() - stack_start); };
                 // NOTE: this provides no protection against structs changing in size,

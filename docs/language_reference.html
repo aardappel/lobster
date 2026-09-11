@@ -214,14 +214,16 @@ define a user defined type. For example:</p>
 
 struct int3 : int2
     z:int</code></pre>
-<p>You can use either <code>class</code> or <code>struct</code> to
-define these, with the latter being more restrictive: they are stored
-in-inline in their parent and copied. This makes sense for small objects
-such as the one in this example.</p>
+<p>You can use either <code>class</code> to define these (which defines
+a dynamically allocated object copied by reference) or
+<code>struct</code> (stored in-inline in their parent and copied by
+value). <code>struct</code> makes sense for small objects such as the
+one in this example.</p>
 <p>You specify a list of fields using indentation.</p>
 <p>Optionally, you specify a supertype, which has the effect of adding
 all the fields of the supertype to the current type, thus making it an
 extension of the former.</p>
+<h3 id="generic-udts">Generic UDTs</h3>
 <p>The above example uses ints directly, but you can also define types
 more generically, and then define named specializations of them:</p>
 <pre><code>struct vec2&lt;T&gt;:
@@ -230,6 +232,7 @@ more generically, and then define named specializations of them:</p>
 
 struct int2 = vec2&lt;int&gt;
 struct float2 = vec2&lt;float&gt;</code></pre>
+<h3 id="constructors">Constructors</h3>
 <p>You construct values of these types you use a similar syntax:</p>
 <pre><code>let v = int2 { 1, 0 }</code></pre>
 <p>(Or use <code>float2 { 1, 0 }</code> /
@@ -258,10 +261,31 @@ functions below.</p>
 non-struct/class type stands for the default value of that type:
 <code>0</code>, <code>0.0</code>, <code>""</code>, <code>[]</code>, or
 <code>nil</code> for nilable types.</p>
+<h3 id="abstract-and-discriminated-unions">Abstract and Discriminated
+unions</h3>
 <p>To declare a type whose only purpose is to serve as a superclass for
 other types and is not to be instantiated, declare it with
 <code>abstract</code>:</p>
 <pre><code>abstract class Node</code></pre>
+<p>These are great for the "discriminated union" use cases: if you
+<code>switch</code> on a type like this you'll get errors if not all
+sub-classes are covered.</p>
+<p>Similarly, you can do the same with structs, if you want an in-line
+copied discriminated union:</p>
+<pre><code>abstract struct Value</code></pre>
+<p>This kind of <code>struct</code> automatically includes a type field
+that is inaccessible to the programmer but allows it to participate in
+<code>switch</code> and <code>is</code> constructs, and function dynamic
+dispatch (see below).</p>
+<p>Any <code>struct</code> that inherits from an
+<code>abstract struct</code>, besides the type field, may gain further
+invisible padding fields (equivalent to integer 0 or <code>nil</code>
+fields) such that all sub-structs are the same size. This guarantees any
+sub-structs can overwrite any others anywhere.</p>
+<p>Such a <code>struct</code> prints as the sub-struct it currently holds
+(without the invisible fields), and the serialization functions treat it
+like a class with sub-classes (<code>attribute serializable</code> is
+allowed on the sub-structs).</p>
 <h2 id="operators">Operators</h2>
 <p>Lobster comes with a set of built-in operators mostly familiar from
 other languages that attempt to work on as many of the above types as

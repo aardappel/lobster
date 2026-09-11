@@ -263,7 +263,7 @@ struct CodeGen  {
         for (int i = 0; i < defslots; i++) PushTemp();
     }
 
-    const int ti_num_udt_fields = 8;
+    const int ti_num_udt_fields = 12;
     const int ti_num_udt_per_field = 3;
 
     type_elem_t PushDefaultValue(ValueType vt, VTValue val) {
@@ -312,8 +312,26 @@ struct CodeGen  {
                 }
             }
             vector<type_elem_t> idxs;
-            for (auto [vt, aval] : vals) {
-                idxs.push_back(PushDefaultValue(vt, aval));
+            if (IsFamilyStruct(cons->exptype)) {
+                // A member of an abstract struct family is described per slot (see
+                // PushFields), and this may be a different member than the static type of
+                // the field (which is what its exptype was set to, see EnsureUDTChecked),
+                // so the type slot says which: its family index is what makes the default
+                // value that member. A given type that still involves type variables can't
+                // say.
+                auto ctype = cons->giventype;
+                if (!IsUDT(ctype->t) || !ctype->udt->family_root) return (type_elem_t)0;
+                auto udt = ctype->udt;
+                udt->ComputeSizes(st);
+                idxs.resize(udt->numslots, (type_elem_t)0);
+                idxs[0] = PushDefaultValue(V_INT, VTValue((int64_t)udt->FamilyIndex()));
+                for (auto [i, v] : enumerate(vals)) {
+                    idxs[udt->sfields[i].slot] = PushDefaultValue(v.first, v.second);
+                }
+            } else {
+                for (auto [vt, aval] : vals) {
+                    idxs.push_back(PushDefaultValue(vt, aval));
+                }
             }
             auto &it = default_aggregate_lookup[idxs];
             if (!it) {
@@ -329,6 +347,10 @@ struct CodeGen  {
     void PushFields(UDT *udt, small_vector<type_elem_t, 2> &tt,
                     type_elem_t parent = (type_elem_t)-1,
                     type_elem_t dvs_overrides = (type_elem_t)0) {
+        if (udt->family_root) {
+            PushFamilyFields(udt, tt, parent, dvs_overrides);
+            return;
+        }
         for (auto [i, sfield] : enumerate(udt->sfields)) {
             if (sfield.type.Null()) {
                 // An inferred field of a class declared in a function that is never used, so it
@@ -348,6 +370,51 @@ struct CodeGen  {
                 tt.push_back(ti);
                 tt.push_back(parent);
                 tt.push_back(dvs_overrides ? type_table[dvs_overrides + i] : dvs);
+            }
+        }
+    }
+
+    // The same for a member of an abstract struct family, whose slots are not all fields,
+    // and whose fields are in whatever slots the layout gave them (see
+    // SymbolTable::LayoutFamily), so this goes by slot. The hidden slots (see
+    // UDT::hidden_sfields) are described by their own type, and get no default except the
+    // type slot, whose default is the family index of this very type, since that is what a
+    // default constructed value of it holds (nothing for an abstract one, which no value
+    // is). Defaults given for a field of such a type are per slot as well, since they may
+    // be for another member than the field's type, see PushDefaultValues.
+    void PushFamilyFields(UDT *udt, small_vector<type_elem_t, 2> &tt, type_elem_t parent,
+                          type_elem_t dvs_overrides) {
+        for (int s = 0; s < udt->numslots;) {
+            const SField *sfield = nullptr;
+            for (auto &sf : udt->sfields) if (sf.slot == s) sfield = &sf;
+            if (!sfield) {
+                tt.push_back(GetTypeTableOffset(FindSlot(*udt, s)->type));
+                tt.push_back(parent);
+                if (dvs_overrides) {
+                    tt.push_back(type_table[dvs_overrides + s]);
+                } else if (!s && !udt->g.is_abstract) {
+                    tt.push_back(PushDefaultValue(V_INT, VTValue((int64_t)udt->FamilyIndex())));
+                } else {
+                    tt.push_back((type_elem_t)0);
+                }
+                s++;
+            } else if (sfield->type.Null()) {
+                // See PushFields.
+                tt.push_back(TYPE_ELEM_ANY);
+                tt.push_back(parent);
+                tt.push_back((type_elem_t)0);
+                s++;
+            } else {
+                auto ti = GetTypeTableOffset(sfield->type);
+                auto dvs = PushDefaultValues(*sfield);
+                if (IsStruct(sfield->type->t)) {
+                    PushFields(sfield->type->udt, tt, parent < 0 ? ti : parent, dvs);
+                } else {
+                    tt.push_back(ti);
+                    tt.push_back(parent);
+                    tt.push_back(dvs_overrides ? type_table[dvs_overrides + s] : dvs);
+                }
+                s += ValWidth(sfield->type);
             }
         }
     }
@@ -379,20 +446,38 @@ struct CodeGen  {
                 typeinfo = (type_elem_t)type_table.size();
                 // Reserve space, so other types can be added afterwards safely.
                 assert(udt->numslots >= 0);
-                auto ttsize = (udt->numslots * ti_num_udt_per_field) + ti_num_udt_fields;
+                // The root of an abstract struct family also lists the family's members,
+                // by family index, see TypeInfo::FamilyMembers.
+                auto root = udt->family_root;
+                auto family_size = root == udt ? root->subtype_dfs_end - root->subtype_dfs + 1 : 0;
+                auto ttsize = (udt->numslots * ti_num_udt_per_field) + ti_num_udt_fields +
+                              family_size;
                 type_table.insert(type_table.end(), ttsize, (type_elem_t)0);
                 tt.push_back((type_elem_t)udt->idx);
                 tt.push_back((type_elem_t)udt->numslots);
-                if (type->t == V_CLASS)
-                    tt.push_back((type_elem_t)udt->vtable_start);
-                else
-                    tt.push_back((type_elem_t)ComputeBitMask(*udt));
+                // A vtable is only of use to a value that carries its dynamic type, which
+                // a struct does only in an abstract struct family.
+                tt.push_back((type_elem_t)(type->t == V_CLASS || root ? udt->vtable_start : -1));
+                tt.push_back((type_elem_t)(type->t == V_CLASS ? 0 : ComputeBitMask(*udt)));
                 tt.push_back(!udt->ssuperclass
                     ? (type_elem_t)-1
                     : GetTypeTableOffset(&udt->ssuperclass->thistype));
                 tt.push_back((type_elem_t)udt->serializable_id);
                 tt.push_back((type_elem_t)udt->subtype_dfs);
+                tt.push_back(root ? GetTypeTableOffset(&root->thistype) : (type_elem_t)-1);
+                tt.push_back((type_elem_t)(root ? udt->FamilyIndex() : -1));
+                tt.push_back((type_elem_t)family_size);
                 PushFields(udt, tt);
+                if (family_size) {
+                    vector<UDT *> members;
+                    for (auto m : st.udttable) {
+                        if (m->family_root == root) members.push_back(m);
+                    }
+                    sort(members.begin(), members.end(),
+                         [](UDT *a, UDT *b) { return a->subtype_dfs < b->subtype_dfs; });
+                    assert(ssize(members) == family_size);
+                    for (auto m : members) tt.push_back(GetTypeTableOffset(&m->thistype));
+                }
                 assert(ssize(tt) == ttsize);
                 std::copy(tt.begin(), tt.end(), type_table.begin() + typeinfo);
                 return typeinfo;
@@ -431,18 +516,13 @@ struct CodeGen  {
           mir(opts.jit_mode && opts.jit_options.mir), c_codegen(c_codegen) {
         node_context.push_back(parser.root);
 
-        // Reserve space and index for all vtables.
-        for (auto udt : st.udttable) {
-            udt->vtable_start = (int)vtables.size();
-            vtables.insert(vtables.end(), udt->dispatch_table.size(), -1);
-        }
-
         // Assign ids to all UDTs in depth-first pre-order over the inheritance
         // forest, such that the ids of any UDT's subtree (including itself)
         // form a contiguous range, allowing ISSUBTYPE to test for subtype
         // membership with a single range check. The set of UDTs is complete
         // here, so subclasses participate regardless of where they were
-        // declared relative to uses of "is".
+        // declared relative to uses of "is". The same ids, relative to the root, are what
+        // the members of an abstract struct family go by, see UDT::FamilyIndex.
         for (auto udt : st.udttable) {
             if (udt->ssuperclass) {
                 udt->next_subclass = udt->ssuperclass->first_subclass;
@@ -458,6 +538,31 @@ struct CodeGen  {
         };
         for (auto udt : st.udttable)
             if (!udt->ssuperclass) assign_ids(udt, assign_ids);
+
+        // Reserve space and index for all vtables. The members of an abstract struct family
+        // get theirs at one stride from the root's, by family index, such that a dispatch
+        // on one is a single load from what its type slot holds, see EmitDynDispatch.
+        for (auto udt : st.udttable) {
+            if (udt->family_root) continue;
+            udt->vtable_start = (int)vtables.size();
+            vtables.insert(vtables.end(), udt->dispatch_table.size(), -1);
+        }
+        for (auto root : st.udttable) {
+            if (root->family_root != root) continue;
+            size_t stride = 0;
+            for (auto udt : st.udttable) {
+                if (udt->family_root == root)
+                    stride = std::max(stride, udt->dispatch_table.size());
+            }
+            root->family_vtable_stride = (int)stride;
+            auto base = vtables.size();
+            vtables.insert(vtables.end(),
+                           stride * (root->subtype_dfs_end - root->subtype_dfs + 1), -1);
+            for (auto udt : st.udttable) {
+                if (udt->family_root == root)
+                    udt->vtable_start = (int)(base + udt->FamilyIndex() * stride);
+            }
+        }
 
         // Pre-load some types into the table, must correspond to type_elem_t enums.
         Type type_valuebuf(V_VALUEBUF);
@@ -516,11 +621,11 @@ struct CodeGen  {
         auto max_ser_ids = parser.serializable_id_max + 1;
         ser_ids.resize(max_ser_ids, (type_elem_t)-1);
         for (auto udt : st.udttable) {
+            udt->ComputeSizes(st);
             if (!udt->g.is_abstract) {
                 // We generate a type table for every UDT regardless of whether it is referred to
                 // anywhere, for example (sub)classes may be constructed by deserializing them and
                 // not in code.
-                udt->ComputeSizes();
                 auto typeoff = GetTypeTableOffset(&udt->thistype);
                 if (udt->serializable_id >= 0) {
                     // The declchecker checked these are unique.
@@ -707,7 +812,7 @@ struct CodeGen  {
                     auto varidx = arg.sid->Idx() + i;
                     f_ad.push_back(varidx);
                     if (ShouldDec(IsStruct(arg.sid->type->t)
-                                      ? TypeLT { FindSlot(*arg.sid->type->udt, i)->type,
+                                      ? TypeLT { SlotTypeOf(*arg.sid->type->udt, i),
                                                  arg.sid->lt }
                                       : TypeLT { *arg.sid }) && (!ir || arg.sid != ir->sid)) {
                         ownedvars.push_back(arg.sid->Idx() + i);
@@ -951,6 +1056,7 @@ struct CodeGen  {
                 "LString *RtStructToString(VMRef, Value *, type_elem_t);\n"
                 "long long RtIsSubType(VMRef, LObject *, int, int, int);\n"
                 "fun_base_t RtDynDispatch(VMRef, LObject *, int);\n"
+                "fun_base_t RtDynDispatchStruct(VMRef, long long);\n"
                 "void RtEnumRangeErr(VMRef);\n"
                 "Value *RtLvalIndexClass(VMRef, LObject *, long long, int);\n"
                 "void RtLvSAdd(VMRef, Value *, LString *);\n"
@@ -1052,9 +1158,9 @@ struct CodeGen  {
         return types[k];
     }
 
-    // Slot i of a value of this type, which for a struct is one of its fields.
+    // Slot i of a value of this type, which for a struct is one of its fields, see SlotTypeOf.
     static TypeRef SlotType(TypeRef type, int i) {
-        return IsStruct(type->t) ? FindSlot(*type->udt, i)->type : type;
+        return IsStruct(type->t) ? SlotTypeOf(*type->udt, i) : type;
     }
 
     // The runtime type of each slot of a value of this type, or of that many of them.
@@ -1454,7 +1560,8 @@ struct CodeGen  {
     }
 
     // The name of slot `slot` of a struct: the field it is in, and for a nested struct that
-    // field's own slot name behind it.
+    // field's own slot name behind it. A hidden slot (see UDT::hidden_sfields) is named for
+    // what it is.
     string StructSlotName(const UDT &udt, int slot) {
         for (auto [k, sfield] : enumerate(udt.sfields)) {
             if (slot >= sfield.slot && slot < sfield.slot + ValWidth(sfield.type)) {
@@ -1464,6 +1571,9 @@ struct CodeGen  {
                 }
                 return name;
             }
+        }
+        for (auto &sfield : udt.hidden_sfields) {
+            if (sfield.slot == slot) return slot ? cat("pad", slot) : string("type");
         }
         assert(false);
         return cat("slot", slot);
@@ -1777,7 +1887,7 @@ struct CodeGen  {
         switch (f_lval_kind) {
             case LVK_LOCAL: return Local(f_lval_idx + i);
             case LVK_GLOBAL: return Global(f_lval_idx + i);
-            case LVK_FIELD: return Field("lo", *f_lval_udt, f_lval_idx + i, SlotType(type, i));
+            case LVK_FIELD: return Field("lo", *f_lval_udt, f_lval_idx + i);
             case LVK_ELEM: return Elem(f_lval_elems, f_lval_elem, f_lval_index, f_lval_idx + i);
             case LVK_NUMPTR:
                 return Direct(cat("((", SlotCType(type, i), " *)lv)[", i, "]"),
@@ -1866,6 +1976,7 @@ struct CodeGen  {
 
     // All of them. A field that is a struct of one type over and over is an array of it, which
     // is what lets the program index one at runtime be a real index, see EmitLvalStructIndex.
+    // The hidden slots of a member of an abstract struct family are members of their own.
     vector<UDTMember> Members(const UDT &udt) {
         vector<UDTMember> ms;
         // Renaming a keyword or flattening a nested field can produce another
@@ -1873,20 +1984,42 @@ struct CodeGen  {
         // the object header, and cache the resulting names in MembersOf.
         set<string> names_used;
         if (!udt.g.is_struct) names_used = { "typeinfo", "refc" };
-        for (auto [k, sfield] : enumerate(udt.sfields)) {
+        auto field = [&](size_t k) {
+            auto &sfield = udt.sfields[k];
             auto width = ValWidth(sfield.type);
             auto ct = SlotCType(sfield.type, 0);
             auto same = true;
             for (int i = 1; i < width; i++) same = same && SlotCType(sfield.type, i) == ct;
             if (same) {
-                ms.push_back({ UniqueName(string(udt.g.fields[k].id->name), names_used), ct, sfield.slot,
-                               width });
+                ms.push_back({ UniqueName(string(udt.g.fields[k].id->name), names_used), ct,
+                               sfield.slot, width });
             } else {
                 for (int i = 0; i < width; i++) {
                     ms.push_back({ UniqueName(StructSlotName(udt, sfield.slot + i), names_used),
                                    SlotCType(sfield.type, i), sfield.slot + i, 1 });
                 }
             }
+            return width;
+        };
+        if (udt.family_root) {
+            // In slot order, which is not field order for a member of an abstract struct
+            // family (see SymbolTable::LayoutFamily), with its hidden slots as members of
+            // their own.
+            for (int s = 0; s < udt.numslots;) {
+                int k = -1;
+                for (auto [i, sfield] : enumerate(udt.sfields)) {
+                    if (sfield.slot == s) k = (int)i;
+                }
+                if (k < 0) {
+                    ms.push_back({ UniqueName(StructSlotName(udt, s), names_used),
+                                   SlotCType(&udt.thistype, s), s, 1 });
+                    s++;
+                } else {
+                    s += field((size_t)k);
+                }
+            }
+        } else {
+            for (size_t k = 0; k < udt.sfields.size(); k++) field(k);
         }
         return ms;
     }
@@ -1915,14 +2048,13 @@ struct CodeGen  {
         return cat("((", UDTName(udt), " *)", obj, ")->", MemberAt(udt, slot));
     }
 
-    // One of those members as a place. It holds the type the field is, except with the runtime
-    // types on, where it is a Value so that it carries the tag, see SlotCType. Either way the
-    // runtime only ever reads it a byte at a time, see LoadSlot.
-    Place Field(string_view obj, const UDT &udt, int slot, RTType rtt) {
-        return Direct(FieldName(obj, udt, slot), rtt);
-    }
-    Place Field(string_view obj, const UDT &udt, int slot, TypeRef type) {
-        return Field(obj, udt, slot, RtTypeOf(type));
+    // One of those members as a place. It holds the type the slot is (see SlotTypeOf, which
+    // is what Members declared it as), except with the runtime types on, where it is a Value
+    // so that it carries the tag, see SlotCType. Either way the runtime only ever reads it a
+    // byte at a time, see LoadSlot. Whatever reads or writes it as a field of a more specific
+    // type does so thru a cast, see CopyValue.
+    Place Field(string_view obj, const UDT &udt, int slot) {
+        return Direct(FieldName(obj, udt, slot), RtTypeOf(SlotTypeOf(udt, slot)));
     }
 
     // Pointer arithmetic is only valid within one actual C member (including a scalar as an
@@ -2583,11 +2715,24 @@ struct CodeGen  {
         EmitCallTo(ptr, args, rets, (int)args.size() + 1);
     }
 
-    // Same, for the function a dispatch on the class of the first argument lands in.
-    void EmitDynDispatch(int vtable_idx, const Types &args, const Types &rets) {
+    // Same, for the function a dispatch on the dynamic type of the first argument lands in:
+    // the class of an object, or the member of an abstract struct family whose index the
+    // type slot of a struct (the first of its slots) holds. The vtables of a family's
+    // members sit at one stride from the root's (see CodeGen::CodeGen), so the entry is
+    // computed from the index right here, with one load left for the runtime.
+    void EmitDynDispatch(int vtable_idx, const Types &args, const Types &rets, TypeRef self) {
         TrackUseDef(0, 0);
-        auto ptr = cat("((", FunPtrType(args, rets), ")RtDynDispatch(vm, ",
-                       ReadAs(Slot((int)args.size(), args[0]), VK_OBJECT), ", ", vtable_idx, "))");
+        string target;
+        if (IsStruct(self->t)) {
+            auto root = self->udt->family_root;
+            target = cat("RtDynDispatchStruct(vm, ", root->vtable_start + vtable_idx, " + ",
+                         Read(Slot((int)args.size(), VK_INT)), " * ", root->family_vtable_stride,
+                         ")");
+        } else {
+            target = cat("RtDynDispatch(vm, ", ReadAs(Slot((int)args.size(), args[0]), VK_OBJECT),
+                         ", ", vtable_idx, ")");
+        }
+        auto ptr = cat("((", FunPtrType(args, rets), ")", target, ")");
         EmitCallTo(ptr, args, rets, (int)args.size());
     }
 
@@ -2623,6 +2768,22 @@ struct CodeGen  {
         comment(type->udt->name);
     }
 
+    // The same test on a value of a struct in an abstract struct family, whose type slot
+    // (the first of its `width` slots, which it gives up, being borrowed) holds its family
+    // index, see UDT::FamilyIndex: a single range check when the tested type has subtypes,
+    // since their indices are contiguous, a compare against the one index otherwise.
+    void EmitIsTypeStruct(int width, TypeRef type) {
+        TrackUseDef(width, 1);
+        auto id = Read(Slot(width, VK_INT));
+        auto udt = type->udt;
+        auto lo = udt->FamilyIndex();
+        auto hi = lo + udt->subtype_dfs_end - udt->subtype_dfs;
+        auto test = lo == hi ? cat(id, " == ", lo)
+                             : cat("(unsigned long long)(", id, " - ", lo, ") <= ", hi - lo);
+        Write(cb, Slot(width, VK_INT), test, "");
+        comment(udt->name);
+    }
+
     // A new object or vector gets its fields or elements written into it from wherever they
     // are once it exists. It is held in a local until they all are, since the slot it ends up
     // in is the first of theirs.
@@ -2634,7 +2795,7 @@ struct CodeGen  {
                type->udt->numslots, ");");
         TypeComment(type);
         for (int i = 0; i < n; i++) {
-            CopyValue(cb, Field("_o", *type->udt, i, args[i]), SlotVar(base + i, args[i]));
+            CopyValue(cb, Field("_o", *type->udt, i), SlotVar(base + i, args[i]));
         }
         Write(cb, SlotVar(base, RtTypeOf(type)), "_o");
         cb += "    }\n";
@@ -3023,8 +3184,8 @@ struct CodeGen  {
             rc_tag = "udt-dec";
             rc_extra = udt->name;
             for (int i = 0; i < udt->numslots; i++) {
-                auto rtt = RtTypeOf(FindSlot(*udt, i)->type);
-                if (RTIsRefNil(rtt)) GenDecRef(body, Field("o", *udt, i, rtt));
+                auto rtt = RtTypeOf(SlotTypeOf(*udt, i));
+                if (RTIsRefNil(rtt)) GenDecRef(body, Field("o", *udt, i));
             }
             rc_tag.clear();
             rc_extra.clear();
@@ -3297,7 +3458,7 @@ struct CodeGen  {
                 GenUnwind(rets);
             }
         } else {
-            EmitDynDispatch(call.vtable_idx, args, rets);
+            EmitDynDispatch(call.vtable_idx, args, rets, call.children[0]->exptype);
             // We get the dispatch from arg 0, since sf is an arbitrary overloads and
             // doesn't necessarily point to the dispatch root (which may not even have an sf).
             auto dispatch_type = call.children[0]->exptype;
@@ -3371,7 +3532,7 @@ struct CodeGen  {
     void GenPushField(const UDT &udt, int offset, TypeRef ftype) {
         TrackUseDef(1, 1);
         auto obj = Read(Slot(1, VK_OBJECT));
-        CopyValue(cb, Slot(1, ftype), Field(obj, udt, offset, ftype));
+        CopyValue(cb, Slot(1, ftype), Field(obj, udt, offset));
     }
 
     // Same, once per slot the struct field occupies. The object is only needed to find them, so
@@ -3381,8 +3542,7 @@ struct CodeGen  {
         TrackUseDef(1, fwidth);
         append(cb, "    {\n    LObject *_o = ", Read(Slot(1, VK_OBJECT)), ";\n");
         for (int i = 0; i < fwidth; i++) {
-            CopyValue(cb, Slot(1 - i, ftype, i),
-                      Field("_o", udt, offset + i, SlotType(ftype, i)));
+            CopyValue(cb, Slot(1 - i, ftype, i), Field("_o", udt, offset + i));
         }
         cb += "    }\n";
     }
@@ -3456,12 +3616,16 @@ struct CodeGen  {
     // Reading an element out of a vector, or just the part of it asked for, with the index
     // arbitrary, unlike the loop above. Indexing with a struct steps thru nested vectors, see
     // GenVectorDescent.
-    void GenPushIdxNested(int levels, TypeRef elemtype, int subwidth, int offset) {
+    // What lands on the stack is of `subtype`: the element, or the field of it asked for at
+    // `offset`, which is held as the slots it comes out of are, see Elem, so a field of a
+    // more specific type goes thru a cast, see CopyValue.
+    void GenPushIdxNested(int levels, TypeRef elemtype, TypeRef subtype, int offset) {
+        auto subwidth = ValWidth(subtype);
         // The vector plus one index per level it steps thru, replaced by the element.
         TrackUseDef(levels + 1, subwidth);
         GenVectorDescent(levels, Slot(levels + 1, VK_VECTOR));
         for (int i = 0; i < subwidth; i++) {
-            CopyValue(cb, Slot(levels + 1 - i, elemtype, offset + i),
+            CopyValue(cb, Slot(levels + 1 - i, subtype, i),
                       Elem(Elems(), elemtype, "_i", offset + i));
         }
         cb += "    }\n";
@@ -3492,7 +3656,8 @@ struct CodeGen  {
 
     // The same for a single level, or for a string. The object is read out into a local first,
     // since the element lands in the slot it came from.
-    void GenPushIdx(bool str, TypeRef elemtype, int subwidth, int offset) {
+    void GenPushIdx(bool str, TypeRef elemtype, TypeRef subtype, int offset) {
+        auto subwidth = ValWidth(subtype);
         // The object and the index it is subscripted with, replaced by the element.
         TrackUseDef(2, subwidth);
         // A string index may read the terminating 0-byte, one past its length.
@@ -3508,7 +3673,7 @@ struct CodeGen  {
                 clobbers = d == vo.text || d == io.text;
             } else {
                 for (int i = 0; i < subwidth; i++) {
-                    auto d = Slot(2 - i, elemtype, offset + i).s;
+                    auto d = Slot(2 - i, subtype, i).s;
                     if (d == vo.text || d == io.text) clobbers = true;
                 }
             }
@@ -3522,7 +3687,7 @@ struct CodeGen  {
                 } else {
                     auto elems = cat(vo.text, cpp ? "->ElemSlots()" : "->elems");
                     for (int i = 0; i < subwidth; i++) {
-                        CopyValue(cb, Slot(2 - i, elemtype, offset + i),
+                        CopyValue(cb, Slot(2 - i, subtype, i),
                                   Elem(elems, elemtype, io.text, offset + i));
                     }
                 }
@@ -3544,7 +3709,7 @@ struct CodeGen  {
                                            : "STRING_DATA(_o)[_i]");
         } else {
             for (int i = 0; i < subwidth; i++) {
-                CopyValue(cb, Slot(2 - i, elemtype, offset + i),
+                CopyValue(cb, Slot(2 - i, subtype, i),
                           Elem(Elems(), elemtype, "_i", offset + i));
             }
         }
@@ -3557,7 +3722,7 @@ struct CodeGen  {
                 // TODO: alternatively call a single helper with a list or bitmask?
                 // See BitMaskForRefStruct.
                 for (int j = typelt.type->udt->numslots - 1; j >= 0; j--) {
-                    auto stype = FindSlot(*typelt.type->udt, j)->type;
+                    auto stype = SlotTypeOf(*typelt.type->udt, j);
                     if (IsRefNil(stype->t)) EmitPopRef(RtTypeOf(stype));
                     else GenPopSlot();
                 }
@@ -3623,7 +3788,7 @@ struct CodeGen  {
     int ComputeBitMask(const UDT &udt) {
         int bits = 0;
         for (int j = 0; j < udt.numslots; j++) {
-            if (IsRefNil(FindSlot(udt, j)->type->t)) {
+            if (IsRefNil(SlotTypeOf(udt, j)->t)) {
                 if (j > 31) {
                     Error("internal error: struct with too many reference fields",
                           node_context.back()->line);
@@ -3691,12 +3856,16 @@ struct CodeGen  {
                 f_lval_kind == LVK_ELEM) {
                 // The old string is an operand, so it loses its reference only once the new
                 // one exists.
+                // The place may hold the string as another kind of reference (a field of a
+                // struct in an abstract struct family, see SlotTypeOf), which is a cast
+                // both ways.
                 auto v = Lval(0, type);
-                append(cb, "    {\n    LString *_s = RtSAdd(vm, ", Read(v), ", ", rhs, ");\n");
+                append(cb, "    {\n    LString *_s = RtSAdd(vm, ", ReadAs(v, VK_STRING), ", ", rhs,
+                       ");\n");
                 rc_tag = "overwrite:sadd";
                 GenDecRef(cb, v);
                 rc_tag.clear();
-                Write(cb, v, "_s");
+                Write(cb, v, v.k() == VK_STRING ? string("_s") : cat("(", CType(v.k()), ")_s"));
                 cb += "    }\n";
             } else {
                 // Appending to a string in memory can free the old one, so it stays a call.
@@ -4098,7 +4267,7 @@ struct CodeGen  {
             } else if (auto indexing = Is<Indexing>(object)) {
                 // For now only do this for vectors.
                 if (indexing->object->exptype->t == V_VECTOR) {
-                    GenPushIndex(retval, indexing->object, indexing->index, fwidth, offset);
+                    GenPushIndex(retval, indexing->object, indexing->index, ftype, offset);
                     return;
                 }
             }
@@ -4108,14 +4277,15 @@ struct CodeGen  {
         TakeTemp(1, true);
         if (IsStruct(stype->t)) {
             // The field is on the stack already as part of the struct, so this moves its slots
-            // down to where the struct starts, in ascending order since those overlap.
+            // down to where the struct starts, in ascending order since those overlap. Its
+            // slots may be held as another kind of value than the field is (a reference field
+            // of a struct in an abstract struct family, see SlotTypeOf), which is a copy too.
             TrackUseDef(swidth, fwidth);
             auto base = regso - swidth;
-            if (offset) {
-                for (int i = 0; i < fwidth; i++) {
-                    auto t = RtTypeOf(SlotType(stype, offset + i));
-                    CopyValue(cb, SlotVar(base + i, t), SlotVar(base + offset + i, t));
-                }
+            for (int i = 0; i < fwidth; i++) {
+                auto d = SlotVar(base + i, RtTypeOf(SlotType(ftype, i)));
+                auto s = SlotVar(base + offset + i, RtTypeOf(SlotType(stype, offset + i)));
+                if (offset || d.k() != s.k()) CopyValue(cb, d, s);
             }
         } else {
             if (IsStruct(ftype->t)) {
@@ -4126,7 +4296,9 @@ struct CodeGen  {
         }
     }
 
-    void GenPushIndex(size_t retval, Node *object, Node *index, int struct_elem_sub_width = -1,
+    // Pushes the element, or with `struct_elem_sub` given, just the field of that type at
+    // that offset in it.
+    void GenPushIndex(size_t retval, Node *object, Node *index, TypeRef struct_elem_sub = nullptr,
                       int struct_elem_sub_offset = -1) {
         Gen(object, retval);
         Gen(index, retval);
@@ -4138,12 +4310,11 @@ struct CodeGen  {
                 auto levels = ValWidth(index->exptype);
                 auto etype = object->exptype;
                 for (int i = 0; i < levels; i++) etype = etype->Element();
-                auto elemwidth = ValWidth(etype);
                 // Either the whole element or just the part of it asked for.
-                auto subwidth = struct_elem_sub_width < 0 ? elemwidth : struct_elem_sub_width;
-                auto suboffset = struct_elem_sub_width < 0 ? 0 : struct_elem_sub_offset;
-                if (levels == 1) GenPushIdx(false, etype, subwidth, suboffset);
-                else GenPushIdxNested(levels, etype, subwidth, suboffset);
+                auto subtype = struct_elem_sub.Null() ? etype : struct_elem_sub;
+                auto suboffset = struct_elem_sub.Null() ? 0 : struct_elem_sub_offset;
+                if (levels == 1) GenPushIdx(false, etype, subtype, suboffset);
+                else GenPushIdxNested(levels, etype, subtype, suboffset);
                 break;
             }
             case V_STRUCT_S:
@@ -4152,7 +4323,7 @@ struct CodeGen  {
                 break;
             case V_STRING:
                 assert(index->exptype->t == V_INT);
-                GenPushIdx(true, type_int, 1, 0);
+                GenPushIdx(true, type_int, type_int, 0);
                 break;
             default:
                 assert(false);
@@ -4435,7 +4606,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                     // TODO: alternatively call a single helper with a list or bitmask?
                     // See BitMaskForRefStruct.
                     for (int j = 0; j < type->udt->numslots; j++) {
-                        auto stype = FindSlot(*type->udt, j)->type;
+                        auto stype = SlotTypeOf(*type->udt, j);
                         if (IsRefNil(stype->t)) {
                             cg.EmitIncRef(stack_offset + type->udt->numslots - 1 - j,
                                           CodeGen::RtTypeOf(stype));
@@ -4451,7 +4622,7 @@ void ToLifetime::Generate(CodeGen &cg, size_t retval) const {
                     // TODO: alternatively call a single helper with a list or bitmask?
                     // See BitMaskForRefStruct.
                     for (int j = 0; j < type->udt->numslots; j++) {
-                        auto stype = FindSlot(*type->udt, j)->type;
+                        auto stype = SlotTypeOf(*type->udt, j);
                         if (IsRefNil(stype->t)) {
                             cg.EmitKeep(stack_offset + (type->udt->numslots - j - 1),
                                         CodeGen::RtTypeOf(stype));
@@ -4814,12 +4985,13 @@ void Continue::Generate(CodeGen &cg, size_t retval) const {
 
 void Switch::Generate(CodeGen &cg, size_t retval) const {
     cg.Gen(value, 1);
-    cg.TakeTemp(1, false);
+    cg.TakeTemp(1, true);
     // See if we do a type dispatch (always a jump table).
-    if (value->exptype->t == V_CLASS) {
+    if (IsDynamicType(value->exptype)) {
         GenerateTypeDispatch(cg, retval);
         return;
     }
+    assert(ValWidth(value->exptype) == 1);
     // See if we should do an integer jump table version.
     if (GenerateJumpTable(cg, retval))
         return;
@@ -4943,7 +5115,7 @@ void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mi
         auto lab = cg.Label();
         labels.push_back(lab);
         for (auto c : cas->pattern->children) {
-            if (value->exptype->t == V_CLASS) {
+            if (case_values) {
                 ilab[i] = lab;
             } else {
                 auto [istart, iend] = get_range(c);
@@ -4958,8 +5130,11 @@ void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mi
     string on;
     if (case_values) {
         // The case labels are the type indices themselves, so the value to switch on is the one
-        // the object carries, see GenerateTypeDispatch.
-        on = cg.TypeIdOf(cg.Read(cg.Slot(1, CodeGen::VK_OBJECT)));
+        // the object carries, or the type slot of a struct in an abstract struct family, which
+        // is the first of its slots, see GenerateTypeDispatch.
+        on = IsStruct(value->exptype->t)
+            ? cg.Read(cg.Slot(ValWidth(value->exptype), CodeGen::VK_INT))
+            : cg.TypeIdOf(cg.Read(cg.Slot(1, CodeGen::VK_OBJECT)));
     } else if (vtable_idx >= 0) {
         on = cat("GetTypeSwitchID(vm, ", cg.Read(cg.Slot(1, CodeGen::VK_OBJECT)), ", ", vtable_idx,
                  ")");
@@ -5017,7 +5192,8 @@ void Switch::GenerateTypeDispatch(CodeGen &cg, size_t retval) const {
     assert(de->dispatch_root && de->is_switch_dispatch &&
            de->subudts_size == dispatch_udt->subudts.size());
     (void)de;
-    cg.TrackUseDef(1, 0);
+    // The value is borrowed, so its slots are just given up.
+    cg.TrackUseDef(ValWidth(value->exptype), 0);
     int range = (int)cases->children.size();
     // Which case each type the value can have belongs to is known right here, and so is the
     // type index each of those types carries, so the switch tests that index directly. Going
@@ -5028,7 +5204,11 @@ void Switch::GenerateTypeDispatch(CodeGen &cg, size_t retval) const {
         auto sde = sub->dispatch_table[vtable_idx].get();
         if (!sde || sde->case_index < 0) continue;
         assert(sde->case_index < range);
-        case_values[sde->case_index].push_back((int)cg.GetTypeTableOffset(&sub->thistype));
+        // A struct in an abstract struct family carries its family index instead, which
+        // makes for a dense switch.
+        case_values[sde->case_index].push_back(IsStruct(value->exptype->t)
+                                                   ? sub->FamilyIndex()
+                                                   : (int)cg.GetTypeTableOffset(&sub->thistype));
     }
     GenerateJumpTableMain(cg, retval, range, 0, range - 1, &case_values);
 }
@@ -5070,6 +5250,10 @@ void VectorConstructor::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void ObjectConstructor::Generate(CodeGen &cg, size_t retval) const {
+    if (IsFamilyStruct(exptype)) {
+        GenerateFamilyStruct(cg, retval);
+        return;
+    }
     int arg_width = 0;
     for (auto c : children) {
         cg.Gen(c, retval);
@@ -5090,6 +5274,63 @@ void ObjectConstructor::Generate(CodeGen &cg, size_t retval) const {
     }
 }
 
+// A member of an abstract struct family also sits inline, but has slots that are not fields
+// (see UDT::hidden_sfields): its family index in the first, 0 or nil in the padding. When
+// its fields sit in the slots in declaration order (the common case, see LayoutFamily), what
+// each evaluates to lands right where it goes, with the hidden slots pushed in between.
+// Otherwise every slot is pushed first, and each field moved into its own once evaluated.
+void ObjectConstructor::GenerateFamilyStruct(CodeGen &cg, size_t retval) const {
+    auto udt = exptype->udt;
+    assert(udt->sfields.size() == Arity());
+    if (!retval) {
+        for (auto c : children) cg.Gen(c, 0);
+        return;
+    }
+    auto push_hidden = [&](int slot) {
+        if (!slot) cg.EmitPushInt(udt->FamilyIndex());
+        else cg.EmitPushNil(SlotTypeOf(*udt, slot));
+    };
+    // The value a field evaluates to is held as the kind its own type is, the slots of the
+    // struct as the family says (see SlotTypeOf), which for a reference field is a cast.
+    auto move_field = [&](size_t i, int from, int to) {
+        auto &sfield = udt->sfields[i];
+        auto width = ValWidth(sfield.type);
+        for (int j = 0; j < width; j++) {
+            auto d = cg.SlotVar(to + j, CodeGen::RtTypeOf(SlotTypeOf(*udt, sfield.slot + j)));
+            auto s = cg.SlotVar(from + j,
+                                CodeGen::RtTypeOf(CodeGen::SlotType(children[i]->exptype, j)));
+            if (from != to || d.k() != s.k()) cg.CopyValue(cg.cb, d, s);
+        }
+        return width;
+    };
+    auto in_order = true;
+    for (size_t i = 1; i < udt->sfields.size(); i++) {
+        if (udt->sfields[i].slot < udt->sfields[i - 1].slot) in_order = false;
+    }
+    if (in_order) {
+        int next_slot = 0;
+        for (auto [i, c] : enumerate(children)) {
+            auto &sfield = udt->sfields[i];
+            for (; next_slot < sfield.slot; next_slot++) push_hidden(next_slot);
+            cg.Gen(c, 1);
+            auto top = cg.TempStackSize() - ValWidth(sfield.type);
+            next_slot = sfield.slot + move_field(i, top, top);
+        }
+        for (; next_slot < udt->numslots; next_slot++) push_hidden(next_slot);
+        cg.TakeTemp(Arity(), true);
+        return;
+    }
+    auto base = cg.TempStackSize();
+    for (int s = 0; s < udt->numslots; s++) push_hidden(s);
+    for (auto [i, c] : enumerate(children)) {
+        cg.Gen(c, 1);
+        auto top = cg.TempStackSize() - ValWidth(udt->sfields[i].type);
+        auto width = move_field(i, top, base + udt->sfields[i].slot);
+        cg.TakeTemp(1, true);
+        cg.TrackUseDef(width, 0);
+    }
+}
+
 void AutoConstructor::Generate(CodeGen &, size_t) const {
     assert(false);
 }
@@ -5101,6 +5342,13 @@ void IsType::Generate(CodeGen &cg, size_t retval) const {
     // can assume its a ref.
     assert(!IsUnBoxed(child->exptype->t));
     if (retval) {
+        if (IsStruct(child->exptype->t)) {
+            // Only a struct in an abstract struct family gets here (see IsType::ConstVal),
+            // whose type slot decides, against a tested type that is one of its subtypes.
+            cg.TakeTemp(1, true);
+            cg.EmitIsTypeStruct(ValWidth(child->exptype), resolvedtype);
+            return;
+        }
         cg.TakeTemp(1, false);
         // Whether a nil value matches is resolved at compile time, so both ops
         // only ever compare against the non-nil type.

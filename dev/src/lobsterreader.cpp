@@ -91,6 +91,39 @@ struct ValueParser : Deserializer {
         // else if ti.t == RT_STRUCT_* then.. do nothing!
     }
 
+    // A struct in an abstract struct family: `Name { .. }` with the values of the fields of
+    // that member, which is what it prints as (see VM::StructToString), the ones not given
+    // getting their defaults, see PushFamilyStruct.
+    void ParseFamilyStruct(const TypeInfo &ti, bool push) {
+        Gobble(T_LINEFEED);
+        if (ti.IsAbstractFamilyStruct())
+            lex.Error(cat("cannot construct abstract struct ", vm.StructName(ti)));
+        auto more = lex.token != T_RIGHTCURLY;
+        // After an element: whether another follows.
+        auto next = [&]() {
+            bool haslf = lex.token == T_LINEFEED;
+            if (haslf) lex.Next();
+            if (lex.token == T_RIGHTCURLY) return false;
+            if (!haslf) Expect(T_COMMA);
+            return true;
+        };
+        PushFamilyStruct(ti, push, [&](size_t, int slot, type_elem_t eti) {
+            if (more) {
+                ParseFactor(eti, push);
+                more = next();
+            } else if (push) {
+                if (!PushDefault(eti, ti.elemtypes[slot].defval, &ti.elemtypes[slot]))
+                    lex.Error("no default value exists for missing struct elements");
+            }
+        });
+        // Any values beyond the fields are skipped.
+        while (more) {
+            ParseFactor(TYPE_ELEM_ANY, false);
+            more = next();
+        }
+        Expect(T_RIGHTCURLY);
+    }
+
     void ExpectType(RTType given, RTType needed) {
         if (given != needed && needed != RTT_INVALID) {
             lex.Error("type " +
@@ -185,7 +218,8 @@ struct ValueParser : Deserializer {
                     ti = p.first;
                     typeoff = p.second;
                 }
-                ParseElems(T_RIGHTCURLY, typeoff, ti->len, push);
+                if (ti->IsFamilyStruct()) ParseFamilyStruct(*ti, push);
+                else ParseElems(T_RIGHTCURLY, typeoff, ti->len, push);
                 break;
             }
             default:
@@ -301,6 +335,25 @@ struct FlexBufferParser : Deserializer {
                 }
                 auto stack_start = stack.size();
                 auto NumElems = [&]() { return iint(stack.size() - stack_start); };
+                if (ti->IsFamilyStruct()) {
+                    // The member the map's _type named (see VM::StructToFlexBuffer), by
+                    // its fields.
+                    if (ti->IsAbstractFamilyStruct())
+                        Error(cat(parent_field_name, ": cannot construct abstract struct ",
+                                  name, " (missing _type)"));
+                    PushFamilyStruct(*ti, true, [&](size_t f, int slot, type_elem_t eti) {
+                        auto fname = vm.LookupField(ti->structidx, f);
+                        auto e = m[fname.data()];
+                        if (e.IsNull()) {
+                            if (!PushDefault(eti, ti->elemtypes[slot].defval,
+                                             &ti->elemtypes[slot]))
+                                Error("no default value exists for missing field " + fname);
+                        } else {
+                            ParseFactor(e, eti, fname);
+                        }
+                    });
+                    break;
+                }
                 for (int i = 0; NumElems() != ti->len; i++) {
                     auto fname = vm.LookupField(ti->structidx, i);
                     auto eti = ti->GetElemOrParent(NumElems());

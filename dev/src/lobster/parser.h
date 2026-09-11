@@ -668,7 +668,6 @@ struct Parser {
     void ParseTypeDecl(bool is_struct, bool isprivate, Block *parent_list, bool is_abstract) {
         Line line = lex;
         auto sname = st.MaybeMakeNameSpace(ExpectId(), true);
-        if (is_struct && is_abstract) Error("structs cannot be abstract");
         if (IsNext(T_ASSIGN)) {
             // A specialization of an existing struct
             // ParseSup's result is unpacked by hand rather than with a structured binding,
@@ -776,8 +775,12 @@ struct Parser {
                     if (IsNext(T_ATTRIBUTE)) {
                         auto [key, value] = ParseAttribute(gudt->attributes);
                         if (key == "serializable") {
-                            if (!udt || gudt->IsGeneric() || is_abstract || is_struct) {
-                                Error("serializable attribute only for non-generic non-abstract classes");
+                            // A struct in an abstract struct family carries its type, so it
+                            // can be serialized by id like a class.
+                            if (!udt || gudt->IsGeneric() || is_abstract ||
+                                (is_struct && !FamilyRootOf(gudt))) {
+                                Error("serializable attribute only for non-generic non-abstract"
+                                      " classes and structs with an abstract struct superclass");
                             } else {
                                 if (value.empty()) {
                                     ++serializable_id_last;
@@ -810,7 +813,10 @@ struct Parser {
                 Expect(T_DEDENT);
                 st.bound_typevars_stack.pop_back();
             }
-            if (gudt->fields.empty() && gudt->is_struct)
+            // A struct with an abstract struct superclass has the type field, so it may be
+            // without fields of its own, like a value of an enum.
+            if (gudt->fields.empty() && gudt->is_struct && !gudt->is_abstract &&
+                !FamilyRootOf(gudt))
                 Error("structs cannot be empty");
         } else {
             // Abstract or pre-declaration.

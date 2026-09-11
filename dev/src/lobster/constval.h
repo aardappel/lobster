@@ -129,8 +129,14 @@ ValueType IsType::ConstVal(TypeChecker *tc, VTValue &val) const {
         val = VTValue(true);
         return V_INT;
     }
-    // Structs have no runtime type, so their static relation decides.
+    // Structs have no runtime type, so their static relation decides, except in an abstract
+    // struct family, where a value of a supertype may hold the tested type.
     if (IsStruct(ce->t) || IsStruct(te->t)) {
+        if (IsStruct(ce->t) && IsStruct(te->t) && ce->udt->family_root &&
+            ce->udt->family_root == te->udt->family_root &&
+            SuperDistance(ce->udt, te->udt) >= 0) {
+            return V_VOID;
+        }
         val = VTValue(false);
         return V_INT;
     }

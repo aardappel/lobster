@@ -24,7 +24,7 @@ namespace lobster {
 
 // FlatBuffers takes care of backwards compatibility of all metadata, but not of the C the
 // compiler emits, so this needs to be bumped each time we change the format.
-const int LOBSTER_METADATA_FORMAT_VERSION = 25;
+const int LOBSTER_METADATA_FORMAT_VERSION = 26;
 
 struct NativeFun;
 struct SymbolTable;
@@ -308,6 +308,11 @@ struct GUDT : Named {
     bool predeclaration = false;
     bool has_subclasses = false;
     bool has_constructor_function = false;
+    // On the root of an abstract struct family (see UDT::family_root): whether any struct in
+    // the family can have a field holding a reference, decided over all their declarations
+    // by the declchecker. All members are then structs of references, since a value of any
+    // of their types may hold any member, see DeclChecker::FinalizeFamilies.
+    bool family_hasref = false;
     SpecUDT unspecialized;
     UnType unspecialized_type;
     map<string_view, string_view> attributes;
@@ -350,6 +355,24 @@ struct UDT : Named {
     vector<TypeRef> bound_generics;
     vector<SField> sfields;
     UDT *ssuperclass = nullptr;
+    // For a struct with an abstract struct among its superclasses (itself included): the
+    // topmost one, the root of the "family" whose members all share one slot layout, such
+    // that a value of any of their types can hold any member, see SymbolTable::LayoutFamily.
+    // Null for every other struct, and for classes.
+    UDT *family_root = nullptr;
+    // A family member's slots that are not fields: slot 0, which holds the type id of the
+    // value's dynamic type, and the padding that lines its fields up with the family
+    // layout (0 or nil, by the kind of the slot), see LayoutFamily.
+    vector<SField> hidden_sfields;
+    // Only on the root: the kind of value each slot after the type slot holds in every member
+    // that has a field there (see SymbolTable::SlotKind), and whether the layout was decided
+    // (after which it can't change, see LayoutFamily).
+    string family_kinds;
+    bool family_laid_out = false;
+    bool family_in_progress = false;
+    // Only on the root: the number of vtable entries per member, the members' vtables
+    // sitting at that stride from the root's, by family index, see CodeGen::CodeGen.
+    int family_vtable_stride = 0;
     UDTState state = UDTState::DECLARED;
     bool in_forest = false;  // Present in the subudts of itself & superclasses.
     bool hasref = false;
@@ -393,26 +416,19 @@ struct UDT : Named {
         return generics;
     }
 
-    bool ComputeSizes(int depth = 0) {
-        if (numslots >= 0) return true;
-        if (depth > 16) return false;  // Simple protection against recursive references.
-        int size = 0;
-        for (auto &sfield : sfields) {
-            sfield.slot = size;
-            if (sfield.type.Null()) {
-                // Field type still to be inferred, can only be reached in
-                // recursive situations that will error elsewhere.
-                size++;
-            } else if (IsStruct(sfield.type->t)) {
-                if (!sfield.type->udt->ComputeSizes(depth + 1)) return false;
-                size += sfield.type->udt->numslots;
-            } else {
-                size++;
-            }
-        }
-        numslots = size;
-        return true;
+    // The pre-order index of a member of an abstract struct family within it (0 for the
+    // root), which is what the type slot of a value holds (see SymbolTable::LayoutFamily),
+    // such that the members below any member are a contiguous range of indices. Only
+    // valid once the ids of the inheritance forest are assigned, see CodeGen::CodeGen.
+    int FamilyIndex() const {
+        assert(family_root && subtype_dfs >= 0);
+        return subtype_dfs - family_root->subtype_dfs;
     }
+
+    // Assigns the slots the fields occupy and the number of them, which for a member of an
+    // abstract struct family is the family's layout, see SymbolTable::LayoutFamily. Returns
+    // false for a struct that (transitively) contains itself.
+    bool ComputeSizes(SymbolTable &st, int depth = 0);
 
     flatbuffers::Offset<metadata::UDT> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
         vector<flatbuffers::Offset<metadata::Field>> fieldoffsets;
@@ -477,6 +493,10 @@ bool Type::FlowSensitive() const {
             return sub->FlowSensitive();
         case V_CLASS:
             return udt->g.has_subclasses;
+        case V_STRUCT_R:
+        case V_STRUCT_S:
+            // A value of an abstract struct family carries its dynamic type, like a class.
+            return udt->family_root && udt->g.has_subclasses;
         // We can't be sure:
         case V_VAR:
         case V_TYPEVAR:
@@ -558,8 +578,67 @@ inline const SField *FindSlot(const UDT &udt, int i) {
             return IsStruct(sfield.type->t) ? FindSlot(*sfield.type->udt, i - sfield.slot) : &sfield;
         }
     }
+    for (auto &sfield : udt.hidden_sfields) {
+        if (sfield.slot == i) return &sfield;
+    }
     assert(false);
     return nullptr;
+}
+
+// The static type of slot i of a struct as the generated code holds it. In an abstract struct
+// family (see SymbolTable::LayoutFamily) a slot holds a reference field of one member and a
+// reference field of another type of the next, so it is held as any reference, and every
+// use of it converts from and to that, wherever in the value of a family member the slot
+// sits. Other slots are the type of their field.
+inline TypeRef SlotTypeOf(const UDT &udt, int i, bool in_family = false) {
+    in_family = in_family || udt.family_root;
+    for (auto &sfield : udt.sfields) {
+        if (i >= sfield.slot && i < sfield.slot + ValWidth(sfield.type)) {
+            if (IsStruct(sfield.type->t)) {
+                return SlotTypeOf(*sfield.type->udt, i - sfield.slot, in_family);
+            }
+            return in_family && IsRefNil(sfield.type->t) ? WrapKnown(type_any, V_NIL)
+                                                         : sfield.type;
+        }
+    }
+    for (auto &sfield : udt.hidden_sfields) {
+        if (sfield.slot == i) return sfield.type;
+    }
+    assert(false);
+    return type_undefined;
+}
+
+// The root of the abstract struct family a struct belongs to: the topmost abstract struct
+// among its superclasses, itself included, see UDT::family_root.
+inline UDT *FamilyRootOf(UDT *udt) {
+    if (!udt->g.is_struct) return nullptr;
+    UDT *root = nullptr;
+    for (auto u = udt; u; u = u->ssuperclass) {
+        if (u->g.is_abstract) root = u;
+    }
+    return root;
+}
+
+// The same over declarations, which is what decides GUDT::family_hasref.
+inline GUDT *FamilyRootOf(GUDT *gudt) {
+    if (!gudt->is_struct) return nullptr;
+    GUDT *root = nullptr;
+    for (auto g = gudt; g; g = GetGUDTAny(g->gsuperclass)) {
+        if (g->is_abstract) root = g;
+    }
+    return root;
+}
+
+// A struct in an abstract struct family: a value of it carries its dynamic type (in its type
+// slot, see LayoutFamily), so it takes part in `switch`, `is` and dynamic dispatch like an
+// object does.
+inline bool IsFamilyStruct(TypeRef type) {
+    return IsStruct(type->t) && type->udt->family_root;
+}
+
+// What those three work on.
+inline bool IsDynamicType(TypeRef type) {
+    return type->t == V_CLASS || IsFamilyStruct(type);
 }
 
 struct LValContext {
@@ -1681,9 +1760,12 @@ struct SymbolTable {
         }
         PopSuperGenerics(udt.ssuperclass);
         bound_typevars_stack.pop_back();
+        udt.family_root = FamilyRootOf(&udt);
         // NOTE: all users of sametype will only act on it if it is numeric, since
         // otherwise it would a scalar field to become any without boxing.
-        if (udt.sfields.size() >= 1) {
+        // A member of an abstract struct family is never numeric: its layout has slots
+        // that are not its fields.
+        if (udt.sfields.size() >= 1 && !udt.family_root) {
             CheckUDTSameTypeRec(udt, udt.sametype, 0, 0);
         }
         // Update the type to the correct struct type.
@@ -1696,10 +1778,180 @@ struct SymbolTable {
                     break;
                 }
             }
+            // A member of an abstract struct family is a struct of references if any member
+            // can be (see GUDT::family_hasref), since a value of its type may hold any
+            // member. The declchecker decides that over all declarations and applies it to
+            // the specializations known then (see DeclChecker::FinalizeFamilies); one
+            // created after that follows it here.
+            if (udt.family_root && udt.family_root->g.family_hasref) udt.hasref = true;
             const_cast<ValueType &>(udt.thistype.t) = udt.hasref ? V_STRUCT_R : V_STRUCT_S;
         }
         if (udt.state == UDTState::DECLARED && udt.sfields.size() == udt.g.fields.size())
             udt.state = UDTState::FIELDS_RESOLVED;
+    }
+
+    // The kind of value a slot of this type holds, as far as the generated code is concerned:
+    // an int, a float, a function, or a reference (or nil).
+    static char SlotKind(TypeRef type) {
+        if (IsRefNil(type->t)) return 'R';
+        if (type->t == V_FLOAT) return 'F';
+        if (type->t == V_FUNCTION) return 'N';
+        return 'I';
+    }
+
+    // Lays out an abstract struct family: every member (the root and every struct below it)
+    // gets the same number of slots, with slot 0 holding the family index of the value's
+    // dynamic type (see UDT::FamilyIndex), such that a value of any member type can hold
+    // any member. The generated code holds and increments/decrements the slots of a value
+    // by the slot types of its static type, so any slot must hold the same kind of value
+    // (see SlotKind) in every member that has a field there, and nothing in the rest:
+    // family_kinds on the root says which. The kinds come grouped, each group as wide as
+    // the member that needs the most slots of that kind, in the order the kinds first
+    // appear in the members' fields, and a field goes to the first free run of slots of its
+    // kinds, which is only the next slot when the fields are declared in that order (the
+    // common case, which the constructor code takes advantage of, see
+    // ObjectConstructor::GenerateFamilyStruct). A field that is a struct of several kinds
+    // stays one block, which gets extra slots at the end when no run fits it. The slots a
+    // member has no field in are padding (0 or nil), its hidden_sfields along with the type
+    // slot. A member inherits the slots of its superclass's fields, so a method of the
+    // superclass reads them from any member. Once decided, the layout only ever grows at
+    // the end, so a specialization created during typechecking still fits after the sizes
+    // computed from it were used, unless it needs a run of kinds the family does not have,
+    // which is an error. Returns false when a member holds a value of the family itself,
+    // which no layout can accommodate.
+    bool LayoutFamily(UDT &root, int depth) {
+        assert(root.family_root == &root);
+        if (root.family_in_progress) return false;
+        root.family_in_progress = true;
+        auto &kinds = root.family_kinds;
+        vector<UDT *> members;
+        for (auto udt : udttable) {
+            if (udt->family_root == &root) members.push_back(udt);
+        }
+        // The kinds of the slots each field of each member occupies, see SlotKind.
+        map<UDT *, vector<string>> blocks;
+        for (auto udt : members) {
+            for (auto &sfield : udt->sfields) {
+                string block;
+                if (sfield.type.Null()) {
+                    // A field whose type was never inferred, which the typechecker reports
+                    // for any member it completes (see EnsureUDTChecked); the rest are in
+                    // code that never ran, and only need some slot to sit in.
+                    block = "I";
+                } else if (IsStruct(sfield.type->t)) {
+                    auto &fudt = *sfield.type->udt;
+                    if (fudt.ComputeSizes(*this, depth + 1)) {
+                        for (int j = 0; j < fudt.numslots; j++) {
+                            block += SlotKind(SlotTypeOf(fudt, j));
+                        }
+                    } else {
+                        lex.Report(cat("struct ", Q(udt->name), " cannot contain ", Q(fudt.name),
+                                       " (self-referential)"),
+                                   &udt->g.line);
+                        block = "I";
+                    }
+                } else {
+                    block = SlotKind(sfield.type);
+                }
+                blocks[udt].push_back(block);
+            }
+        }
+        if (!root.family_laid_out) {
+            string order;
+            map<char, int> group;
+            for (auto udt : members) {
+                map<char, int> need;
+                for (auto &block : blocks[udt]) {
+                    for (auto kind : block) {
+                        if (order.find(kind) == string::npos) order += kind;
+                    }
+                    // A block of one kind goes in that kind's group; one of several stays
+                    // together and gets its own slots if no run happens to fit it.
+                    if (block.find_first_not_of(block[0]) == string::npos) {
+                        need[block[0]] += (int)block.size();
+                    }
+                }
+                for (auto [kind, n] : need) group[kind] = std::max(group[kind], n);
+            }
+            for (auto kind : order) kinds += string(group[kind], kind);
+        }
+        set<UDT *> placed;
+        std::function<void(UDT &)> place = [&](UDT &udt) {
+            if (udt.numslots >= 0 || !placed.insert(&udt).second) return;
+            // Which of the family's slots this member's fields already sit in.
+            vector<bool> used(kinds.size() + 1, false);
+            auto take = [&](int slot, int width) {
+                for (int j = 0; j < width; j++) {
+                    if (slot + j < (int)used.size()) used[slot + j] = true;
+                }
+            };
+            size_t inherited = 0;
+            if (udt.ssuperclass && udt.ssuperclass->family_root == &root) {
+                auto &sup = *udt.ssuperclass;
+                place(sup);
+                inherited = std::min(sup.sfields.size(), udt.sfields.size());
+                for (size_t i = 0; i < inherited; i++) {
+                    udt.sfields[i].slot = sup.sfields[i].slot;
+                    take(udt.sfields[i].slot, (int)blocks[&udt][i].size());
+                }
+            }
+            for (size_t i = inherited; i < udt.sfields.size(); i++) {
+                auto &block = blocks[&udt][i];
+                // The first free run of slots of the block's kinds.
+                size_t q = 0;
+                for (;; q++) {
+                    if (q + block.size() > kinds.size()) {
+                        if (root.family_laid_out) {
+                            lex.Report(cat("struct ", Q(udt.name), " does not fit the layout of"
+                                           " abstract struct ", Q(root.name), ", which its first use"
+                                           " already decided (declare a named specialization of it"
+                                           " before that use)"),
+                                       &udt.g.line);
+                        }
+                        q = kinds.size();
+                        kinds += block;
+                        used.resize(kinds.size() + 1, false);
+                        break;
+                    }
+                    if (kinds.compare(q, block.size(), block) != 0) continue;
+                    auto free = true;
+                    for (size_t j = 0; j < block.size(); j++) {
+                        if (used[q + 1 + j]) free = false;
+                    }
+                    if (free) break;
+                }
+                udt.sfields[i].slot = (int)q + 1;
+                take(udt.sfields[i].slot, (int)block.size());
+            }
+        };
+        for (auto udt : members) place(*udt);
+        auto width = 1 + (int)kinds.size();
+        for (auto udt : members) {
+            if (udt->numslots == width) continue;
+            udt->numslots = width;
+            udt->hidden_sfields.clear();
+            vector<bool> covered(width, false);
+            for (auto &sfield : udt->sfields) {
+                auto w = sfield.type.Null() ? 1 : ValWidth(sfield.type);
+                for (int j = 0; j < w; j++) {
+                    if (sfield.slot + j < width) covered[sfield.slot + j] = true;
+                }
+            }
+            for (int s = 0; s < width; s++) {
+                if (covered[s]) continue;
+                SField h;
+                auto kind = s ? kinds[s - 1] : 'I';
+                h.type = kind == 'R' ? WrapKnown(type_any, V_NIL)
+                       : kind == 'F' ? type_float
+                       : kind == 'N' ? type_function_null_void
+                                     : type_int;
+                h.slot = s;
+                udt->hidden_sfields.push_back(h);
+            }
+        }
+        root.family_laid_out = true;
+        root.family_in_progress = false;
+        return true;
     }
 
     // Register a specialization in the subudts list of itself and all its
@@ -1768,6 +2020,28 @@ struct SymbolTable {
         bytecode.assign(fbb.GetBufferPointer(), fbb.GetBufferPointer() + fbb.GetSize());
     }
 };
+
+bool UDT::ComputeSizes(SymbolTable &st, int depth) {
+    if (numslots >= 0) return true;
+    if (depth > 16) return false;  // Simple protection against recursive references.
+    if (family_root) return st.LayoutFamily(*family_root, depth);
+    int size = 0;
+    for (auto &sfield : sfields) {
+        sfield.slot = size;
+        if (sfield.type.Null()) {
+            // Field type still to be inferred, can only be reached in
+            // recursive situations that will error elsewhere.
+            size++;
+        } else if (IsStruct(sfield.type->t)) {
+            if (!sfield.type->udt->ComputeSizes(st, depth + 1)) return false;
+            size += sfield.type->udt->numslots;
+        } else {
+            size++;
+        }
+    }
+    numslots = size;
+    return true;
+}
 
 inline void FormatArg(string &r, string_view name, size_t i, UnTypeRef type, int depth = 0) {
     if (i) r += ", ";
