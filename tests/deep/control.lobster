@@ -122,6 +122,103 @@ def control_tests():
         swb++
     test_eq(swb, 3)
 
+    // Terminal branches don't fall through to their siblings, but assignments
+    // before break/continue still reach the enclosing loop's exit.
+    class FlowBase:
+        tag = 0
+    class FlowDerived : FlowBase
+        value = 1
+    def while_exit_flow(c:int, shape:int):
+        var a:FlowBase = FlowDerived {}
+        if a is FlowDerived:
+            var i = 0
+            while i < 1:
+                i++
+                if shape == 0:
+                    if c:
+                        a = FlowBase {}
+                        break
+                elif shape == 1:
+                    if c:
+                        a = FlowBase {}
+                        break
+                    else:
+                        pass()
+                elif shape == 2:
+                    switch c:
+                        case 1:
+                            a = FlowBase {}
+                            break
+                        default:
+                            pass()
+                else:
+                    if c:
+                        a = FlowBase {}
+                        continue
+            return a is FlowDerived
+        return false
+    def for_exit_flow(c:int, shape:int):
+        var a:FlowBase = FlowDerived {}
+        if a is FlowDerived:
+            for(1):
+                if shape == 0:
+                    if c:
+                        a = FlowBase {}
+                        continue
+                elif shape == 1:
+                    if c:
+                        a = FlowBase {}
+                        continue
+                    else:
+                        pass()
+                elif shape == 2:
+                    switch c:
+                        case 1:
+                            a = FlowBase {}
+                            continue
+                        default:
+                            pass()
+                else:
+                    if c:
+                        a = FlowBase {}
+                        break
+            return a is FlowDerived
+        return false
+    for(4) shape:
+        test_true(not while_exit_flow(1, shape))
+        test_true(while_exit_flow(0, shape))
+        test_true(not for_exit_flow(1, shape))
+        test_true(for_exit_flow(0, shape))
+    // Inner-loop exits reach the rest of the outer body, even when nested in
+    // another terminal branch. A return still leaves that path entirely.
+    def nested_exit_flow(c:int):
+        var a:FlowBase = FlowDerived {}
+        if a is FlowDerived:
+            for(1):
+                if c:
+                    while true:
+                        if c:
+                            a = FlowBase {}
+                            break
+                        break
+                    continue
+            return a is FlowDerived
+        return false
+    test_true(not nested_exit_flow(1))
+    test_true(nested_exit_flow(0))
+    def return_flow(c:int):
+        var a:FlowBase = FlowDerived {}
+        if a is FlowDerived:
+            for(1):
+                if c:
+                    a = FlowBase {}
+                    return 2
+                test_eq(a.value, 1)
+            return a.value
+        return 0
+    test_eq(return_flow(1), 2)
+    test_eq(return_flow(0), 1)
+
     // guard: with and without an else-body, and producing values from blocks.
     let gs = map(4) i:
         guard i >= 2:

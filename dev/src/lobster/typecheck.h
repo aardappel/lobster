@@ -38,6 +38,10 @@ enum ConvertFlags {
 struct TypeChecker {
     Parser &parser;
     SymbolTable &st;
+    struct LoopFlow {
+        vector<TypeRef> entry;
+        vector<size_t> demoted;
+    };
     struct Scope {
         SubFunction *sf = nullptr;
         const Node *call_context = nullptr;
@@ -45,6 +49,7 @@ struct TypeChecker {
         // Where in the writes recorded for the function the outermost loop currently being
         // typechecked started, see LoopWroteBefore.
         size_t loop_events_start = 0;
+        vector<LoopFlow> loop_flow;
         vector<Member *> scoped_fields;
         size_t flowstack_size = 0;
     };
@@ -2950,6 +2955,29 @@ struct TypeChecker {
         auto &sc = scopes.back();
         if (!sc.loop_count) sc.loop_events_start = sc.sf->reuse_assign_events.size();
         sc.loop_count++;
+        sc.loop_flow.emplace_back();
+        BackupFlow(flowstack.size(), sc.loop_flow.back().entry);
+    }
+
+    // A break or continue doesn't fall through its enclosing branches, but its
+    // writes still reach the loop exit (directly or over a later iteration).
+    // Save those demotions at the actual jump, before a branch restores the
+    // incoming types for its siblings. Only the innermost loop is its target.
+    void RecordLoopFlowExit() {
+        auto &loop = scopes.back().loop_flow.back();
+        for (auto [i, was] : enumerate(loop.entry)) {
+            if (!flowstack[i].now->Equal(*was)) loop.demoted.push_back(i);
+        }
+    }
+
+    void LeaveLoop() {
+        auto &sc = scopes.back();
+        auto &loop = sc.loop_flow.back();
+        // The loop may not run, so none of its new promotions survive it.
+        CleanUpFlow(loop.entry.size());
+        for (auto i : loop.demoted) flowstack[i].now = flowstack[i].old;
+        sc.loop_flow.pop_back();
+        sc.loop_count--;
     }
 
     void DropSpeculative(SpecIdent *sid) {
@@ -3639,7 +3667,7 @@ Node *While::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_boun
     tc.TypeCheckCondition(condition, this, "while");
     tc.EnterLoop();
     tc.TypeCheckBranch(true, condition, wbody, 0);
-    tc.scopes.back().loop_count--;
+    tc.LeaveLoop();
     exptype = type_void;
     lt = LT_ANY;
     return this;
@@ -3685,7 +3713,7 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*
     }
     tc.EnterLoop();
     fbody->TypeCheck(tc, 0, {});
-    tc.scopes.back().loop_count--;
+    tc.LeaveLoop();
     tc.st.BlockScopeCleanup();
     if (fle && fle->sid && fle->sid->speculative) tc.ReleaseSpeculative(fle->sid);
     tc.DecBorrowers(iter->lt, *this);
@@ -3710,6 +3738,8 @@ Node *ForLoopCounter::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef
 Node *Break::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (!tc.scopes.back().loop_count)
         tc.Error(*this, Q("break"), " must occur inside a ", Q("while"), " or ", Q("for"));
+    else
+        tc.RecordLoopFlowExit();
     exptype = type_void;
     lt = LT_ANY;
     return this;
@@ -3718,6 +3748,8 @@ Node *Break::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_boun
 Node *Continue::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     if (!tc.scopes.back().loop_count)
         tc.Error(*this, Q("continue"), " must occur inside a ", Q("while"), " or ", Q("for"));
+    else
+        tc.RecordLoopFlowExit();
     exptype = type_void;
     lt = LT_ANY;
     return this;
