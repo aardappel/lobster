@@ -1,6 +1,7 @@
 #include "lobster/geom.h"
 #include "lobster/vmdata.h"
 #include "lobster/natreg.h"
+#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
 #include "lobster/bytecode_generated.h"
 
 extern string BreakPoint(lobster::VM &vm, string_view reason, bool also_flex_dump);
