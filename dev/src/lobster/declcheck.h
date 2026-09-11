@@ -29,6 +29,7 @@ struct DeclChecker {
     set<Overload *> bodies_walked;
     set<Function *> default_args_walked;
     set<GUDT *> field_defaults_walked;
+    set<GUDT *> field_defaults_inherited;
 
     DeclChecker(SymbolTable &st, NativeRegistry &natreg) : st(st), natreg(natreg) {}
 
@@ -90,6 +91,10 @@ struct DeclChecker {
         for (auto f : st.functiontable) {
             for (auto ov : f->overloads) WalkBody(ov);
         }
+        // Parsing copied inherited defaults before their calls had lexical bindings. Only
+        // copy the resolved expressions after every declaration site has been visited: a
+        // pre-declared superclass's definition can come after its subclasses.
+        for (auto gudt : st.gudttable) InheritFieldDefaults(gudt);
     }
 
     // Superclass fields are copied into subclasses at parse time, which
@@ -124,6 +129,20 @@ struct DeclChecker {
             udt->sfields.clear();
             udt->state = UDTState::DECLARED;
             st.ResolveFields(*udt, gudt->line);
+        }
+    }
+
+    void InheritFieldDefaults(GUDT *gudt) {
+        if (!field_defaults_inherited.insert(gudt).second) return;
+        auto sup = GetGUDTAny(gudt->gsuperclass);
+        if (!sup) return;
+        InheritFieldDefaults(sup);
+        for (size_t i = 0; i < sup->fields.size(); i++) {
+            auto &field = gudt->fields[i];
+            assert(field.id == sup->fields[i].id);
+            auto original = sup->fields[i].gdefaultval;
+            delete field.gdefaultval;
+            field.gdefaultval = original ? original->Clone(true) : nullptr;
         }
     }
 
@@ -272,10 +291,13 @@ struct DeclChecker {
             return;
         }
         if (auto gr = Is<GUDTRef>(&n)) {
-            // Field default values belong to the scope the class is declared
-            // in (they don't have access to other members).
+            // Only this class's own defaults belong to its declaration scope. Inherited
+            // defaults retain their superclass's bindings, see InheritFieldDefaults.
             if (!gr->predeclaration && field_defaults_walked.insert(gr->gudt).second) {
-                for (auto &field : gr->gudt->fields) {
+                auto sup = GetGUDTAny(gr->gudt->gsuperclass);
+                auto inherited = sup ? sup->fields.size() : 0;
+                for (size_t i = inherited; i < gr->gudt->fields.size(); i++) {
+                    auto &field = gr->gudt->fields[i];
                     if (field.gdefaultval) ResolveRec(*field.gdefaultval);
                 }
             }

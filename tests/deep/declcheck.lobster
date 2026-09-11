@@ -56,6 +56,60 @@ def dk_default_fn(): return 11
 class DKCallsFn:
     h = dk_default_fn()
 
+// Inherited defaults retain the scope that declared them, including across more
+// than one subclass and when the superclass is only pre-declared at the time.
+def dk_initial_default(): return 11
+class DKDefaultBase:
+    value = dk_initial_default()
+
+class DKForwardDefault
+def dk_forward_default_subclass():
+    def dk_initial_default(): return 22
+    class DKForwardDefaultChild : DKForwardDefault
+        own = dk_initial_default()
+    let child = DKForwardDefaultChild {}
+    test_eq(child.value, 11)
+    test_eq(child.own, 22)
+class DKForwardDefault:
+    value = dk_initial_default()
+
+def dk_generic_default<T>(): return 11
+class DKGenericDefault<T>:
+    value = dk_generic_default<T>()
+    data = []::T
+
+def dk_inherited_default_tests():
+    def dk_initial_default(): return 22
+    class DKDefaultChild : DKDefaultBase
+        own = dk_initial_default()
+    test_eq(DKDefaultChild {}.value, 11)
+    test_eq(DKDefaultChild {}.own, 22)
+    def grandchild():
+        def dk_initial_default(): return 33
+        class DKDefaultGrandchild : DKDefaultChild
+            newest = dk_initial_default()
+        let child = DKDefaultGrandchild {}
+        test_eq(child.value, 11)
+        test_eq(child.own, 22)
+        test_eq(child.newest, 33)
+    grandchild()
+    dk_forward_default_subclass()
+
+    def dk_generic_default<T>(): return 22
+    class DKGenericDefaultChild<T> : DKGenericDefault<T>
+        own = dk_generic_default<T>()
+    class DKNamedDefault = DKGenericDefaultChild<string>
+    let ints = DKGenericDefaultChild<int> {}
+    let strings = DKNamedDefault {}
+    test_eq(ints.value, 11)
+    test_eq(ints.own, 22)
+    test_eq(strings.value, 11)
+    test_eq(strings.own, 22)
+    ints.data.push(1)
+    strings.data.push("s")
+    test_seq(ints.data, [ 1 ])
+    test_seq(strings.data, [ "s" ])
+
 // Pre-declared class used as a (nilable) field type before its definition.
 class DKPre
 class DKHolder:
@@ -153,6 +207,7 @@ def declcheck_tests():
     test_eq(dg.data[0], 3)
     test_eq(DKUsesGlobal {}.g, 7)
     test_eq(DKCallsFn {}.h, 11)
+    dk_inherited_default_tests()
     let hold = DKHolder {}
     test_true(not hold.p)
     hold.p = DKPre {}
