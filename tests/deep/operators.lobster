@@ -117,6 +117,73 @@ def operators_tests():
     test_eq(not 42, 0)
     test_eq(not nil, 1)
     test_eq(not 0.0, 1)
+    // Truth tests inspect the value's bits, like Value::True/False: negative zero
+    // is true, positive zero is false. Reassignments force runtime evaluation.
+    var zero = -0.0
+    zero = -0.0
+    var positive_zero = 0.0
+    positive_zero = 0.0
+    test_eq(not -0.0, false)
+    test_eq(not zero, false)
+    test_eq(not positive_zero, true)
+    test_eq(not (zero * 1.0), false)
+    test_eq(-0.0 and 42.0, 42.0)
+    test_eq(zero and 42.0, 42.0)
+    test_eq(positive_zero and 42.0, 0.0)
+    test_eq(positive_zero or 42.0, 42.0)
+    // A retained operand keeps its original bits, not the boolean test result.
+    test_true(1.0 / (-0.0 or 42.0) < 0.0)
+    test_true(1.0 / (zero or 42.0) < 0.0)
+    test_true(1.0 / (positive_zero and 42.0) > 0.0)
+    // Mixed reference/scalar expressions exercise ToBool and conditional casts.
+    test_eq(-0.0 and "selected", true)
+    test_eq(zero and "selected", true)
+    test_eq(zero or "unused", true)
+    test_eq(positive_zero and "unused", false)
+    test_eq((zero and "selected") or "fallback", "selected")
+    test_eq((positive_zero and "unused") or "fallback", "fallback")
+    test_eq(if -0.0: 1 else: 2, 1)
+    test_eq(if zero: 1 else: 2, 1)
+    test_eq(if positive_zero: 1 else: 2, 2)
+    var zero_branches = 0
+    if -0.0: zero_branches++
+    if zero and not positive_zero: zero_branches++
+    if positive_zero or zero: zero_branches++
+    if not zero: zero_branches += 100
+    test_eq(zero_branches, 3)
+    var zero_loops = 0
+    while zero and zero_loops < 3: zero_loops++
+    while positive_zero and zero_loops < 10: zero_loops++
+    test_eq(zero_loops, 3)
+    // Statement-form short circuiting must run only the selected side effects.
+    var zero_effects = 0
+    def touch_zero():
+        zero_effects++
+        return 1.0
+    zero and touch_zero()
+    zero or touch_zero()
+    positive_zero and touch_zero()
+    positive_zero or touch_zero()
+    test_eq(zero_effects, 2)
+    // any/all use the runtime Value truth predicates, independently of codegen.
+    test_eq(any([zero]), true)
+    test_eq(all([zero]), true)
+    test_eq(any([positive_zero]), false)
+    test_eq(all([positive_zero]), false)
+    test_eq(any([zero]), not not zero)
+    test_eq(all([positive_zero]), not not positive_zero)
+    test_eq(all([zero, positive_zero]), false)
+    test_eq(not [zero][0], false)
+    assert zero
+    test_eq(assert zero, zero)
+    // Nonzero finite values, infinities and NaNs all have nonzero bits.
+    test_eq(not (1.0 / 0.0), false)
+    test_eq(not (0.0 / 0.0), false)
+    test_eq(not -1.0, false)
+    let nonfinites = [1.0 / 0.0, -1.0 / 0.0, 0.0 / 0.0]
+    for(nonfinites) value:
+        test_eq(not value, false)
+        test_eq(any([value]), not not value)
     test_eq(not "", 0)
     test_eq(not not 42, 1)
     // not binds looser than ==, so this is not(1 == 2).

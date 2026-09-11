@@ -49,6 +49,13 @@ def errors_tests():
     // statement, hence the returns.)
     expect_error("let x = 1\nreturn 1 / (x - x)", "division by zero")
     expect_error("let x = 1\nreturn 1 % (x - x)", "division by zero")
+    // Positive zero has no bits set; negative zero's sign bit makes it true.
+    expect_error("return assert 0.0", "assertion failed")
+    expect_error("var x = 0.0\nx = 0.0\nreturn assert x", "assertion failed")
+    let zeroret, zeroerr = compile_run_code(
+        "assert -0.0\nvar x = -0.0\nx = -0.0\nassert x\nreturn 7", [])
+    test_eq(zeroerr, nil)
+    test_eq(zeroret, "7")
     expect_error("let v = [ 1 ]\nreturn v[2]", "out of range")
     expect_error("let v = [ 1 ]\nreturn v[0 - 1]", "out of range")
     expect_error("let s = \"a\"\nreturn s[5]", "out of range")

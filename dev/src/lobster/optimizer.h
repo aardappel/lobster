@@ -176,7 +176,7 @@ Node *Node::Optimize(Optimizer &opt) {
     // the reference type, which is what the jump the unfolded code emits writes, see
     // EmitJumpCond. Anything else that disagrees is not ours to fold.
     if (t != exptype->t && t != V_NIL) {
-        auto falsy = t == V_INT ? !cval.i : t == V_FLOAT ? !cval.f : false;
+        auto falsy = (t == V_INT || t == V_FLOAT) && !cval.i;
         if (!falsy || !IsRefNilNoStruct(exptype->t)) return this;
         t = V_NIL;
     }

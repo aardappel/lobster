@@ -63,6 +63,8 @@ ValueType FloatConstant::ConstVal(TypeChecker *, VTValue &val) const {
     return V_FLOAT;
 }
 
+// Truth uses the payload bits, matching Value::True/False even for floats:
+// positive zero is false, while negative zero's sign bit makes it true.
 ValueType And::ConstVal(TypeChecker *tc, VTValue &val) const {
     auto l = left->ConstVal(tc, val);
     if (l == V_VOID) return V_VOID;

@@ -1191,6 +1191,26 @@ struct CodeGen  {
         return Parens(e, prec, right);
     }
 
+    // Truth tests the payload bits, as Value::True/False do: -0.0 is true. A typed
+    // float must first be viewed through the union, without a numeric conversion.
+    Expr TruthOperand(const Place &p, int prec) {
+        if (p.k() != VK_FLOAT) return Operand(p, prec);
+        auto e = Operand(p, 15);
+        if (cpp) {
+            e.text = cat("Value(", e.text, ").bits()");
+        } else {
+            // Write the union directly: a compound literal can call memset in TCC,
+            // and boxing through a helper would add a call to every float test.
+            auto bits = cat("_truth", Label());
+            append(cb, "    Value ", bits, ";\n    ", bits, ".fval = ", e.text, ";\n");
+            e.text = cat(bits, ".ival");
+            e.vars.clear();
+            e.pure = false;  // This snapshot must be consumed where it was written.
+        }
+        e.prec = 1;
+        return e;
+    }
+
     // What an operator makes of its operands.
     static Expr Combine(int prec, string text, const Expr &a, const Expr &b) {
         Expr e = { std::move(text), a.vars, a.pure && b.pure, prec };
@@ -2136,14 +2156,14 @@ struct CodeGen  {
         // flush only drops it.
         if (defslots) Flush();
         auto e = Operand(v, onfail ? 2 : 15);
+        auto test = TruthOperand(v, onfail ? 2 : 15).text;
         if (!defslots) Flush();
         if (k == resk || !defslots) {
-            append(cb, "    if (", onfail ? "!" : "", e.text, ") goto block", lab, ";\n");
+            append(cb, "    if (", onfail ? "!" : "", test, ") goto block", lab, ";\n");
             return lab;
         }
         // The test stays the whole condition, while the conversion below takes the value as
         // the operand of a cast.
-        auto test = e.text;
         auto cond = Parens(e, 2).text;
         string conv;
         switch (resk) {
@@ -2821,7 +2841,7 @@ struct CodeGen  {
         rc_tag = "booltest";
         if (decref) GenDecRef(cb, v);
         rc_tag.clear();
-        auto e = Operand(v, 7);
+        auto e = TruthOperand(v, 7);
         e.text = cat(e.text, " ", test);
         e.prec = 7;
         WriteExpr(Slot(1, VK_INT), e);
@@ -2838,7 +2858,8 @@ struct CodeGen  {
     // All that is left of an assert in the common case is the test; the reporting is a call.
     void EmitAssert(int defslots, int line, int fileidx, int stringidx, VKind k) {
         TrackUseDef(1, defslots);
-        append(cb, "    if (!", Operand(Slot(1, k), 2).text, ") ",
+        auto test = TruthOperand(Slot(1, k), 2).text;
+        append(cb, "    if (!", test, ") ",
                cpp ? "vm.AssertFailed(" : "AssertFailed(vm, ",
                line, ", ", fileidx, ", ", stringidx, ");\n");
     }
