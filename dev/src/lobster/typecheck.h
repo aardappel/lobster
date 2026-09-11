@@ -1626,6 +1626,16 @@ struct TypeChecker {
         sid->arg_slot = nullptr;
     }
 
+    // Owning parameters release the argument's borrow before checking (or replaying) the
+    // callee's writes. The reference taken here protects it from those writes, including
+    // writes in lambdas called by the callee.
+    void PrepareCallLifetimes(SubFunction *sf, List &call_args) {
+        for (auto [i, c] : enumerate(call_args.children)) {
+            if (sf->args[i].sid->lt == LT_KEEP && IsBorrow(c->lt))
+                AdjustLifetime(c, LT_KEEP);
+        }
+    }
+
     TypeRef TypeCheckMatchingCall(SubFunction *sf, List &call_args, bool static_dispatch,
                                   bool first_dynamic, DispatchEntry *de) {
         STACK_PROFILE;
@@ -1641,19 +1651,7 @@ struct TypeChecker {
         existing_caller:
         Function &f = *sf->parent;
         BindParamAliases(sf, call_args);
-        if (static_dispatch || first_dynamic) {
-            for (auto [i, c] : enumerate(call_args.children)) {
-                auto &arg = sf->args[i];
-                // An owning parameter gets its argument adjusted before the body is
-                // typechecked: that gives up the borrow the argument holds, which would
-                // otherwise conflict with a write in the body (or in lambdas typechecked
-                // inside it) to what the argument was borrowed from, e.g. f(v[i]) writing
-                // v[i], which the inc the adjustment makes is what keeps safe.
-                if (arg.sid->lt == LT_KEEP && IsBorrow(c->lt)) {
-                    AdjustLifetime(c, arg.sid->lt);
-                }
-            }
-        }
+        if (static_dispatch || first_dynamic) PrepareCallLifetimes(sf, call_args);
         auto reused = sf->typechecked;
         if (!f.istype) TypeCheckFunctionDef(*sf, call_args);
         // A specialization typechecked for an earlier call has its writes checked against
@@ -1675,14 +1673,18 @@ struct TypeChecker {
                 // Check a dynamic dispatch only for the first case, and then skip
                 // checking the first arg.
                 if (static_dispatch || i) SubType(c, arg.spec_type, ArgName(i), f.name);
-                AdjustLifetime(c, arg.sid->lt);  // Remaining cases.
                 // We really don't want to specialize functions on variables, so we simply
                 // disallow them. This should happen only infrequently.
                 if (arg.spec_type->HasValueType(V_VAR))
                     Error(call_args, "can\'t infer ", Q(ArgName(i)), " argument of call to ",
                           Q(f.name));
-                // This has to happen even to dead args:
-                DecBorrowers(c->lt, call_args);
+                // A new dynamic dispatch must retain the arguments' borrows until every
+                // implementation has checked its writes, see TypeCheckCallDispatch.
+                if (static_dispatch) {
+                    AdjustLifetime(c, arg.sid->lt);
+                    // This has to happen even to dead args:
+                    DecBorrowers(c->lt, call_args);
+                }
             }
         }
         // See if this call is recursive:
@@ -2020,7 +2022,9 @@ struct TypeChecker {
                     if (!SpecializationIsCompatible(*sf, reqret))
                         goto fail;
                 }
-                // We can reuse!
+                // We can reuse! As with a new call, owning arguments must be protected
+                // before any implementation replays its writes.
+                PrepareCallLifetimes(disp->sf, call_args);
                 for (auto udt : dispatch_udt.subudts) {
                     auto sf = udt->dispatch_table[i]->sf;
                     LOG_DEBUG("re-using dyndispatch: ", Signature(*sf));
@@ -2222,6 +2226,13 @@ struct TypeChecker {
                 last_sf = sf;
             }
             call_args.children[0]->exptype = &dispatch_udt.thistype;
+            // A write found only in a later implementation can still need KeepArgAlive.
+            // Release the shared call arguments once, after all implementations checked
+            // them, using the lifetime convention agreed on by the entire dispatch.
+            for (auto [i, c] : enumerate(call_args.children)) {
+                AdjustLifetime(c, dispatch_lts[i]);
+                DecBorrowers(c->lt, call_args);
+            }
         }
         return dispatch_udt.dispatch_table[vtable_idx]->returntype;
     }

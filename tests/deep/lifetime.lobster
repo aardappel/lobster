@@ -7,6 +7,44 @@ import std
 class DLBox:
     s:string
 
+class DLDispatchEntry:
+    name:string
+
+class DLDispatchOwner:
+    entry:DLDispatchEntry
+
+class DLDispatchBase:
+    def read(entry:DLDispatchEntry, owner:DLDispatchOwner) -> string:
+        return entry.name
+
+class DLDispatchReader : DLDispatchBase
+    def read(entry:DLDispatchEntry, owner:DLDispatchOwner) -> string:
+        return entry.name
+
+class DLDispatchWriter : DLDispatchBase
+    def read(entry:DLDispatchEntry, owner:DLDispatchOwner) -> string:
+        owner.entry = DLDispatchEntry { "replacement" + "" }
+        return entry.name
+
+class DLDispatchInheritedWriter : DLDispatchWriter
+
+// Declare the mutating subclass before the other subclass this time. Assigning
+// the parameter makes it owning in every implementation of this dispatch.
+class DLDispatchOwningBase:
+    def read(entry:DLDispatchEntry, owner:DLDispatchOwner) -> string:
+        return entry.name
+
+class DLDispatchOwningWriter : DLDispatchOwningBase
+    def read(entry:DLDispatchEntry, owner:DLDispatchOwner) -> string:
+        owner.entry = DLDispatchEntry { "replacement" + "" }
+        let name = entry.name
+        entry = owner.entry
+        return name + entry.name
+
+class DLDispatchOwningReader : DLDispatchOwningBase
+    def read(entry:DLDispatchEntry, owner:DLDispatchOwner) -> string:
+        return entry.name
+
 def lifetime_tests():
     suite("lifetime")
 
@@ -129,5 +167,37 @@ def lifetime_tests():
     for(2) i:
         if i == 1: freev = "f2"
     test_eq(freev, "f2")
+
+    // Only a later dispatch implementation overwrites the field supplying the
+    // borrowed argument. The caller must retain it across the whole call.
+    let dispatchers = [ DLDispatchBase {}, DLDispatchReader {}, DLDispatchWriter {},
+                        DLDispatchInheritedWriter {} ]
+    let owner1 = DLDispatchOwner { DLDispatchEntry { "first" + "" } }
+    test_eq(dispatchers[2].read(owner1.entry, owner1), "first")
+    test_eq(owner1.entry.name, "replacement")
+
+    // Reuse the same dispatch with a different borrowed field and an inherited
+    // implementation, then with an implementation that leaves the field alone.
+    let owner2 = DLDispatchOwner { DLDispatchEntry { "second" + "" } }
+    test_eq(dispatchers[3].read(owner2.entry, owner2), "second")
+    test_eq(owner2.entry.name, "replacement")
+    let owner3 = DLDispatchOwner { DLDispatchEntry { "third" + "" } }
+    test_eq(dispatchers[1].read(owner3.entry, owner3), "third")
+    test_eq(owner3.entry.name, "third")
+
+    def read_dispatch(receiver:DLDispatchBase, owner:DLDispatchOwner) -> string:
+        return receiver.read(owner.entry, owner)
+    let owner4 = DLDispatchOwner { DLDispatchEntry { "fourth" + "" } }
+    test_eq(read_dispatch(dispatchers[2], owner4), "fourth")
+    test_eq(read_dispatch(dispatchers[2], owner4), "replacement")
+
+    // A reused dispatch must adjust owning arguments before replaying the
+    // subclass's writes, just as it does when first checking that subclass.
+    let owning_dispatchers = [ DLDispatchOwningBase {}, DLDispatchOwningWriter {},
+                               DLDispatchOwningReader {} ]
+    let owner5 = DLDispatchOwner { DLDispatchEntry { "fifth" + "" } }
+    test_eq(owning_dispatchers[1].read(owner5.entry, owner5), "fifthreplacement")
+    let owner6 = DLDispatchOwner { DLDispatchEntry { "sixth" + "" } }
+    test_eq(owning_dispatchers[1].read(owner6.entry, owner6), "sixthreplacement")
 
 lifetime_tests()
