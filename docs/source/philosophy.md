@@ -98,20 +98,22 @@ suitable for my style of programming (heavily refactoring-based).
 -   A language that tries to be very efficient with memory, thanks to
     compile time reference counting, inline structs, and a very fast allocator.
 
--   The belief that the ideal programming language is... TWO programming
-    languages. Any larger project consists of a lot of high level and glue code
-    that is infrequently executed and benefits from the simple and terse
-    notation of a language like Lobster. However, any non trivial project
-    (especially in games) also contains a few algorithms where complete control
+-   A language that is close in speed to the fastest languages (C++ and Rust)
+    so you can use it for everything (see [some benchmarks](RESULTS.html))
+
+-   The belief that a language is part of an ecosystem.
+    Lobster is fast enough that you can write pretty much all code in it.
+    However, any non trivial project (especially in games) also contains some
+    specialized libraries and a few algorithms where complete control
     of memory layout and native code is desirable, and for that, there really is
     only one viable language, namely C++. Having access to both languages in a
     single project gives the most options for creating a fast, high quality
     result in reasonable time. Importantly, past systems/engines have not
     realized this potential because they make C++ the dominant language that is
     responsible for all the glue code, thus reducing the utility of the
-    scripting language and complicating the overall project. Lobster instead
+    "scripting" language and complicating the overall project. Lobster instead
     wants Lobster code to be the main program, and relegate C++ to implement
-    small libraries of speed sensitive code.
+    small libraries of specialized code.
 
 -   An engine that adheres to *make simple things simple, and complex things
     possible*. It requires very little code to start drawing, yet the system

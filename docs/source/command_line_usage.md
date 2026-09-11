@@ -38,6 +38,12 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
     files you have specified with the `pakfile` keyword, see “Distributing
     Lobster programs” in the [implementation](implementation.html) documentation.
 
+-   `--mir` : by default, Lobster runs your code with the `libtcc` JIT backend,
+    which makes for quick startup/iteration but is some 2x slower than the maximally
+    fast `--cpp` option. `--mir` uses an optimizing JIT that is slower to start
+    up, but is much closer in speed to `--cpp`. Ideal for speed-sensitive applications
+    during development.
+
 -   `--cpp` : compiles to a .cpp file. Please make sure to follow
     [implementation](implementation.html) on how to use this feature.
     Useful if you’ve created something in Lobster that could use a bit more speed,

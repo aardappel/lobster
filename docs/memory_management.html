@@ -185,19 +185,25 @@ This has not been implemented at the time of writing, however.</p>
 <h3 id="errors">Errors</h3>
 <p>These are errors that may happen as a consequence of ownership
 analysis, though all of them have proven to be very rare.</p>
-<pre><code>cannot assign to x while borrowed</code></pre>
-<p>This can be caused by code like:</p>
+<pre><code>cannot modify x while y borrows it</code></pre>
+<p>Consider code like:</p>
 <pre><code>var x = &quot;hello&quot;
 def f(y):
     x = &quot;world&quot;
     print y
 f(x)</code></pre>
 <p>Here, <code>y</code> borrows <code>x</code>, then <code>f</code>
-tries to overwrite <code>x</code> while still being borrowed, which
-would cause it to deallocate <code>"hello"</code> while <code>y</code>
-is still pointing at it. It is pretty rare for code that uses a borrowed
-value to be accessing the original value also. As I mentioned, this only
-happened twice in a large volume of test code, and is easy to avoid.</p>
+overwrites <code>x</code> while it is still borrowed, which would
+deallocate <code>"hello"</code> while <code>y</code> is still pointing
+at it. When the borrowed value is an argument of a call, like here, the
+caller is made to keep the value alive for the rest of its scope (a
+reference count increase for that call only), so this compiles and
+prints <code>hello</code>. The error remains for a borrow that no call
+can be made responsible for, typically an argument that is still being
+evaluated when a later argument modifies what it was borrowed from, like
+<code>f(v[0], v.pop())</code>. It is pretty rare for code that uses a
+borrowed value to be modifying the original value also, and easy to
+avoid.</p>
 <pre><code>cannot assign to borrowed argument: x</code></pre>
 <p>This typically never triggers, as arguments that are assigned to are
 typically forced to be owners, but there are currently some exceptions
@@ -263,14 +269,33 @@ once. This reference count decreases as borrowed values get "consumed".
 Mutating a borrowed L-value with a reference count &gt; 0 produces the
 above error. The reference count not being 0 at the end is a bug in the
 ownership analysis :)</p>
-<p>Note that variables currently always own. This was done for
-simplicity, as in theory a variable could be made to either own or
-borrow depending on the needs of its initial RHS, but this was awkward
-in cases where the definition and subsequent assignments disagreed, and
-generally made ownership analysis more difficult. This could be
-revisited in the future once the consequences of the algorithm are
-better understood, or maybe when more accurate dataflow information is
-present.</p>
+<p>Variables that are assigned to always own. A variable that is never
+assigned to (a <code>let</code>, or a <code>for</code> loop element) and
+is initialized from a variable, field or vector element borrows it
+instead, for the rest of its scope: it holds a borrow of that L-value,
+so no reference count is touched when it is defined or goes out of
+scope. If something then writes to that L-value while the variable is
+alive, the analysis does not error like it does for other borrows, but
+retroactively makes the variable own (its initializer gets the reference
+count increase, and it gets the decrease at the end of its scope), so
+the program means the same either way, and only the cost differs. This
+is what makes the <code>old := cur</code> pattern work, where
+<code>cur</code> gets overwritten while <code>old</code> hangs on to the
+previous value. Such a variable is also another name for what it
+borrows, so a write through it is checked against borrows of the
+original.</p>
+<p>The same applies to a borrowed function argument: it is another name
+for the variable or field path the caller passed (when it passed one),
+and writes through it, in that function or the ones it calls, are
+checked against what the callers have borrowed or have flow-type
+promoted. Vector elements are locations too: writing an element, or
+calling a builtin that can drop elements (<code>pop</code>,
+<code>remove</code>, <code>truncate</code>, ..), is a write to the
+elements of that vector, which conflicts with a borrow of any element
+(or of the same constant index). What the analysis still cannot see is
+aliasing through a variable that owns a reference of its own and is
+reassigned, e.g. <code>var c = a</code> followed later by a write
+through <code>c</code> while a field of <code>a</code> is borrowed.</p>
 <p>The end of a variable's lifetime is typically the end of the scope,
 though making it its "last use" is being worked on, see
 <code>return</code> below.</p>
@@ -298,6 +323,10 @@ of the programmer).</p>
 <p>There are currently some exceptions to this:</p>
 <ul>
 <li>Arguments that are assigned to are always owned.</li>
+<li>Big functions (and all functions in a dynamic dispatch, which must
+agree) get a single specialization with all arguments that allow it
+borrowing: that costs a caller passing a variable nothing, and a caller
+passing an owned value the same as an owning argument would.</li>
 <li>The return value of a function is currently always owned.</li>
 </ul>
 <p>Much like variables, some of these could be relaxed/improved in the
@@ -332,8 +361,9 @@ be owned, but <code>[ 1 ] or "hello"</code> results in a
 <li><code>while</code> borrows its condition and doesn't care about the
 body.</li>
 <li><code>for</code> borrows what it iterates over and doesn't care
-about its body. It produces an element variable that wants to be owned.
-Note: this may change in the future to also allow borrowing.</li>
+about its body. Its element variable borrows the elements of the vector
+(see above), unless the body writes to them, in which case it owns each
+element in turn.</li>
 <li>String constants conceptually result in an owned value (they are a
 heap object), but currently they actually result in a borrow. This is
 because strings are most frequently passed to contexts that would prefer

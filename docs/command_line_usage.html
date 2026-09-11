@@ -55,6 +55,12 @@ The pakfile contains the libtcc C code, and any data files you have
 specified with the <code>pakfile</code> keyword, see “Distributing
 Lobster programs” in the <a
 href="implementation.html">implementation</a> documentation.</p></li>
+<li><p><code>--mir</code> : by default, Lobster runs your code with the
+<code>libtcc</code> JIT backend, which makes for quick startup/iteration
+but is some 2x slower than the maximally fast <code>--cpp</code> option.
+<code>--mir</code> uses an optimizing JIT that is slower to start up,
+but is much closer in speed to <code>--cpp</code>. Ideal for
+speed-sensitive applications during development.</p></li>
 <li><p><code>--cpp</code> : compiles to a .cpp file. Please make sure to
 follow <a href="implementation.html">implementation</a> on how to use
 this feature. Useful if you’ve created something in Lobster that could
@@ -106,8 +112,9 @@ useful for adding to syntax highlighting files etc.</p></li>
 <li><p><code>--parsedump</code> : dumps internal representations of the
 program as AST. Only useful for compiler development or if you are
 really curious.</p></li>
-<li><p><code>--non-interactive-test</code> : Quit after running 1 frame.
-Useful for running graphical programs as part of a test suite.</p></li>
+<li><p><code>--non-interactive-test [N]</code> : Quit after running N
+frames (default 1). Useful for running graphical programs as part of a
+test suite.</p></li>
 <li><p><code>--background</code> : Open the window at the bottom of the
 z-order and without giving it focus. Useful for benchmark or test runs
 that shouldn't interrupt whoever is using the computer.</p></li>
