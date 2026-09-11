@@ -56,9 +56,11 @@ struct CompileOptions {
 
 // Compiles the source in `stringsource`, or the file `fn` when that is empty, into the
 // metadata and the generated C or C++, plus a parse tree dump and a pakfile when asked for.
-extern void Compile(NativeRegistry &natreg, string_view fn, string_view stringsource,
-                    const CompileOptions &opts, string &metadata_buffer, string &c_codegen,
-                    string *parsedump = nullptr, string *pakfile = nullptr);
+// Returns the errors (see Lex::Report) when there were any, or the answer to opts.query,
+// which ends compilation the same way; empty when it succeeded. Doesn't throw.
+extern string Compile(NativeRegistry &natreg, string_view fn, string_view stringsource,
+                      const CompileOptions &opts, string &metadata_buffer, string &c_codegen,
+                      string *parsedump = nullptr, string *pakfile = nullptr);
 
 // How to run what the JIT compiled; main.cpp sets these from its command line.
 struct RunOptions {

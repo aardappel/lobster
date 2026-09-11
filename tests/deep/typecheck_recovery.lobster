@@ -447,5 +447,38 @@ def typecheck_recovery_tests():
         let z:float = "s"
         return 1
         """, [ "requires type `float`, got `string`", "type `int` does not have field `hf`" ])
+    // In an unreached function, code that needs an active caller (a call to a local function
+    // of another function here) is not an error, and ends the check of that function, so
+    // what comes before it is checked, and what comes after is not.
+    expect_errors("""
+        def outer() -> int:
+            def inner() -> int: return 3
+            return inner()
+        def dead(x:int) -> int:
+            let z:string = x
+            let y = inner()
+            let w:string = x
+            return y + x
+        return outer()
+        """, [ "requires type `string`, got `int`" ])
+
+    // Errors that were fatal: the borrow checker's, the string assignment codegen used to
+    // catch, and a duplicate serializable id.
+    expect_errors("""
+        let s = "abc"
+        s[0] = 65
+        let z:float = "s"
+        return s
+        """, [ "cannot use string element as lvalue", "requires type `float`, got `string`" ])
+    expect_errors("""
+        class A:
+            attribute serializable = 1
+            x = 1
+        class B:
+            attribute serializable = 1
+            y = 2
+        let z:float = "s"
+        return A {}.x + B {}.y
+        """, [ "index that is already in use: 1", "requires type `float`, got `string`" ])
 
 typecheck_recovery_tests()

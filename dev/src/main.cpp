@@ -65,6 +65,22 @@ int main(int argc, char* argv[]) {
     #else
         false;
     #endif
+    // Ends the run with the error `s`: compile errors (or the answer to a query, see Compile)
+    // are returned, everything else (the runtime, the command line) still throws.
+    auto fail = [&](const string &s) {
+        LOG_ERROR(s);
+        #if LOBSTER_ENGINE
+            if (from_bundle) SDLMessageBox(string_view_nt("Lobster"), s);
+        #endif
+        if (wait) {
+            LOG_PROGRAM("press <ENTER> to continue:\n");
+            getchar();
+        }
+        #ifdef _MSC_VER
+            _CrtSetDbgFlag(0);  // Don't bother with memory leaks when there was an error.
+        #endif
+        return 1;
+    };
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
@@ -272,8 +288,9 @@ int main(int argc, char* argv[]) {
             for (;;) {
                 metadata_buffer.clear();
                 c_codegen.clear();
-                Compile(nfr, fn, {}, opts, metadata_buffer, c_codegen,
-                        parsedump ? &dump : nullptr, lpak ? &pakfile : nullptr);
+                auto err = Compile(nfr, fn, {}, opts, metadata_buffer, c_codegen,
+                                   parsedump ? &dump : nullptr, lpak ? &pakfile : nullptr);
+                if (!err.empty()) return fail(err);
                 if (mainfile.empty()) break;
                 if (!FileExists(mainfile, true)) {
                     //LOG_WARN(mainfile, " does not exist, skipping");
@@ -322,18 +339,7 @@ int main(int argc, char* argv[]) {
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        LOG_ERROR(s);
-        #if LOBSTER_ENGINE
-            if (from_bundle) SDLMessageBox(string_view_nt("Lobster"), s);
-        #endif
-        if (wait) {
-            LOG_PROGRAM("press <ENTER> to continue:\n");
-            getchar();
-        }
-        #ifdef _MSC_VER
-            _CrtSetDbgFlag(0);  // Don't bother with memory leaks when there was an error.
-        #endif
-        return 1;
+        return fail(s);
     }
     #endif
     return 0;

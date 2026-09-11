@@ -187,7 +187,8 @@ void RegisterBuiltin(NativeRegistry &nfr, const char *ns, const char *name,
     nfr.RegisterGroup(group);
 }
 
-void PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
+// Returns an error, or empty when the query is ready to be answered by the typechecker.
+string PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
     for (auto [i, fn] : enumerate(filenames)) {
         if (fn.first == query.file) {
             query.qloc.fileidx = (int)i;
@@ -195,18 +196,19 @@ void PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
         }
     }
     if (query.qloc.fileidx < 0) {
-        THROW_OR_ABORT("query file not part of compilation: " + query.file);
+        return "query file not part of compilation: " + query.file;
     }
     query.qloc.line = parse_int<int>(query.line);
     query.filenames = &filenames;
+    return {};
 }
 
-void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
-             const CompileOptions &opts, string &metadata_buffer, string &c_codegen,
-             string *parsedump, string *pakfile) {
+string Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
+               const CompileOptions &opts, string &metadata_buffer, string &c_codegen,
+               string *parsedump, string *pakfile) {
     #ifdef NDEBUG
         SlabAlloc slaballoc;
-        if (g_current_slaballoc) THROW_OR_ABORT("nested slab allocator use");
+        if (g_current_slaballoc) return "nested slab allocator use";
         g_current_slaballoc = &slaballoc;
         struct SlabReset {
             ~SlabReset() {
@@ -214,26 +216,35 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
             }
         } slabreset;
     #endif
+    string mainsource;
+    if (stringsource.empty()) {
+        if (LoadFile(cat("modules/", fn), &mainsource) < 0 && LoadFile(fn, &mainsource) < 0)
+            return cat("can't open file: ", fn);
+        stringsource = mainsource;
+    }
     vector<pair<string, string>> filenames;
     Lex lex(fn, filenames, nfr.namespaces, stringsource, opts.max_errors);
     SymbolTable st(lex);
     Parser parser(nfr, lex, st);
     parser.Parse();
-    // The parser recovers from errors and collects them (see Parser::Error), and the passes
-    // after it assume it had none.
-    if (lex.num_errors) THROW_OR_ABORT(lex.errors);
+    // Each pass recovers from its errors and collects them (see Lex::Report), and assumes
+    // the ones before it had none.
+    if (lex.num_errors) return lex.errors;
     DeclChecker dc(st, nfr);
     dc.Check();
-    if (opts.query) PrepQuery(*opts.query, filenames);
+    if (opts.query) {
+        auto err = PrepQuery(*opts.query, filenames);
+        if (!err.empty()) return err;
+    }
     TypeChecker tc(parser, st, opts);
     if (opts.query) {
         // The typechecker did not come across the location.
-        if (!tc.ProcessQuery()) THROW_OR_ABORT("query_unknown_ident: " + opts.query->iden);
+        if (!tc.ProcessQuery()) return "query_unknown_ident: " + opts.query->iden;
+        return tc.query_result;
     }
-    // The declchecker and typechecker recover as well (see TypeChecker::Error), leaving
-    // placeholders in the tree that the passes after them can't work with, so those never
-    // run with errors, and any error they hit is fatal on the spot.
-    if (lex.num_errors) THROW_OR_ABORT(lex.errors);
+    // The typechecker leaves placeholders in the tree that the passes after it can't work
+    // with (see TypeChecker::Error), so those never run with errors.
+    if (lex.num_errors) return lex.errors;
     // Optimizer is not optional, must always run, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
     Optimizer opt(st, tc, opts.runtime_checks);
@@ -241,12 +252,14 @@ void Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
     if (parsedump) *parsedump = parser.DumpAll(true);
     auto src_hash = lex.HashAll();
     CodeGen cg(parser, st, opts, src_hash, c_codegen);
+    if (lex.num_errors) return lex.errors;
     st.Serialize(cg.type_table, cg.sids, cg.stringtable, metadata_buffer, filenames, cg.ser_ids, src_hash);
     if (pakfile) {
         auto err = BuildPakFile(*pakfile, metadata_buffer, parser.pakfiles, src_hash,
                                 opts.code_pak ? c_codegen : string());
-        if (!err.empty()) THROW_OR_ABORT(err);
+        if (!err.empty()) return err;
     }
+    return {};
 }
 
 pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metadata_buffer,
@@ -393,30 +406,36 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metad
 LString *CompileRun(VM &parent_vm, LString **result, Value source, bool stringiscode,
                  vector<string> &&args, int max_errors) {
     string_view fn = stringiscode ? "string" : source.sval()->strv();  // fixme: datadir + sanitize?
+    auto fail = [&](const string &s) {
+        *result = parent_vm.NewString("nil");
+        return parent_vm.NewString(s);
+    };
+    CompileOptions opts;
+    opts.return_value = true;
+    opts.max_errors = std::max(1, max_errors);
+    // FIXME: let the caller decide on the runtime checks?
+    opts.jit_options = parent_vm.vma.jit_options;
+    string metadata_buffer;
+    string c_codegen;
+    auto err = Compile(parent_vm.vma.nfr, fn,
+                       stringiscode ? source.sval()->strv() : string_view(), opts,
+                       metadata_buffer, c_codegen);
+    if (!err.empty()) return fail(err);
+    // Running it may still throw: a runtime error in the sandboxed program.
     #ifdef USE_EXCEPTION_HANDLING
     try
     #endif
     {
-        CompileOptions opts;
-        opts.return_value = true;
-        opts.max_errors = std::max(1, max_errors);
-        // FIXME: let the caller decide on the runtime checks?
-        opts.jit_options = parent_vm.vma.jit_options;
-        string metadata_buffer;
-        string c_codegen;
-        Compile(parent_vm.vma.nfr, fn, stringiscode ? source.sval()->strv() : string_view(),
-                opts, metadata_buffer, c_codegen);
         string error;
         auto ret = RunJIT(parent_vm.vma.nfr, fn, metadata_buffer, c_codegen, std::move(args), opts,
                           RunOptions(), error);
-        if (!error.empty()) THROW_OR_ABORT(error);
+        if (!error.empty()) return fail(error);
         *result = parent_vm.NewString(ret.first);
         return nullptr;
     }
     #ifdef USE_EXCEPTION_HANDLING
     catch (string &s) {
-        *result = parent_vm.NewString("nil");
-        return parent_vm.NewString(s);
+        return fail(s);
     }
     #endif
 }

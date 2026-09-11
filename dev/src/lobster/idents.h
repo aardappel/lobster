@@ -1581,8 +1581,10 @@ struct SymbolTable {
                 if (udt->g.generics.size() != types.size()) {
                     // FIXME: this can happen for class foo<T> : bar<T, .. > where generics
                     // are inherited from bar.
-                    lex.Error(cat("internal: missing specializers for ", Q(TypeName(type))),
-                              &errl);
+                    lex.Report(cat("internal: missing specializers for ", Q(TypeName(type))),
+                               &errl);
+                    // Everything downstream assumes one bound type per generic.
+                    types.resize(udt->g.generics.size(), type_error);
                 }
                 udt->bound_generics = types;
                 ResolveFields(*udt, errl);
@@ -1656,8 +1658,13 @@ struct SymbolTable {
             // Checking at the moment the link is added means the chain below
             // is guaranteed cycle-free.
             for (auto u = udt.ssuperclass; u; u = u->ssuperclass) {
-                if (u == &udt)
-                    lex.Error(cat("inheritance cycle in type ", Q(udt.g.name)), &errl);
+                if (u == &udt) {
+                    lex.Report(cat("inheritance cycle in type ", Q(udt.g.name)), &errl);
+                    // Left without a superclass, at both levels, which breaks the cycle.
+                    udt.ssuperclass = nullptr;
+                    udt.g.gsuperclass = UnTypeRef();
+                    break;
+                }
             }
         }
         PushSuperGenerics(udt.ssuperclass);

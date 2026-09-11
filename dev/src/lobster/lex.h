@@ -50,23 +50,12 @@ struct LoadedFile : Line {
 
     string filename;
 
-    LoadedFile(string_view fn, vector<pair<string, string>> &fns, string_view stringsource,
-               bool relative = false)
+    // `stringsource` is the contents of `fn`: whoever includes a file loads it (see
+    // Lex::Include, and Compile for the main file), such that failing to is an error where
+    // it is included.
+    LoadedFile(string_view fn, vector<pair<string, string>> &fns, string_view stringsource)
         : Line(1, (int)fns.size()) {
-        if (!stringsource.empty()) {
-            *source.get() = stringsource;
-        } else {
-            // A relative import names a file relative to the importing file only,
-            // so should never pick up on a file in modules/.
-            if ((relative || LoadFile("modules/" + fn, source.get()) < 0) &&
-                LoadFile(fn, source.get()) < 0) {
-                // Do specialized message for this file, since it always confuses people
-                // that like to move the exe away from the standard location for some reason.
-                if (fn == "stdtype.lobster")
-                    THROW_OR_ABORT("can't find the standard modules (../modules/) relative to the exe location (bin/)");
-                THROW_OR_ABORT("can't open file: " + fn);
-            }
-        }
+        *source.get() = stringsource;
         prevtokenstart = prevtokenend = tokenstart = linestart = p = source.get()->c_str();
 
         indentstack.push_back({ 0, false });
@@ -150,14 +139,15 @@ struct Lex : LoadedFile {
         if ((relative || LoadFile(cat("modules/", _fn), &src) < 0) && LoadFile(_fn, &src) < 0) {
             // Do specialized message for this file, since it always confuses people
             // that like to move the exe away from the standard location for some reason.
-            if (_fn == "stdtype.lobster")
-                Error("can't find the standard modules (../modules/) relative to the exe location (bin/)");
-            Report(cat("can't open file: ", _fn));
+            Report(_fn == "stdtype.lobster"
+                ? string("can't find the standard modules (../modules/) relative to the exe"
+                         " location (bin/)")
+                : cat("can't open file: ", _fn));
             return false;
         }
         allfiles.insert(string(_fn));
         parentfiles.push_back(*this);
-        *((LoadedFile *)this) = LoadedFile(_fn, filenames, src, relative);
+        *((LoadedFile *)this) = LoadedFile(_fn, filenames, src);
         allsources.push_back(source);
         FirstToken();
         return true;
@@ -814,7 +804,8 @@ struct Lex : LoadedFile {
         return err;
     }
 
-    // A fatal error: reports it, together with any errors collected before it, by throwing.
+    // A fatal error, by throwing. Not used by the compiler, which recovers from all of its
+    // errors (see Report); this is for the runtime's use of the lexer, see lobsterreader.cpp.
     [[noreturn]] void Error(string_view msg, const Line *ln = nullptr) {
         num_errors++;
         auto err = FormatError(msg, ln);
@@ -822,12 +813,12 @@ struct Lex : LoadedFile {
         THROW_OR_ABORT(err);
     }
 
-    // An error the parser (or a later pass, see TypeChecker::Error) recovers from, see
-    // Parser::Error. It is collected in `errors`, and compilation continues, until max_errors
-    // have been collected, at which point they are all thrown, which with the default of 1 is
-    // the same as Error(). An error about the current token (no `ln`) is dropped when the
-    // last one reported was too: it is almost certainly a consequence of that one rather than
-    // an error of its own, like each construct enclosing a bad token expecting something else
+    // An error compilation recovers from, see Parser::Error and TypeChecker::Error: it is
+    // collected in `errors` (the first max_errors of them, the rest are only counted), and
+    // the pass carries on to its end, where compilation stops when there were any (see
+    // Compile). An error about the current token (no `ln`) is dropped when the last one
+    // reported was too: it is almost certainly a consequence of that one rather than an
+    // error of its own, like each construct enclosing a bad token expecting something else
     // in its place. The same error at the same location is reported once, since a function
     // gets typechecked once per specialization.
     void Report(string_view msg, const Line *ln = nullptr) {
@@ -835,10 +826,9 @@ struct Lex : LoadedFile {
         last_error_token = token_count;
         auto err = FormatError(msg, ln);
         if (!reported_errors.insert(err.substr(0, err.find('\n'))).second) return;
-        num_errors++;
+        if (++num_errors > max_errors) return;
         if (!errors.empty()) errors += "\n";
         errors += err;
-        if (num_errors >= max_errors) THROW_OR_ABORT(errors);
     }
 
     // Makes Report() treat the current token as one an error was already reported at, for

@@ -172,6 +172,9 @@ def recovery_tests():
         print(1)
         """, [ "`)` expected", "unmatched \'(\' at end of file" ])
     expect_errors("member x = 1\nprint(1)\n", [ "member declaration outside of class scope" ])
+    // An inheritance cycle is broken where it would be completed.
+    expect_errors("class A\nclass B : A\nclass A : B\nlet x = 1 2\nprint(A \{\}.x)\n",
+                  [ "inheritance cycle in type `A`", "end of line expected, found `2`" ])
     expect_errors("def f(): return 1 from g\nprint(f())\n",
                   [ "`g` is not a known function" ])
 

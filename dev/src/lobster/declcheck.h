@@ -71,6 +71,16 @@ struct DeclChecker {
             // One entry per name group (sibf chains the arity variants).
             if (std::find(fs.begin(), fs.end(), f->first) == fs.end()) fs.push_back(f->first);
         }
+        // A serializable id identifies a single class to the (de)serializers, see
+        // CodeGen::ser_ids.
+        unordered_map<int, UDT *> ser_ids;
+        for (auto udt : st.udttable) {
+            if (udt->g.is_abstract || udt->serializable_id < 0) continue;
+            if (!ser_ids.insert({ udt->serializable_id, udt }).second) {
+                Error(cat(udt->name, " has \"attribute serializable\" with index that is already"
+                          " in use: ", udt->serializable_id), udt->g.line);
+            }
+        }
         CheckMethodScopes();
         auto toplevel = st.toplevel->overload;
         if (toplevel->gbody) ResolveBlock(*toplevel->gbody);

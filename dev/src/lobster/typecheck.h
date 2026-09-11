@@ -59,10 +59,12 @@ struct TypeChecker {
     Query *query;
     bool full_error;
     // Typechecking unreached functions at the end, purely for their errors:
-    // code that is only valid in the context of an active caller (see
-    // dead_code_skip_marker) gets skipped instead of erroring.
+    // code that is only valid in the context of an active caller makes the
+    // rest of the function being checked get skipped, see SkipDeadCode.
     bool checking_dead_code = false;
-    static constexpr const char *dead_code_skip_marker = "not checkable out of context";
+    bool dead_code_skipped = false;
+    // The answer to opts.query, once found, see ProcessQuery.
+    string query_result;
     Switch *switch_case_context = nullptr;
     set<pair<SubFunction *, SubFunction *>> freevar_check_preempt;
 
@@ -72,8 +74,11 @@ struct TypeChecker {
             EnsureUDTChecked(udt, *scopes.back().call_context);
         };
         // FIXME: this is unfriendly.
-        if (!st.RegisterDefaultTypes())
-            Fatal(*parser.root, "cannot find standard types (from stdtype.lobster)");
+        if (!st.RegisterDefaultTypes()) {
+            // Nothing can be typechecked without them; Compile stops on the error.
+            Error(*parser.root, "cannot find standard types (from stdtype.lobster)");
+            return;
+        }
         size_t retreq = opts.return_value;
         AssertIs<Call>(parser.root)->sf->reqret = retreq;
         TT(parser.root, retreq, LT_KEEP);
@@ -85,10 +90,11 @@ struct TypeChecker {
         #ifndef NDEBUG
             // The error type only ever stands in for something an error was reported for,
             // since the passes after this one, which run only when there were none (see
-            // Compile), can't work with it.
+            // Compile), can't work with it. Not in what was checked only as dead code,
+            // which may have it silently, see SkipDeadCode.
             if (!st.lex.num_errors) {
                 for (auto sf : st.subfunctiontable) {
-                    if (!sf->sbody) continue;
+                    if (!sf->sbody || !sf->typechecked) continue;
                     sf->sbody->Iterate([](Node *n) {
                         assert(n->exptype.Null() || !n->exptype->IsError());
                     });
@@ -104,9 +110,8 @@ struct TypeChecker {
     // Only functions whose args are all concretely typed can be checked out
     // of context, and code valid only with an active caller (uses of
     // "functions as environments", free vars of a lexically enclosing
-    // scope) skips the containing function via dead_code_skip_marker.
+    // scope) skips the rest of the containing function, see SkipDeadCode.
     void TypeCheckDeadCode() {
-        #ifdef USE_EXCEPTION_HANDLING
         auto num_sfs = st.subfunctiontable.size();
         struct SfState { int numcallers; size_t callers; bool typechecked; };
         vector<SfState> sf_states;
@@ -136,42 +141,18 @@ struct TypeChecker {
                     }
                 }
                 if (!annotated) continue;
-                auto sc_scopes = scopes.size();
-                auto sc_named = named_scopes.size();
-                auto sc_flow = flowstack.size();
-                auto sc_borrow = borrowstack.size();
-                auto sc_prefer = preferfreestack.size();
-                auto sc_define = definestack.size();
-                auto sc_progress = udts_in_progress.size();
-                auto sc_btv = st.bound_typevars_stack.size();
-                auto sc_sl = st.scopelevels.size();
-                try {
-                    auto sf = CloneFunction(*ov);
-                    sf->reqret = sf->returngiventype.Null()
-                        ? 0
-                        : st.ResolveTypeVars(sf->returngiventype, ov->declared_at)->NumValues();
-                    for (auto [i, arg] : enumerate(sf->args)) {
-                        arg.spec_type = st.ResolveTypeVars(ov->givenargs[i], ov->declared_at);
-                        arg.sid->lt = LT_KEEP;
-                    }
-                    TypeCheckFunctionDef(*sf, *sf->sbody->children[0]);
-                } catch (string &s) {
-                    if (s.find(dead_code_skip_marker) == string::npos) throw;
-                    // Not an error, just not checkable out of context.
-                    // Restore all typechecking state the abandoned check
-                    // may have left half-pushed. NOTE: cursids overwritten by
-                    // it are not reverted; that only affects (the quality of
-                    // errors in) further dead code checks.
-                    while (st.scopelevels.size() > sc_sl) st.BlockScopeCleanup();
-                    scopes.resize(sc_scopes);
-                    named_scopes.resize(sc_named);
-                    CleanUpFlow(sc_flow);
-                    while (borrowstack.size() > sc_borrow) borrowstack.pop_back();
-                    preferfreestack.resize(sc_prefer);
-                    definestack.resize(sc_define);
-                    udts_in_progress.resize(sc_progress);
-                    st.bound_typevars_stack.resize(sc_btv);
+                auto sf = CloneFunction(*ov);
+                sf->reqret = sf->returngiventype.Null()
+                    ? 0
+                    : st.ResolveTypeVars(sf->returngiventype, ov->declared_at)->NumValues();
+                for (auto [i, arg] : enumerate(sf->args)) {
+                    arg.spec_type = st.ResolveTypeVars(ov->givenargs[i], ov->declared_at);
+                    arg.sid->lt = LT_KEEP;
                 }
+                // NOTE: cursids overwritten by this are not reverted; that only affects
+                // (the quality of errors in) further dead code checks.
+                TypeCheckFunctionDef(*sf, *sf->sbody->children[0]);
+                dead_code_skipped = false;
             }
         }
         checking_dead_code = false;
@@ -196,7 +177,6 @@ struct TypeChecker {
         for (size_t i = num_udts; i < st.udttable.size(); i++) {
             st.udttable[i]->dispatch_table.clear();
         }
-        #endif
     }
 
     // Needed for any sids in cloned code.
@@ -290,6 +270,7 @@ struct TypeChecker {
     // An error that does not depend on the types of the node's children (a wrong number of
     // arguments, say), so is one of its own even when one of those is erroneous.
     template<typename... Ts> void ErrorAlways(const Node &n, const Ts &...args) {
+        if (dead_code_skipped) return;
         auto err = cat(args...);
         AddStackTrace(err);
         parser.lex.Report(err, &n.line);
@@ -299,18 +280,15 @@ struct TypeChecker {
         if (!Consequential(n)) ErrorAlways(n, args...);
     }
 
-    // An error typechecking can't continue past, because the state it would leave behind is
-    // beyond what placeholders can paper over: reports it, along with whatever was collected
-    // before it, by throwing.
-    template<typename... Ts> [[noreturn]] void Fatal(const Node &n, const Ts &...args) {
-        auto err = cat(args...);
-        AddStackTrace(err);
-        parser.lex.Error(err, &n.line);
-    }
-
-    // Abandons the dead function being checked, see TypeCheckDeadCode, which catches this.
-    [[noreturn]] void SkipDeadCode() {
-        THROW_OR_ABORT(string(dead_code_skip_marker));
+    // The dead function being checked (see TypeCheckDeadCode) turns out to need an active
+    // caller: not an error, since it may well have one when called. `n` gets the error type,
+    // and so does everything typechecked after it in that function (see TT), without errors
+    // (see ErrorAlways) or effects on the types of live code (see UnifyVar), as if the check
+    // had been abandoned there.
+    Node *SkipDeadCode(Node &n) {
+        assert(checking_dead_code);
+        dead_code_skipped = true;
+        return ErrorNode(n);
     }
 
     // Stands in for a node whose typechecking could not be completed: it has the error type,
@@ -434,6 +412,8 @@ struct TypeChecker {
         // Type objects that are V_VAR are seperate heap instances, so overwriting them has no
         // side-effects on non-V_VAR Type instances.
         assert(hasvar->t == V_VAR);
+        // The variable may belong to live code, which a skipped dead function must not touch.
+        if (dead_code_skipped) return;
         if (type->t == V_VAR) {
             // If these two are already part of the same cycle, don't do the swap, which
             // could disconnect the cycle!
@@ -1210,6 +1190,7 @@ struct TypeChecker {
         // in the inheritance forest; this can only be a specialization that
         // got created during typechecking (of a generic type).
         if (!udt.in_forest) {
+            auto dispatched = false;
             for (auto u = &udt; u; u = u->ssuperclass) {
                 if (!u->subudts_dispatched_where.empty()) {
                     // A dispatch on a superclass has already been typechecked, so
@@ -1220,9 +1201,12 @@ struct TypeChecker {
                                 " already used in dynamic dispatch of ",
                                 Q(u->subudts_dispatched_where), " on ", Q(u->name),
                                 " before it has been declared");
+                    dispatched = true;
                 }
             }
-            st.RegisterSubUDT(&udt);
+            // Those dispatches also snapshot the set of subclasses they were built for (see
+            // DispatchEntry::subudts_size), which must stay what it was for their reuse.
+            if (!dispatched) st.RegisterSubUDT(&udt);
         }
         // Inline struct fields contribute their slots to our size, so they
         // must be complete first.
@@ -1328,10 +1312,13 @@ struct TypeChecker {
                 if (fvd->spec.sid) break;
             }
             if (!fvd->spec.sid) {
-                // Requires an active caller providing it.
-                if (checking_dead_code) SkipDeadCode();
-                ErrorAlways(*sf.sbody->children[0], "explicit free variable ", Q(fvd->name),
-                            " not found in context");
+                // Requires an active caller providing it, which dead code has none of.
+                if (checking_dead_code) {
+                    dead_code_skipped = true;
+                } else {
+                    ErrorAlways(*sf.sbody->children[0], "explicit free variable ",
+                                Q(fvd->name), " not found in context");
+                }
                 // The body can't be checked in this context without it (every use of it would
                 // be an error of its own), so it isn't: the callers get the error type.
                 for (auto [i, backup] : enumerate(freevardeclsbackup)) {
@@ -2741,6 +2728,8 @@ struct TypeChecker {
         // This can happen due to late specialization of GenericCall.
         if (Is<Call>(n) || Is<NativeCall>(n))
             ErrorAlways(*n, "function-call cannot be an l-value");
+        if (auto idx = Is<Indexing>(n); idx && idx->object->exptype->t == V_STRING)
+            Error(*n, "cannot use string element as lvalue (strings are immutable)");
         if (auto idr = Is<IdentRef>(n)) {
             // This has been done before in the parser, but that missed FreeVarRef's etc.
             // FIXME: what if this is the only assignement, and other checks against
@@ -3134,12 +3123,11 @@ struct TypeChecker {
         LOG_DEBUG("borrow ", change, ": ", b.sid->id->name, " in ", NiceName(context),
                ", ", b.refc, " remain");
         // FIXME: this should really just not be possible, but hard to guarantee.
-        // Fatal since it means the borrow bookkeeping is off, which nothing can recover from.
-        if (b.refc < 0)
-            Fatal(context, Q(b.sid->id->name), " used in ", Q(NiceName(context)),
-                           " without being borrowed");
-        assert(b.refc >= 0);
-        (void)context;
+        if (b.refc < 0) {
+            ErrorAlways(context, Q(b.sid->id->name), " used in ", Q(NiceName(context)),
+                                 " without being borrowed");
+            b.refc = 0;
+        }
     }
 
     void IncBorrowers(Lifetime lt, const Node &context) { Borrowers(lt, 1, context); }
@@ -3206,6 +3194,12 @@ struct TypeChecker {
     void TT(Node *&n, size_t reqret, Lifetime recip, TypeRef parent_bound = {},
             node_small_vector *idents = nullptr) {
         STACK_PROFILE;
+        // The rest of a dead function being skipped is not typechecked at all, see
+        // SkipDeadCode.
+        if (dead_code_skipped) {
+            ErrorNode(*n);
+            return;
+        }
         // Central point from which each node is typechecked.
         n = n->TypeCheck(*this, reqret, parent_bound);
         // Check if we need to do any type adjustmenst.
@@ -3247,7 +3241,7 @@ struct TypeChecker {
         // Check if we need to do any lifetime adjustments.
         AdjustLifetime(n, recip, idents);
         // Check for queries.
-        if (query) {
+        if (query && query_result.empty()) {
             if ((reqret==0 && n->line == query->qloc) //reqret usually in the end of line
              || (n->line.line > query->qloc.line && n->line.fileidx==query->qloc.fileidx)) { //If above missed
                 ProcessQuery();
@@ -3274,8 +3268,10 @@ struct TypeChecker {
             num_wrappings++;
         }
         if (vt->t != V_STRUCT_NUM) return type;
-        if (num_wrappings >= SymbolTable::NUM_VECTOR_TYPE_WRAPPINGS)
-            Fatal(errorn, "INTERNAL: vector type too deeply nested for builtin");
+        if (num_wrappings >= SymbolTable::NUM_VECTOR_TYPE_WRAPPINGS) {
+            Error(errorn, "INTERNAL: vector type too deeply nested for builtin");
+            return type_error;
+        }
         auto flen = vt->ns->flen;
         // Check if we allow any vector length.
         if (!e.Null() && flen == -1 && e->t == V_STRUCT_S) {
@@ -3307,10 +3303,11 @@ struct TypeChecker {
         return type;
     }
 
+    // The first definition found answers the query.
     void LocationQuery(Line &line, string_view type) {
-        THROW_OR_ABORT(
-            cat("query_location: ", (*query->filenames)[line.fileidx].second, " ", line.line,
-                " ", type));
+        if (!query_result.empty()) return;
+        query_result = cat("query_location: ", (*query->filenames)[line.fileidx].second, " ",
+                           line.line, " ", type);
     }
 
     void FindVar(vector<Arg> &vars) {
@@ -3379,9 +3376,9 @@ struct TypeChecker {
             }
         }
         auto nf = parser.natreg.FindNative(full_iden);
-        if (nf) {
+        if (nf && query_result.empty()) {
             // This doesn't have a source code location, so output a signature the IDE can display.
-            THROW_OR_ABORT("query_signature: " + Signature(*nf));
+            query_result = "query_signature: " + Signature(*nf);
         }
         if (fld) { //Failed to find field in parent or no parent
             for (auto gudt : st.gudttable) {
@@ -3395,10 +3392,12 @@ struct TypeChecker {
         if (got_pos) { //Go further
             ProcessDefinition(new_parent_struct, full_iden.substr(pos+1), sf);
         }
-        return false;
+        return !query_result.empty();
     }
 
+    // Whether the query has its answer (in query_result) after this.
     bool ProcessQuery() {
+        if (!query_result.empty()) return true;
         if (query->kind == "definition") {
             // The top scope includes a list of free vars so should be able to resolve any var
             // at the given location.. if no scopes, use top fun.
@@ -3408,8 +3407,8 @@ struct TypeChecker {
             FindVar(sf->freevars);
             return ProcessDefinition(nullptr, query->iden, sf);
         } else {
-            THROW_OR_ABORT("query_unknown_kind: " + query->kind);
-            return false;
+            query_result = "query_unknown_kind: " + query->kind;
+            return true;
         }
     }
 
@@ -4363,7 +4362,7 @@ Node *IdentRef::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_b
     tc.UpdateCurrentSid(sid);
     for (auto &sc : reverse(tc.scopes)) if (sc.sf == sid->sf_def) goto in_scope;
     // A free var of a scope that would have to be active.
-    if (tc.checking_dead_code) tc.SkipDeadCode();
+    if (tc.checking_dead_code) return tc.SkipDeadCode(*this);
     tc.Error(*this, "free variable ", Q(sid->id->name), " not in scope: it is defined in ",
              Q(sid->sf_def->parent->name), " (", tc.parser.lex.Location(sid->id->line),
              "), so a function value that uses it can only be called while that is in scope");
@@ -4736,9 +4735,11 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
         } else {
             if (fld && fromdot && noparens) {
                 tc.Error(*this, "type ", Q(TypeName(type)), " does not have field ", Q(fld->name));
-            } else if (!unknown_reported) {
+            } else if (tc.checking_dead_code && cand_nonlexical) {
                 // An env-function call: only valid with an active caller.
-                if (tc.checking_dead_code && cand_nonlexical) tc.SkipDeadCode();
+                tc.ReleaseChildren(*this);
+                return tc.SkipDeadCode(*this);
+            } else if (!unknown_reported) {
                 tc.ErrorAlways(*this, "unknown field/function reference ", Q(name));
             }
             return give_up();

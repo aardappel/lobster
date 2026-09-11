@@ -523,12 +523,8 @@ struct CodeGen  {
                 udt->ComputeSizes();
                 auto typeoff = GetTypeTableOffset(&udt->thistype);
                 if (udt->serializable_id >= 0) {
-                    if (ser_ids[udt->serializable_id] >= 0) {
-                        // TODO: this is niche, so probably ok here, but even better moved to Parser.
-                        parser.lex.Error(cat(udt->name,
-                            " has \"attribute serializable\" with index that is already in use: ",
-                            udt->serializable_id));
-                    }
+                    // The declchecker checked these are unique.
+                    assert(ser_ids[udt->serializable_id] < 0);
                     ser_ids[udt->serializable_id] = typeoff;
                 }
             }
@@ -2448,8 +2444,9 @@ struct CodeGen  {
             }
         } else if (kind == RET_NONLOCAL) {
             if (nretslots > MAX_RETURN_SLOTS) {
-                parser.lex.Error("too many values returned thru a non-local return",
-                                 &node_context.back()->line);
+                Error("too many values returned thru a non-local return",
+                      node_context.back()->line);
+                nretslots = MAX_RETURN_SLOTS;
             }
             for (int i = 0; i < nretslots; i++) {
                 CopyValue(cb, RetBufSlot(i, rets[i]), SlotVar(regso - nretslots + i, rets[i]));
@@ -3227,16 +3224,16 @@ struct CodeGen  {
         }
         size_t nargs = call.children.size();
         if (f.nargs() != nargs)
-            parser.lex.Error(cat("call to function ", Q(f.name), " needs ", f.nargs(),
-                                 " arguments, ", nargs, " given"),
-                             &node_context.back()->line);
+            Error(cat("call to function ", Q(f.name), " needs ", f.nargs(), " arguments, ",
+                      nargs, " given"),
+                  node_context.back()->line);
         TakeTemp(nargs, true);
         auto args = ArgTypes(sf);
         auto rets = ReturnTypes(sf);
         if (inw != (int)args.size()) {
-            parser.lex.Error(cat("internal error: call to ", Q(f.name), " passes ", inw,
-                                 " slots where it takes ", args.size()),
-                             &node_context.back()->line);
+            Error(cat("internal error: call to ", Q(f.name), " passes ", inw,
+                      " slots where it takes ", args.size()),
+                  node_context.back()->line);
         }
         if (call.vtable_idx < 0) {
             EmitCall(sf, inw);
@@ -3560,13 +3557,22 @@ struct CodeGen  {
         assert(rettypes.empty());
     }
 
+    // Errors here don't stop code generation (see Lex::Report): nothing runs the result when
+    // there were any (see Compile), so a site only has to leave code generation in a state
+    // it can finish in. Only for what the typechecker can't check.
+    void Error(string_view msg, const Line &ln) {
+        parser.lex.Report(msg, &ln);
+    }
+
     int ComputeBitMask(const UDT &udt) {
         int bits = 0;
         for (int j = 0; j < udt.numslots; j++) {
             if (IsRefNil(FindSlot(udt, j)->type->t)) {
-                if (j > 31)
-                    parser.lex.Error("internal error: struct with too many reference fields",
-                                     &node_context.back()->line);
+                if (j > 31) {
+                    Error("internal error: struct with too many reference fields",
+                          node_context.back()->line);
+                    break;
+                }
                 bits |= 1 << j;
             }
         }
@@ -3736,15 +3742,11 @@ struct CodeGen  {
                     EmitLvalStructIndex(offset, indexing->object->exptype->udt->numslots);
                     assert(!IsStruct(type->t));
                     break;
-                case V_STRING:
-                    // FIXME: Would be better to catch this in typechecking, but typechecker does
-                    // not currently distinquish lvalues.
-                    parser.lex.Error("cannot use this type as lvalue", &lval->line);
                 default:
-                    assert(false);
+                    assert(false);  // The typechecker rejects the rest, see CheckLval.
             }
         } else {
-            parser.lex.Error("lvalue required", &lval->line);
+            Error("lvalue required", lval->line);
         }
     }
 
