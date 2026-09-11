@@ -1232,11 +1232,14 @@ struct VM : VMBase {
 
     string ProperTypeName(const TypeInfo &ti);
 
-    void DivErr(iint divisor) { Error(divisor ? "integer overflow" : "division by zero"); }
+    [[noreturn]] void DivErr(iint divisor) { Error(divisor ? "integer overflow" : "division by zero"); }
     void DivErr(double) { assert(false); }
     void AssertFailed(int line, int fileidx, int stringidx);
-    void IDXErr(iint i, iint n, const RefObj *v);
-    void IDXErrS(iint i, iint n);
+    // These all end in Error(), which is [[noreturn]]. Saying so lets the generated code
+    // keep a vector's length and element pointer in registers across a range check instead
+    // of reloading them on the assumption the check could fall through.
+    [[noreturn]] void IDXErr(iint i, iint n, const RefObj *v);
+    [[noreturn]] void IDXErrS(iint i, iint n);
 
     string_view StructName(const TypeInfo &ti);
     string_view ReverseLookupType(int v);
