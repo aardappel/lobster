@@ -59,6 +59,26 @@ def errors_tests():
     expect_error("return [ 1 ].slice(0, 5)", "extends beyond")
     expect_error("return substring(\"ab\", 0, 5)", "extends beyond")
     expect_error("let a = 0\nreturn assert a == 1", "assert")
+    // Inlining may discard unused argument bindings, but their assertions must run.
+    expect_error("def ignore(x:int): return 7\nvar x = 0\nx = 0\nreturn ignore(assert x)",
+                 "assertion failed")
+    expect_error("def ignore(x:string): return 7\nvar s:string? = nil\ns = nil\n" +
+                 "return ignore(assert s)", "assertion failed")
+    expect_error("def ignore(x:int): return 7\nvar x = 0\nx = 0\nignore(1)\n" +
+                 "return ignore(assert x)", "assertion failed")
+    let assertret, asserterr = compile_run_code(
+        "def ignore(x:int): return 7\nvar x = 1\nx = 1\nreturn ignore(assert x)", [])
+    test_eq(asserterr, nil)
+    test_eq(assertret, "7")
+    // Division and indexing checks are observable for unused arguments too.
+    expect_error("def ignore(x:int): return 7\nvar z = 0\nz = 0\nreturn ignore(1 / z)",
+                 "division by zero")
+    expect_error("def ignore(x:int): return 7\nvar z = 0\nz = 0\nreturn ignore(1 % z)",
+                 "division by zero")
+    expect_error("def ignore(x:int): return 7\nlet v = [1]\nvar i = 3\ni = 3\n" +
+                 "return ignore(v[i])", "out of range")
+    expect_error("def ignore(x:int): return 7\nlet s = \"a\"\nvar i = 3\ni = 3\n" +
+                 "return ignore(s[i])", "out of range")
     expect_error("return string_to_int(\"1\", 99)", "out of range")
     expect_error("return number_to_string(1, 99, 1)", "out of range")
     // Division by zero inside struct operations.

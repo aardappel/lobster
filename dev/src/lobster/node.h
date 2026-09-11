@@ -49,8 +49,11 @@ struct Node {
         auto ch = Children();
         if (ch) for (size_t i = 0; i < Arity(); i++) ch[i]->Iterate(f);
     }
-    // Used in the optimizer to see if this node can be discarded without consequences.
+    // Whether this node can mutate state; also used to distinguish assigning overloads.
     virtual bool SideEffect() const = 0;  // Just this node.
+    // A runtime check can fail without mutating state. Such expressions must still be
+    // evaluated when an optimizer removes an unused argument binding.
+    virtual bool MayTrap() const { return false; }
     // Whether this node is valid as a statement by itself regardless of side effects,
     // i.e. definitions, control flow etc, used by the "no effect" warning.
     virtual bool ValidStatement() const { return false; }
@@ -60,6 +63,15 @@ struct Node {
         if (!ch) return false;
         for (size_t i = 0; i < Arity(); i++) {
             if (ch[i]->SideEffectRec()) return true;
+        }
+        return false;
+    }
+    bool MayTrapRec() {
+        if (MayTrap()) return true;
+        auto ch = Children();
+        if (!ch) return false;
+        for (size_t i = 0; i < Arity(); i++) {
+            if (ch[i]->MayTrapRec()) return true;
         }
         return false;
     }
@@ -242,6 +254,7 @@ struct TypeAnnotation : Node {
 #define SIMPLEMETHOD TypeRef SimpleType(SymbolTable &);
 #define CONSTMETHOD ValueType ConstVal(TypeChecker *tc, VTValue &val) const;
 #define STATEMENTMETHOD bool ValidStatement() const { return true; }
+#define TRAPMETHOD bool MayTrap() const { return true; }
 
 // generic node types
 NARY_NODE(List, "list", false, )
@@ -251,8 +264,9 @@ UNARY_NODE(Coercion, "coercion", false, )
 BINOP_NODE(Plus, TName(T_PLUS), false, CONSTMETHOD)
 BINOP_NODE(Minus, TName(T_MINUS), false, CONSTMETHOD)
 BINOP_NODE(Multiply, TName(T_MULT), false, CONSTMETHOD)
-BINOP_NODE(Divide, TName(T_DIV), false, CONSTMETHOD OPTMETHOD DIVISOR_SAFE)
-BINOP_NODE(Mod, TName(T_MOD), false, CONSTMETHOD OPTMETHOD DIVISOR_SAFE)
+// These can fail at runtime, so evaluating them matters even when their value is unused.
+BINOP_NODE(Divide, TName(T_DIV), false, CONSTMETHOD OPTMETHOD DIVISOR_SAFE TRAPMETHOD)
+BINOP_NODE(Mod, TName(T_MOD), false, CONSTMETHOD OPTMETHOD DIVISOR_SAFE TRAPMETHOD)
 BINOP_NODE(And, TName(T_AND), false, CONSTMETHOD)
 BINOP_NODE(Or, TName(T_OR), false, CONSTMETHOD)
 UNARY_NODE(Not, TName(T_NOT), false, CONSTMETHOD)
@@ -288,7 +302,7 @@ ZERO_NODE(ErrorValue, "error", false, )
 UNARY_NODE(TypeOf, TName(T_TYPEOF), false, )
 
 BINARY_NODE(Seq, "statements", false, head, tail, )
-BINARY_NODE(Indexing, "indexing operation", false, object, index, )
+BINARY_NODE(Indexing, "indexing operation", false, object, index, TRAPMETHOD)
 UNARY_NODE(PostIncr, TName(T_INCR), true, )
 UNARY_NODE(PostDecr, TName(T_DECR), true, )
 UNARY_NODE(UnaryMinus, TName(T_MINUS), false, INITMETHOD SIMPLEMETHOD CONSTMETHOD)
@@ -325,7 +339,8 @@ BINARY_NODE_T(Case, "case", false, List, pattern, Node, cbody, \
 BINARY_NODE(Range, "range", false, start, end, )
 ZERO_NODE(Break, "break", false, RETURNSMETHOD STATEMENTMETHOD)
 ZERO_NODE(Continue, "continue", false, RETURNSMETHOD STATEMENTMETHOD)
-UNARY_NODE(Assert, TName(T_ASSERT), false, RETURNSMETHOD STATEMENTMETHOD CONSTMETHOD)
+// A failed assertion terminates execution, even when its value is unused.
+UNARY_NODE(Assert, TName(T_ASSERT), false, RETURNSMETHOD STATEMENTMETHOD CONSTMETHOD TRAPMETHOD)
 
 struct Nil : Node {
     UnTypeRef giventype;

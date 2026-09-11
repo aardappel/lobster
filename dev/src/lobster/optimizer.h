@@ -409,7 +409,7 @@ Node *Call::Optimize(Optimizer &opt) {
         for (auto &b : bs) {
             if (b.con) opt.Changed();
             auto def = AssertIs<Define>(list->children[b.idx]);
-            if (b.named || def->child->SideEffectRec()) continue;
+            if (b.named || def->child->SideEffectRec() || def->child->MayTrapRec()) continue;
             delete def;
             list->children[b.idx] = nullptr;
             removed = true;
