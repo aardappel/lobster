@@ -213,10 +213,9 @@ struct CodeGen  {
     // The C name of each function, by its SubFunction index, see FunName.
     vector<string> fun_names;
     vector<int> var_to_local;
-    // The C variable each local (by var_to_local index) lives in and its kind, and every name
-    // the function has handed out, to keep them apart.
-    vector<string> local_names;
-    Types local_types;
+    // The C variable each local (by var_to_local index) lives in, including its type, and
+    // every name the function has handed out, to keep them apart.
+    vector<Place> local_places;
     set<string> f_names_used;
     // The static type of each slot of every variable, by its index in sids.
     vector<TypeRef> var_types;
@@ -227,7 +226,6 @@ struct CodeGen  {
     // end of the codegen of the function like f_regs_max is.
     int f_stage_max[2] = { 0, 0 };
     bool has_profile = false;
-    int numlocals = 0;
     int nlabel = 0;
 
     int TempStackSize() {
@@ -918,8 +916,7 @@ struct CodeGen  {
             var_to_local.clear();
             var_to_local.resize(sids.size(), -1);
         #endif
-        local_names.clear();
-        local_types.clear();
+        local_places.clear();
         f_names_used.clear();
         f_arg_places.clear();
         f_ret_types = ReturnTypes(sf);
@@ -941,10 +938,9 @@ struct CodeGen  {
                     }
                     auto vtype = var_types[varidx];
                     if (!sids[varidx].used_as_freevar()) {
-                        var_to_local[varidx] = numlocals++;
-                        local_names.push_back(LocalName(*arg.sid, i));
-                        local_types.push_back(RtTypeOf(vtype));
-                        if (&f_ad == &f_args) f_arg_places.push_back(Local(numlocals - 1));
+                        var_to_local[varidx] = (int)local_places.size();
+                        local_places.push_back(Var(LocalName(*arg.sid, i), RtTypeOf(vtype)));
+                        if (&f_ad == &f_args) f_arg_places.push_back(local_places.back());
                     } else if (&f_ad == &f_args) {
                         // Lives in a global while the function runs, so the parameter only
                         // holds the old value of that meanwhile, see DefineFunction.
@@ -1813,11 +1809,11 @@ struct CodeGen  {
     static string StageArray(VKind k) { return k == VK_FLOAT ? "_lsf" : "_lsi"; }
     // A local variable, a global, and the temporaries a function keeps references alive in. The
     // locals are variables of their own like the stack slots are, see LocalName.
-    Place Local(int i) { return Var(local_names[i], local_types[i]); }
+    Place Local(int i) { return local_places[i]; }
     // With stack traces on, every write to a local also lands in an array, since that is where
     // a trace dumps them from, see PushFunId.
     bool ShadowLocals() { return runtime_checks >= RUNTIME_STACK_TRACE; }
-    Place Shadow(int i) { return Mem(cat("locals[", i, "]"), local_types[i]); }
+    Place Shadow(int i) { return Mem(cat("locals[", i, "]"), local_places[i].rtt); }
     void LocalWritten(int idx, int width) {
         if (!ShadowLocals()) return;
         for (int i = 0; i < width; i++) CopyValue(cb, Shadow(idx + i), Local(idx + i));
@@ -3356,8 +3352,7 @@ struct CodeGen  {
         // The arguments are the parameters, so only the locals after them are declared here.
         int nargs_local = 0;
         for (auto varidx : f_args) if (!sids[varidx].used_as_freevar()) nargs_local++;
-        assert((int)local_names.size() == numlocals);
-        for (int i = nargs_local; i < numlocals; i++) locals.push_back(Local(i));
+        for (int i = nargs_local; i < (int)local_places.size(); i++) locals.push_back(Local(i));
         GenPlaceDecls(sd, slots);
         for (auto k : { VK_INT, VK_FLOAT }) {
             if (f_stage_max[k])
@@ -3366,7 +3361,8 @@ struct CodeGen  {
         if (f_uses_pctx) append(sd, "    ", cpp ? "" : "struct ", "___tracy_c_zone_context pctx;\n");
         GenPlaceDecls(sd, keeps);
         GenPlaceDecls(sd, locals);
-        if (ShadowLocals() && numlocals) append(sd, "    Value locals[", numlocals, "];\n");
+        if (ShadowLocals() && !local_places.empty())
+            append(sd, "    Value locals[", local_places.size(), "];\n");
         if (f_uses_lval) append(sd, "    void *lv = 0;\n");
         if (f_uses_lobj) append(sd, "    LObject *lo = 0;\n");
         if (f_uses_lelem) append(sd, "    void *lvec = 0;\n    long long lidx = 0;\n");
@@ -3410,7 +3406,7 @@ struct CodeGen  {
             // FIXME: can make this just and index and instead store funinfo_table ref in
             // VM. Calling this here because now locals have been fully initialized.
             append(sd, "    PushFunId(vm, funinfo_table + ", funstarttables.size(), ", ",
-                   numlocals ? "locals" : "0", ");\n");
+                   local_places.empty() ? "0" : "locals", ");\n");
             // This can be any format we want, see VM::DumpStackFrame
             funstarttables.push_back(f_function_idx);
             funstarttables.push_back((int)f_args.size());
@@ -3467,10 +3463,8 @@ struct CodeGen  {
         f_uses_lobj = false;
         f_uses_lelem = false;
         f_lval_kind = LVK_NONE;
-        local_names.clear();
-        local_types.clear();
+        local_places.clear();
         f_names_used.clear();
-        numlocals = 0;
         nlabel = 0;
         has_profile = false;
     }
