@@ -630,16 +630,13 @@ static void FieldsToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &sti, co
 }
 
 void LObject::ToFlexBuffer(ToFlexBufferContext &fbc) {
-    // Terrible C++: we need 2 variables to track this, because we can't init inserted_it
-    // with end() because it may get invalidated by the insert, and trying to test
-    // against the default constructed iterator is UB.
-    bool inserted = false;
-    map<LObject *, flexbuffers::Builder::Value>::iterator inserted_it;
+    // A map entry stays at the same address while recursive visits insert more objects.
+    // Null until this call owns an entry to complete after writing the object's fields.
+    flexbuffers::Builder::Value *visit = nullptr;
     if (fbc.cycle_detect) {
-        auto it = fbc.seen_objects.find(this);
-        if (it == fbc.seen_objects.end()) {
-            inserted = true;
-            inserted_it = fbc.seen_objects.insert({ this, flexbuffers::Builder::Value{} }).first;
+        auto [it, inserted] = fbc.seen_objects.try_emplace(this);
+        if (inserted) {
+            visit = &it->second;
         } else {
             if (it->second.type_ == flexbuffers::FBT_NULL) {
                 // A true cycle, object referred to while not finished.
@@ -679,9 +676,7 @@ void LObject::ToFlexBuffer(ToFlexBufferContext &fbc) {
     }
     FieldsToFlexBuffer(fbc, stti, FieldSlots());
     fbc.builder.EndMap(start);
-    if (inserted) {
-        inserted_it->second = fbc.builder.LastValue();
-    }
+    if (visit) *visit = fbc.builder.LastValue();
 }
 
 void LVector::ToFlexBuffer(ToFlexBufferContext &fbc) {
