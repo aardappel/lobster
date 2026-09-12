@@ -399,7 +399,7 @@ struct UDT : Named {
         }
         auto kind = hasref ? V_STRUCT_R : V_STRUCT_S;
         if (thistype.t == kind) return false;
-        const_cast<ValueType &>(thistype.t) = kind;
+        thistype.t = kind;
         return true;
     }
 

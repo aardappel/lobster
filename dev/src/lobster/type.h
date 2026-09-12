@@ -154,7 +154,9 @@ struct NumStruct {
 };
 
 struct Type {
-    const ValueType t = V_UNDEFINED;
+    // Types are read through const Type pointers, but their owners can replace them during
+    // declaration resolution, unification and struct reference-kind propagation.
+    ValueType t = V_UNDEFINED;
 
     struct TupleElem { const Type *type; Lifetime lt; };
 
@@ -188,13 +190,6 @@ struct Type {
 
 
     bool Equal(const Type &o, bool allow_unresolved = false) const;
-
-    Type &operator=(const Type &o) {
-        // Hack: we want t to be const, but still have a working assignment operator.
-        (ValueType &)t = o.t;
-        sub = o.sub;
-        return *this;
-    }
 
     const Type *Element() const {
         assert(Wrapped());
