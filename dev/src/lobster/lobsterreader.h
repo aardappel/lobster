@@ -90,6 +90,19 @@ struct Deserializer {
         PushV(obj, true);
     }
 
+    // Replaces the parsed elements above base by the vector that now owns them. All
+    // formats use this same transfer of both slots and their pending reference ownership.
+    void PushVector(type_elem_t typeoff, size_t base) {
+        auto &sti = vm.GetTypeInfo(vm.GetTypeInfo(typeoff).subt);
+        auto width = RTIsStruct(sti.t) ? sti.len : 1;
+        auto len = iint(stack.size() - base);
+        auto n = len / width;
+        auto vec = vm.NewVec(n, n, typeoff);
+        if (len) vec->CopyElemsShallow(stack.data() + base);
+        PopVN(len);
+        PushV(vec, true);
+    }
+
     // Pushes the default value of a field (see FieldInfo::defval), or of a type when `f` is
     // just that, false when there is none. For a field that is a struct or class, that is a
     // value with the defaults of all its fields, which come from `slots`: the slots of the
@@ -245,14 +258,7 @@ struct LobsterBinaryParser : Deserializer {
                     for (size_t i = 0; i < len; i++) {
                         ParseElem(data, end, ti->subt);
                     }
-                    auto &sti = vm.GetTypeInfo(ti->subt);
-                    auto width = RTIsStruct(sti.t) ? sti.len : 1;
-                    auto len = iint(stack.size() - stack_start);
-                    auto n = len / width;
-                    auto vec = vm.NewVec(n, n, typeoff);
-                    if (len) vec->CopyElemsShallow(stack.size() - len + stack.data());
-                    PopVN(len);
-                    PushV(vec, true);
+                    PushVector(typeoff, stack_start);
                 }
                 break;
             }

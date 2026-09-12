@@ -60,14 +60,7 @@ struct ValueParser : Deserializer {
             lex.Next();
         }
         if (!push) return;
-        auto &sti = vm.GetTypeInfo(ti.subt);
-        auto width = RTIsStruct(sti.t) ? sti.len : 1;
-        auto len = iint(stack.size() - stack_start);
-        auto n = len / width;
-        auto vec = vm.NewVec(n, n, typeoff);
-        if (len) vec->CopyElemsShallow(stack.size() - len + stack.data());
-        PopVN(len);
-        PushV(vec, true);
+        PushVector(typeoff, stack_start);
     }
 
     // A struct or class: `Name { .. }` with the values of its fields in order, `ti` being the
@@ -289,14 +282,7 @@ struct FlexBufferParser : Deserializer {
                 for (size_t i = 0; i < v.size(); i++) {
                     ParseFactor(v[i], ti->subt, parent_field_name);
                 }
-                auto &sti = vm.GetTypeInfo(ti->subt);
-                auto width = RTIsStruct(sti.t) ? sti.len : 1;
-                auto len = iint(stack.size() - stack_start);
-                auto n = len / width;
-                auto vec = vm.NewVec(n, n, typeoff);
-                if (len) vec->CopyElemsShallow(stack.size() - len + stack.data());
-                PopVN(len);
-                PushV(vec, true);
+                PushVector(typeoff, stack_start);
                 break;
             }
             case flexbuffers::FBT_MAP: {
