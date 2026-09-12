@@ -263,9 +263,10 @@ struct GenericTypeVariable {
 };
 
 struct DispatchEntry {
-    SubFunction *sf = nullptr;          // if !is_switch_dispatch
-    int case_index = -1;                // if is_switch_dispatch
-    bool is_switch_dispatch = false;
+    // A method implementation or a switch case. Both absent for unused entries, including
+    // abstract types that only serve as dispatch roots.
+    SubFunction *sf = nullptr;
+    int case_index = -1;
     UDT *dispatch_root = nullptr;
     // Shared return type if root of dispatch.
     TypeRef returntype = nullptr;

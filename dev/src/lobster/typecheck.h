@@ -2045,7 +2045,7 @@ struct TypeChecker {
             // TODO: we chould check for a superclass vtable entry also, but chances
             // two levels will be present are low.
             if (disp->sf && disp->sf->method_of == &dispatch_udt && disp->dispatch_root &&
-                !disp->is_switch_dispatch && &f == disp->sf->parent) {
+                &f == disp->sf->parent) {
                 for (auto [i, c] : enumerate(call_args.children)) {
                     auto &arg = disp->sf->args[i];
                     if (i && !ConvertsTo(c->exptype, arg.spec_type, CF_NONE))
@@ -3930,10 +3930,9 @@ Node *Switch::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/
             // on the fly without tracking lots of things.
             while ((int)dt.size() < vtable_idx)
                 dt.push_back(make_unique<DispatchEntry>(DispatchEntry {}));
-            dt.push_back(make_unique<DispatchEntry>(DispatchEntry{ nullptr, case_picks[i], true }));
+            dt.push_back(make_unique<DispatchEntry>(DispatchEntry{ nullptr, case_picks[i] }));
         }
         auto de = dispatch_udt.dispatch_table[vtable_idx].get();
-        de->is_switch_dispatch = true;
         de->dispatch_root = &dispatch_udt;
         de->subudts_size = dispatch_udt.subudts.size();
         de->vtable_idx = vtable_idx;

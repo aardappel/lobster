@@ -804,10 +804,9 @@ struct CodeGen  {
             for (auto [i, de] : enumerate(udt->dispatch_table)) {
                 if (de->sf) {
                     vtables[udt->vtable_start + i] = de->sf->idx;
-                    assert(!de->is_switch_dispatch);
+                    assert(de->case_index < 0);
                 } else if (de->case_index >= 0) {
                     vtables[udt->vtable_start + i] = -de->case_index - 2;
-                    assert(de->is_switch_dispatch);
                 }
             }
         }
@@ -5552,7 +5551,7 @@ void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mi
 void Switch::GenerateTypeDispatch(CodeGen &cg, size_t retval) const {
     auto dispatch_udt = value->exptype->udt;
     auto de = dispatch_udt->dispatch_table[vtable_idx].get();
-    assert(de->dispatch_root && de->is_switch_dispatch &&
+    assert(de->dispatch_root && !de->sf && de->returntype.Null() &&
            de->subudts_size == dispatch_udt->subudts.size());
     (void)de;
     // The value is borrowed, so its slots are just given up.
