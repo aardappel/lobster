@@ -5525,7 +5525,8 @@ void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mi
             }
             if (*t++ == lab) append(cg.cb, "default:");
         }
-        cg.cb += "\n";
+        // A case body may stay pending until after the switch, so labels need a statement.
+        cg.cb += ";\n";
         cas->Generate(cg, retval);
         bs.End();
         if (n != cases->children.back()) {
