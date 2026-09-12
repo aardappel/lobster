@@ -84,6 +84,39 @@ def lifetime_tests():
     test_eq(pt, "pq")
     test_eq(passthru(passthru(pt)), "pq")
 
+    // Recursion keeps these as actual function exits. Their only return transfers a local
+    // or an assigned parameter, including all reference slots of a struct.
+    def owned_local(depth:int) -> string:
+        let value = if depth: owned_local(depth - 1) + "!" else: "local" + string(depth)
+        return value
+    def owned_arg(value:string, depth:int) -> string:
+        if depth: value = owned_arg(value, depth - 1) + "!"
+        return value
+    struct ReturnedRefs:
+        text:string
+        items:[int]
+    def owned_struct(depth:int) -> ReturnedRefs:
+        let value = if depth: owned_struct(depth - 1) else: ReturnedRefs { "struct" + string(depth), [depth] }
+        return value
+    test_eq(owned_local(3), "local0!!!")
+    test_eq(owned_arg("arg" + string(0), 3), "arg0!!!")
+    let returned = owned_struct(3)
+    test_eq(returned.text, "struct0")
+    test_seq(returned.items, [0])
+
+    // Inlined returns keep their ordinary owned result. Later copies can overwrite the
+    // shared local, while results from earlier copies remain alive in the vector.
+    def inline_owned(i:int):
+        let value = [i]
+        return value
+    let saved = [[-1]]
+    for(4) i:
+        saved.push(inline_owned(i))
+        saved.push(inline_owned(i + 10))
+    for(4) i:
+        test_seq(saved[i * 2 + 1], [i])
+        test_seq(saved[i * 2 + 2], [i + 10])
+
     // The same reference passed to multiple parameters of one call.
     def both_lens(a, b): return a.length + b.length
     let shared_s = "xyz"

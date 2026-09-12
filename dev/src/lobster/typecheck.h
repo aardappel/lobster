@@ -5175,27 +5175,8 @@ Node *Return::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     // TODO: LT_KEEP here is to keep it simple for now, since ideally we want to also allow
     // LT_BORROW, but then we have to prove that we don't outlive the owner.
     // Additionally, we have to do this for reused specializations on new SpecIdents.
-    auto reqlt = LT_KEEP;
     auto reqret = make_void ? 0 : sf->reqret;
-    // Special (but very common) case: optimize lifetime for "return var" case, where var owns
-    // and this is the only return statement. Without this we'd get an inc on the var that's
-    // immediately undone as the scope ends.
-    auto ir = Is<IdentRef>(child);
-    if (ir) {
-        tc.UpdateCurrentSid(ir->sid);  // Ahead of time, because ir not typechecked yet.
-        if (ir->sid->lt == LT_KEEP &&
-            IsRefNil(ir->sid->type->t) &&
-            ir->sid->sf_def == sf &&
-            sf->num_returns == 0 &&
-            sf->returned_thru_to_max < 0 &&  // Since unwind path still needs this var in ownedvars.
-            reqret &&
-            sf->sbody->children.back() == this) {
-            // NOTE: see also Call::Optimize where we potentially have to undo this when inlined.
-            reqlt = LT_BORROW;  // Fake that we're cool borrowing this.
-            sf->consumes_vars_on_return = true;  // Don't decref this one when going out of scope.
-        }
-    }
-    tc.TT(child, reqret, reqlt);
+    tc.TT(child, reqret, LT_KEEP);
     tc.DecBorrowers(child->lt, *this);
     // A return from the program has at most one value: TT above dropped whatever the
     // expression produced beyond what the program returns.

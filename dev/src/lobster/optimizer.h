@@ -355,24 +355,9 @@ Node *Call::Optimize(Optimizer &opt) {
     assert(sf->num_returns_non_local == 0);
     auto replaced = !ret->make_void || !exptype->NumValues();
     if (replaced) {
-        // This is not great: having to undo the optimization in Return::TypeCheck where this
-        // flag was set.
-        // Since the caller generally expects to keep the return value of the now inlined
-        // function, and since the variables of this function are not dead yet (they can be called
-        // multiple times if inside a loop body or inlined multiple times, which may cause the
-        // var to be decreffed when overwritten on second use), we have to incref.
-        // TODO: investigate if setting them to null at scope exit would be an alternative?
-        if (sf->consumes_vars_on_return) {
-            // Only ever set on a return that is the function's only one, see Return::TypeCheck.
-            assert(sf->num_returns <= 1);
-            AssertIs<IdentRef>(ret->child);
-            opt.tc.MakeLifetime(ret->child, LT_KEEP, 1, 0);
-        }
         list->children.back() = ret->child;
         ret->child = nullptr;
         delete ret;
-    } else {
-        assert(!sf->consumes_vars_on_return);
     }
     // Every other return to this function becomes a jump to the end of the block. They are all
     // in the body: one in a function value the body calls was excluded above, so a Return to

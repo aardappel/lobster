@@ -874,6 +874,25 @@ struct CodeGen  {
         }
     }
 
+    // Transfer an owned variable to the caller when the function's only return is its final
+    // "return var". The ordinary typed tree retains the inc, so inlining needs no undo: only
+    // an actual function exit can omit it together with this variable's scope-exit dec.
+    // Decide from the final tree and unwind information, after optimization is complete.
+    static const IdentRef *ReturnedOwnedVar(const SubFunction &sf) {
+        if (sf.num_returns != 1 || sf.returned_thru_to_max >= 0 || !sf.reqret) return nullptr;
+        auto ret = AssertIs<Return>(sf.sbody->children.back());
+        if (ret->sf != &sf || ret->make_void) return nullptr;
+        auto inc = Is<ToLifetime>(ret->child);
+        if (!inc || inc->incref != 1 || inc->decref) return nullptr;
+        auto ir = Is<IdentRef>(inc->child);
+        if (!ir || ir->sid->lt != LT_KEEP || !IsRefNil(ir->sid->type->t)) return nullptr;
+        // Inlined copies share these variables and can change sf_def, so membership in the
+        // function's actual scope, which GenScope uses for cleanup, is what matters here.
+        for (auto &arg : sf.args) if (arg.sid == ir->sid) return ir;
+        for (auto &local : sf.locals) if (local.sid == ir->sid) return ir;
+        return nullptr;
+    }
+
     void GenScope(SubFunction &sf) {
         cursf = &sf;
         tstack_max = 0;
@@ -887,8 +906,7 @@ struct CodeGen  {
         f_regs_max = 0;  // Not valid until end of codegen of this function.
         f_keeps.clear();  // Not valid until end of codegen of this function.
 
-        auto ret = AssertIs<Return>(sf.sbody->children.back());
-        auto ir = sf.consumes_vars_on_return ? AssertIs<IdentRef>(ret->child) : nullptr;
+        auto ir = ReturnedOwnedVar(sf);
 
         #ifndef NDEBUG
             var_to_local.clear();
@@ -5746,7 +5764,9 @@ void Return::Generate(CodeGen &cg, size_t retval) const {
     if (sf->reqret) {
         auto nretvals = make_void ? 0 : sf->returntype->NumValues();
         if (!Is<DefaultVal>(child)) {
-            cg.Gen(child, nretvals);
+            auto ir = sf == cg.cursf && this == sf->sbody->children.back()
+                ? CodeGen::ReturnedOwnedVar(*sf) : nullptr;
+            cg.Gen(ir ? ir : child, nretvals);
             cg.TakeTemp(nretvals, true);
         } else {
             cg.EmitPushNil(sf->returntype);
