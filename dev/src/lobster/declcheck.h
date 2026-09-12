@@ -178,14 +178,7 @@ struct DeclChecker {
                 // struct that was then declared abstract).
                 udt->family_root = FamilyRootOf(udt);
                 if (udt->family_root) udt->sametype = type_undefined;
-                bool hasref = udt->family_root && udt->family_root->g.family_hasref;
-                for (auto &sfield : udt->sfields) {
-                    if (sfield.type.Null() || IsRefNil(sfield.type->t)) hasref = true;
-                }
-                if (hasref == udt->hasref) continue;
-                udt->hasref = hasref;
-                const_cast<ValueType &>(udt->thistype.t) = hasref ? V_STRUCT_R : V_STRUCT_S;
-                changed = true;
+                if (udt->UpdateStructType()) changed = true;
             }
         }
     }

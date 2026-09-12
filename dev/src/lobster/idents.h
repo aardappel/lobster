@@ -360,7 +360,6 @@ struct UDT : Named {
     bool family_type_slot_shared = false;
     UDTState state = UDTState::DECLARED;
     bool in_forest = false;  // Present in the subudts of itself & superclasses.
-    bool hasref = false;
     bool unnamed_specialization = false;
     Type thistype;  // convenient place to store the type corresponding to this.
     TypeRef sametype = type_undefined;  // If all fields are int/float, this allows vector ops.
@@ -392,6 +391,21 @@ struct UDT : Named {
     }
 
     ~UDT();
+
+    // ResolveFields and the declaration fixpoint both derive this same property. Keep it
+    // in thistype, which every later pass reads, rather than in a second cached flag.
+    bool UpdateStructType() {
+        assert(g.is_struct);
+        bool hasref = family_root && family_root->g.family_hasref;
+        for (auto &sfield : sfields) {
+            // A field still to be inferred may turn out to hold a reference.
+            if (sfield.type.Null() || IsRefNil(sfield.type->t)) hasref = true;
+        }
+        auto kind = hasref ? V_STRUCT_R : V_STRUCT_S;
+        if (thistype.t == kind) return false;
+        const_cast<ValueType &>(thistype.t) = kind;
+        return true;
+    }
 
     vector<GenericTypeVariable> GetBoundGenerics() {
         auto generics = g.generics;
@@ -1821,21 +1835,12 @@ struct SymbolTable {
         }
         // Update the type to the correct struct type.
         if (udt.g.is_struct) {
-            for (auto &sfield : udt.sfields) {
-                // A still to be inferred field must conservatively count as a
-                // ref, since its inferred type may turn out to be one.
-                if (sfield.type.Null() || IsRefNil(sfield.type->t)) {
-                    udt.hasref = true;
-                    break;
-                }
-            }
             // A member of an abstract struct family is a struct of references if any member
             // can be (see GUDT::family_hasref), since a value of its type may hold any
             // member. The declchecker decides that over all declarations and applies it to
             // the specializations known then (see DeclChecker::FinalizeFamilies); one
             // created after that follows it here.
-            if (udt.family_root && udt.family_root->g.family_hasref) udt.hasref = true;
-            const_cast<ValueType &>(udt.thistype.t) = udt.hasref ? V_STRUCT_R : V_STRUCT_S;
+            udt.UpdateStructType();
         }
         if (udt.state == UDTState::DECLARED && udt.sfields.size() == udt.g.fields.size())
             udt.state = UDTState::FIELDS_RESOLVED;
