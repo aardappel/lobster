@@ -45,7 +45,6 @@ struct TypeChecker {
     struct Scope {
         SubFunction *sf = nullptr;
         const Node *call_context = nullptr;
-        int loop_count = 0;
         // Where in the writes recorded for the function the outermost loop currently being
         // typechecked started, see LoopWroteBefore.
         size_t loop_events_start = 0;
@@ -2972,7 +2971,7 @@ struct TypeChecker {
     // again), so such a write is one to what it would borrow from while it is alive.
     bool LoopWroteBefore(const LValContext &path) {
         auto &sc = scopes.back();
-        if (!sc.loop_count) return false;
+        if (sc.loop_flow.empty()) return false;
         LValContext hold = path;
         hold.Canonicalize();
         auto &evs = sc.sf->reuse_assign_events;
@@ -2986,8 +2985,7 @@ struct TypeChecker {
 
     void EnterLoop() {
         auto &sc = scopes.back();
-        if (!sc.loop_count) sc.loop_events_start = sc.sf->reuse_assign_events.size();
-        sc.loop_count++;
+        if (sc.loop_flow.empty()) sc.loop_events_start = sc.sf->reuse_assign_events.size();
         sc.loop_flow.emplace_back();
         BackupFlow(flowstack.size(), sc.loop_flow.back().entry);
     }
@@ -3010,7 +3008,6 @@ struct TypeChecker {
         CleanUpFlow(loop.entry.size());
         for (auto i : loop.demoted) flowstack[i].now = flowstack[i].old;
         sc.loop_flow.pop_back();
-        sc.loop_count--;
     }
 
     void DropSpeculative(SpecIdent *sid) {
@@ -3769,7 +3766,7 @@ Node *ForLoopCounter::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef
 }
 
 Node *Break::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-    if (!tc.scopes.back().loop_count)
+    if (tc.scopes.back().loop_flow.empty())
         tc.Error(*this, Q("break"), " must occur inside a ", Q("while"), " or ", Q("for"));
     else
         tc.RecordLoopFlowExit();
@@ -3779,7 +3776,7 @@ Node *Break::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_boun
 }
 
 Node *Continue::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-    if (!tc.scopes.back().loop_count)
+    if (tc.scopes.back().loop_flow.empty())
         tc.Error(*this, Q("continue"), " must occur inside a ", Q("while"), " or ", Q("for"));
     else
         tc.RecordLoopFlowExit();
