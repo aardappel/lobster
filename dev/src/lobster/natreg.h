@@ -531,33 +531,21 @@ struct BuiltinDef {
 struct NativeFun : Named {
     vector<Narg> args, retvals;
 
-    const char *help;
-
-    // C linkage name of the function, which is how the generated code calls it.
-    const char *symbol;
-
-    // Writes all of its return values thru out pointers, see BUILTIN_OUTS.
-    bool allouts;
-
-    // See BuiltinDef::codegen and BuiltinDef::address.
-    BuiltinCodegen codegen;
-    const void *address;
+    // Static definition shared by registration, builtin declarations and generated calls.
+    const BuiltinDef &def;
 
     int subsystemid = -1;
 
     NativeFun *overloads = nullptr, *first = this;
 
-    NativeFun(const char *ns, const char *nsname, const char *ids, const char *typeids,
-              const char *rets, const char *help, const char *symbol, bool allouts,
-              BuiltinCodegen codegen, const void *address)
-        : Named(*ns ? cat(ns, ".", nsname) : nsname, 0),
-          args(BuiltinNumArgs(typeids)),
-          retvals(BuiltinNumArgs(rets)),
-          help(help),
-          symbol(symbol),
-          allouts(allouts),
-          codegen(codegen),
-          address(address) {
+    NativeFun(const char *ns, const BuiltinDef &def)
+        : Named(*ns ? cat(ns, ".", def.name) : def.name, 0),
+          args(BuiltinNumArgs(def.typeids)),
+          retvals(BuiltinNumArgs(def.rets)),
+          def(def) {
+        auto ids = def.ids;
+        auto typeids = def.typeids;
+        auto rets = def.rets;
         for (auto [i, arg] : enumerate(args)) {
             const char *idend = strchr(ids, ',');
             if (!idend) {
@@ -575,85 +563,42 @@ struct NativeFun : Named {
         // An argument that may be a struct of any width has no one C++ type, so only a builtin
         // the generated code writes out itself can take one, see BuiltinCodegen.
         for (auto &arg : args) {
-            if ((arg.flags & NF_ANYWIDTH) && codegen == BCG_NONE)
+            if ((arg.flags & NF_ANYWIDTH) && def.codegen == BCG_NONE)
                 Error("an argument of any width needs a codegen builtin");
         }
     }
 
-    // The kind the type of an argument or a return value belongs to, which must agree with
-    // what BuiltinArgKindOf makes of the type string it came from.
-    static BuiltinArgKind KindOf(const Narg &n) {
-        if (n.flags & NF_ANYWIDTH) return BAK_VALUEVEC;
-        if (n.vttype->t == V_STRUCT_NUM)
-            return n.vttype->ns->t == V_FLOAT ? BAK_FVEC : BAK_IVEC;
-        switch (n.vttype->ElementIfNil()->t) {
-            case V_VECTOR: return BAK_VECTOR;
-            case V_INT:
-            case V_TYPEID: return BAK_INT;
-            case V_FLOAT: return BAK_FLOAT;
-            case V_STRING: return BAK_STRING;
-            case V_RESOURCE: return BAK_RESOURCE;
-            case V_FUNCTION: return BAK_FUNCTION;
-            default: return BAK_VALUE;
-        }
-    }
-
-    // An 'A' that carries no modifiers, which is the one the typechecker requires a reference
-    // of, see BuiltinRetKindOf.
-    bool IsPlainAny(const Narg &n) const { return KindOf(n) == BAK_VALUE && !n.flags; }
-
-    // The C++ type argument `i` reaches the builtin as, mirroring BuiltinParamKindOf.
+    // Use the same ABI rules that BuiltinSig uses to declare the actual C++ function.
+    // Nargs remain the typechecker's language types; they do not independently infer ABI.
     BuiltinArgKind ArgKind(size_t i) const {
-        return IsPlainAny(args[i]) ? BAK_REF : KindOf(args[i]);
+        return BuiltinParamKindOf(def.typeids, (int)i);
     }
 
-    // The argument a return value says it is the same type as, if any, mirroring
-    // BuiltinModsSubArg.
-    const Narg *SameTypeArg(const Narg &r) const {
-        auto sub = r.flags & (NF_SUBARG1 | NF_SUBARG2 | NF_SUBARG3);
-        if (r.optional || !sub || sub != r.flags) return nullptr;
-        auto sa = (size_t)(sub == NF_SUBARG1 ? 0 : sub == NF_SUBARG2 ? 1 : 2);
-        return sa < args.size() ? &args[sa] : nullptr;
-    }
-
-    // The kind return value `i` has, mirroring BuiltinRetKindOf.
     BuiltinArgKind RetValKind(size_t i) const {
-        auto &r = retvals[i];
-        auto k = KindOf(r);
-        if (k != BAK_VALUE) return k;
-        if (!r.flags) return BAK_REF;
-        if (r.optional) return BAK_REF;
-        auto a = SameTypeArg(r);
-        if (!a) return BAK_VALUE;
-        if (a->vttype->t == V_STRUCT_NUM) return KindOf(*a);
-        return IsPlainAny(*a) ? BAK_REF : BAK_VALUE;
+        return BuiltinRetKindOf(def.typeids, def.rets, (int)i);
     }
 
     // How many values a numeric struct return value has, which its type says, or the argument
     // it says it is the same type as does, and how many slots that takes.
     int RetValWidth(size_t i) const {
-        auto &r = retvals[i];
-        if (r.vttype->t == V_STRUCT_NUM) return r.vttype->ns->flen;
-        if (KindOf(r) != BAK_VALUE) return 0;
-        auto a = SameTypeArg(r);
-        return a && a->vttype->t == V_STRUCT_NUM ? a->vttype->ns->flen : 0;
+        return BuiltinRetWidthOf(def.typeids, def.rets, (int)i);
     }
     int RetValSlots(size_t i) const { return std::max(1, RetValWidth(i)); }
 
     // The one the builtin returns its last return value as, see BuiltinRet. A BUILTIN_OUTS, or
     // one with nothing to return, returns void, which has no kind of its own.
-    bool ReturnsValue() const { return !allouts && !retvals.empty(); }
+    bool ReturnsValue() const { return !def.allouts && !retvals.empty(); }
     BuiltinArgKind RetKind() const { return RetValKind(retvals.size() - 1); }
     int RetWidth() const { return retvals.empty() ? 0 : RetValWidth(retvals.size() - 1); }
     int RetSlots() const { return ReturnsValue() ? RetValSlots(retvals.size() - 1) : 0; }
 
     // The return values it writes thru a pointer instead, mirroring BuiltinNumOuts.
     int OutValues() const {
-        return retvals.empty() ? 0 : (int)retvals.size() - (allouts ? 0 : 1);
+        return BuiltinNumOuts(def.rets, def.allouts);
     }
 
     // How many values a numeric struct argument has, which its type says.
-    int ArgWidth(size_t i) const { return args[i].vttype->ns->flen; }
+    int ArgWidth(size_t i) const { return BuiltinArgWidthOf(def.typeids, (int)i); }
     bool ArgIsVec(size_t i) const {
         auto k = ArgKind(i);
         return k == BAK_IVEC || k == BAK_FVEC || k == BAK_VALUEVEC;
@@ -699,9 +644,9 @@ struct NativeRegistry {
             for (auto nf : nfuns) {
                 // The generated code writes out what a codegen one does, so there is nothing
                 // to link it against, see BUILTIN_CODEGEN.
-                if (!nf->address) continue;
-                jit_imports.push_back(nf->symbol);
-                jit_imports.push_back(nf->address);
+                if (!nf->def.address) continue;
+                jit_imports.push_back(nf->def.symbol);
+                jit_imports.push_back(nf->def.address);
             }
             jit_imports.push_back(nullptr);
             jit_imports.push_back(nullptr);
@@ -737,9 +682,7 @@ struct NativeRegistry {
     // Registers all builtins defined with the BUILTIN macros into a group, in definition order.
     void RegisterGroup(const BuiltinGroup &group) {
         for (auto def = group.first; def; def = def->next) {
-            auto nf = new NativeFun(cur_ns, def->name, def->ids, def->typeids, def->rets,
-                                    def->help, def->symbol, def->allouts, def->codegen,
-                                    def->address);
+            auto nf = new NativeFun(cur_ns, *def);
             // Catches a file whose BUILTIN_SYM doesn't match the namespace it is registered
             // under, which would make the symbol of its builtins unpredictable.
             auto expected = cat("builtin_", *cur_ns ? cat(cur_ns, "_") : string(), def->name);

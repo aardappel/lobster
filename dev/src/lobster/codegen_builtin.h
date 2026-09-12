@@ -460,7 +460,7 @@
     bool EmitCodegenBuiltin(NativeFun *nf, const Types &args, const Types &rets,
                             TypeRef elemtype) {
         // No default, so that a kind added without a case here is a compile error.
-        switch (nf->codegen) {
+        switch (nf->def.codegen) {
             case BCG_NONE:
                 return false;
             case BCG_GL_FRAME:

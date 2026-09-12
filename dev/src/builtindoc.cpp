@@ -148,7 +148,7 @@ string GetBuiltinDoc(NativeRegistry &nfr, bool group_subsystem, string (&doc_tag
             }
             s += doc_tags[Tags::Returns][1];
         }
-        s += cat(doc_tags[Tags::Help][0], escape(nf->help), doc_tags[Tags::Help][1], "\n");
+        s += cat(doc_tags[Tags::Help][0], escape(nf->def.help), doc_tags[Tags::Help][1], "\n");
         s += doc_tags[Tags::Row][1];
         is_first_row = false;
     }

@@ -820,11 +820,11 @@ struct CodeGen  {
             auto rt = NativeRetCType(nf);
             auto sep = rt.back() == '*' ? "" : " ";
             if (cpp) {
-                append(decls, "extern \"C\" ", rt, sep, nf->symbol, "(VMRef");
+                append(decls, "extern \"C\" ", rt, sep, nf->def.symbol, "(VMRef");
             } else if (SretValues(nf)) {
-                append(decls, "void ", nf->symbol, "(", rt, " *, VMRef");
+                append(decls, "void ", nf->def.symbol, "(", rt, " *, VMRef");
             } else {
-                append(decls, rt, sep, nf->symbol, "(VMRef");
+                append(decls, rt, sep, nf->def.symbol, "(VMRef");
             }
             // The values it does not return it writes thru a pointer of the type each is.
             for (int i = 0; i < nf->OutValues(); i++) {
@@ -2827,7 +2827,7 @@ struct CodeGen  {
             append(cb, "    ", NativeArgCType(k, nf->RetValWidth(i)), " _o", i, init, ";\n");
             append(outs, ", &_o", i);
         }
-        auto call = cat(nf->symbol, "(", sret ? "&_nr, " : "", "vm", outs, argstr, ")");
+        auto call = cat(nf->def.symbol, "(", sret ? "&_nr, " : "", "vm", outs, argstr, ")");
         // The name of the builtin is on the line that opens the block when there is one.
         auto endl = [&]() { if (tmps) cb += "\n"; else comment(nf->name); };
         if (!retslots) {
