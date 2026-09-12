@@ -290,7 +290,7 @@ void Value::ToStringBase(VM &vm, string &sd, RTType t, PrintPrefs &pp) const {
     }
 }
 
-void Value::ToFlexBuffer(ToFlexBufferContext &fbc, RTType t, string_view key, type_elem_t defval) const {
+void Value::ToFlexBuffer(ToFlexBufferContext &fbc, RTType t, string_view key, Value defval) const {
     if (RTIsRefNil(t)) {
         if (!ref_) {
             if (key.empty() || fbc.save_default_value_fields) {
@@ -323,16 +323,14 @@ void Value::ToFlexBuffer(ToFlexBufferContext &fbc, RTType t, string_view key, ty
     } else {
         switch (t) {
             case RTT_INT: {
-                auto dv = fbc.vm.GetDefaultScalar<iint>(defval);
-                if (ival() != dv || key.empty() || fbc.save_default_value_fields) {
+                if (ival() != defval.ival() || key.empty() || fbc.save_default_value_fields) {
                     if (!key.empty()) fbc.builder.Key(key.data());
                     fbc.builder.Int(ival());
                 }
                 return;
             }
             case RTT_FLOAT: {
-                auto dv = fbc.vm.GetDefaultScalar<double>(defval);
-                if (fval() != dv || key.empty() || fbc.save_default_value_fields) {
+                if (fval() != defval.fval() || key.empty() || fbc.save_default_value_fields) {
                     if (!key.empty()) fbc.builder.Key(key.data());
                     fbc.builder.Double(fval());
                 }
@@ -520,14 +518,12 @@ const TypeInfo &LVector::ElemType(VM &vm) const {
     return vm.GetTypeInfo(_ti.subt);
 }
 
-// The elements of a vector (`len` of them, `width` slots each), or the fields of an object or
-// struct (`len` slots, a nested struct's fields being flattened into it), or with `fields`
-// given, those of a struct in an abstract struct family (`len` of them, at the slots the
-// metadata says, since not every slot is a field), see TypeInfo::IsFamilyStruct.
-void VectorOrObjectToString(VM &vm, string &sd, PrintPrefs &pp, char openb, char closeb,
-                            iint len, iint width, const void *elems, bool is_vector,
-                            std::function<const TypeInfo &(iint)> getti,
-                            const VMField *fields = nullptr) {
+// The elements of a vector or the fields of an object or struct, between brackets: `each(emit)`
+// goes over them, calling `emit(ti, slots, field)` with the type of each and where it is in
+// `slots` as a field (an element of a vector being one starting at its first slot), see
+// FieldInfo.
+template<typename EACH>
+void ElemsToString(VM &vm, string &sd, PrintPrefs &pp, char openb, char closeb, EACH each) {
     sd += openb;
     if (pp.indent) sd += '\n';
     auto start_size = sd.size();
@@ -535,103 +531,102 @@ void VectorOrObjectToString(VM &vm, string &sd, PrintPrefs &pp, char openb, char
     auto Indent = [&]() {
         for (int i = 0; i < pp.cur_indent; i++) sd += ' ';
     };
-    for (iint i = 0; i < len; i++) {
-        if (i) {
+    auto n = 0;
+    auto truncated = false;
+    each([&](const TypeInfo &ti, const void *slots, const FieldInfo &f) {
+        if (truncated) return;
+        if (n++) {
             sd += ',';
             sd += (pp.indent ? '\n' : ' ');
         }
         if (pp.indent) Indent();
         if (iint(sd.size() - start_size) > pp.budget) {
             sd += "....";
-            break;
+            truncated = true;
+            return;
         }
-        auto &ti = getti(i);
-        auto slot = fields ? fields[i].offset : i * width;
         if (pp.depth || !RTIsRef(ti.t)) {
             PrintPrefs subpp(pp.depth - 1, pp.budget - iint(sd.size() - start_size), true,
                              pp.decimals);
             subpp.indent = pp.indent;
             subpp.cur_indent = pp.cur_indent;
             if (RTIsStruct(ti.t)) {
-                vm.StructToString(sd, subpp, ti, SubSlots(elems, slot));
-                if (!is_vector && !fields) i += ti.len - 1;
+                vm.StructToString(sd, subpp, ti, SubSlots(slots, f.slot));
             } else {
-                LoadSlot(elems, slot).ToString(vm, sd, ti, subpp);
+                LoadField(slots, f).ToString(vm, sd, ti, subpp);
             }
         } else {
             sd += "..";
         }
-    }
+    });
     pp.cur_indent -= pp.indent;
     if (pp.indent) { sd += '\n'; Indent(); }
     sd += closeb;
 }
 
+// An element of a vector as a field, see ElemsToString.
+static FieldInfo ElemField(type_elem_t type, iint i, iint width) {
+    return FieldInfo{ type, i * width, 0, 0, false, (type_elem_t)0 };
+}
+
+// The fields of an object or struct, `sti` being the type it dynamically is, see
+// VM::ForEachField.
+static void FieldsToString(VM &vm, string &sd, PrintPrefs &pp, const TypeInfo &sti,
+                           const void *elems) {
+    sd += vm.ReverseLookupType(sti.structidx);
+    if (pp.indent) sd += ' ';
+    ElemsToString(vm, sd, pp, '{', '}', [&](auto emit) {
+        vm.ForEachField(sti, [&](const FieldInfo &f) {
+            emit(vm.GetTypeInfo(f.type), elems, f);
+        });
+    });
+}
+
 void LObject::ToString(VM &vm, string &sd, PrintPrefs &pp) {
     if (CycleCheck(sd, pp)) return;
-    auto name = vm.ReverseLookupType(ti(vm).structidx);
-    sd += name;
-    if (pp.indent) sd += ' ';
-    VectorOrObjectToString(vm, sd, pp, '{', '}', Len(vm), 1, FieldSlots(), false,
-        [&](iint i) -> const TypeInfo & {
-            return ElemTypeSP(vm, i);
-        }
-    );
+    FieldsToString(vm, sd, pp, ti(vm), FieldSlots());
 }
 
 void LVector::ToString(VM &vm, string &sd, PrintPrefs &pp) {
     if (CycleCheck(sd, pp)) return;
-    VectorOrObjectToString(vm, sd, pp, '[', ']', len, width, v, true,
-        [&](iint) -> const TypeInfo & {
-            return ElemType(vm);
-        }
-    );
+    ElemsToString(vm, sd, pp, '[', ']', [&](auto emit) {
+        auto &eti = ElemType(vm);
+        auto subt = ti(vm).subt;
+        for (iint i = 0; i < len; i++) emit(eti, v, ElemField(subt, i, width));
+    });
 }
 
 void LResource::ToString(string &sd) {
     append(sd, "(resource:", type->name, ")");
 }
 
+// A struct in an abstract struct family prints as the member it dynamically is, by that
+// member's fields, so neither the type slot nor the padding show.
 void VM::StructToString(string &sd, PrintPrefs &pp, const TypeInfo &ti, const void *elems) {
-    if (ti.IsFamilyStruct()) {
-        // Printed as the member it dynamically is, by that member's fields, so neither
-        // the type slot nor the padding show.
-        auto &dti = FamilyDynType(ti, elems);
-        sd += ReverseLookupType(dti.structidx);
-        if (pp.indent) sd += ' ';
-        auto &fields = vma.meta->udts[dti.structidx].fields;
-        VectorOrObjectToString(*this, sd, pp, '{', '}', (iint)fields.size(), 1, elems, false,
-            [&](iint f) -> const TypeInfo & {
-                return GetTypeInfo(dti.GetElemOrParent(fields[f].offset));
-            },
-            fields.data()
-        );
-        return;
-    }
-    sd += ReverseLookupType(ti.structidx);
-    if (pp.indent) sd += ' ';
-    VectorOrObjectToString(*this, sd, pp, '{', '}', ti.len, 1, elems, false,
-        [&](iint i) -> const TypeInfo & {
-            return GetTypeInfo(ti.GetElemOrParent(i));
-        }
-    );
+    FieldsToString(*this, sd, pp, ti.IsFamilyStruct() ? FamilyDynType(ti, elems) : ti, elems);
 }
 
-void ElemToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, iint &i, iint width,
-                      const void *elems, string_view key, type_elem_t defval) {
+// A field of an object or struct, or an element of a vector (see ElemField), out of `slots`.
+static void FieldToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &ti, const void *slots,
+                              const FieldInfo &f, string_view key) {
     fbc.cur_depth++;
     if (RTIsStruct(ti.t)) {
         if (!key.empty()) fbc.builder.Key(key.data());
-        bool emitted = fbc.vm.StructToFlexBuffer(fbc, ti, SubSlots(elems, i * width),
-                                                 !key.empty());
-        if (!key.empty()) {
-            i += ti.len - 1;
-            if (!emitted) fbc.builder.Undo();  // Pop key.
-        }
+        bool emitted = fbc.vm.StructToFlexBuffer(fbc, ti, SubSlots(slots, f.slot), !key.empty());
+        if (!key.empty() && !emitted) fbc.builder.Undo();  // Pop key.
     } else {
-        LoadSlot(elems, i).ToFlexBuffer(fbc, ti.t, key, defval);
+        LoadField(slots, f).ToFlexBuffer(fbc, ti.t, key, fbc.vm.FieldDefault(f));
     }
     fbc.cur_depth--;
+}
+
+// The fields of an object or struct, `sti` being the type it dynamically is, by name.
+static void FieldsToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &sti, const void *elems) {
+    int fi = 0;
+    fbc.vm.ForEachField(sti, [&](const FieldInfo &f) {
+        FieldToFlexBuffer(fbc, fbc.vm.GetTypeInfo(f.type), elems, f,
+                          fbc.vm.LookupField(sti.structidx, fi++));
+    });
 }
 
 void LObject::ToFlexBuffer(ToFlexBufferContext &fbc) {
@@ -682,12 +677,7 @@ void LObject::ToFlexBuffer(ToFlexBufferContext &fbc) {
         fbc.builder.Key("_type");
         fbc.builder.String(type_name.data(), type_name.size());
     }
-    for (iint i = 0, f = 0; i < stti.len; i++, f++) {
-        auto &eti = ElemTypeSP(fbc.vm, i);
-        auto fname = fbc.vm.LookupField(stidx, f);
-        auto dv = stti.elemtypes[i].defval;
-        ElemToFlexBuffer(fbc, eti, i, 1, FieldSlots(), fname, dv);
-    }
+    FieldsToFlexBuffer(fbc, stti, FieldSlots());
     fbc.builder.EndMap(start);
     if (inserted) {
         inserted_it->second = fbc.builder.LastValue();
@@ -696,9 +686,10 @@ void LObject::ToFlexBuffer(ToFlexBufferContext &fbc) {
 
 void LVector::ToFlexBuffer(ToFlexBufferContext &fbc) {
     auto start = fbc.builder.StartVector();
-    auto &ti = ElemType(fbc.vm);
+    auto &eti = ElemType(fbc.vm);
+    auto subt = ti(fbc.vm).subt;
     for (iint i = 0; i < len; i++) {
-        ElemToFlexBuffer(fbc, ti, i, width, v, {}, (type_elem_t)0);
+        FieldToFlexBuffer(fbc, eti, v, ElemField(subt, i, width), {});
     }
     fbc.builder.EndVector(start, false, false);
 }
@@ -713,79 +704,69 @@ bool VM::StructToFlexBuffer(ToFlexBufferContext &fbc, const TypeInfo &sti,
         auto type_name = ReverseLookupType(dti.structidx);
         fbc.builder.Key("_type");
         fbc.builder.String(type_name.data(), type_name.size());
-        auto &fields = vma.meta->udts[dti.structidx].fields;
-        for (auto &field : fields) {
-            iint i = field.offset;
-            auto &ti = GetTypeInfo(dti.GetElemOrParent(i));
-            ElemToFlexBuffer(fbc, ti, i, 1, elems, field.name, dti.elemtypes[i].defval);
-        }
+        FieldsToFlexBuffer(fbc, dti, elems);
         fbc.builder.EndMap(start);
         return true;
     }
-    for (iint i = 0, f = 0; i < sti.len; i++, f++) {
-        auto &ti = GetTypeInfo(sti.GetElemOrParent(i));
-        auto fname = fbc.vm.LookupField(sti.structidx, f);
-        ElemToFlexBuffer(fbc, ti, i, 1, elems, fname, sti.elemtypes[i].defval);
-    }
+    FieldsToFlexBuffer(fbc, sti, elems);
     if (omit_if_empty && !fbc.builder.MapElementCount(start))
         return false;
     fbc.builder.EndMap(start);
     return true;
 }
 
-void ElemToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &ti, iint &i, iint width,
-                         const void *elems, bool is_object) {
+// A field of an object or struct, or an element of a vector (see ElemField), out of `slots`.
+static void FieldToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &ti,
+                                 const void *slots, const FieldInfo &f) {
     if (RTIsStruct(ti.t)) {
-        vm.StructToLobsterBinary(vm, buf, ti, SubSlots(elems, i * width));
-        if (is_object) i += ti.len - 1;
+        vm.StructToLobsterBinary(vm, buf, ti, SubSlots(slots, f.slot));
     } else {
-        LoadSlot(elems, i).ToLobsterBinary(vm, buf, ti.t);
+        LoadField(slots, f).ToLobsterBinary(vm, buf, ti.t);
     }
+}
+
+// The fields of an object or struct, `sti` being the type it dynamically is.
+static void FieldsToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &sti,
+                                  const void *elems) {
+    vm.ForEachField(sti, [&](const FieldInfo &f) {
+        FieldToLobsterBinary(vm, buf, vm.GetTypeInfo(f.type), elems, f);
+    });
 }
 
 void LObject::ToLobsterBinary(VM &vm, vector<uint8_t> &buf) {
     auto &stti = ti(vm);
-    EncodeVarintU(stti.len, buf);
+    // How many fields follow, for a reader whose version of the class has more.
+    EncodeVarintU(vm.vma.meta->udts[stti.structidx].fields.size(), buf);
     if (stti.serializable_id < 0) {
         vm.Error("cannot serialize (missing serializable attribute): " + vm.StructName(stti));
     }
     EncodeVarintU(stti.serializable_id, buf);
-    for (iint i = 0; i < stti.len; i++) {
-        auto &eti = ElemTypeSP(vm, i);
-        ElemToLobsterBinary(vm, buf, eti, i, 1, FieldSlots(), true);
-    }
+    FieldsToLobsterBinary(vm, buf, stti, FieldSlots());
 }
 
 void LVector::ToLobsterBinary(VM &vm, vector<uint8_t> &buf) {
     EncodeVarintU(len, buf);
-    auto &ti = ElemType(vm);
+    auto &eti = ElemType(vm);
+    auto subt = ti(vm).subt;
     for (iint i = 0; i < len; i++) {
-        ElemToLobsterBinary(vm, buf, ti, i, width, v, false);
+        FieldToLobsterBinary(vm, buf, eti, v, ElemField(subt, i, width));
     }
 }
 
 void VM::StructToLobsterBinary(VM &vm, vector<uint8_t> &buf, const TypeInfo &sti,
                                const void *elems) {
     if (sti.IsFamilyStruct()) {
-        // The member it dynamically is, by its serializable id, then its fields, like an
+        // The member it is by its serializable id, then its fields, like an
         // object, see LObject::ToLobsterBinary.
         auto &dti = FamilyDynType(sti, elems);
         if (dti.serializable_id < 0) {
             vm.Error("cannot serialize (missing serializable attribute): " + StructName(dti));
         }
         EncodeVarintU(dti.serializable_id, buf);
-        auto &fields = vma.meta->udts[dti.structidx].fields;
-        for (auto &field : fields) {
-            iint i = field.offset;
-            auto &ti = GetTypeInfo(dti.GetElemOrParent(i));
-            ElemToLobsterBinary(vm, buf, ti, i, 1, elems, true);
-        }
+        FieldsToLobsterBinary(vm, buf, dti, elems);
         return;
     }
-    for (iint i = 0; i < sti.len; i++) {
-        auto &ti = GetTypeInfo(sti.GetElemOrParent(i));
-        ElemToLobsterBinary(vm, buf, ti, i, 1, elems, true);
-    }
+    FieldsToLobsterBinary(vm, buf, sti, elems);
 }
 
 

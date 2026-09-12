@@ -24,7 +24,7 @@ namespace lobster {
 
 // FlatBuffers takes care of backwards compatibility of all metadata, but not of the C the
 // compiler emits, so this needs to be bumped each time we change the format.
-const int LOBSTER_METADATA_FORMAT_VERSION = 26;
+const int LOBSTER_METADATA_FORMAT_VERSION = 28;
 
 struct NativeFun;
 struct SymbolTable;
@@ -223,6 +223,9 @@ struct Field {
     // The method a `member` declared this in, null for an ordinary field. Only
     // that method (and anything lexically inside it) may access it.
     Overload *member_of = nullptr;
+    // The storage width given as `int<8>` / `float<32>`, 0 for a whole slot. Only the
+    // storage: a value read from the field is a plain int/float, see SField::bits.
+    int bits = 0;
     Line defined_in;
 
     Field(SharedField *_id, UnTypeRef _type, Node *_gdefaultval, bool isprivate,
@@ -244,6 +247,7 @@ struct Field {
           isprivate(o.isprivate),
           in_scope(o.in_scope),
           member_of(o.member_of),
+          bits(o.bits),
           defined_in(o.defined_in) {
         o.gdefaultval = nullptr;
     }
@@ -254,6 +258,7 @@ struct Field {
         std::swap(isprivate, o.isprivate);
         std::swap(member_of, o.member_of);
         std::swap(in_scope, o.in_scope);
+        std::swap(bits, o.bits);
         std::swap(defined_in, o.defined_in);
         return *this;
     }
@@ -265,6 +270,14 @@ struct SField {
     TypeRef type;
     Node *defaultval = nullptr;
     int slot = -1;
+    // A field stored in part of its slot (see Field::bits): how many bits, at which bit of
+    // the slot, which it then shares with the other such fields there. The slot is held as
+    // an int whatever the fields in it are (see SlotTypeOf), a float field being the bits
+    // of the 32-bit float in it. 0 bits is a field that is its whole slot.
+    int bits = 0;
+    int bitoff = 0;
+
+    bool isfloat() const { return type->t == V_FLOAT; }
 };
 
 struct TypeVariable {
@@ -373,6 +386,11 @@ struct UDT : Named {
     // Only on the root: the number of vtable entries per member, the members' vtables
     // sitting at that stride from the root's, by family index, see CodeGen::CodeGen.
     int family_vtable_stride = 0;
+    // Only on the root: whether the type slot holds more than the family index (which is its
+    // low 8 bits, see FamilyIndexOf): the first fields of the members that fit above it, see
+    // LayoutFamily. Decided along with the layout, and part of it. What reads the index
+    // masks it out only then, since the whole slot is the index otherwise.
+    bool family_type_slot_shared = false;
     UDTState state = UDTState::DECLARED;
     bool in_forest = false;  // Present in the subudts of itself & superclasses.
     bool hasref = false;
@@ -425,6 +443,12 @@ struct UDT : Named {
         return subtype_dfs - family_root->subtype_dfs;
     }
 
+    // Whether any field is stored in part of its slot, see SField::bits.
+    bool HasPackedFields() const {
+        for (auto &sfield : sfields) if (sfield.bits) return true;
+        return false;
+    }
+
     // Assigns the slots the fields occupy and the number of them, which for a member of an
     // abstract struct family is the family's layout, see SymbolTable::LayoutFamily. Returns
     // false for a struct that (transitively) contains itself.
@@ -434,7 +458,8 @@ struct UDT : Named {
         vector<flatbuffers::Offset<metadata::Field>> fieldoffsets;
         for (auto [i, sfield] : enumerate(sfields))
             fieldoffsets.push_back(
-                metadata::CreateField(fbb, fbb.CreateString(g.fields[i].id->name), sfield.slot));
+                metadata::CreateField(fbb, fbb.CreateString(g.fields[i].id->name), sfield.slot,
+                                      sfield.bitoff, sfield.bits));
         return metadata::CreateUDT(fbb, fbb.CreateString(name), idx, fbb.CreateVector(fieldoffsets),
                                    numslots, ssuperclass ? ssuperclass->idx : -1, typeinfonon);
     }
@@ -589,7 +614,8 @@ inline const SField *FindSlot(const UDT &udt, int i) {
 // family (see SymbolTable::LayoutFamily) a slot holds a reference field of one member and a
 // reference field of another type of the next, so it is held as any reference, and every
 // use of it converts from and to that, wherever in the value of a family member the slot
-// sits. Other slots are the type of their field.
+// sits. A slot that holds fields of fewer bits than itself (see SField::bits) is an int,
+// whatever those fields are. Other slots are the type of their field.
 inline TypeRef SlotTypeOf(const UDT &udt, int i, bool in_family = false) {
     in_family = in_family || udt.family_root;
     for (auto &sfield : udt.sfields) {
@@ -597,6 +623,7 @@ inline TypeRef SlotTypeOf(const UDT &udt, int i, bool in_family = false) {
             if (IsStruct(sfield.type->t)) {
                 return SlotTypeOf(*sfield.type->udt, i - sfield.slot, in_family);
             }
+            if (sfield.bits) return type_int;
             return in_family && IsRefNil(sfield.type->t) ? WrapKnown(type_any, V_NIL)
                                                          : sfield.type;
         }
@@ -1758,6 +1785,13 @@ struct SymbolTable {
                 sametype = type_undefined;
                 break;
             }
+            if (cudt.sfields[i].bits) {
+                // A field that shares its slot is not a slot of the type it is, which
+                // is what everything that acts on sametype (vector math, indexing, the
+                // numeric struct arguments of builtins) takes the slots as.
+                sametype = type_undefined;
+                break;
+            }
             if (IsStruct(ftype->t)) {
                 if (rec == 16) {  // We only for self-referential in the TypeChecker :(
                     sametype = type_undefined;
@@ -1808,6 +1842,7 @@ struct SymbolTable {
             udt.sfields.push_back({ field.gdefaultval && field.giventype->t == V_ANY
                                         ? TypeRef(nullptr)
                                         : ResolveTypeVars(field.giventype, errl) });
+            udt.sfields.back().bits = field.bits;
         }
         PopSuperGenerics(udt.ssuperclass);
         bound_typevars_stack.pop_back();
@@ -1879,17 +1914,71 @@ struct SymbolTable {
         for (auto udt : udttable) {
             if (udt->family_root == &root) members.push_back(udt);
         }
-        // The kinds of the slots each field of each member occupies, see SlotKind.
+        // How many fields a member inherits from a superclass in the family, which keep the
+        // slots (and bits) they have there.
+        auto inherited_of = [&](UDT *udt) {
+            if (!udt->ssuperclass || udt->ssuperclass->family_root != &root) return size_t(0);
+            return std::min(udt->ssuperclass->sfields.size(), udt->sfields.size());
+        };
+        // The family index takes only the low 8 bits of the type slot (see FamilyIndexOf),
+        // so the first fields of a member that are stored in part of a slot (see
+        // SField::bits) can have the other 56, when they fit, which may make a whole family
+        // of small structs a single slot. It is decided once for the family whether any
+        // member does (see UDT::family_type_slot_shared), since reading the index then takes
+        // a mask the whole slot does not need.
+        if (members.size() > (size_t(1) << FAMILY_INDEX_BITS)) {
+            lex.Report(cat("abstract struct ", Q(root.name), " has more than ",
+                           1 << FAMILY_INDEX_BITS, " members"),
+                       &root.g.line);
+        }
+        if (!root.family_laid_out) {
+            for (auto udt : members) {
+                if (inherited_of(udt) || udt->sfields.empty()) continue;
+                auto &first = udt->sfields[0];
+                if (first.bits && first.bits <= 64 - FAMILY_INDEX_BITS) {
+                    root.family_type_slot_shared = true;
+                }
+            }
+        }
+        // The kinds of the slots each field of each member occupies, see SlotKind. A field
+        // stored in part of a slot shares an int slot with such fields declared right before
+        // it while they fit, as in UDT::ComputeSizes: the first of them has the slot as its
+        // block, the rest an empty block, at the bit offsets decided here. Fields in the
+        // type slot have a block of their own, "T", which is not a kind. The fields after
+        // the inherited ones start a slot of their own.
         map<UDT *, vector<string>> blocks;
         for (auto udt : members) {
-            for (auto &sfield : udt->sfields) {
+            auto inherited = inherited_of(udt);
+            int lastbits = 64;
+            int capacity = 64;
+            for (auto [i, sfield] : enumerate(udt->sfields)) {
+                if (i == inherited) lastbits = capacity = 64;
                 string block;
                 if (sfield.type.Null()) {
                     // A field whose type was never inferred, which the typechecker reports
                     // for any member it completes (see EnsureUDTChecked); the rest are in
                     // code that never ran, and only need some slot to sit in.
                     block = "I";
+                    lastbits = capacity = 64;
+                } else if (sfield.bits) {
+                    if (!i && !inherited && root.family_type_slot_shared &&
+                        sfield.bits <= 64 - FAMILY_INDEX_BITS) {
+                        // Above the family index in the type slot.
+                        block = "T";
+                        sfield.bitoff = FAMILY_INDEX_BITS;
+                        lastbits = FAMILY_INDEX_BITS + sfield.bits;
+                        capacity = 64;
+                    } else if (lastbits + sfield.bits <= capacity) {
+                        sfield.bitoff = lastbits;
+                        lastbits += sfield.bits;
+                    } else {
+                        block = "I";
+                        sfield.bitoff = 0;
+                        lastbits = sfield.bits;
+                        capacity = 64;
+                    }
                 } else if (IsStruct(sfield.type->t)) {
+                    lastbits = capacity = 64;
                     auto &fudt = *sfield.type->udt;
                     if (fudt.ComputeSizes(*this, depth + 1)) {
                         for (int j = 0; j < fudt.numslots; j++) {
@@ -1903,6 +1992,7 @@ struct SymbolTable {
                     }
                 } else {
                     block = SlotKind(sfield.type);
+                    lastbits = capacity = 64;
                 }
                 blocks[udt].push_back(block);
             }
@@ -1913,6 +2003,7 @@ struct SymbolTable {
             for (auto udt : members) {
                 map<char, int> need;
                 for (auto &block : blocks[udt]) {
+                    if (block == "T") continue;
                     for (auto kind : block) {
                         if (order.find(kind) == string::npos) order += kind;
                     }
@@ -1936,18 +2027,29 @@ struct SymbolTable {
                     if (slot + j < (int)used.size()) used[slot + j] = true;
                 }
             };
-            size_t inherited = 0;
-            if (udt.ssuperclass && udt.ssuperclass->family_root == &root) {
+            auto inherited = inherited_of(&udt);
+            if (inherited) {
                 auto &sup = *udt.ssuperclass;
                 place(sup);
-                inherited = std::min(sup.sfields.size(), udt.sfields.size());
                 for (size_t i = 0; i < inherited; i++) {
                     udt.sfields[i].slot = sup.sfields[i].slot;
-                    take(udt.sfields[i].slot, (int)blocks[&udt][i].size());
+                    udt.sfields[i].bitoff = sup.sfields[i].bitoff;
+                    if (udt.sfields[i].slot) {
+                        take(udt.sfields[i].slot, (int)blocks[&udt][i].size());
+                    }
                 }
             }
             for (size_t i = inherited; i < udt.sfields.size(); i++) {
                 auto &block = blocks[&udt][i];
+                if (block.empty()) {
+                    // Shares the slot of the field before it, see above.
+                    udt.sfields[i].slot = udt.sfields[i - 1].slot;
+                    continue;
+                }
+                if (block == "T") {
+                    udt.sfields[i].slot = 0;
+                    continue;
+                }
                 // The first free run of slots of the block's kinds.
                 size_t q = 0;
                 for (;; q++) {
@@ -2077,17 +2179,36 @@ bool UDT::ComputeSizes(SymbolTable &st, int depth) {
     if (depth > 16) return false;  // Simple protection against recursive references.
     if (family_root) return st.LayoutFamily(*family_root, depth);
     int size = 0;
+    // How many bits of the last slot the fields stored in part of it (see SField::bits) use
+    // up, 64 when the last slot is a whole field, or when there is none yet.
+    int lastbits = 64;
     for (auto &sfield : sfields) {
         sfield.slot = size;
+        sfield.bitoff = 0;
         if (sfield.type.Null()) {
             // Field type still to be inferred, can only be reached in
             // recursive situations that will error elsewhere.
             size++;
+            lastbits = 64;
         } else if (IsStruct(sfield.type->t)) {
             if (!sfield.type->udt->ComputeSizes(st, depth + 1)) return false;
             size += sfield.type->udt->numslots;
+            lastbits = 64;
+        } else if (sfield.bits) {
+            // Fields declared next to each other share a slot while they fit, in
+            // declaration order, so the program decides which of them get the bits
+            // left over (a field never straddles two slots).
+            if (lastbits + sfield.bits <= 64) {
+                sfield.slot = size - 1;
+                sfield.bitoff = lastbits;
+                lastbits += sfield.bits;
+            } else {
+                size++;
+                lastbits = sfield.bits;
+            }
         } else {
             size++;
+            lastbits = 64;
         }
     }
     numslots = size;

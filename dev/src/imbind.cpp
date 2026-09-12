@@ -532,7 +532,7 @@ void Nil(VM &vm, Value *v, const TypeInfo *ti) {
                 break;
             case RTT_CLASS: {
                 Deserializer des(vm);
-                if (des.PushDefault(vm.TypeInfoToIdx(ti), (type_elem_t)0, nullptr)) {
+                if (des.PushDefault(vm.TypeInfoToIdx(ti))) {
                     *v = des.PopV();
                 }
                 break;
@@ -545,7 +545,7 @@ void VectorOps(VM &vm, LVector *vec, const TypeInfo *ti) {
     ImGui::SameLine();
     if (ImGui::Button("+")) {
         Deserializer des(vm);
-        if (des.PushDefault(ti->subt, (type_elem_t)0, nullptr)) {
+        if (des.PushDefault(ti->subt)) {
             vec->Push(vm, des.PopV());
         }
     }
@@ -647,10 +647,11 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
         case RTT_STRUCT_R:
         case RTT_STRUCT_S: {
             auto &st = vm.vma.meta->udts[ti->structidx];
-            // Special case for numeric structs & colors.
+            // Special case for numeric structs & colors, whose slots are each one field.
             if (ti->len >= 2 && ti->len <= 4) {
-                for (int i = 1; i < ti->len; i++)
-                    if (ti->elemtypes[i].type != ti->elemtypes[0].type) goto generic;
+                for (int i = 0; i < ti->len; i++)
+                    if (ti->elemtypes[i].type != ti->elemtypes[0].type ||
+                        ti->elemtypes[i].packed >= 0) goto generic;
                 if (ti->elemtypes[0].type == TYPE_ELEM_INT) {
                     auto nums = ValueToI<4>(v, ti->len);
                     if (ImGui::InputScalarN(
@@ -683,12 +684,19 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
             if (ImGui::TreeNodeEx(*l ? l : st.name.data(), flags)) {
                 if (BeginTable(st.name.data())) {
                     int fi = 0;
-                    for (int i = 0; i < ti->len; i++) {
-                        auto &sti = vm.GetTypeInfo(ti->GetElemOrParent(i));
-                        ValToGUI(vm, v + i, &sti, string_view_nt(st.fields[fi++].name),
-                                    false);
-                        if (RTIsStruct(sti.t)) i += sti.len - 1;
-                    }
+                    vm.ForEachField(*ti, [&](const FieldInfo &f) {
+                        auto &sti = vm.GetTypeInfo(f.type);
+                        auto name = string_view_nt(st.fields[fi++].name);
+                        if (f.bits) {
+                            // A field stored in part of its slot is edited as the value it
+                            // is, which then goes back into its bits.
+                            auto fv = LoadField(v, f);
+                            ValToGUI(vm, &fv, &sti, name, false);
+                            StoreField(v, f, fv);
+                        } else {
+                            ValToGUI(vm, v + f.slot, &sti, name, false);
+                        }
+                    });
                     EndTable();
                 }
                 ImGui::TreePop();

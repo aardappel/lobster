@@ -223,6 +223,36 @@ one in this example.</p>
 <p>Optionally, you specify a supertype, which has the effect of adding
 all the fields of the supertype to the current type, thus making it an
 extension of the former.</p>
+<h3 id="fields-stored-in-fewer-bits">Fields stored in fewer bits</h3>
+<p>A field of type <code>int</code>, <code>float</code> or an enum can
+be given a storage width behind its type, which makes the struct or
+class it is in smaller:</p>
+<pre><code>struct pixel:
+    r:int&lt;8&gt;
+    g:int&lt;8&gt;
+    b:int&lt;8&gt;
+    a:int&lt;8&gt;
+    depth:float&lt;32&gt;
+    visible:bool&lt;8&gt;</code></pre>
+<p>This only affects storage: reading such a field gives a plain
+<code>int</code> / <code>float</code> / enum value like any other field
+(an int is sign extended from its bits, so <code>int&lt;8&gt;</code>
+holds -128 to 127), and writing one stores just its low bits (or the
+value rounded to a 32-bit float), silently. An <code>int</code> (or
+enum) may be any multiple of 8 bits, a <code>float</code> 32 bits (64
+for either just means a normal field). Fields declared next to each
+other share one 64-bit slot while they fit, in order, so the above takes
+2 slots rather than 6: the program decides which fields get the bits
+that are left over by how it orders them. The slot in which a struct in
+an abstract struct family (see below) carries its type takes part as
+well: the type is the low 8 bits of it, and the first fields of each
+member that fit in the other 56 share it, so a whole family of small
+structs can be a single slot. Otherwise these fields are invisible: they
+print, serialize and compare like any other. What is not allowed on a
+struct with such fields is what treats all fields as one numeric type:
+vector math (<code>pixel + pixel</code>), indexing it like a vector
+(<code>p[i]</code>), and passing it to builtins that take a numeric
+struct.</p>
 <h3 id="generic-udts">Generic UDTs</h3>
 <p>The above example uses ints directly, but you can also define types
 more generically, and then define named specializations of them:</p>

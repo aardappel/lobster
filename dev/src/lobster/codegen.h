@@ -65,6 +65,7 @@ struct CodeGen  {
     map<iint, type_elem_t> default_ints_lookup;
     map<double, type_elem_t> default_floats_lookup;
     map<small_vector<type_elem_t, 3>, type_elem_t> default_aggregate_lookup;
+    map<vector<type_elem_t>, type_elem_t> packed_fields_lookup;
     vector<TypeLT> rettypes, temptypestack;
     // The inlined function bodies the code being emitted sits inside of, innermost last: what
     // a return out of one needs to know, see InlineBlock::Generate and InlineReturn::Generate.
@@ -196,6 +197,10 @@ struct CodeGen  {
     LvalKind f_lval_kind = LVK_NONE;
     int f_lval_idx = 0;
     const UDT *f_lval_udt = nullptr;
+    // When the lvalue is a field stored in part of its slot (see SField::bits): that field,
+    // the slot being what the above says. Whatever modifies the lvalue then reads and writes
+    // the field's bits of it, see GenLvalModifierPacked.
+    const SField *f_lval_packed = nullptr;
     TypeRef f_lval_elem;
     // Where the elements of an LVK_ELEM lvalue are and its index: the lvec/lidx locals, or
     // the variables they came from, see EmitLvalVectorIndex.
@@ -264,7 +269,7 @@ struct CodeGen  {
     }
 
     const int ti_num_udt_fields = 12;
-    const int ti_num_udt_per_field = 3;
+    const int ti_num_udt_per_field = 4;
 
     type_elem_t PushDefaultValue(ValueType vt, VTValue val) {
         switch (vt) {
@@ -311,27 +316,42 @@ struct CodeGen  {
                     return (type_elem_t)0;
                 }
             }
-            vector<type_elem_t> idxs;
+            // The defaults per slot (see PushFields), a slot that several fields share
+            // getting the whole slot with all of theirs in it, see TIField::defval.
+            UDT *udt;
             if (IsFamilyStruct(cons->exptype)) {
-                // A member of an abstract struct family is described per slot (see
-                // PushFields), and this may be a different member than the static type of
-                // the field (which is what its exptype was set to, see EnsureUDTChecked),
-                // so the type slot says which: its family index is what makes the default
-                // value that member. A given type that still involves type variables can't
-                // say.
+                // This may be a different member than the static type of the field (which
+                // is what its exptype was set to, see EnsureUDTChecked), so the type slot
+                // says which: its family index is what makes the default value that
+                // member. A given type that still involves type variables can't say.
                 auto ctype = cons->giventype;
                 if (!IsUDT(ctype->t) || !ctype->udt->family_root) return (type_elem_t)0;
-                auto udt = ctype->udt;
-                udt->ComputeSizes(st);
-                idxs.resize(udt->numslots, (type_elem_t)0);
-                idxs[0] = PushDefaultValue(V_INT, VTValue((int64_t)udt->FamilyIndex()));
-                for (auto [i, v] : enumerate(vals)) {
-                    idxs[udt->sfields[i].slot] = PushDefaultValue(v.first, v.second);
-                }
+                udt = ctype->udt;
             } else {
-                for (auto [vt, aval] : vals) {
-                    idxs.push_back(PushDefaultValue(vt, aval));
+                if (!IsUDT(cons->exptype->t)) return (type_elem_t)0;
+                udt = cons->exptype->udt;
+            }
+            udt->ComputeSizes(st);
+            if (vals.size() != udt->sfields.size()) return (type_elem_t)0;
+            vector<type_elem_t> idxs(udt->numslots, (type_elem_t)0);
+            vector<uint64_t> words(udt->numslots, 0);
+            vector<bool> shared(udt->numslots, false);
+            if (udt->family_root) {
+                // The type slot, which fields may share, see UDT::family_type_slot_shared.
+                words[0] = (uint64_t)udt->FamilyIndex();
+                shared[0] = true;
+            }
+            for (auto [i, v] : enumerate(vals)) {
+                auto &fsf = udt->sfields[i];
+                if (fsf.bits) {
+                    words[fsf.slot] |= PackedFieldBits(fsf, v.first, v.second);
+                    shared[fsf.slot] = true;
+                } else {
+                    idxs[fsf.slot] = PushDefaultValue(v.first, v.second);
                 }
+            }
+            for (auto [s, word] : enumerate(words)) {
+                if (shared[s]) idxs[s] = PushDefaultValue(V_INT, VTValue((int64_t)word));
             }
             auto &it = default_aggregate_lookup[idxs];
             if (!it) {
@@ -344,6 +364,65 @@ struct CodeGen  {
         return PushDefaultValue(vt, val);
     }
 
+    // The bits a constant default of a field stored in part of its slot (see SField::bits)
+    // contributes to the default of the whole slot, see TIField::defval.
+    static uint64_t PackedFieldBits(const SField &sfield, ValueType vt, VTValue val) {
+        auto bits = vt == V_FLOAT ? (uint64_t)PackFloat32(val.f) : (uint64_t)val.i;
+        return (bits & ((1ULL << sfield.bits) - 1)) << sfield.bitoff;
+    }
+
+    // The entries describing the fields a slot holds in part of itself (see TIField::packed),
+    // interned like the defaults are.
+    type_elem_t PushPackedFields(const vector<const SField *> &fields) {
+        vector<type_elem_t> entries;
+        entries.push_back((type_elem_t)fields.size());
+        for (auto sfield : fields) {
+            entries.push_back(GetTypeTableOffset(sfield->type));
+            entries.push_back((type_elem_t)sfield->bitoff);
+            entries.push_back((type_elem_t)sfield->bits);
+        }
+        auto &it = packed_fields_lookup[entries];
+        if (!it) {
+            it = (type_elem_t)type_table.size();
+            type_table.insert(type_table.end(), entries.begin(), entries.end());
+        }
+        return it;
+    }
+
+    // The entry of a slot that holds fields in part of itself (see TIField::packed): an int
+    // slot, whatever the fields are, whose default is the whole slot with the constant defaults
+    // of all of them in it (a field without one contributing 0, which is what no default means
+    // for a scalar anyway), and `extra` besides: the family index for the type slot of a
+    // struct in an abstract struct family, see UDT::family_type_slot_shared.
+    void PushPackedSlot(UDT *udt, int slot, small_vector<type_elem_t, 2> &tt, type_elem_t parent,
+                        type_elem_t dvs_overrides, uint64_t extra = 0) {
+        vector<const SField *> fields;
+        for (auto &sfield : udt->sfields) {
+            if (sfield.slot == slot && sfield.bits) fields.push_back(&sfield);
+        }
+        type_elem_t dvs;
+        if (dvs_overrides) {
+            dvs = type_table[dvs_overrides + slot];
+        } else {
+            auto word = extra;
+            for (auto sfield : fields) {
+                VTValue val;
+                auto vt = sfield->defaultval ? sfield->defaultval->ConstVal(nullptr, val)
+                                             : V_UNDEFINED;
+                if (vt == V_INT || vt == V_FLOAT) word |= PackedFieldBits(*sfield, vt, val);
+            }
+            dvs = PushDefaultValue(V_INT, VTValue((int64_t)word));
+        }
+        tt.push_back(TYPE_ELEM_INT);
+        tt.push_back(parent);
+        tt.push_back(dvs);
+        tt.push_back(PushPackedFields(fields));
+    }
+
+    // The entries of the fields of a type, one per slot (see TypeInfo::elemtypes), those of a
+    // field that is a struct flattened in, all with that struct as their parent. The defaults
+    // are per slot too: from `dvs_overrides` when the type is the default value of a field of
+    // another (see PushDefaultValues), else those of the fields themselves.
     void PushFields(UDT *udt, small_vector<type_elem_t, 2> &tt,
                     type_elem_t parent = (type_elem_t)-1,
                     type_elem_t dvs_overrides = (type_elem_t)0) {
@@ -351,7 +430,7 @@ struct CodeGen  {
             PushFamilyFields(udt, tt, parent, dvs_overrides);
             return;
         }
-        for (auto [i, sfield] : enumerate(udt->sfields)) {
+        for (auto &sfield : udt->sfields) {
             if (sfield.type.Null()) {
                 // An inferred field of a class declared in a function that is never used, so it
                 // never got a type. Nothing can construct it, and ComputeSizes already gave it
@@ -359,6 +438,12 @@ struct CodeGen  {
                 tt.push_back(TYPE_ELEM_ANY);
                 tt.push_back(parent);
                 tt.push_back((type_elem_t)0);
+                tt.push_back((type_elem_t)-1);
+                continue;
+            }
+            if (sfield.bits) {
+                // The first field in the slot describes it along with the others in it.
+                if (!sfield.bitoff) PushPackedSlot(udt, sfield.slot, tt, parent, dvs_overrides);
                 continue;
             }
             auto ti = GetTypeTableOffset(sfield.type);
@@ -369,7 +454,8 @@ struct CodeGen  {
             } else {
                 tt.push_back(ti);
                 tt.push_back(parent);
-                tt.push_back(dvs_overrides ? type_table[dvs_overrides + i] : dvs);
+                tt.push_back(dvs_overrides ? type_table[dvs_overrides + sfield.slot] : dvs);
+                tt.push_back((type_elem_t)-1);
             }
         }
     }
@@ -386,7 +472,11 @@ struct CodeGen  {
                           type_elem_t dvs_overrides) {
         for (int s = 0; s < udt->numslots;) {
             const SField *sfield = nullptr;
-            for (auto &sf : udt->sfields) if (sf.slot == s) sfield = &sf;
+            // Of the fields sharing a slot, the lowest describes it (see PushPackedSlot),
+            // which in the type slot sits above the family index.
+            for (auto &sf : udt->sfields) {
+                if (sf.slot == s && (!sfield || sf.bitoff < sfield->bitoff)) sfield = &sf;
+            }
             if (!sfield) {
                 tt.push_back(GetTypeTableOffset(FindSlot(*udt, s)->type));
                 tt.push_back(parent);
@@ -397,12 +487,19 @@ struct CodeGen  {
                 } else {
                     tt.push_back((type_elem_t)0);
                 }
+                tt.push_back((type_elem_t)-1);
                 s++;
             } else if (sfield->type.Null()) {
                 // See PushFields.
                 tt.push_back(TYPE_ELEM_ANY);
                 tt.push_back(parent);
                 tt.push_back((type_elem_t)0);
+                tt.push_back((type_elem_t)-1);
+                s++;
+            } else if (sfield->bits) {
+                // The type slot holds the family index besides the fields sharing it.
+                auto index = !s && !udt->g.is_abstract ? (uint64_t)udt->FamilyIndex() : 0;
+                PushPackedSlot(udt, s, tt, parent, dvs_overrides, index);
                 s++;
             } else {
                 auto ti = GetTypeTableOffset(sfield->type);
@@ -413,6 +510,7 @@ struct CodeGen  {
                     tt.push_back(ti);
                     tt.push_back(parent);
                     tt.push_back(dvs_overrides ? type_table[dvs_overrides + s] : dvs);
+                    tt.push_back((type_elem_t)-1);
                 }
                 s += ValWidth(sfield->type);
             }
@@ -1010,6 +1108,13 @@ struct CodeGen  {
                 append(sd, "static Value mkval", KindName(k), "(", CType(k), " a) { Value v; v.",
                        Member(k), " = ", k == VK_FUN ? "(long long)a" : "a", "; return v; }\n");
             }
+            // A float field stored in 32 bits of a slot (see SField::bits) sits there as the
+            // bits of the 32-bit float, so reading it is widening those, and writing it is
+            // making them: the C++ PackFloat32 / UnpackFloat32.
+            sd += "static double mkvalF32(long long bits) { union { unsigned int u; float f; } x;"
+                  " x.u = (unsigned int)bits; return (double)x.f; }\n"
+                  "static long long mkvalBits32(double d) { union { unsigned int u; float f; } x;"
+                  " x.f = (float)d; return (long long)x.u; }\n";
             // Every runtime helper the generated code can call. These mirror the Rt functions in
             // vmops.h, which is what the JIT links them to, see vm_ops_jit_table. Where the
             // C++ side takes any reference, it is void here, since the generated code holds
@@ -1824,6 +1929,136 @@ struct CodeGen  {
         return Combine(prec, cat(x.text, " ", cops[op], " ", y.text), x, y);
     }
 
+    // The unsigned 64-bit type, for the shifts and masks of the fields stored in part of a
+    // slot, which must not be done in signed arithmetic.
+    string UType() { return cpp ? "uint64_t" : "unsigned long long"; }
+    string IType() { return CType(VK_INT); }
+
+    // The bits a value of a field stored in part of its slot (see SField::bits) occupies in it.
+    static uint64_t BitMask(const SField &sfield) {
+        return (((uint64_t)1 << sfield.bits) - 1) << sfield.bitoff;
+    }
+    static string MaskLiteral(uint64_t mask) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "0x%llxULL", (unsigned long long)mask);
+        return buf;
+    }
+    static Expr &Grouped(Expr &e) {
+        if (e.prec) {
+            e.text = cat("(", e.text, ")");
+            e.prec = 0;
+        }
+        return e;
+    }
+
+    // The value of such a field out of the int slot at `word`, as the type it is: an int sign
+    // extended from its bits (a single shift when they are the top ones), a float widened from
+    // the 32-bit float they are (see mkvalF32 in the Prologue).
+    Expr ExtractExpr(const Place &word, const SField &sfield) {
+        if (sfield.isfloat()) {
+            auto w = Operand(word, 5);
+            auto bits = sfield.bitoff ? cat(w.text, " >> ", sfield.bitoff) : w.text;
+            auto call = cpp ? "lobster::UnpackFloat32" : "mkvalF32";
+            return { cat(call, "(", bits, ")"), w.vars, w.pure, 1 };
+        }
+        auto top = 64 - sfield.bitoff - sfield.bits;
+        if (!top) {
+            auto w = Operand(word, 5);
+            return { cat(w.text, " >> ", sfield.bitoff), w.vars, w.pure, 5 };
+        }
+        auto w = Operand(word, 2);
+        return { cat("(", IType(), ")((", UType(), ")", w.text, " << ", top, ") >> ",
+                     64 - sfield.bits),
+                 w.vars, w.pure, 5 };
+    }
+
+    // The bits such a field's value `val` takes in its slot, shifted into place, with nothing
+    // outside them: the bits of the 32-bit float it is for a float, the low bits for an int,
+    // whose sign extension the mask takes off.
+    Expr FieldBitsExpr(Expr val, const SField &sfield) {
+        if (sfield.isfloat()) {
+            auto call = cpp ? "lobster::PackFloat32" : "mkvalBits32";
+            auto bits = cat("(", UType(), ")", call, "(", val.text, ")");
+            if (!sfield.bitoff) return { bits, val.vars, val.pure, 2 };
+            return { cat(bits, " << ", sfield.bitoff), val.vars, val.pure, 5 };
+        }
+        Parens(val, 2);
+        auto bits = cat("((", UType(), ")", val.text, " & ",
+                        MaskLiteral(BitMask(sfield) >> sfield.bitoff), ")");
+        if (!sfield.bitoff) return { bits, val.vars, val.pure, 0 };
+        return { cat(bits, " << ", sfield.bitoff), val.vars, val.pure, 5 };
+    }
+
+    // The int slot `word` with such a field's value `val` written into its bits, the other
+    // bits as they were.
+    Expr InsertExpr(const Place &word, Expr val, const SField &sfield) {
+        auto bits = FieldBitsExpr(std::move(val), sfield);
+        Grouped(bits);
+        int64_t zero;
+        if (IsIntLiteral(word, zero) && !zero) {
+            // A slot that is still 0 needs nothing kept.
+            return { cat("(", IType(), ")", bits.text), bits.vars, bits.pure, 2 };
+        }
+        auto w = Operand(word, 2);
+        auto text = cat("(", IType(), ")(((", UType(), ")", w.text, " & ~",
+                        MaskLiteral(BitMask(sfield)), ") | ", bits.text, ")");
+        return Combine(2, text, w, bits);
+    }
+
+    // The int slot with the values `vals` of all the fields it holds in it, made from 0, so
+    // the bits none of them has are 0 as well.
+    Expr PackExpr(const vector<pair<Place, const SField *>> &vals) {
+        Expr acc;
+        for (auto &[place, sfield] : vals) {
+            auto bits = FieldBitsExpr(Operand(place, 15), *sfield);
+            Grouped(bits);
+            acc = acc.text.empty() ? bits : Combine(10, cat(acc.text, " | ", bits.text), acc, bits);
+        }
+        Grouped(acc);
+        return { cat("(", IType(), ")", acc.text), acc.vars, acc.pure, 2 };
+    }
+
+    // The values of the fields of a struct as pushed, one slot per scalar field, packed into
+    // the slots of the struct where fields share a slot (see SField::bits): each such slot is
+    // made from 0 with the values' bits in it, and the whole fields after it move down, which
+    // never overwrites a value not moved yet since a field's slot is never above where its
+    // value was pushed. Nothing to do for a struct without such fields, whose stack image is
+    // its value.
+    void GenPackStruct(const UDT &udt, int arg_width) {
+        auto any = false;
+        for (auto &sfield : udt.sfields) if (sfield.bits) any = true;
+        if (!any) {
+            assert(arg_width == udt.numslots);
+            return;
+        }
+        TrackUseDef(arg_width, udt.numslots);
+        auto base = regso - arg_width;
+        int pos = 0;
+        vector<int> src(udt.sfields.size());
+        for (auto [k, sfield] : enumerate(udt.sfields)) {
+            src[k] = pos;
+            pos += ValWidth(sfield.type);
+        }
+        assert(pos == arg_width);
+        for (int s = 0; s < udt.numslots; s++) {
+            vector<pair<Place, const SField *>> packed;
+            for (auto [k, sfield] : enumerate(udt.sfields)) {
+                if (sfield.slot != s) continue;
+                if (sfield.bits) {
+                    packed.push_back({ SlotVar(base + src[k], RtTypeOf(sfield.type)), &sfield });
+                    continue;
+                }
+                if (src[k] == s) continue;  // Already where it goes.
+                auto width = ValWidth(sfield.type);
+                for (int j = 0; j < width; j++) {
+                    auto rtt = RtTypeOf(SlotTypeOf(udt, s + j));
+                    CopyValue(cb, SlotVar(base + s + j, rtt), SlotVar(base + src[k] + j, rtt));
+                }
+            }
+            if (!packed.empty()) WriteExpr(SlotVar(base + s, RTT_INT), PackExpr(packed));
+        }
+    }
+
     // What one produces: an int for a comparison whatever it compared.
     static VKind BinKind(bool isfloat, MathOp op) {
         return isfloat && op < MOP_LT ? VK_FLOAT : VK_INT;
@@ -1913,6 +2148,7 @@ struct CodeGen  {
         TrackUseDef(0, 0);
         f_lval_kind = LVK_LOCAL;
         f_lval_idx = var_to_local[offset];
+        f_lval_packed = nullptr;
     }
 
     // A global is at a known address too, once the generated code can get at the array.
@@ -1920,6 +2156,7 @@ struct CodeGen  {
         TrackUseDef(0, 0);
         f_lval_kind = LVK_GLOBAL;
         f_lval_idx = offset;
+        f_lval_packed = nullptr;
         append(cb, "    // lval: ", IdName(offset, type), "\n");
     }
 
@@ -1976,7 +2213,9 @@ struct CodeGen  {
 
     // All of them. A field that is a struct of one type over and over is an array of it, which
     // is what lets the program index one at runtime be a real index, see EmitLvalStructIndex.
-    // The hidden slots of a member of an abstract struct family are members of their own.
+    // The hidden slots of a member of an abstract struct family are members of their own. A
+    // slot several fields are stored in (see SField::bits) is one int member, named for the
+    // first of them.
     vector<UDTMember> Members(const UDT &udt) {
         vector<UDTMember> ms;
         // Renaming a keyword or flattening a nested field can produce another
@@ -1986,6 +2225,12 @@ struct CodeGen  {
         if (!udt.g.is_struct) names_used = { "typeinfo", "refc" };
         auto field = [&](size_t k) {
             auto &sfield = udt.sfields[k];
+            if (sfield.bits) {
+                if (sfield.bitoff) return 0;
+                ms.push_back({ UniqueName(string(udt.g.fields[k].id->name), names_used),
+                               CType(VK_INT), sfield.slot, 1 });
+                return 1;
+            }
             auto width = ValWidth(sfield.type);
             auto ct = SlotCType(sfield.type, 0);
             auto same = true;
@@ -2008,11 +2253,20 @@ struct CodeGen  {
             for (int s = 0; s < udt.numslots;) {
                 int k = -1;
                 for (auto [i, sfield] : enumerate(udt.sfields)) {
-                    if (sfield.slot == s) k = (int)i;
+                    if (sfield.slot == s && (k < 0 || sfield.bitoff < udt.sfields[k].bitoff)) {
+                        k = (int)i;
+                    }
                 }
                 if (k < 0) {
+                    // A hidden slot.
                     ms.push_back({ UniqueName(StructSlotName(udt, s), names_used),
                                    SlotCType(&udt.thistype, s), s, 1 });
+                    s++;
+                } else if (udt.sfields[k].bits) {
+                    // A slot several fields share, named for the lowest of them, which in the
+                    // type slot sits above the family index.
+                    ms.push_back({ UniqueName(string(udt.g.fields[k].id->name), names_used),
+                                   CType(VK_INT), s, 1 });
                     s++;
                 } else {
                     s += field((size_t)k);
@@ -2070,7 +2324,7 @@ struct CodeGen  {
 
     // A field as an lvalue is at a constant offset from the object, same as reading one. That
     // does lose a debug only range check.
-    void EmitLvalField(const UDT &udt, int slot) {
+    void EmitLvalField(const UDT &udt, int slot, const SField *packed = nullptr) {
         TrackUseDef(1, 0);
         // The object goes in a local, since what follows may write the slot it came in, and
         // its fields are members rather than something an address can point at.
@@ -2079,6 +2333,7 @@ struct CodeGen  {
         f_lval_kind = LVK_FIELD;
         f_lval_udt = &udt;
         f_lval_idx = slot;
+        f_lval_packed = packed && packed->bits ? packed : nullptr;
     }
 
     // The slots the elements of the vector in _o live in, which Elem reads as what they hold.
@@ -2134,6 +2389,7 @@ struct CodeGen  {
         f_lval_kind = LVK_ELEM;
         f_lval_elem = etype;
         f_lval_idx = offset;
+        f_lval_packed = nullptr;
         if (levels == 1 && last) {
             auto vo = Operand(Slot(2, VK_VECTOR), 15);
             auto io = Operand(Slot(1, VK_INT), 15);
@@ -2160,12 +2416,14 @@ struct CodeGen  {
         append(cb, "    lv = RtLvalIndexClass(vm, ", Read(Slot(2, VK_OBJECT)), ", ",
                Read(Slot(1, VK_INT)), ", ", offset, ");\n");
         f_lval_kind = LVK_NUMPTR;
+        f_lval_packed = nullptr;
     }
 
     // A struct indexed at runtime, the one case that steps into the lvalue it was handed.
     void EmitLvalStructIndex(int offset, int numslots) {
         TrackUseDef(1, 0);
         f_uses_lval = true;
+        f_lval_packed = nullptr;
         string base;
         auto separate_members = false;
         auto typed = f_lval_kind == LVK_FIELD || f_lval_kind == LVK_NUMPTR ||
@@ -2726,8 +2984,8 @@ struct CodeGen  {
         if (IsStruct(self->t)) {
             auto root = self->udt->family_root;
             target = cat("RtDynDispatchStruct(vm, ", root->vtable_start + vtable_idx, " + ",
-                         Read(Slot((int)args.size(), VK_INT)), " * ", root->family_vtable_stride,
-                         ")");
+                         FamilyIndexText(Slot((int)args.size(), VK_INT), *root), " * ",
+                         root->family_vtable_stride, ")");
         } else {
             target = cat("RtDynDispatch(vm, ", ReadAs(Slot((int)args.size(), args[0]), VK_OBJECT),
                          ", ", vtable_idx, ")");
@@ -2772,10 +3030,18 @@ struct CodeGen  {
     // (the first of its `width` slots, which it gives up, being borrowed) holds its family
     // index, see UDT::FamilyIndex: a single range check when the tested type has subtypes,
     // since their indices are contiguous, a compare against the one index otherwise.
+    // The family index in the type slot `word` of a struct in an abstract struct family: the
+    // whole slot, or its low bits when fields share the slot, see UDT::family_type_slot_shared.
+    string FamilyIndexText(const Place &word, const UDT &root) {
+        if (!root.family_type_slot_shared) return Read(word);
+        auto w = Operand(word, 8);
+        return cat("(", w.text, " & ", MaskLiteral((1 << FAMILY_INDEX_BITS) - 1), ")");
+    }
+
     void EmitIsTypeStruct(int width, TypeRef type) {
         TrackUseDef(width, 1);
-        auto id = Read(Slot(width, VK_INT));
         auto udt = type->udt;
+        auto id = FamilyIndexText(Slot(width, VK_INT), *udt->family_root);
         auto lo = udt->FamilyIndex();
         auto hi = lo + udt->subtype_dfs_end - udt->subtype_dfs;
         auto test = lo == hi ? cat(id, " == ", lo)
@@ -2791,12 +3057,28 @@ struct CodeGen  {
         auto n = (int)args.size();
         TrackUseDef(n, 1);
         auto base = regso - n;
+        auto &udt = *type->udt;
         append(cb, "    {\n    LObject *_o = RtNewObject(vm, (type_elem_t)", type_idx, ", ",
-               type->udt->numslots, ");");
+               udt.numslots, ");");
         TypeComment(type);
-        for (int i = 0; i < n; i++) {
-            CopyValue(cb, Field("_o", *type->udt, i), SlotVar(base + i, args[i]));
+        // The values as pushed, one slot per scalar field, into the slots of their fields, of
+        // which the ones stored in part of a slot go into it together, see GenPackStruct.
+        int pos = 0;
+        map<int, vector<pair<Place, const SField *>>> packed;
+        for (auto &sfield : udt.sfields) {
+            auto width = ValWidth(sfield.type);
+            if (sfield.bits) {
+                packed[sfield.slot].push_back({ SlotVar(base + pos, args[pos]), &sfield });
+            } else {
+                for (int j = 0; j < width; j++) {
+                    CopyValue(cb, Field("_o", udt, sfield.slot + j),
+                              SlotVar(base + pos + j, args[pos + j]));
+                }
+            }
+            pos += width;
         }
+        assert(pos == n);
+        for (auto &[s, vals] : packed) Write(cb, Field("_o", udt, s), PackExpr(vals).text);
         Write(cb, SlotVar(base, RtTypeOf(type)), "_o");
         cb += "    }\n";
     }
@@ -3283,7 +3565,7 @@ struct CodeGen  {
                 for (auto [i, sfield] : enumerate(udt->sfields)) {
                     sd += "    { ";
                     gen_string(udt->g.fields[i].id->name);
-                    append(sd, ", ", sfield.slot, " },\n");
+                    append(sd, ", ", sfield.slot, ", ", sfield.bitoff, ", ", sfield.bits, " },\n");
                 }
                 sd += "};\n\n";
             }
@@ -3830,6 +4112,10 @@ struct CodeGen  {
     void GenLvalModifier(LvalOp op, TypeRef type) {
         auto width = ValWidth(type);
         TrackUseDef(LvalModifierUses(op, width), 0);
+        if (f_lval_packed) {
+            GenLvalModifierPacked(op, type);
+            return;
+        }
         if (op == LV_WRITE) {
             CopyConsumed(cb, Lval(0, type), Slot(1, type));
         } else if (op == LV_WRITEREF) {
@@ -3907,6 +4193,45 @@ struct CodeGen  {
         GenLvalWriteBack(type);
     }
 
+    // The same on a field stored in part of an int slot (see SField::bits, f_lval_packed): the
+    // slot is what gets read and written, the field's bits taken out of and put into it. Only
+    // the ops on a single int or float come here, since such a field is neither a struct nor a
+    // reference, and the ones that operate on the field take its value as an expression in the
+    // slot above the stack, which is free until the next op.
+    void GenLvalModifierPacked(LvalOp op, TypeRef type) {
+        auto &sfield = *f_lval_packed;
+        auto word = Lval(0, type_int);
+        auto isfloat = type->t == V_FLOAT;
+        auto k = ScalarKind(isfloat);
+        auto cur = Slot(0, k);
+        auto write = [&](Expr e) {
+            if (HasPending(cur.slot)) pending[cur.slot].expr.clear();
+            Write(cb, word, InsertExpr(word, std::move(e), sfield).text);
+        };
+        if (op == LV_WRITE) {
+            // The value written goes into the slot and nowhere else, so its expression is
+            // dropped rather than written to the slot it was in as well, as CopyConsumed does.
+            auto rhs = Slot(1, k);
+            auto e = Operand(rhs, 15);
+            if (HasPending(rhs.slot)) pending[rhs.slot].expr.clear();
+            write(std::move(e));
+        } else if (op >= LV_IPP) {
+            WriteExpr(cur, ExtractExpr(word, sfield));
+            auto e = Operand(cur, 4);
+            e.text += op == LV_IPP || op == LV_FPP ? " + 1" : " - 1";
+            e.prec = 4;
+            write(std::move(e));
+        } else if (op >= LV_BINAND && op <= LV_ASR) {
+            WriteExpr(cur, ExtractExpr(word, sfield));
+            write(BitExpr(BitOp(op - LV_BINAND), cur, Slot(1, VK_INT)));
+        } else {
+            assert(op >= LV_IADD && op <= LV_FMOD);
+            auto mop = op <= LV_IMOD ? MathOp(op - LV_IADD) : MathOp(op - LV_FADD);
+            WriteExpr(cur, ExtractExpr(word, sfield));
+            write(BinExpr(isfloat, mop, cur, Slot(1, k)));
+        }
+    }
+
     void GenAssignBasic(const SpecIdent &sid) {
         TakeTemp(1, true);
         GenLvalVar(sid, 0);
@@ -3934,6 +4259,9 @@ struct CodeGen  {
             } else {
                 GenAssignLvalRec(dot->child, sfield.slot + offset, take_temp, type, more);
             }
+            // A field stored in part of its slot is the last step of the chain, since it is
+            // a scalar, so this is what the modifier sees, see GenLvalModifierPacked.
+            if (sfield.bits) f_lval_packed = &sfield;
         } else if (auto indexing = Is<Indexing>(lval)) {
             if (IsStruct(indexing->object->exptype->t)) {
                 // This generates an LVAL producing OP which is then indexed below and turned into another LVAL!
@@ -4010,7 +4338,11 @@ struct CodeGen  {
             // borrowed? Be good to assert that somehow.
             auto width = ValWidth(type);
             TrackUseDef(0, width);
-            for (int i = 0; i < width; i++) CopyValue(cb, Slot(-i, type, i), Lval(i, type));
+            if (f_lval_packed) {
+                WriteExpr(Slot(0, type), ExtractExpr(Lval(0, type_int), *f_lval_packed));
+            } else {
+                for (int i = 0; i < width; i++) CopyValue(cb, Slot(-i, type, i), Lval(i, type));
+            }
         }
         if (post) {
             GenLvalModifier(lvalop, type);
@@ -4247,7 +4579,17 @@ struct CodeGen  {
             EmitLvalLocal(sid.Idx() + offset);
     }
 
-    void GenPushField(size_t retval, Node *object, TypeRef stype, TypeRef ftype, int offset) {
+    void GenPushField(size_t retval, Node *object, TypeRef stype, TypeRef ftype, int offset,
+                      const SField *packed = nullptr) {
+        if (packed && packed->bits) {
+            // A field stored in part of an int slot (see SField::bits): the slot is what gets
+            // pushed, out of which the field is then read as the type it is.
+            GenPushField(retval, object, stype, type_int, offset);
+            if (!retval) return;
+            TrackUseDef(1, 1);
+            WriteExpr(Slot(1, ftype), ExtractExpr(Slot(1, VK_INT), *packed));
+            return;
+        }
         auto fwidth = ValWidth(ftype);
         auto swidth = ValWidth(stype);
         if (IsStruct(stype->t)) {
@@ -4381,7 +4723,7 @@ void Dot::Generate(CodeGen &cg, size_t retval) const {
     assert(idx >= 0);
     auto &sfield = stype->udt->sfields[idx];
     assert(sfield.slot >= 0);
-    cg.GenPushField(retval, child, stype, sfield.type, sfield.slot);
+    cg.GenPushField(retval, child, stype, sfield.type, sfield.slot, &sfield);
 }
 
 void Indexing::Generate(CodeGen &cg, size_t retval) const {
@@ -4401,7 +4743,7 @@ void Member::Generate(CodeGen &cg, size_t retval) const {
         cg.Gen(child, 1);
         cg.GenPushVar(1, this_sid->type, this_sid->Idx(), this_sid->used_as_freevar);
         cg.TakeTemp(1, true);
-        cg.EmitLvalField(*this_sid->type->udt, sfield.slot);
+        cg.EmitLvalField(*this_sid->type->udt, sfield.slot, &sfield);
         cg.GenLvalModifier(cg.AssignBaseOp({ sfield.type, LT_KEEP }), sfield.type);
         cg.EmitLabelDef(lab);
     }
@@ -5133,7 +5475,8 @@ void Switch::GenerateJumpTableMain(CodeGen &cg, size_t retval, int range, int mi
         // the object carries, or the type slot of a struct in an abstract struct family, which
         // is the first of its slots, see GenerateTypeDispatch.
         on = IsStruct(value->exptype->t)
-            ? cg.Read(cg.Slot(ValWidth(value->exptype), CodeGen::VK_INT))
+            ? cg.FamilyIndexText(cg.Slot(ValWidth(value->exptype), CodeGen::VK_INT),
+                                 *value->exptype->udt->family_root)
             : cg.TypeIdOf(cg.Read(cg.Slot(1, CodeGen::VK_OBJECT)));
     } else if (vtable_idx >= 0) {
         on = cat("GetTypeSwitchID(vm, ", cg.Read(cg.Slot(1, CodeGen::VK_OBJECT)), ", ", vtable_idx,
@@ -5265,7 +5608,9 @@ void ObjectConstructor::Generate(CodeGen &cg, size_t retval) const {
     assert(IsUDT(exptype->t));
     assert(exptype->udt->sfields.size() == Arity());
     if (IsStruct(exptype->t)) {
-        // This is now a no-op! Struct elements sit inline on the stack.
+        // Struct elements sit inline on the stack, so this is a no-op, except where fields
+        // share a slot, which puts them in it.
+        cg.GenPackStruct(*exptype->udt, arg_width);
     } else {
         CodeGen::Types args;
         for (auto c : children) CodeGen::AddTypes(args, c->exptype);
@@ -5294,6 +5639,14 @@ void ObjectConstructor::GenerateFamilyStruct(CodeGen &cg, size_t retval) const {
     // struct as the family says (see SlotTypeOf), which for a reference field is a cast.
     auto move_field = [&](size_t i, int from, int to) {
         auto &sfield = udt->sfields[i];
+        if (sfield.bits) {
+            // Into the bits it has of its slot, which holds 0 (see push_hidden) or the fields
+            // before it in there.
+            auto d = cg.SlotVar(to, RTT_INT);
+            auto s = cg.SlotVar(from, CodeGen::RtTypeOf(sfield.type));
+            cg.WriteExpr(d, cg.InsertExpr(d, cg.Operand(s, 15), sfield));
+            return 1;
+        }
         auto width = ValWidth(sfield.type);
         for (int j = 0; j < width; j++) {
             auto d = cg.SlotVar(to + j, CodeGen::RtTypeOf(SlotTypeOf(*udt, sfield.slot + j)));
@@ -5304,8 +5657,10 @@ void ObjectConstructor::GenerateFamilyStruct(CodeGen &cg, size_t retval) const {
         return width;
     };
     auto in_order = true;
-    for (size_t i = 1; i < udt->sfields.size(); i++) {
-        if (udt->sfields[i].slot < udt->sfields[i - 1].slot) in_order = false;
+    for (size_t i = 0; i < udt->sfields.size(); i++) {
+        // Fields sharing a slot are never where they were pushed.
+        if (udt->sfields[i].bits) in_order = false;
+        if (i && udt->sfields[i].slot < udt->sfields[i - 1].slot) in_order = false;
     }
     if (in_order) {
         int next_slot = 0;

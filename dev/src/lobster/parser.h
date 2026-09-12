@@ -630,12 +630,47 @@ struct Parser {
         return { key, value };
     }
 
+    // The storage width a field is given behind its type, `x:int<8>`, see Field::bits: a
+    // multiple of 8 bits for an int (or enum), 32 for a float, and 64 means the whole slot
+    // it would have anyway. Not part of the type: the field holds a plain int/float as far
+    // as everything but its storage is concerned, so this is only accepted here.
+    int ParseFieldBits(UnTypeRef type) {
+        Expect(T_LT);
+        int64_t bits = 0;
+        if (lex.token == T_INT) {
+            bits = lex.ival;
+            lex.Next();
+        } else {
+            Error("bit width expected, found ", Q(lex.TokStr()));
+        }
+        // This may be the end of the line, so make sure Lex doesn't see it as a GT op.
+        lex.OverrideCont(false);
+        Expect(T_GT);
+        if (type->t == V_INT) {
+            if (bits <= 0 || bits > 64 || bits % 8) {
+                Error("bit width of an int field must be a multiple of 8 up to 64, not ", bits);
+                bits = 0;
+            }
+        } else if (type->t == V_FLOAT) {
+            if (bits != 32 && bits != 64) {
+                Error("bit width of a float field must be 32 or 64, not ", bits);
+                bits = 0;
+            }
+        } else {
+            Error("only int, float and enum fields can be given a bit width");
+            bits = 0;
+        }
+        return bits == 64 ? 0 : (int)bits;
+    }
+
     void ParseField(GUDT *gudt, bool member_private, bool local_member) {
         ExpectId();
         auto &sfield = st.FieldDecl(lastid, gudt);
         UnTypeRef type = (UnType *)nullptr;
+        int bits = 0;
         if (IsNext(T_COLON)) {
             type = ParseType(false);
+            if (lex.token == T_LT) bits = ParseFieldBits(type);
         }
         Node *init = nullptr;
         if (IsNext(T_ASSIGN)) {
@@ -665,6 +700,7 @@ struct Parser {
             }
         }
         gudt->fields.push_back(Field(&sfield, type, init, member_private, !local_member, lex));
+        gudt->fields.back().bits = bits;
     }
 
     pair<GUDT *, UDT *> ParseSup(bool is_struct) {

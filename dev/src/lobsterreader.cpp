@@ -43,21 +43,15 @@ struct ValueParser : Deserializer {
         return PopV();
     }
 
-    // Vector or struct.
-    void ParseElems(TType end, type_elem_t typeoff, iint numelems, bool push) {
+    // A vector: `[ .. ]` with its elements.
+    void ParseElems(TType end, type_elem_t typeoff, bool push) {
         Gobble(T_LINEFEED);
         auto &ti = vm.GetTypeInfo(typeoff);
         auto stack_start = stack.size();
-        auto NumElems = [&]() { return iint(stack.size() - stack_start); };
         if (lex.token == end) lex.Next();
         else {
             for (;;) {
-                if (NumElems() == numelems) {
-                    ParseFactor(TYPE_ELEM_ANY, false);
-                } else {
-                    auto eti = ti.t == RTT_VECTOR ? ti.subt : ti.GetElemOrParent(NumElems());
-                    ParseFactor(eti, push);
-                }
+                ParseFactor(ti.subt, push);
                 bool haslf = lex.token == T_LINEFEED;
                 if (haslf) lex.Next();
                 if (lex.token == end) break;
@@ -66,35 +60,21 @@ struct ValueParser : Deserializer {
             lex.Next();
         }
         if (!push) return;
-        if (numelems >= 0) {
-            while (NumElems() < numelems) {
-                if (!PushDefault(ti.elemtypes[NumElems()].type, ti.elemtypes[NumElems()].defval, nullptr))
-                    lex.Error("no default value exists for missing struct elements");
-            }
-        }
-        if (ti.t == RTT_CLASS) {
-            auto len = NumElems();
-            auto vec = vm.NewObject(len, typeoff);
-            if (len) vec->CopyElemsShallow(stack.size() - len + stack.data(), len);
-            PopVN(len);
-            PushV(vec, true);
-        } else if (ti.t == RTT_VECTOR) {
-            auto &sti = vm.GetTypeInfo(ti.subt);
-            auto width = RTIsStruct(sti.t) ? sti.len : 1;
-            auto len = NumElems();
-            auto n = len / width;
-            auto vec = vm.NewVec(n, n, typeoff);
-            if (len) vec->CopyElemsShallow(stack.size() - len + stack.data());
-            PopVN(len);
-            PushV(vec, true);
-        }
-        // else if ti.t == RT_STRUCT_* then.. do nothing!
+        auto &sti = vm.GetTypeInfo(ti.subt);
+        auto width = RTIsStruct(sti.t) ? sti.len : 1;
+        auto len = iint(stack.size() - stack_start);
+        auto n = len / width;
+        auto vec = vm.NewVec(n, n, typeoff);
+        if (len) vec->CopyElemsShallow(stack.size() - len + stack.data());
+        PopVN(len);
+        PushV(vec, true);
     }
 
-    // A struct in an abstract struct family: `Name { .. }` with the values of the fields of
-    // that member, which is what it prints as (see VM::StructToString), the ones not given
-    // getting their defaults, see PushFamilyStruct.
-    void ParseFamilyStruct(const TypeInfo &ti, bool push) {
+    // A struct or class: `Name { .. }` with the values of its fields in order, `ti` being the
+    // type named (for a struct in an abstract struct family, the member it is), which is what
+    // it prints as (see VM::StructToString). The fields not given get their defaults, and any
+    // values beyond them are skipped.
+    void ParseStructElems(const TypeInfo &ti, type_elem_t typeoff, bool push) {
         Gobble(T_LINEFEED);
         if (ti.IsAbstractFamilyStruct())
             lex.Error(cat("cannot construct abstract struct ", vm.StructName(ti)));
@@ -107,23 +87,26 @@ struct ValueParser : Deserializer {
             if (!haslf) Expect(T_COMMA);
             return true;
         };
-        PushFamilyStruct(ti, push, [&](size_t, int slot, type_elem_t eti) {
+        auto base = push ? ReserveSlots(ti) : 0;
+        vm.ForEachField(ti, [&](const FieldInfo &f) {
             if (more) {
-                ParseFactor(eti, push);
+                ParseFactor(f.type, push);
                 more = next();
             } else if (push) {
-                if (!PushDefault(eti, ti.elemtypes[slot].defval, &ti.elemtypes[slot]))
+                if (!PushDefault(f, ti.elemtypes))
                     lex.Error("no default value exists for missing struct elements");
+            } else {
+                return;
             }
+            if (push) StoreFieldFromTop(base, f);
         });
-        // Any values beyond the fields are skipped.
         while (more) {
             ParseFactor(TYPE_ELEM_ANY, false);
             more = next();
         }
         Expect(T_RIGHTCURLY);
+        if (push && ti.t == RTT_CLASS) PushObject(ti, typeoff);
     }
-
     void ExpectType(RTType given, RTType needed) {
         if (given != needed && needed != RTT_INVALID) {
             lex.Error("type " +
@@ -187,7 +170,7 @@ struct ValueParser : Deserializer {
             case T_LEFTBRACKET: {
                 ExpectType(RTT_VECTOR, vt);
                 lex.Next();
-                ParseElems(T_RIGHTBRACKET, typeoff, -1, push);
+                ParseElems(T_RIGHTBRACKET, typeoff, push);
                 break;
             }
             case T_IDENT: {
@@ -218,8 +201,7 @@ struct ValueParser : Deserializer {
                     ti = p.first;
                     typeoff = p.second;
                 }
-                if (ti->IsFamilyStruct()) ParseFamilyStruct(*ti, push);
-                else ParseElems(T_RIGHTCURLY, typeoff, ti->len, push);
+                ParseStructElems(*ti, typeoff, push);
                 break;
             }
             default:
@@ -333,48 +315,26 @@ struct FlexBufferParser : Deserializer {
                     ti = p.first;
                     typeoff = p.second;
                 }
-                auto stack_start = stack.size();
-                auto NumElems = [&]() { return iint(stack.size() - stack_start); };
-                if (ti->IsFamilyStruct()) {
-                    // The member the map's _type named (see VM::StructToFlexBuffer), by
-                    // its fields.
-                    if (ti->IsAbstractFamilyStruct())
-                        Error(cat(parent_field_name, ": cannot construct abstract struct ",
-                                  name, " (missing _type)"));
-                    PushFamilyStruct(*ti, true, [&](size_t f, int slot, type_elem_t eti) {
-                        auto fname = vm.LookupField(ti->structidx, f);
-                        auto e = m[fname.data()];
-                        if (e.IsNull()) {
-                            if (!PushDefault(eti, ti->elemtypes[slot].defval,
-                                             &ti->elemtypes[slot]))
-                                Error("no default value exists for missing field " + fname);
-                        } else {
-                            ParseFactor(e, eti, fname);
-                        }
-                    });
-                    break;
-                }
-                for (int i = 0; NumElems() != ti->len; i++) {
-                    auto fname = vm.LookupField(ti->structidx, i);
-                    auto eti = ti->GetElemOrParent(NumElems());
+                if (ti->IsAbstractFamilyStruct())
+                    Error(cat(parent_field_name, ": cannot construct abstract struct ", name,
+                              " (missing _type)"));
+                // The fields of the type the map's _type named (see LObject::ToFlexBuffer /
+                // VM::StructToFlexBuffer), by name, the ones not present getting their
+                // defaults.
+                auto base = ReserveSlots(*ti);
+                int fi = 0;
+                vm.ForEachField(*ti, [&](const FieldInfo &f) {
+                    auto fname = vm.LookupField(ti->structidx, fi++);
                     auto e = m[fname.data()];
                     if (e.IsNull()) {
-                        if (!PushDefault(eti,
-                                         ti->elemtypes[NumElems()].defval,
-                                         &ti->elemtypes[NumElems()]))
+                        if (!PushDefault(f, ti->elemtypes))
                             Error("no default value exists for missing field " + fname);
                     } else {
-                        ParseFactor(e, eti, fname);
+                        ParseFactor(e, f.type, fname);
                     }
-                }
-                if (vt == RTT_CLASS) {
-                    auto len = NumElems();
-                    auto vec = vm.NewObject(len, typeoff);
-                    if (len) vec->CopyElemsShallow(stack.size() - len + stack.data(), len);
-                    PopVN(len);
-                    PushV(vec, true);
-                }
-                // else if vt == RT_STRUCT_* then.. do nothing!
+                    StoreFieldFromTop(base, f);
+                });
+                if (vt == RTT_CLASS) PushObject(*ti, typeoff);
                 break;
             }
             default:

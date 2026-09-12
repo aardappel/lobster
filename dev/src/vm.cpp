@@ -526,7 +526,7 @@ void VM::DumpStackTraceMemory(const string &err) {
             if (RTIsStruct(ti.t)) {
                 vm.StructToFlexBuffer(fbc, ti, x, false);
             } else {
-                x->ToFlexBuffer(fbc, ti.t, {}, (type_elem_t)0);
+                x->ToFlexBuffer(fbc, ti.t, {}, Value(0));
             }
         }
     };

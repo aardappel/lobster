@@ -823,6 +823,7 @@ Field::Field(const Field &o)
       isprivate(o.isprivate),
       in_scope(o.in_scope),
       member_of(o.member_of),
+      bits(o.bits),
       defined_in(o.defined_in) {}
 
 UDT::~UDT() {

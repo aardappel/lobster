@@ -104,16 +104,35 @@ enum type_elem_t : int {  // Strongly typed element of typetable.
     TYPE_ELEM_VECTOR_OF_VECTOR_OF_INT = 22,
     TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT = 25,
     TYPE_ELEM_VECTOR_OF_RESOURCE = 28,
-    TYPE_ELEM_VECTOR_OF_FLOAT4 = 94,
-    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT4 = 97,
+    TYPE_ELEM_VECTOR_OF_FLOAT4 = 103,
+    TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT4 = 106,
 };
 
 struct VM;
 
+// The family index of a struct in an abstract struct family (see TypeInfo::IsFamilyStruct) is
+// the low 8 bits of its first slot, which is all of it unless fields share the slot (see
+// SField::bits), so it is always read the same way, and a family has at most 256 members.
+const int FAMILY_INDEX_BITS = 8;
+inline iint FamilyIndexOf(iint type_slot) { return type_slot & ((1 << FAMILY_INDEX_BITS) - 1); }
+
+// One slot of a struct or class type, see TypeInfo::elemtypes.
 struct TIField {
     type_elem_t type;
     type_elem_t parent;
+    // The default value of the slot, 0 for none. For a slot holding several fields (see
+    // packed), the whole slot with the defaults of all of them in it, none if any lacks one.
     type_elem_t defval;
+    // For a slot that holds fields stored in part of it (see FieldInfo): the offset in the
+    // type table of their count, followed by a PackedField each. -1 otherwise.
+    type_elem_t packed;
+};
+
+// One of the fields a slot holds in part of itself, see TIField::packed.
+struct PackedField {
+    type_elem_t type;
+    int bitoff;
+    int bits;
 };
 
 struct TypeInfo {
@@ -644,7 +663,9 @@ struct Value {
     void ToString(VM &vm, string &sd, const TypeInfo &ti, PrintPrefs &pp) const;
     void ToStringBase(VM &vm, string &sd, RTType t, PrintPrefs &pp) const;
 
-    void ToFlexBuffer(ToFlexBufferContext &fbc, RTType t, string_view key, type_elem_t defval) const;
+    // `defval` is the default of the field this is the value of (0 / 0.0 for none), which a
+    // scalar equal to it is not written for, unless the context says to.
+    void ToFlexBuffer(ToFlexBufferContext &fbc, RTType t, string_view key, Value defval) const;
     void ToLobsterBinary(VM &vm, vector<uint8_t> &buf, RTType t) const;
 
     bool Equal(VM &vm, RTType vtype, Value o, RTType otype, bool structural) const;
@@ -683,6 +704,64 @@ VM_INLINE void StoreSlot(void *slots, iint i, Value v) {
 // The run that starts at slot `i` of this one, for the walkers that step into a struct.
 VM_INLINE const void *SubSlots(const void *slots, iint i) {
     return (const char *)slots + i * ssizeof<Value>();
+}
+
+// A field of a struct or class as the runtime sees it: its (declared) type, the slot it is
+// in, and when it is stored in only part of that slot, sharing it with other such fields
+// (declared as `x:int<8>`, see SField::bits), which bits. That is all the runtime has to
+// know about how a field is stored: whatever that is, it is read and written as the whole
+// int or float it is, see LoadField / StoreField, and the fields of a type come from
+// VM::ForEachField.
+struct FieldInfo {
+    type_elem_t type;
+    iint slot;
+    // 0 bits is a field that is its whole slot (or slots, for a nested struct).
+    int bitoff;
+    int bits;
+    // With bits: the bits are those of a 32-bit float, rather than an int.
+    bool isfloat;
+    // The default of the field, 0 for none: of a value of its type for a whole field, and for
+    // one stored in part of its slot that of the whole slot, see TIField::defval.
+    type_elem_t defval;
+};
+
+// The bits of a 32-bit float as an int and back, which is how a float field stored in part of
+// its slot sits in it, see FieldInfo. The generated code does the same, see CodeGen::Prologue.
+inline iint PackFloat32(double d) {
+    auto f = (float)d;
+    uint32_t u;
+    memcpy(&u, &f, sizeof(u));
+    return (iint)u;
+}
+inline double UnpackFloat32(iint bits) {
+    auto u = (uint32_t)bits;
+    float f;
+    memcpy(&f, &u, sizeof(f));
+    return (double)f;
+}
+
+// The value of a field out of the slots of the struct or object it is in, whole as the type
+// it is: an int stored in part of its slot is sign extended, a float stored as 32 bits is
+// widened. Not for a nested struct field, which is its slots.
+VM_INLINE Value LoadField(const void *slots, const FieldInfo &f) {
+    if (!f.bits) return LoadSlot(slots, f.slot);
+    auto w = LoadSlot(slots, f.slot).ival();
+    if (f.isfloat) return Value(UnpackFloat32(w >> f.bitoff));
+    return Value((iint)((uint64_t)w << (64 - f.bitoff - f.bits)) >> (64 - f.bits));
+}
+
+// The reverse, which leaves the other bits of the slot as they are: those of the other fields
+// in it, and 0 for the ones no field has, which every way of making such a slot ensures.
+VM_INLINE void StoreField(void *slots, const FieldInfo &f, Value v) {
+    if (!f.bits) {
+        StoreSlot(slots, f.slot, v);
+        return;
+    }
+    auto mask = (((uint64_t)1 << f.bits) - 1) << f.bitoff;
+    auto bits = f.isfloat ? (uint64_t)PackFloat32(v.fval()) : (uint64_t)v.ival();
+    auto w = (uint64_t)LoadSlot(slots, f.slot).ival();
+    w = (w & ~mask) | ((bits << f.bitoff) & mask);
+    StoreSlot(slots, f.slot, Value((iint)w));
 }
 
 // Slots read out into Values that go back where they came from, for whoever has to work on a
@@ -984,7 +1063,11 @@ struct VMSpecIdent {
 
 struct VMField {
     string_view name;
-    int offset;
+    int offset;  // The slot.
+    // For a field stored in part of its slot: the bits it has there, 0 for a whole slot, see
+    // FieldInfo.
+    int bitoff;
+    int bits;
 };
 
 struct VMUDT {
@@ -1192,10 +1275,72 @@ struct VM : VMBase {
         return *(TypeInfo *)(typetable + offset);
     }
     // The dynamic type of a value of a struct in an abstract struct family (`sti` being any
-    // type in it), from the family index in its first slot, see TypeInfo::IsFamilyStruct.
+    // type in it), from the family index in its first slot, see FamilyIndexOf.
     const TypeInfo &FamilyDynType(const TypeInfo &sti, const void *elems) const {
         auto &root = GetTypeInfo(sti.family_root);
-        return GetTypeInfo(root.FamilyMembers()[LoadSlot(elems, 0).ival()]);
+        return GetTypeInfo(root.FamilyMembers()[FamilyIndexOf(LoadSlot(elems, 0).ival())]);
+    }
+    // The fields a slot holds in part of itself, see TIField::packed.
+    span<const PackedField> PackedFields(type_elem_t offset) const {
+        if (offset < 0) return {};
+        return span<const PackedField>((const PackedField *)(typetable + offset + 1),
+                                       (size_t)typetable[offset]);
+    }
+    // Calls `f(const FieldInfo &)` for each field of a struct or class type, in field order,
+    // which is what every serialized form has them in. For a struct in an abstract struct
+    // family, `sti` is the member the value dynamically is (see FamilyDynType), whose fields
+    // are what the metadata says they are, since not every slot is one. `slots` describes the
+    // slots: the type's own, or for a struct nested in another, those of that one, which carry
+    // the defaults given for the field it is (see Deserializer::PushDefault); the fields come
+    // from the type's own either way.
+    template<typename F> void ForEachField(const TypeInfo &sti, const TIField *slots, F f) const {
+        auto packed = [&](iint s, const PackedField &pf) {
+            f(FieldInfo{ pf.type, s, pf.bitoff, pf.bits, GetTypeInfo(pf.type).t == RTT_FLOAT,
+                         slots[s].defval });
+        };
+        if (sti.IsFamilyStruct()) {
+            for (auto &field : vma.meta->udts[sti.structidx].fields) {
+                auto s = (iint)field.offset;
+                if (field.bits) {
+                    for (auto &pf : PackedFields(sti.elemtypes[s].packed)) {
+                        if (pf.bitoff == field.bitoff) {
+                            packed(s, pf);
+                            break;
+                        }
+                    }
+                } else {
+                    f(FieldInfo{ sti.GetElemOrParent(s), s, 0, 0, false, slots[s].defval });
+                }
+            }
+            return;
+        }
+        for (iint s = 0; s < sti.len; s++) {
+            auto &tf = sti.elemtypes[s];
+            if (tf.parent < 0 && tf.packed >= 0) {
+                for (auto &pf : PackedFields(tf.packed)) packed(s, pf);
+                continue;
+            }
+            // A field that is a struct is all of that struct's slots, which its type is the
+            // parent of.
+            auto type = sti.GetElemOrParent(s);
+            f(FieldInfo{ type, s, 0, 0, false, slots[s].defval });
+            auto &fti = GetTypeInfo(type);
+            if (RTIsStruct(fti.t)) s += fti.len - 1;
+        }
+    }
+    template<typename F> void ForEachField(const TypeInfo &sti, F f) const {
+        ForEachField(sti, sti.elemtypes, f);
+    }
+    // The default value of a scalar field, or 0 / 0.0 when it has none, see FieldInfo::defval.
+    Value FieldDefault(const FieldInfo &f) const {
+        if (f.bits) {
+            auto slot = GetDefaultScalar<iint>(f.defval);
+            auto in_slot = f;
+            in_slot.slot = 0;
+            return LoadField(&slot, in_slot);
+        }
+        return GetTypeInfo(f.type).t == RTT_FLOAT ? Value(GetDefaultScalar<double>(f.defval))
+                                                  : Value(GetDefaultScalar<iint>(f.defval));
     }
     template<typename T> T GetDefaultScalar(type_elem_t offset) const {
         if (!offset) return T{};

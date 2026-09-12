@@ -162,7 +162,9 @@ struct Field FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef FieldBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
-    VT_OFFSET = 6
+    VT_OFFSET = 6,
+    VT_BITOFF = 8,
+    VT_BITS = 10
   };
   const ::flatbuffers::String *name() const {
     return GetPointer<const ::flatbuffers::String *>(VT_NAME);
@@ -170,11 +172,19 @@ struct Field FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   int32_t offset() const {
     return GetField<int32_t>(VT_OFFSET, 0);
   }
+  int32_t bitoff() const {
+    return GetField<int32_t>(VT_BITOFF, 0);
+  }
+  int32_t bits() const {
+    return GetField<int32_t>(VT_BITS, 0);
+  }
   bool Verify(::flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
            VerifyField<int32_t>(verifier, VT_OFFSET, 4) &&
+           VerifyField<int32_t>(verifier, VT_BITOFF, 4) &&
+           VerifyField<int32_t>(verifier, VT_BITS, 4) &&
            verifier.EndTable();
   }
 };
@@ -188,6 +198,12 @@ struct FieldBuilder {
   }
   void add_offset(int32_t offset) {
     fbb_.AddElement<int32_t>(Field::VT_OFFSET, offset, 0);
+  }
+  void add_bitoff(int32_t bitoff) {
+    fbb_.AddElement<int32_t>(Field::VT_BITOFF, bitoff, 0);
+  }
+  void add_bits(int32_t bits) {
+    fbb_.AddElement<int32_t>(Field::VT_BITS, bits, 0);
   }
   explicit FieldBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -203,8 +219,12 @@ struct FieldBuilder {
 inline ::flatbuffers::Offset<Field> CreateField(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     ::flatbuffers::Offset<::flatbuffers::String> name = 0,
-    int32_t offset = 0) {
+    int32_t offset = 0,
+    int32_t bitoff = 0,
+    int32_t bits = 0) {
   FieldBuilder builder_(_fbb);
+  builder_.add_bits(bits);
+  builder_.add_bitoff(bitoff);
   builder_.add_offset(offset);
   builder_.add_name(name);
   return builder_.Finish();
@@ -213,12 +233,16 @@ inline ::flatbuffers::Offset<Field> CreateField(
 inline ::flatbuffers::Offset<Field> CreateFieldDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
-    int32_t offset = 0) {
+    int32_t offset = 0,
+    int32_t bitoff = 0,
+    int32_t bits = 0) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   return metadata::CreateField(
       _fbb,
       name__,
-      offset);
+      offset,
+      bitoff,
+      bits);
 }
 
 struct UDT FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {

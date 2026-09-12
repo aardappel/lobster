@@ -308,7 +308,8 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metad
                     auto udt = bcf->udts()->Get(i);
                     for (flatbuffers::uoffset_t j = 0; j < udt->fields()->size(); j++) {
                         auto field = udt->fields()->Get(j);
-                        fields.push_back(VMField{ field->name()->string_view(), field->offset() });
+                        fields.push_back(VMField{ field->name()->string_view(), field->offset(),
+                                                  field->bitoff(), field->bits() });
                     }
                 }
                 size_t off = 0;

@@ -50,129 +50,120 @@ struct Deserializer {
         is_ref.reserve(16);
     }
 
-    // Pushes a value of a struct in an abstract struct family, see TypeInfo::IsFamilyStruct:
-    // `field(f, slot, eti)` pushes the value of each field of `dti` (the member it is) in
-    // turn, in field order, which is the order the serialized forms have them in. Those
-    // then get moved to the slots the layout has the fields at (in whatever order, see
-    // SymbolTable::LayoutFamily), with the family index of the member in the first slot,
-    // and 0 or nil in the padding, by the kind of value the slot holds.
-    template<typename F> void PushFamilyStruct(const TypeInfo &dti, bool push, F field) {
-        auto &fields = vm.vma.meta->udts[dti.structidx].fields;
-        auto start = stack.size();
-        vector<size_t> starts;
-        for (size_t f = 0; f < fields.size(); f++) {
-            starts.push_back(stack.size() - start);
-            auto slot = fields[f].offset;
-            field(f, slot, dti.GetElemOrParent(slot));
-        }
-        if (!push) return;
-        vector<Value> vals(stack.begin() + start, stack.end());
-        vector<bool> refs(is_ref.begin() + start, is_ref.end());
-        stack.erase(stack.begin() + start, stack.end());
-        is_ref.erase(is_ref.begin() + start, is_ref.end());
-        for (int s = 0; s < dti.len;) {
-            if (!s) {
-                PushV((iint)dti.family_index);
-                s++;
-                continue;
+    // The slots of a struct or class value, all 0 (which is 0, 0.0 and nil for every kind of
+    // slot, and what the bits no field has of a slot must be, see FieldInfo), for its fields to
+    // be stored into as they are parsed, see StoreFieldFromTop. For a struct in an abstract
+    // struct family, the first slot holds the family index of the member it is.
+    size_t ReserveSlots(const TypeInfo &ti) {
+        auto base = stack.size();
+        for (int i = 0; i < ti.len; i++) PushV(Value(0));
+        if (ti.IsFamilyStruct()) stack[base] = Value((iint)ti.family_index);
+        return base;
+    }
+
+    // Moves the value on top of the stack (all of its slots, for a struct) into field `f` of
+    // the struct or class value whose slots start at `base`, see ReserveSlots.
+    void StoreFieldFromTop(size_t base, const FieldInfo &f) {
+        auto &fti = vm.GetTypeInfo(f.type);
+        if (RTIsStruct(fti.t)) {
+            auto n = (size_t)fti.len;
+            auto from = stack.size() - n;
+            for (size_t j = 0; j < n; j++) {
+                stack[base + f.slot + j] = stack[from + j];
+                is_ref[base + f.slot + j] = is_ref[from + j];
             }
-            size_t f = 0;
-            while (f < fields.size() && fields[f].offset != s) f++;
-            if (f < fields.size()) {
-                auto &ti = vm.GetTypeInfo(dti.GetElemOrParent(s));
-                auto width = RTIsStruct(ti.t) ? ti.len : 1;
-                for (int j = 0; j < width; j++) {
-                    auto k = starts[f] + j;
-                    // A field the parser could not complete leaves a gap, which the error
-                    // it reports covers.
-                    if (k < vals.size()) PushV(vals[k], refs[k]); else PushV(NilVal());
-                }
-                s += width;
-            } else {
-                auto &pti = vm.GetTypeInfo(dti.elemtypes[s].type);
-                if (pti.t == RTT_INT) PushV((iint)0); else PushV(NilVal());
-                s++;
-            }
+            PopVN(n);
+        } else {
+            auto ir = is_ref.back();
+            auto v = PopV();
+            StoreField(&stack[base], f, v);
+            is_ref[base + f.slot] = ir;
         }
     }
 
-    bool PushDefault(type_elem_t typeoff, type_elem_t defval, const TIField *fields) {
-        auto &ti = vm.GetTypeInfo(typeoff);
+    // Replaces the slots of a class value on top of the stack (see ReserveSlots) by the object
+    // holding them.
+    void PushObject(const TypeInfo &ti, type_elem_t typeoff) {
+        auto obj = vm.NewObject(ti.len, typeoff);
+        if (ti.len) obj->CopyElemsShallow(&stack[stack.size() - (size_t)ti.len], ti.len);
+        PopVN(ti.len);
+        PushV(obj, true);
+    }
+
+    // Pushes the default value of a field (see FieldInfo::defval), or of a type when `f` is
+    // just that, false when there is none. For a field that is a struct or class, that is a
+    // value with the defaults of all its fields, which come from `slots`: the slots of the
+    // struct the field is in when given, which hold the defaults a constructor default of the
+    // field gave them (see CodeGen::PushDefaultValues), else from its own type, or for a class
+    // from the constructor default the field's default is.
+    bool PushDefault(const FieldInfo &f, const TIField *slots) {
+        auto &ti = vm.GetTypeInfo(f.type);
         if (ti.is_nil) {
             PushV(NilVal());
             return true;
         }
-        if (ti.IsFamilyStruct()) {
-            // The default of the type slot says which member the default value is (the
-            // type itself, or another member the parent's default constructs), by family
-            // index, and there is none for the abstract ones (which the root, at index 0,
-            // is).
-            auto index = vm.GetDefaultScalar<iint>(fields ? fields[0].defval
-                                                          : ti.elemtypes[0].defval);
-            if (!index) return false;
-            auto &root = vm.GetTypeInfo(ti.family_root);
-            auto &dti = vm.GetTypeInfo(root.FamilyMembers()[index]);
-            auto ok = true;
-            PushFamilyStruct(dti, true, [&](size_t, int slot, type_elem_t eti) {
-                auto dv = fields ? fields[slot].defval : dti.elemtypes[slot].defval;
-                if (ok && !PushDefault(eti, dv, fields ? &fields[slot] : &dti.elemtypes[slot]))
-                    ok = false;
-            });
-            return ok;
-        }
         switch (ti.t) {
-            case RTT_INT: {
-                auto dv = vm.GetDefaultScalar<iint>(defval);
-                PushV(dv);
-                break;
-            }
-            case RTT_FLOAT: {
-                auto dv = vm.GetDefaultScalar<double>(defval);
-                PushV(dv);
-                break;
-            }
+            case RTT_INT:
+            case RTT_FLOAT:
+                PushV(vm.FieldDefault(f));
+                return true;
             case RTT_STRING:
                 PushV(vm.NewString(0), true);
-                break;
+                return true;
             case RTT_VECTOR:
-                PushV(vm.NewVec(0, 0, typeoff), true);
-                break;
+                PushV(vm.NewVec(0, 0, f.type), true);
+                return true;
             case RTT_STRUCT_S:
             case RTT_STRUCT_R:
             case RTT_CLASS: {
-                 if (defval) {
-                    // The parent's field's default value was a constructor with all constant values.
-                    for (int i = 0; i < ti.len; i++) {
-                        auto dv = ti.t == RTT_CLASS
-                            ? ((type_elem_t *)&vm.GetTypeInfo(defval))[i]
-                            : fields[i].defval;
-                        auto ok = PushDefault(ti.elemtypes[i].type, dv, nullptr);
-                        assert(ok);  // Codegen should only have emitted these for types we can handle.
-                        if (!ok)
-                            return false;
+                vector<TIField> agg;
+                const TIField *fslots;
+                if (ti.t == RTT_CLASS) {
+                    fslots = ti.elemtypes;
+                    if (f.defval) {
+                        // Its own slots, with the defaults of the constructor, per slot.
+                        auto dvs = (const type_elem_t *)&vm.GetTypeInfo(f.defval);
+                        for (int i = 0; i < ti.len; i++) {
+                            agg.push_back(ti.elemtypes[i]);
+                            agg.back().defval = dvs[i];
+                        }
+                        fslots = agg.data();
                     }
                 } else {
-                    // No constructor default, can only succeed if all fields have default values.
-                    for (int i = 0; i < ti.len; i++) {
-                        // This deals with structs inline.
-                        if (!PushDefault(ti.elemtypes[i].type, ti.elemtypes[i].defval, nullptr))
-                            return false;
+                    fslots = slots ? slots + f.slot : ti.elemtypes;
+                }
+                auto dti = &ti;
+                if (ti.IsFamilyStruct()) {
+                    // The default of the type slot says which member the default value is
+                    // (the type itself, or another member the constructor default is of), by
+                    // family index, and there is none for the abstract ones (which the root,
+                    // at index 0, is).
+                    auto index = FamilyIndexOf(vm.GetDefaultScalar<iint>(fslots[0].defval));
+                    if (!index) return false;
+                    dti = &vm.GetTypeInfo(vm.GetTypeInfo(ti.family_root).FamilyMembers()[index]);
+                }
+                auto base = ReserveSlots(*dti);
+                auto ok = true;
+                vm.ForEachField(*dti, fslots, [&](const FieldInfo &sf) {
+                    if (!ok) return;
+                    if (!PushDefault(sf, fslots)) {
+                        ok = false;
+                        return;
                     }
-                }
-                if (ti.t == RTT_CLASS) {
-                    auto vec = vm.NewObject(ti.len, typeoff);
-                    if (ti.len) vec->CopyElemsShallow(&stack[stack.size() - (size_t)ti.len], ti.len);
-                    PopVN(ti.len);
-                    PushV(vec, true);
-                }
-                break;
+                    StoreFieldFromTop(base, sf);
+                });
+                if (!ok) return false;
+                if (ti.t == RTT_CLASS) PushObject(ti, f.type);
+                return true;
             }
             default:
                 return false;
         }
-        return true;
     }
 
+    bool PushDefault(type_elem_t typeoff) {
+        return PushDefault(FieldInfo{ typeoff, 0, 0, 0, false, (type_elem_t)0 }, nullptr);
+    }
     pair<const TypeInfo *, type_elem_t> LookupSubClass(string_view sname,
             const TypeInfo *ti, type_elem_t typeoff) {
         // Attempt to find this a subsclass.
@@ -278,29 +269,27 @@ struct LobsterBinaryParser : Deserializer {
                         Error(cat("serialization id ", ser_id, " is not a sub-class of ",
                                   vm.StructName(*ti)));
                     ti = &vm.GetTypeInfo(typeoff);
-                    auto stack_start = stack.size();
-                    auto NumElems = [&]() { return iint(stack.size() - stack_start); };
-                    for (int i = 0; NumElems() != ti->len; i++) {
-                        auto eti = ti->GetElemOrParent(NumElems());
-                        if (NumElems() >= elen) {
-                            if (!PushDefault(eti, ti->elemtypes[NumElems()].defval,
-                                             &ti->elemtypes[NumElems()]))
+                    // The fields the writer had (see LObject::ToLobsterBinary), any this
+                    // version of the class has beyond them getting their defaults.
+                    auto base = ReserveSlots(*ti);
+                    int fi = 0;
+                    vm.ForEachField(*ti, [&](const FieldInfo &f) {
+                        if (fi >= elen) {
+                            if (!PushDefault(f, ti->elemtypes))
                                 Error("no default value exists for missing field " +
-                                      vm.LookupField(ti->structidx, i));
+                                      vm.LookupField(ti->structidx, fi));
                         } else {
-                            ParseElem(data, end, eti);
+                            ParseElem(data, end, f.type);
                         }
-                    }
-                    if (elen > NumElems()) {
+                        StoreFieldFromTop(base, f);
+                        fi++;
+                    });
+                    if (elen > fi) {
                         // We have fields from a future version of this class, sadly we don't
                         // know how to read past these fields since we have no type data.
                         Error("extra fields presents in " + vm.StructName(*ti));
                     }
-                    auto len = NumElems();
-                    auto vec = vm.NewObject(len, typeoff);
-                    if (len) vec->CopyElemsShallow(stack.size() - len + stack.data(), len);
-                    PopVN(len);
-                    PushV(vec, true);
+                    PushObject(*ti, typeoff);
                 }
                 break;
             }
@@ -315,19 +304,14 @@ struct LobsterBinaryParser : Deserializer {
                         Error(cat("serialization id ", ser_id, " is not a sub-struct of ",
                                   vm.StructName(*ti)));
                     ti = &vm.GetTypeInfo(typeoff);
-                    PushFamilyStruct(*ti, true, [&](size_t, int, type_elem_t eti) {
-                        ParseElem(data, end, eti);
-                    });
-                    break;
                 }
-                auto stack_start = stack.size();
-                auto NumElems = [&]() { return iint(stack.size() - stack_start); };
                 // NOTE: this provides no protection against structs changing in size,
                 // unlike classes. It will simply parse wrong.
-                while (NumElems() != ti->len) {
-                    auto eti = ti->GetElemOrParent(NumElems());
-                    ParseElem(data, end, eti);
-                }
+                auto base = ReserveSlots(*ti);
+                vm.ForEachField(*ti, [&](const FieldInfo &f) {
+                    ParseElem(data, end, f.type);
+                    StoreFieldFromTop(base, f);
+                });
                 break;
             }
             default:

@@ -20,6 +20,7 @@ import .vectors
 import .structs
 import .abstract_structs
 import .unions
+import .packed_fields
 import .vecutils
 import .control
 import .codegen_names

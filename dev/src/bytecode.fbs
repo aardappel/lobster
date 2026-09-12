@@ -25,7 +25,10 @@ table Function {
 
 table Field {
     name:string;
-    offset:int;
+    offset:int;  // The slot.
+    // For a field stored in part of its slot: the bits it has there, 0 for a whole slot.
+    bitoff:int;
+    bits:int;
 }
 
 table UDT {

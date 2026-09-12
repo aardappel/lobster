@@ -218,6 +218,36 @@ Optionally, you specify a supertype, which has the effect of adding all the
 fields of the supertype to the current type, thus making it an extension of the
 former.
 
+### Fields stored in fewer bits
+
+A field of type `int`, `float` or an enum can be given a storage width behind its type,
+which makes the struct or class it is in smaller:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct pixel:
+    r:int<8>
+    g:int<8>
+    b:int<8>
+    a:int<8>
+    depth:float<32>
+    visible:bool<8>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This only affects storage: reading such a field gives a plain `int` / `float` / enum value
+like any other field (an int is sign extended from its bits, so `int<8>` holds -128 to
+127), and writing one stores just its low bits (or the value rounded to a 32-bit float),
+silently. An `int` (or enum) may be any multiple of 8 bits, a `float` 32 bits (64 for
+either just means a normal field). Fields declared next to each other share one 64-bit
+slot while they fit, in order, so the above takes 2 slots rather than 6: the program
+decides which fields get the bits that are left over by how it orders them. The slot in
+which a struct in an abstract struct family (see below) carries its type takes part as
+well: the type is the low 8 bits of it, and the first fields of each member that fit in the
+other 56 share it, so a whole family of small structs can be a single slot. Otherwise
+these fields are invisible: they print, serialize and compare like any other. What is not
+allowed on a struct with such fields is what treats all fields as one numeric type: vector
+math (`pixel + pixel`), indexing it like a vector (`p[i]`), and passing it to builtins that
+take a numeric struct.
+
 ### Generic UDTs
 
 The above example uses ints directly, but you
