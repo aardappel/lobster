@@ -1110,7 +1110,7 @@ struct TypeChecker {
             if (visited.insert(g).second) {
                 for (auto &f : g->fields) {
                     if (f.gdefaultval &&
-                        CheckRecursiveDefault(origin, fname, f.gdefaultval, visited, errn))
+                        CheckRecursiveDefault(origin, fname, f.gdefaultval.get(), visited, errn))
                         return true;
                 }
             }
@@ -1164,13 +1164,14 @@ struct TypeChecker {
                 continue;
             }
             set<GUDT *> visited;
-            if (CheckRecursiveDefault(&udt.g, f.id->name, f.gdefaultval, visited, errn)) {
+            if (CheckRecursiveDefault(&udt.g, f.id->name, f.gdefaultval.get(), visited, errn)) {
                 // Every construction site would otherwise clone the recursion in.
                 auto line = f.gdefaultval->line;
-                delete f.gdefaultval;
-                f.gdefaultval = new ErrorValue(line);
+                // Replace only this field's default; inherited declarations can still
+                // hold the original expression and recover independently.
+                f.gdefaultval.reset(new ErrorValue(line));
             }
-            sfield.defaultval = clone_default(f.gdefaultval);
+            sfield.defaultval = clone_default(f.gdefaultval.get());
             if (!sfield.type.Null()) {
                 // Type was specified explicitly or CFType succeeded, we are done.
                 sfield.defaultval->exptype = sfield.type;
@@ -1203,7 +1204,7 @@ struct TypeChecker {
                 DecBorrowers(sfield.defaultval->lt, errn);
                 // FIXME: because the above may do things like insert coercions etc in exp,
                 // we have to undo that here.
-                auto n = clone_default(f.gdefaultval);
+                auto n = clone_default(f.gdefaultval.get());
                 n->exptype = sfield.defaultval->exptype;  // FIXME: even safer if this was not set.
                 delete sfield.defaultval;
                 sfield.defaultval = n;

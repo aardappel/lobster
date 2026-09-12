@@ -258,6 +258,22 @@ def typecheck_recovery_tests():
         return 1
         """, [ "recursively constructs", "requires type `float`, got `string`" ])
 
+    // Recovering from a recursive default on a superclass replaces only its copy of the
+    // default pointer. Inherited fields must retain a valid declaration expression.
+    expect_errors("""
+        class Base:
+            s = "s"
+            next = Base {}
+        class Child : Base
+            c = 1
+        class Grandchild : Child
+            g = 2
+        print(Child {}.s)
+        print(Grandchild {}.s)
+        let z:float = "s"
+        return 1
+        """, [ "recursively constructs", "requires type `float`, got `string`" ])
+
     // Vectors and indexing.
     expect_errors("""
         let v = [ 1, "a" ]

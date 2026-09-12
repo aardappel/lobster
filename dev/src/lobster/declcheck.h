@@ -29,7 +29,6 @@ struct DeclChecker {
     set<Overload *> bodies_walked;
     set<Function *> default_args_walked;
     set<GUDT *> field_defaults_walked;
-    set<GUDT *> field_defaults_inherited;
 
     DeclChecker(SymbolTable &st, NativeRegistry &natreg) : st(st), natreg(natreg) {}
 
@@ -92,10 +91,6 @@ struct DeclChecker {
         for (auto f : st.functiontable) {
             for (auto ov : f->overloads) WalkBody(ov);
         }
-        // Parsing copied inherited defaults before their calls had lexical bindings. Only
-        // copy the resolved expressions after every declaration site has been visited: a
-        // pre-declared superclass's definition can come after its subclasses.
-        for (auto gudt : st.gudttable) InheritFieldDefaults(gudt);
     }
 
     // Superclass fields are copied into subclasses at parse time, which
@@ -192,20 +187,6 @@ struct DeclChecker {
                 const_cast<ValueType &>(udt->thistype.t) = hasref ? V_STRUCT_R : V_STRUCT_S;
                 changed = true;
             }
-        }
-    }
-
-    void InheritFieldDefaults(GUDT *gudt) {
-        if (!field_defaults_inherited.insert(gudt).second) return;
-        auto sup = GetGUDTAny(gudt->gsuperclass);
-        if (!sup) return;
-        InheritFieldDefaults(sup);
-        for (size_t i = 0; i < sup->fields.size(); i++) {
-            auto &field = gudt->fields[i];
-            assert(field.id == sup->fields[i].id);
-            auto original = sup->fields[i].gdefaultval;
-            delete field.gdefaultval;
-            field.gdefaultval = original ? original->Clone(true) : nullptr;
         }
     }
 
@@ -355,7 +336,7 @@ struct DeclChecker {
         }
         if (auto gr = Is<GUDTRef>(&n)) {
             // Only this class's own defaults belong to its declaration scope. Inherited
-            // defaults retain their superclass's bindings, see InheritFieldDefaults.
+            // defaults share their superclass's expression, so receive its bindings there.
             if (!gr->predeclaration && field_defaults_walked.insert(gr->gudt).second) {
                 auto sup = GetGUDTAny(gr->gudt->gsuperclass);
                 auto inherited = sup ? sup->fields.size() : 0;

@@ -814,17 +814,15 @@ bool UnaryMinus::IsConstInit() const { return child->IsConstInit(); }
 
 SubFunction::~SubFunction() { if (sbody) delete sbody; }
 
-Field::~Field() { delete gdefaultval; }
-
-Field::Field(const Field &o)
-    : id(o.id),
-      giventype(o.giventype),
-      gdefaultval(o.gdefaultval ? o.gdefaultval->Clone(true) : nullptr),
-      isprivate(o.isprivate),
-      in_scope(o.in_scope),
-      member_of(o.member_of),
-      bits(o.bits),
-      defined_in(o.defined_in) {}
+// Construct the shared default here, where Node is complete for its deleter.
+Field::Field(SharedField *_id, UnTypeRef _type, Node *_gdefaultval, bool isprivate,
+             bool in_scope, const Line &defined_in)
+    : id(_id),
+      giventype(_type),
+      gdefaultval(_gdefaultval),
+      isprivate(isprivate),
+      in_scope(in_scope),
+      defined_in(defined_in) {}
 
 UDT::~UDT() {
     for (auto &sfield : sfields) {

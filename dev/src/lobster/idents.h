@@ -217,7 +217,9 @@ struct Overload;
 struct Field {
     SharedField *id;
     UnTypeRef giventype;
-    Node *gdefaultval;
+    // Inherited fields share the declaration's default, including the lexical bindings
+    // the declchecker adds there. Typechecking and construction only work on clones.
+    shared_ptr<Node> gdefaultval;
     bool isprivate;
     bool in_scope;  // Whether the `member` statement declaring it has been reached.
     // The method a `member` declared this in, null for an ordinary field. Only
@@ -229,41 +231,7 @@ struct Field {
     Line defined_in;
 
     Field(SharedField *_id, UnTypeRef _type, Node *_gdefaultval, bool isprivate,
-          bool in_scope, const Line &defined_in)
-        : id(_id),
-          giventype(_type),
-          gdefaultval(_gdefaultval),
-          isprivate(isprivate),
-          in_scope(in_scope),
-          defined_in(defined_in) {}
-    Field(const Field &o);
-    // Moves transfer ownership of gdefaultval, so vector operations that
-    // shift elements (like insert) can't end up sharing it. Copy assignment
-    // would, so it stays deleted.
-    Field(Field &&o) noexcept
-        : id(o.id),
-          giventype(o.giventype),
-          gdefaultval(o.gdefaultval),
-          isprivate(o.isprivate),
-          in_scope(o.in_scope),
-          member_of(o.member_of),
-          bits(o.bits),
-          defined_in(o.defined_in) {
-        o.gdefaultval = nullptr;
-    }
-    Field &operator=(Field &&o) noexcept {
-        std::swap(id, o.id);
-        std::swap(giventype, o.giventype);
-        std::swap(gdefaultval, o.gdefaultval);
-        std::swap(isprivate, o.isprivate);
-        std::swap(member_of, o.member_of);
-        std::swap(in_scope, o.in_scope);
-        std::swap(bits, o.bits);
-        std::swap(defined_in, o.defined_in);
-        return *this;
-    }
-    Field &operator=(const Field &o) = delete;
-    ~Field();
+          bool in_scope, const Line &defined_in);
 };
 
 struct SField {
