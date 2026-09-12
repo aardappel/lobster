@@ -19,52 +19,50 @@ struct Optimizer {
     TypeChecker &tc;
     size_t total_changes = 0;
     vector<SubFunction *> sfstack;
-    bool functions_removed = false;
+    vector<bool> optimized;
+    // Functions reading each variable from an enclosing scope. Both tables belong only to
+    // this pass; specialization and variable indices are stable throughout optimization.
+    vector<int> freevar_reads;
     int runtime_checks;
     size_t always_inline = 32;
     size_t never_inline = 256;
 
     // A function this one is about to absorb reads whatever it read from an enclosing scope
     // from inside this one now, so those reads no longer happen in a body of their own, see
-    // SpecIdent::freevar_reads.
-    static void ForgetFreeVars(const SubFunction &sf) {
+    // freevar_reads.
+    void ForgetFreeVars(const SubFunction &sf) {
         for (auto &fv : sf.freevars) {
-            assert(fv.sid->freevar_reads > 0);
-            fv.sid->freevar_reads--;
+            assert(freevar_reads[fv.sid->idx] > 0);
+            freevar_reads[fv.sid->idx]--;
         }
     }
 
     Optimizer(SymbolTable &_st, TypeChecker &_tc, int runtime_checks)
-        : st(_st), tc(_tc), runtime_checks(runtime_checks) {
+        : st(_st), tc(_tc), optimized(st.subfunctiontable.size()),
+          freevar_reads(st.specidents.size()), runtime_checks(runtime_checks) {
+        // Keep the existing order, including untypechecked specializations before live ones.
+        // Inlining unlinks specializations (and can erase an overload), but the symbol table
+        // owns the SubFunctions until compilation ends, so this worklist stays valid.
+        vector<SubFunction *> functions;
         for (auto f : st.functiontable)
             for (auto ov : f->overloads)
-                for (auto sf = ov->sf; sf; sf = sf->next)
-                    for (auto &fv : sf->freevars) fv.sid->freevar_reads++;
+                for (auto sf = ov->sf; sf; sf = sf->next) {
+                    functions.push_back(sf);
+                    for (auto &fv : sf->freevars) freevar_reads[fv.sid->idx]++;
+                }
         if (runtime_checks >= RUNTIME_DEBUG) {
             // User wants to see useful stack-traces, only inline the tiniest of functions.
             always_inline = 4;
             never_inline = 8;
         }
         // We don't optimize parser.root, it only contains a single call.
-        for (auto f : st.functiontable) {
-            again:
-            for (auto ov : f->overloads) {
-                // The head of this chain is the newest specialization, which may be one that
-                // was cloned at a call site and then never typechecked, so this cannot stop at
-                // an untypechecked one: the ones behind it are what the codegen emits.
-                for (auto sf = ov->sf; sf; sf = sf->next) {
-                    functions_removed = false;
-                    OptimizeFunction(*sf);
-                    if (functions_removed) goto again;
-                }
-            }
-        }
+        for (auto sf : functions) OptimizeFunction(*sf);
         LOG_INFO("optimizer: ", total_changes, " optimizations");
     }
 
     void OptimizeFunction(SubFunction &sf) {
-        if (sf.optimized) return;
-        sf.optimized = true;
+        if (optimized[sf.idx]) return;
+        optimized[sf.idx] = true;
         if (!sf.sbody) return;
         if (!sf.typechecked) {
             delete sf.sbody;
@@ -329,11 +327,12 @@ Node *Call::Optimize(Optimizer &opt) {
         delete sf->sbody;
         sf->sbody = nullptr;
         sf->node_count = 0;
-        opt.functions_removed = sf->parent->RemoveSubFunction(sf);
+        auto removed = sf->parent->RemoveSubFunction(sf);
         // Its body is part of the caller now, so whatever it read from an enclosing scope is no
         // longer read from a body of its own.
         opt.ForgetFreeVars(*sf);
-        assert(opt.functions_removed);
+        assert(removed);
+        (void)removed;
     } else {
         for (auto c : sf->sbody->children) {
             auto nc = c->Clone(false);
@@ -380,7 +379,7 @@ Node *Call::Optimize(Optimizer &opt) {
         auto def = AssertIs<Define>(list->children[i]);
         assert(def->tsids.size() == 1);
         auto sid = def->tsids[0].sid;
-        if (!sid->id->single_assignment || sid->freevar_reads) continue;
+        if (!sid->id->single_assignment || opt.freevar_reads[sid->idx]) continue;
         bs.push_back({ i, sid, def->child->IsConstProp(sid->type) ? def->child : nullptr, false });
     }
     if (!bs.empty()) {

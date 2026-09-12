@@ -122,7 +122,6 @@ struct SpecIdent {
     int idx, sidx = -1;             // Into specidents, and into vm ordering.
     SubFunction *sf_def = nullptr;  // Where it is defined, including anonymous functions.
     bool used_as_freevar = false;   // determined in codegen.
-    int freevar_reads = 0;          // functions reading it from an enclosing scope, in the optimizer.
     bool withtype = false;
     Node *constprop = nullptr;      // We are going to constant propagate this var, which avoids it being a freevar, and the optimizer will replace it.
     // For a borrowed parameter: the variable (and field path from it) the current call passed,
@@ -784,7 +783,6 @@ struct SubFunction {
     bool freevarchecked = false;
     bool mustspecialize = false;
     bool isdynamicfunctionvalue = false;
-    bool optimized = false;
     bool explicit_generics = false;
     int returned_thru_to_max = -1;  // >=0: there exist return statements that may skip the caller.
     vector<int> returned_thru_function_ids;
