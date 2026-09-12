@@ -229,8 +229,6 @@ void RefObj::DECDELETE(VM &vm) {
     #endif
 }
 
-void RefObj::DECSTAT(VM &vm) { vm.vm_count_decref++; }
-
 bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural) {
     if (a == b) return true;
     if (!a || !b) return false;

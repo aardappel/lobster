@@ -262,9 +262,6 @@ struct RefObj : DynAlloc {
     void Dec(VM &vm) {
         refc--;
         if (g_rcstats_enabled) g_rcstat_vm_dec++;
-        #ifndef NDEBUG
-            DECSTAT(vm);
-        #endif
         #if DELETE_DELAY
             LOG_DEBUG("dec: ", (size_t)this, " - ", refc);
         #endif
@@ -285,7 +282,6 @@ struct RefObj : DynAlloc {
 
     void DECDELETE(VM &vm);
     void DECDELETENOW(VM &vm);
-    void DECSTAT(VM &vm);
 
     uint64_t Hash(VM &vm);
 
@@ -1007,11 +1003,6 @@ static_assert(sizeof(LVector) == (lvector_elems_offset + sizeof(Value *) + align
 // The characters of a string sit directly behind its header, which is all the mirror needs.
 static_assert(sizeof(LString) == sizeof(RefObj) + sizeof(iint));
 
-struct StackFrame {
-    const int *funstart;
-    iint spstart;
-};
-
 struct NativeFun;
 struct NativeRegistry;
 
@@ -1188,32 +1179,18 @@ struct VM : VMBase {
     VMArgs vma;
     SlabAlloc pool;
 
-    vector<type_elem_t> typetablebigendian;
-    uint64_t *byteprofilecounts = nullptr;
-
     PrintPrefs programprintprefs { 10, 100000, false, -1 };
     const type_elem_t *typetable = nullptr;
     pair<string, iint> evalret;
-
-    int currentline = -1;
-    iint maxsp = -1;
 
     PrintPrefs debugpp { 2, 50, true, -1 };
 
     string s_reuse;
 
-    vector<string> trace_output;
-    size_t trace_ring_idx = 0;
-
     vector<RefObj *> delete_delay;
 
     // Kept as Values so pushing one is a plain copy, which the generated code can do itself.
     vector<Value> constant_strings;
-
-    int64_t vm_count_ins = 0;
-    int64_t vm_count_fcalls = 0;
-    int64_t vm_count_bcalls = 0;
-    int64_t vm_count_decref = 0;
 
     iint frame_count = -1;
 

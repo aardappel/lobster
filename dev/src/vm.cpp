@@ -90,7 +90,6 @@ VM::VM(VMArgs &&vmargs)
 
 VM::~VM() {
     TerminateWorkers();
-    if (byteprofilecounts) delete[] byteprofilecounts;
 
     #if LOBSTER_FRAME_PROFILER == 2
         // FIXME: this is not ideal, because there may be multiple VMs.
