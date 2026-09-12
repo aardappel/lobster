@@ -4456,12 +4456,18 @@ struct CodeGen  {
         return true;
     }
 
-    void GenMathOp(const BinOp *n, size_t retval, MathOp op, bool divisor_safe = false) {
+    void GenMathOp(const BinOp *n, size_t retval, MathOp op) {
         if (retval && (op == MOP_EQ || op == MOP_NE) && GenStringConstCompare(n, op)) return;
         Gen(n->left, retval);
         Gen(n->right, retval);
-        if (retval)
+        if (retval) {
+            // The final tree already contains folded constants. Derive this here so cloning
+            // and substitution need no separate proof to preserve or invalidate. DivCheck
+            // can only fail on zero or minus one.
+            auto divisor = op == MOP_DIV || op == MOP_MOD ? Is<IntConstant>(n->right) : nullptr;
+            auto divisor_safe = divisor && divisor->integer != 0 && divisor->integer != -1;
             GenMathOp(n->left->exptype, n->right->exptype, n->exptype, op, divisor_safe);
+        }
     }
 
     // The type specialized helpers below come one per MathOp, in that order, so the name of each
@@ -4862,8 +4868,8 @@ void GreaterThanEq::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(th
 void LessThanEq   ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_LE);  }
 void GreaterThan  ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_GT);  }
 void LessThan     ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_LT);  }
-void Mod          ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_MOD, divisor_safe); }
-void Divide       ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_DIV, divisor_safe); }
+void Mod          ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_MOD); }
+void Divide       ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_DIV); }
 void Multiply     ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_MUL); }
 void Minus        ::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, MOP_SUB); }
 void Plus         ::Generate(CodeGen &cg, size_t retval) const {

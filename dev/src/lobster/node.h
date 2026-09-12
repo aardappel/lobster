@@ -246,10 +246,6 @@ struct TypeAnnotation : Node {
 
 #define RETURNSMETHOD bool Terminal(TypeChecker &tc) const;
 #define OPTMETHOD Node *Optimize(Optimizer &opt);
-// Set by the optimizer on a division or modulo whose divisor it proved to be neither zero
-// nor minus one, which is what lets the code generator write the operator rather than the
-// helper that checks, see CodeGen::BinExpr. DoClone copies it, so inlining preserves it.
-#define DIVISOR_SAFE bool divisor_safe = false;
 #define INITMETHOD bool IsConstInit() const;
 #define SIMPLEMETHOD TypeRef SimpleType(SymbolTable &);
 #define CONSTMETHOD ValueType ConstVal(TypeChecker *tc, VTValue &val) const;
@@ -265,8 +261,8 @@ BINOP_NODE(Plus, TName(T_PLUS), false, CONSTMETHOD)
 BINOP_NODE(Minus, TName(T_MINUS), false, CONSTMETHOD)
 BINOP_NODE(Multiply, TName(T_MULT), false, CONSTMETHOD)
 // These can fail at runtime, so evaluating them matters even when their value is unused.
-BINOP_NODE(Divide, TName(T_DIV), false, CONSTMETHOD OPTMETHOD DIVISOR_SAFE TRAPMETHOD)
-BINOP_NODE(Mod, TName(T_MOD), false, CONSTMETHOD OPTMETHOD DIVISOR_SAFE TRAPMETHOD)
+BINOP_NODE(Divide, TName(T_DIV), false, CONSTMETHOD TRAPMETHOD)
+BINOP_NODE(Mod, TName(T_MOD), false, CONSTMETHOD TRAPMETHOD)
 BINOP_NODE(And, TName(T_AND), false, CONSTMETHOD)
 BINOP_NODE(Or, TName(T_OR), false, CONSTMETHOD)
 UNARY_NODE(Not, TName(T_NOT), false, CONSTMETHOD)

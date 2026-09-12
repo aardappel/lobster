@@ -213,27 +213,6 @@ Node *FloatConstant::Optimize(Optimizer &) {
     return this;
 }
 
-// A divisor of neither zero nor minus one, which are the only two values the check in
-// DivCheck can fire on. The children have already been folded by Node::Optimize, so a constant
-// divisor is an IntConstant by now.
-static bool SafeDivisor(const Node *n) {
-    auto ic = Is<IntConstant>(n);
-    return ic && ic->integer != 0 && ic->integer != -1;
-}
-
-Node *Divide::Optimize(Optimizer &opt) {
-    auto r = Node::Optimize(opt);
-    // Node::Optimize deletes this when it folds the whole expression away.
-    if (r == this) divisor_safe = SafeDivisor(right);
-    return r;
-}
-
-Node *Mod::Optimize(Optimizer &opt) {
-    auto r = Node::Optimize(opt);
-    if (r == this) divisor_safe = SafeDivisor(right);
-    return r;
-}
-
 Node *IdentRef::Optimize(Optimizer &) {
     if (!sid->constprop) return this;
     auto con = sid->constprop->Clone(false);
