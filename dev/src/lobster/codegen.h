@@ -716,8 +716,9 @@ struct CodeGen  {
             }
         }
 
-        auto max_ser_ids = parser.serializable_id_max + 1;
-        ser_ids.resize(max_ser_ids, (type_elem_t)-1);
+        // Keep the empty table's existing sentinel slot. Grow from the ids of the UDTs
+        // being serialized, without carrying a separate maximum out of the parser.
+        ser_ids.resize(1, (type_elem_t)-1);
         for (auto udt : st.udttable) {
             udt->ComputeSizes(st);
             if (!udt->g.is_abstract) {
@@ -726,6 +727,8 @@ struct CodeGen  {
                 // not in code.
                 auto typeoff = GetTypeTableOffset(&udt->thistype);
                 if (udt->serializable_id >= 0) {
+                    if ((size_t)udt->serializable_id >= ser_ids.size())
+                        ser_ids.resize((size_t)udt->serializable_id + 1, (type_elem_t)-1);
                     // The declchecker checked these are unique.
                     assert(ser_ids[udt->serializable_id] < 0);
                     ser_ids[udt->serializable_id] = typeoff;

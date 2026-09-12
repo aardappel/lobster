@@ -30,7 +30,6 @@ struct Parser {
     };
     vector<BlockScope> block_stack;
     int serializable_id_last = -1;
-    int serializable_id_max = 0;
 
     Parser(NativeRegistry &natreg, Lex &lex, SymbolTable &st)
         : natreg(natreg), lex(lex), st(st) {}
@@ -832,8 +831,6 @@ struct Parser {
                                         Error("serializable attribute value out of range");
                                 }
                                 udt->serializable_id = serializable_id_last;
-                                serializable_id_max =
-                                    std::max(serializable_id_last, serializable_id_max);
                             }
                         }
                     } else {
