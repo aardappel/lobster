@@ -94,10 +94,8 @@ struct CodeGen  {
     string rc_tag, rc_extra;
     bool rc_suppress = false;
     vector<int> vtables;  // -1 = uninit, -2 and lower is case idx, positive is code offset.
-    // How many stack slots the code emitted so far leaves in use, and the most it has ever
-    // held, which is how many registers the function needs.
+    // How many stack slots the code emitted so far leaves in use.
     size_t tstack_size = 0;
-    size_t tstack_max = 0;
     const SubFunction *cursf = nullptr;
     bool cpp = false;
     // Set when the C output is going to be fed to MIR rather than libtcc, for any places where
@@ -119,7 +117,6 @@ struct CodeGen  {
     bool f_uses_pctx = false;
     int regso = 0;
     int f_function_idx = -1;
-    int f_regs_max = -1;
     // The C type a value is kept in, which its static type decides: the scalars as themselves,
     // every reference as a pointer to its header, and a function value as a pointer to it. Only
     // memory that any type can land in, the elements of a vector and the globals, holds Values.
@@ -179,7 +176,7 @@ struct CodeGen  {
     vector<Place> f_arg_places;
     Types f_ret_types;
     // Which kinds of value each stack slot holds, a bit per VKind, which decides the variables
-    // the function declares for it, only known at the end of its codegen like f_regs_max.
+    // the function declares for it, only known at the end of its codegen.
     vector<int> f_slot_kinds;
     vector<int> f_args;
     vector<int> f_defs;
@@ -223,7 +220,7 @@ struct CodeGen  {
     // variables once the modifier has written it, see EmitLvalStructIndex.
     struct { int idx = 0, width = 0; VKind k = VK_INT; } f_writeback;
     // How wide that array has to be, per numeric type one can be of, which is only known at the
-    // end of the codegen of the function like f_regs_max is.
+    // end of the codegen of the function.
     int f_stage_max[2] = { 0, 0 };
     bool has_profile = false;
     int nlabel = 0;
@@ -239,7 +236,6 @@ struct CodeGen  {
 
     void PushTemp() {
         tstack_size++;
-        tstack_max = std::max(tstack_max, tstack_size);
     }
 
     struct BlockStack {
@@ -745,7 +741,6 @@ struct CodeGen  {
         // Would be good if the optimizer guarantees these don't exist, but for now this is
         // more debuggable if it does happen to get called.
         f_function_idx = CODEGEN_SPECIAL_FUNCTION_ID_DUMMY;
-        f_regs_max = 0;
         f_args.clear();
         f_defs.clear();
         f_arg_places.clear();
@@ -778,7 +773,6 @@ struct CodeGen  {
 
         // Emit the root function.
         f_function_idx = CODEGEN_SPECIAL_FUNCTION_ID_ENTRY;
-        tstack_max = 0;
         f_args.clear();
         f_defs.clear();
         f_arg_places.clear();
@@ -797,7 +791,6 @@ struct CodeGen  {
             TrackUseDef(0, 0);
             append(cb, "    RtExitVoid(vm);\n");
         }
-        f_regs_max = (int)tstack_max;
         DefineFunction(c_codegen, false);
 
         // Now fill in the vtables.
@@ -899,7 +892,6 @@ struct CodeGen  {
 
     void GenScope(SubFunction &sf) {
         cursf = &sf;
-        tstack_max = 0;
         if (!sf.typechecked) {
             auto s = DumpNode(*sf.sbody, 0, false);
             LOG_DEBUG("untypechecked: ", sf.parent->name, " : ", s);
@@ -907,7 +899,6 @@ struct CodeGen  {
         }
 
         f_function_idx = sf.idx;
-        f_regs_max = 0;  // Not valid until end of codegen of this function.
         f_keeps.clear();  // Not valid until end of codegen of this function.
 
         auto ir = ReturnedOwnedVar(sf);
@@ -976,7 +967,6 @@ struct CodeGen  {
         assert(continues.empty());
         assert(inline_blocks.empty());
         assert(!tstack_size);
-        f_regs_max = (int)tstack_max;
         cursf = nullptr;
     }
 
@@ -3340,7 +3330,7 @@ struct CodeGen  {
         Types argtypes;
         for (auto &p : f_arg_places) argtypes.push_back(p.rtt);
         append(sd, FunSignature(FunName(sf_idx), argtypes, f_ret_types, &f_arg_places), " {\n");
-        // NOTE: f_keeps, f_slot_kinds, f_stage_max and f_regs_max are not known until the
+        // NOTE: f_keeps, f_slot_kinds and f_stage_max are not known until the
         // end of codegen of the function!
         vector<Place> slots, keeps, locals;
         for (auto [i, kinds] : enumerate(f_slot_kinds)) {
