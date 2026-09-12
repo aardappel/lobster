@@ -4778,12 +4778,12 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
             if (f->nargs() < nargs) continue;
             auto n2 = nargs;
             bool needs_self = false;
-            if (n2 < f->nargs() && !fromdot && (int)n2 + 1 >= f->first_default_arg &&
+            if (n2 < f->nargs() && !fromdot && n2 + 1 >= f->FirstDefaultArg() &&
                 find_self_arg(f).first) {
                 n2++;
                 needs_self = true;
             }
-            if (n2 < f->nargs() && (int)n2 >= f->first_default_arg) n2 = f->nargs();
+            if (n2 < f->nargs() && n2 >= f->FirstDefaultArg()) n2 = f->nargs();
             if (n2 != f->nargs()) continue;
             auto [rsf, rdist] =
                 udt && f->nargs() ? best_receiver_overload(f) : pair<SubFunction *, int>{ nullptr, -1 };
@@ -4819,7 +4819,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
             }
             if (nargs < f->nargs()) {
                 for (size_t i = nargs; i < f->nargs(); i++) {
-                    children.push_back(f->default_args[i - f->first_default_arg]->Clone(true));
+                    children.push_back(f->default_args[i - f->FirstDefaultArg()]->Clone(true));
                     tc.TT(children.back(), 1, LT_ANY);
                     nargs++;
                 }

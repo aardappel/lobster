@@ -1070,7 +1070,6 @@ struct Parser {
             id->cursid->withtype = true;
         }
         bool non_inline_method = false;
-        int first_default_arg = -1;
         node_small_vector default_args;
         if (lex.token != T_RIGHTPAREN && parseargs) {
             for (;;) {
@@ -1093,11 +1092,10 @@ struct Parser {
                     GenImplicitGenericForLastArg(sf, ov);
                 }
                 if (parens && IsNext(T_ASSIGN)) {
-                    if (first_default_arg < 0) first_default_arg = (int)sf->args.size() - 1;
                     st.PopOutOfFunctionScope([&]() {
                         default_args.push_back(ParseExp());
                     });
-                } else if (first_default_arg >= 0) {
+                } else if (!default_args.empty()) {
                     Error("missing default argument");
                     default_args.push_back(ErrorExp());
                 }
@@ -1120,14 +1118,12 @@ struct Parser {
                   " in a namespace");
         }
         // Check default args are being used consistently with the overloads & siblings.
-        if (first_default_arg < 0) first_default_arg = (int)nargs;
         auto is_constructor_of = is_constructor ? &st.StructUse(*name) : nullptr;
         if (f.overloads.empty()) {
-            f.first_default_arg = first_default_arg;
             f.default_args = default_args;
             f.is_constructor_of = is_constructor_of;
         } else {
-            if (f.first_default_arg != first_default_arg) {
+            if (f.default_args.size() != default_args.size()) {
                 Error("number of default arguments must be the same as previous overload");
                 for (auto da : default_args) delete da;
             } else {

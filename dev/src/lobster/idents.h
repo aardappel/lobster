@@ -859,7 +859,6 @@ struct Function : Named {
     size_t scopelevel;
 
     small_vector<Node *, 4> default_args;
-    int first_default_arg = -1;
 
     Function(string_view _name, int _idx, size_t _sl)
         : Named(_name, _idx), scopelevel(_sl) {
@@ -868,6 +867,8 @@ struct Function : Named {
     ~Function();
 
     size_t nargs() const { return overloads[0]->sf->args.size(); }
+
+    size_t FirstDefaultArg() const { return nargs() - default_args.size(); }
 
     int NumSubf() {
         int sum = 0;
