@@ -373,10 +373,6 @@ struct UDT : Named {
     // range [subtype_dfs, subtype_dfs_end].
     int subtype_dfs = -1;
     int subtype_dfs_end = -1;
-    // Intrusive list of direct subclasses (linked up in CodeGen), to traverse
-    // the inheritance forest for the above.
-    UDT *first_subclass = nullptr;
-    UDT *next_subclass = nullptr;
     vector<UDT *> subudts;  // Including self.
     string subudts_dispatched_where;
     // Subset of methods that participate in dynamic dispatch. Order in this table determines

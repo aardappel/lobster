@@ -607,13 +607,7 @@ struct CodeGen  {
         return offset;
     }
 
-    CodeGen(Parser &_p, SymbolTable &_st, const CompileOptions &opts, uint64_t src_hash,
-            string &c_codegen)
-        : parser(_p), st(_st), runtime_checks(opts.runtime_checks), rcstats(opts.rcstats),
-          cpp(!opts.jit_mode),
-          mir(opts.jit_mode && opts.jit_options.mir), c_codegen(c_codegen) {
-        node_context.push_back(parser.root);
-
+    void AssignSubtypeIDs() {
         // Assign ids to all UDTs in depth-first pre-order over the inheritance
         // forest, such that the ids of any UDT's subtree (including itself)
         // form a contiguous range, allowing ISSUBTYPE to test for subtype
@@ -621,21 +615,30 @@ struct CodeGen  {
         // here, so subclasses participate regardless of where they were
         // declared relative to uses of "is". The same ids, relative to the root, are what
         // the members of an abstract struct family go by, see UDT::FamilyIndex.
-        for (auto udt : st.udttable) {
-            if (udt->ssuperclass) {
-                udt->next_subclass = udt->ssuperclass->first_subclass;
-                udt->ssuperclass->first_subclass = udt;
-            }
-        }
+        // Only the resulting ranges belong to the UDTs. The child lists are scratch for
+        // this traversal, derived from the already resolved superclass links.
+        vector<vector<UDT *>> children(st.udttable.size());
+        for (auto udt : st.udttable)
+            if (udt->ssuperclass) children[udt->ssuperclass->idx].push_back(udt);
         int subtype_id = 0;
         auto assign_ids = [&](UDT *udt, auto &&assign_ids) -> void {
             udt->subtype_dfs = subtype_id++;
-            for (auto sub = udt->first_subclass; sub; sub = sub->next_subclass)
+            // Preserve the reverse declaration order of the former prepended child lists.
+            for (auto sub : reverse(children[udt->idx]))
                 assign_ids(sub, assign_ids);
             udt->subtype_dfs_end = subtype_id - 1;
         };
         for (auto udt : st.udttable)
             if (!udt->ssuperclass) assign_ids(udt, assign_ids);
+    }
+
+    CodeGen(Parser &_p, SymbolTable &_st, const CompileOptions &opts, uint64_t src_hash,
+            string &c_codegen)
+        : parser(_p), st(_st), runtime_checks(opts.runtime_checks), rcstats(opts.rcstats),
+          cpp(!opts.jit_mode),
+          mir(opts.jit_mode && opts.jit_options.mir), c_codegen(c_codegen) {
+        node_context.push_back(parser.root);
+        AssignSubtypeIDs();
 
         // Reserve space and index for all vtables. The members of an abstract struct family
         // get theirs at one stride from the root's, by family index, such that a dispatch
