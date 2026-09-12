@@ -1593,7 +1593,6 @@ struct TypeChecker {
         sf->attributes = esf->attributes;
         sf->lexical_parent = esf->lexical_parent;
         sf->overload = esf->overload;
-        sf->node_count = esf->node_count;
         return sf;
     }
 
@@ -1921,7 +1920,7 @@ struct TypeChecker {
         // so those get one specialization that any caller adjusts to: borrowing where the
         // function allows it, since that costs a caller passing a variable nothing, and a
         // caller passing an owned value the same as an owning parameter would.
-        auto single_spec = ov.sf->node_count > 25;
+        auto single_spec = ov.gbody_node_count > 25;
         // Check if we need to specialize: generic args, free vars and need of retval
         // must match previous calls.
         auto ArgLifetime = [&](const Node *c, const Arg &arg, size_t i) {
@@ -3531,7 +3530,7 @@ struct TypeChecker {
         // of how much the optimizer has increased node count too.
         for (auto sf : st.subfunctiontable) {
             if (!sf->sbody) continue;
-            auto count = sf->node_count;
+            auto count = sf->sbody->Count();
             if (!sf->next)        {
                 origsf++;
                 orignodes += count;

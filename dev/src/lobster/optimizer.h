@@ -19,7 +19,8 @@ struct Optimizer {
     TypeChecker &tc;
     size_t total_changes = 0;
     vector<SubFunction *> sfstack;
-    vector<bool> optimized;
+    // No value until visited; enter with zero before recursing, then record the final size.
+    vector<optional<size_t>> node_counts;
     // Functions reading each variable from an enclosing scope. Both tables belong only to
     // this pass; specialization and variable indices are stable throughout optimization.
     vector<int> freevar_reads;
@@ -38,7 +39,7 @@ struct Optimizer {
     }
 
     Optimizer(SymbolTable &_st, TypeChecker &_tc, int runtime_checks)
-        : st(_st), tc(_tc), optimized(st.subfunctiontable.size()),
+        : st(_st), tc(_tc), node_counts(st.subfunctiontable.size()),
           freevar_reads(st.specidents.size()), runtime_checks(runtime_checks) {
         // Keep the existing order, including untypechecked specializations before live ones.
         // Inlining unlinks specializations (and can erase an overload), but the symbol table
@@ -61,18 +62,17 @@ struct Optimizer {
     }
 
     void OptimizeFunction(SubFunction &sf) {
-        if (optimized[sf.idx]) return;
-        optimized[sf.idx] = true;
+        if (node_counts[sf.idx]) return;
+        node_counts[sf.idx] = 0;
         if (!sf.sbody) return;
         if (!sf.typechecked) {
             delete sf.sbody;
             sf.sbody = nullptr;
-            sf.node_count = 0;
             return;
         }
         sfstack.push_back(&sf);
         auto nb = sf.sbody->Optimize(*this);
-        sf.node_count = sf.sbody->Count();
+        node_counts[sf.idx] = sf.sbody->Count();
         assert(nb == sf.sbody);
         (void)nb;
         sfstack.pop_back();
@@ -253,10 +253,10 @@ Node *Call::Optimize(Optimizer &opt) {
     // Check if we should inline this call.
     if (!is_inlinable ||
         // Inline small functions even if called multiple times.
-        (sf->numcallers > 1 && sf->node_count >= opt.always_inline) ||
+        (sf->numcallers > 1 && *opt.node_counts[sf->idx] >= opt.always_inline) ||
         // Don't inline really gigantic functions, this helps with not flattening the call-graph too
         // much for stack traces, profiling and such, and may also make them easier to reg-alloc etc.
-        (sf->numcallers <= 1 && sf->node_count >= opt.never_inline) ||
+        (sf->numcallers <= 1 && *opt.node_counts[sf->idx] >= opt.never_inline) ||
         // Don't inline functions that are being profiled.
         (LOBSTER_FRAME_PROFILER && sf->attributes.find("profile") != sf->attributes.end())) {
         return this;
@@ -305,7 +305,6 @@ Node *Call::Optimize(Optimizer &opt) {
         sf->sbody->children.clear();
         delete sf->sbody;
         sf->sbody = nullptr;
-        sf->node_count = 0;
         auto removed = sf->parent->RemoveSubFunction(sf);
         // Its body is part of the caller now, so whatever it read from an enclosing scope is no
         // longer read from a body of its own.

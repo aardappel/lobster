@@ -761,6 +761,7 @@ struct Overload {
     vector<UnTypeRef> givenargs;
     vector<ExplicitFreeVar *> freevardecls;
     Block *gbody = nullptr;
+    size_t gbody_node_count = 0;  // Parsed body size, shared by all specializations.
     Line declared_at;
     bool isprivate;
     GUDT *method_of = nullptr;
@@ -803,7 +804,6 @@ struct SubFunction {
     map<string_view, string_view> attributes;
     Overload *lexical_parent = nullptr;
     Overload *overload = nullptr;
-    size_t node_count = 0;
     vector<Caller> callers;
 
     SubFunction(int _idx) : idx(_idx) {}
@@ -1202,7 +1202,7 @@ struct SymbolTable {
 
     void FunctionScopeCleanup(size_t count) {
         auto sf = defsubfunctionstack.back();
-        sf->node_count = count;
+        sf->overload->gbody_node_count = count;
         defsubfunctionstack.pop_back();
         BlockScopeCleanup();
     }
