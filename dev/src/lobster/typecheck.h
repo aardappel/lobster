@@ -3981,10 +3981,21 @@ Node *Case::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) 
     auto flowstart = tc.flowstack.size();
     vector<TypeRef> outer;
     tc.BackupFlow(flowstart, outer);
+    tc.st.BlockScopeStart();
     if (pattern->Arity()) {
         if (auto udtref = Is<UDTRef>(pattern->children[0])) {
             tc.CheckFlowTypeIdOrDot(*sw->value, &udtref->udt->thistype);
             udtref->TypeCheck(tc, 0, {});
+            if (withtype) {
+                // The parser resolved the fields the body names, and only allows :: on a
+                // switch value that is a variable or field path. Methods of the value the body
+                // calls unqualified get it as receiver, like in a function with a :: argument.
+                LValContext lv(*sw->value);
+                if (lv.IsValid()) {
+                    tc.st.AddWithStructTT(&udtref->udt->thistype, lv.sid->id,
+                                          tc.scopes.back().sf, lv.derefs);
+                }
+            }
         } else {
             tc.TypeCheckList(pattern, LT_BORROW);
         }
@@ -3995,6 +4006,7 @@ Node *Case::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) 
         tc.CheckFlowTypeIdOrDot(*sw->value, type_int);
     }
     tc.TT(cbody, reqret, LT_KEEP);
+    tc.st.BlockScopeCleanup();
     // Cases are alternatives like the branches of an if, so the same applies:
     // Switch::TypeCheck combines these for the code after it.
     tc.case_flow = TypeChecker::FlowBranch();
@@ -4797,7 +4809,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
                 auto [wse, wsf] = find_self_arg(f);
                 assert(wse);
                 usf = wsf;
-                auto self = new IdentRef(line, wse->id->cursid);
+                auto self = wse->Object(line);
                 children.insert(0, self);
                 tc.TT(children[0], 1, LT_ANY);
                 nargs++;

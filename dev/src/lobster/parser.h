@@ -337,6 +337,15 @@ struct Parser {
                     ParseTypeDecl(false, isprivate, list, true);
                 }
                 break;
+            case T_UNION: {
+                lex.Next();
+                auto is_struct = IsNext(T_STRUCT);
+                if (!is_struct && !IsNext(T_CLASS))
+                    Error(Q("class"), " or ", Q("struct"), " expected after ", Q("union"),
+                          ", found ", Q(lex.TokStr()));
+                ParseUnionDecl(is_struct, isprivate, list);
+                break;
+            }
             case T_CONSTRUCTOR:
             case T_FUN: {
                 auto is_constructor = lex.token == T_CONSTRUCTOR;
@@ -495,10 +504,10 @@ struct Parser {
                     auto &fcsfield = st.FieldDecl(fname + "_frame_count", gudt);
                     gudt->fields.push_back(
                         Field(&fcsfield, { type_int }, new IntConstant(lex, 0), true, false, lex));
-                    Ident *this_id = nullptr;
-                    st.LookupWithStruct(fname, this_id);
-                    assert(this_id);
-                    this_sid = this_id->cursid;
+                    SymbolTable::WithStackElem *wse = nullptr;
+                    st.LookupWithStruct(fname, wse);
+                    assert(wse);
+                    this_sid = wse->id->cursid;
                 }
                 auto member = new Member(lex, initc);
                 member->gudt = gudt;
@@ -741,10 +750,7 @@ struct Parser {
                     gsup = &st.ErrorStruct();
                     ssup = nullptr;
                 }
-                gsup->has_subclasses = true;
-                for (auto &fld : gsup->fields) {
-                    gudt->fields.push_back(fld);
-                }
+                InheritFrom(gudt, gsup);
                 st.bound_typevars_stack.push_back(gudt->generics);
                 if (ssup) {
                     gudt->gsuperclass = { &ssup->thistype };
@@ -835,6 +841,21 @@ struct Parser {
                 udt = st.MakeSpecialization(*gudt, sname, false, false);
             }
         }
+        FinishTypeDecl(gudt, udt, line, parent_list);
+    }
+
+    // Makes `gudt` a subclass of `gsup`: it starts out with the fields of `gsup`.
+    void InheritFrom(GUDT *gudt, GUDT *gsup) {
+        gsup->has_subclasses = true;
+        for (auto &fld : gsup->fields) {
+            gudt->fields.push_back(fld);
+        }
+    }
+
+    // The end of any type declaration, once its generics and fields are known: gives the
+    // unspecialized type and (for a non-generic type) its one specialization their types,
+    // and records the declaration.
+    void FinishTypeDecl(GUDT *gudt, UDT *udt, const Line &line, Block *parent_list) {
         gudt->unspecialized.specializers.clear();
         for (auto &g : gudt->generics) {
             auto type = g.type.Null()
@@ -854,6 +875,63 @@ struct Parser {
             parent_list->Add(new UDTRef(line, udt));
         }
         parent_list->Add(new GUDTRef(line, gudt, gudt->predeclaration));
+    }
+
+    // Declares the non-generic type `sname` (possibly pre-declared) with its single
+    // specialization, as ParseTypeDecl does for `class sname:` / `struct sname:`.
+    pair<GUDT *, UDT *> DeclareType(string_view sname, bool is_struct, bool isprivate,
+                                    bool is_abstract) {
+        auto gudt = st.LookupStruct(sname);
+        bool was_predeclaration = gudt && gudt->predeclaration;
+        gudt = &st.StructDecl(sname, is_struct, lex);
+        gudt->is_abstract = is_abstract;
+        gudt->isprivate = isprivate;
+        UDT *udt = nullptr;
+        if (was_predeclaration) {
+            udt = gudt->first;
+            assert(udt && !udt->next);
+        } else {
+            udt = st.MakeSpecialization(*gudt, sname, false, false);
+        }
+        return { gudt, udt };
+    }
+
+    // `union class U:` with an indented list of `M(field:type, ...)` lines (the parens may
+    // be left out for a member without fields) declares `abstract class U` and, for each
+    // line, `class M : U` with those fields. `union struct U:` does the same with structs,
+    // i.e. declares an abstract struct family.
+    void ParseUnionDecl(bool is_struct, bool isprivate, Block *parent_list) {
+        Line line = lex;
+        auto sname = st.MaybeMakeNameSpace(ExpectId(), true);
+        auto up = DeclareType(sname, is_struct, isprivate, true);
+        auto gudt = up.first;
+        auto udt = up.second;
+        FinishTypeDecl(gudt, udt, line, parent_list);
+        Expect(T_COLON);
+        if (!IsNext(T_INDENT)) {
+            Expected(T_INDENT);
+            return;
+        }
+        for (;;) {
+            auto errors_before = lex.num_errors;
+            Line mline = lex;
+            auto mname = st.MaybeMakeNameSpace(ExpectId(), true);
+            // Unpacked by hand, see the lambda capture comment in ParseTypeDecl.
+            auto mp = DeclareType(mname, is_struct, isprivate, false);
+            auto mgudt = mp.first;
+            auto mudt = mp.second;
+            InheritFrom(mgudt, gudt);
+            mgudt->gsuperclass = { &udt->thistype };
+            if (IsNext(T_LEFTPAREN)) {
+                ParseVector([&]() {
+                    ParseField(mgudt, IsNext(T_PRIVATE), false);
+                }, T_RIGHTPAREN);
+            }
+            FinishTypeDecl(mgudt, mudt, mline, parent_list);
+            EndOfLine(errors_before);
+            if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
+        }
+        Expect(T_DEDENT);
     }
 
     FunRef *ParseNamedFunctionDefinition(bool is_constructor, bool isprivate, GUDT *self) {
@@ -1843,6 +1921,9 @@ struct Parser {
                     List *pattern = new List(lex);
                     Line cline = lex;
                     bool out_of_range = false;
+                    UDT *case_udt = nullptr;
+                    bool withtype = false;
+                    vector<string_view> patvars;
                     if (lex.token == T_DEFAULT || lex.token == T_OUT_OF_RANGE) {
                         out_of_range = lex.token == T_OUT_OF_RANGE;
                         if (out_of_range ? have_out_of_range : have_default)
@@ -1872,6 +1953,14 @@ struct Parser {
                                     }
                                     lex.Next();
                                     f = new UDTRef(lex, udt);
+                                    case_udt = udt;
+                                    // `case T::` and `case T(names)`, see ParseCaseBlock.
+                                    if (lex.token == T_TYPEIN) {
+                                        withtype = true;
+                                    } else if (IsNext(T_LEFTPAREN)) {
+                                        ParseVector([&]() { patvars.push_back(ExpectId()); },
+                                                    T_RIGHTPAREN);
+                                    }
                                 }
                             }
                             if (!f) {
@@ -1882,11 +1971,15 @@ struct Parser {
                                 }
                             }
                             pattern->Add(f);
+                            // The :: is the block's, in place of its colon.
+                            if (withtype) break;
                             if (lex.token == T_COLON || !ListSep(T_COMMA, T_COLON)) break;
                         }
                     }
-                    auto cas = new Case(cline, pattern, ParseBlock());
+                    auto cas = new Case(cline, pattern,
+                                        ParseCaseBlock(value, case_udt, withtype, patvars));
                     cas->out_of_range = out_of_range;
+                    cas->withtype = withtype;
                     cases->Add(cas);
                     EndOfLine(errors_before);
                     if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
@@ -1946,6 +2039,82 @@ struct Parser {
         auto def = new Define(lex, init);
         def->tsids.push_back({ sid , type });
         list.insert(existing, def);
+    }
+
+    // The body of a switch case. With `case T::` (withtype) all fields of the T the switch
+    // value is in the body are in scope by their own name, with `case T(names)` those in
+    // field order under `names` (as many as given, `_` for a field not needed), as
+    // pattern variables. Either way an occurrence in the body reads the field of the switch
+    // value (see WithStackElem), which must thus be a variable or field path: that is also
+    // what makes the value be of type T in the body at all.
+    Block *ParseCaseBlock(Node *value, UDT *udt, bool withtype,
+                          const vector<string_view> &patvars) {
+        st.BlockScopeStart();
+        auto block = new Block(lex);
+        if (withtype || !patvars.empty()) {
+            Ident *id = nullptr;
+            FieldPath derefs;
+            if (!SwitchValuePath(value, id, derefs)) {
+                Error("a case with ", Q("::"), " or pattern variables requires switching on a"
+                      " variable or field");
+            } else {
+                auto sf = st.defsubfunctionstack.back();
+                if (withtype) {
+                    st.AddWithStruct(&udt->g, id, sf, derefs);
+                } else {
+                    auto &fields = udt->g.fields;
+                    for (auto [i, name] : enumerate(patvars)) {
+                        if (name == "_") continue;
+                        // Such a name would be taken for an implicit argument.
+                        if (name[0] == '_') {
+                            Error("pattern variable ", Q(name), " cannot start with ", Q("_"));
+                            continue;
+                        }
+                        if (i >= fields.size()) {
+                            Error("type ", Q(udt->name), " has only ", fields.size(),
+                                  " field(s), none for pattern variable ", Q(name));
+                            break;
+                        }
+                        st.AddPatternVar(name, &udt->g, fields[i].id, id, sf, derefs);
+                    }
+                }
+            }
+        }
+        if (withtype) {
+            // A :: normally continues the line (a type follows), but here the body may be
+            // an indented block.
+            lex.OverrideCont(false);
+            Expect(T_TYPEIN);
+        } else {
+            Expect(T_COLON);
+        }
+        ParseBody(block, -1, false);
+        st.BlockScopeCleanup();
+        return block;
+    }
+
+    // The variable and the fields from it a switch value names, if it is a variable or a
+    // field path (see ParseCaseBlock). A field access is still a GenericCall at this point
+    // (the typechecker makes it a Dot), so whether the name is a field of the object's type
+    // is only known there.
+    bool SwitchValuePath(Node *value, Ident *&id, FieldPath &derefs) {
+        for (;;) {
+            if (auto idr = Is<IdentRef>(value)) {
+                id = idr->sid->id;
+                return true;
+            } else if (auto dot = Is<Dot>(value)) {
+                derefs.insert(0, dot->fld);
+                value = dot->child;
+            } else if (auto gc = Is<GenericCall>(value);
+                       gc && gc->fromdot && gc->noparens && gc->Arity() == 1) {
+                auto fld = st.FieldUse(gc->name);
+                if (!fld) return false;
+                derefs.insert(0, fld);
+                value = gc->children[0];
+            } else {
+                return false;
+            }
+        }
     }
 
     Block *ParseBlock(int for_args = -1, bool parse_args = false,
@@ -2136,8 +2305,8 @@ struct Parser {
             return new IdentRef(lex, id->cursid);
         }
         auto id = st.Lookup(idname);
-        Ident *fieldid = nullptr;
-        auto field = st.LookupWithStruct(idname, fieldid);
+        SymbolTable::WithStackElem *wse = nullptr;
+        auto field = st.LookupWithStruct(idname, wse);
         // Check for function call without ().
         if (!id &&
             !field &&
@@ -2153,15 +2322,15 @@ struct Parser {
             ic->from = ev;
             return ic;
         }
-        // Check for field reference in function with :: arguments.
+        // Check for field reference in a :: scope, or a pattern variable.
         if (field) {
-            assert(fieldid);
-            if (OutsideFieldInit(fieldid->cursid->sf_def))
+            assert(wse);
+            if (OutsideFieldInit(wse->id->cursid->sf_def))
                 Error("field ", Q(idname), " cannot be used in a ", Q("member"), " initializer:"
                       " it is evaluated wherever the class is constructed, where there is no"
                       " instance to read it from yet");
-            fieldid->Read();
-            return new Dot(field, lex, new IdentRef(lex, fieldid->cursid));
+            wse->id->Read();
+            return new Dot(field, lex, wse->Object(lex));
         }
         // Check any non-lexical-scope freevars.
         for (auto f : reverse(namedfunctionstack)) {

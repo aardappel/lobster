@@ -58,7 +58,7 @@ constant (e.g. <code>123</code>) or hex digits with a leading
 <li><p>Identifiers made from alpha-numeric characters and the
 <code>_</code> (except no digits for the first character).</p></li>
 <li><p>Keywords:
-<code>nil return class struct import int float string any void def fn is from program private resource enum enum_flags typeof var let pakfile switch case default out_of_range namespace not and or attribute if for while super constructor guard abstract member member_frame static static_frame attribute operator</code></p></li>
+<code>nil return class struct import int float string any void def fn is from program private resource enum enum_flags typeof var let pakfile switch case default out_of_range namespace not and or attribute if for while super constructor guard abstract union member member_frame static static_frame attribute operator</code></p></li>
 <li><p>Linefeed is whitespace if it follows a token that indicates an
 incomplete expression (such as <code>+</code> or <code>,</code>) and an
 actual token otherwise (used to separate lists of expressions inside a
@@ -282,10 +282,23 @@ dispatch (see below).</p>
 invisible padding fields (equivalent to integer 0 or <code>nil</code>
 fields) such that all sub-structs are the same size. This guarantees any
 sub-structs can overwrite any others anywhere.</p>
-<p>Such a <code>struct</code> prints as the sub-struct it currently holds
-(without the invisible fields), and the serialization functions treat it
-like a class with sub-classes (<code>attribute serializable</code> is
-allowed on the sub-structs).</p>
+<p>Such a <code>struct</code> prints as the sub-struct it currently
+holds (without the invisible fields), and the serialization functions
+treat it like a class with sub-classes
+(<code>attribute serializable</code> is allowed on the sub-structs).</p>
+<p><code>union class</code> is syntactic sugar for a compact declaration
+of this discriminated union use case, instead of writing:</p>
+<pre><code>abstract class Foo
+class Bar : Foo
+    b:int
+class Baz : Foo
+    f:float</code></pre>
+<p>You can also write the equivalent:</p>
+<pre><code>union class Foo:
+    Bar(b:int)
+    Baz(f:float)</code></pre>
+<p>Similarly, <code>union struct</code> declares an
+<code>abstract struct</code> with its sub-structs.</p>
 <h2 id="operators">Operators</h2>
 <p>Lobster comes with a set of built-in operators mostly familiar from
 other languages that attempt to work on as many of the above types as
@@ -699,6 +712,15 @@ to make superclasses <code>abstract</code> for use with
 their subclasses to need their own case.</p>
 <p>The actual implementation use vtables much like the above dynamic
 dispatch, so is similar in speed too.</p>
+<p>You can write <code>::</code> after the typename to be able to access
+all fields in the case's body without dereferencing, e.g. the above
+first case becomes <code>case A:: print field_in_a</code>. Or, you can
+use a pattern matching style syntax and write
+<code>case A(f): print f</code> if you want to be able to give your own
+names to fields. All 3 forms are equivalent. Pattern variables name the
+fields in declaration order (inherited ones first), you may give fewer
+names than there are fields, and <code>_</code> skips a field you don't
+need.</p>
 <h3
 id="functions-with-different-number-of-arguments-default-arguments.">Functions
 with different number of arguments / default arguments.</h3>

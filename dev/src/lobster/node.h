@@ -333,9 +333,14 @@ BINARY_NODE_T(Switch, "switch", false, Node, value, List, cases, \
                                const vector<vector<int>> *case_values = nullptr) const;)
 // An `out_of_range` case has an empty pattern like `default` does (so it lands in the same
 // jump table slot), but unlike `default` it doesn't switch off enum exhaustiveness checking.
+// A `case T::` (withtype) brings the fields and methods of the switch value into scope in
+// its body unqualified, see Parser::ParseCaseBlock.
 BINARY_NODE_T(Case, "case", false, List, pattern, Node, cbody, \
     bool out_of_range = false; \
-    bool EqAttr(const Node *o) const { return out_of_range == ((Case *)o)->out_of_range; })
+    bool withtype = false; \
+    bool EqAttr(const Node *o) const { \
+        return out_of_range == ((Case *)o)->out_of_range && withtype == ((Case *)o)->withtype; \
+    })
 BINARY_NODE(Range, "range", false, start, end, )
 ZERO_NODE(Break, "break", false, RETURNSMETHOD STATEMENTMETHOD)
 ZERO_NODE(Continue, "continue", false, RETURNSMETHOD STATEMENTMETHOD)
@@ -859,6 +864,13 @@ FlowItem::FlowItem(const Node &n, TypeRef type)
     // Elements are one location to the borrow check, but not to flow typing, where a
     // promotion of v[i] must not apply to v[j].
     if (HasElem()) sid = nullptr;
+}
+
+Node *SymbolTable::WithStackElem::Object(const Line &line) const {
+    Line ln = line;
+    Node *n = new IdentRef(ln, id->cursid);
+    for (auto f : derefs) n = new Dot(f, ln, n);
+    return n;
 }
 
 }  // namespace lobster

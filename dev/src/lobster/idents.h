@@ -641,10 +641,12 @@ inline bool IsDynamicType(TypeRef type) {
     return type->t == V_CLASS || IsFamilyStruct(type);
 }
 
+typedef small_vector<SharedField *, 3> FieldPath;
+
 struct LValContext {
     // For now, only: ident ( . field )*.
     const SpecIdent *sid;
-    small_vector<SharedField *, 3> derefs;
+    FieldPath derefs;
     LValContext(SpecIdent *sid) : sid(sid) {}
     LValContext(const Node &n);
     bool IsValid() const { return sid; }
@@ -947,11 +949,26 @@ struct SymbolTable {
 
     vector<size_t> scopelevels;
 
+    // A scope in which the fields of an object can be named without it: a `::` argument or
+    // loop variable, a `case T::`, or a pattern variable of a `case T(name)`. The object is
+    // `id`, followed by the fields in `derefs` (a switch value that is a field path).
     struct WithStackElem {
         GUDT *gudt = nullptr;
         Ident *id = nullptr;
         SubFunction *sf = nullptr;
         UDT *udt_tc = nullptr;  // Only in TC.
+        FieldPath derefs;
+        // For a pattern variable: its name, and the one field of the object it stands for.
+        // Otherwise empty/null, and all fields of `gudt` are in scope.
+        string_view alias;
+        SharedField *fld = nullptr;
+        bool SameObject(const WithStackElem &o) const {
+            if (id != o.id || derefs.size() != o.derefs.size()) return false;
+            for (size_t i = 0; i < derefs.size(); i++) if (derefs[i] != o.derefs[i]) return false;
+            return true;
+        }
+        // The object, as an expression that reads it.
+        Node *Object(const Line &line) const;
     };
     vector<WithStackElem> withstack;
     vector<size_t> withstacklevels;
@@ -1049,9 +1066,13 @@ struct SymbolTable {
     }
 
     Ident *LookupDefWS(string_view name) {
-        Ident *ident = nullptr;
-        if (LookupWithStruct(name, ident))
-            lex.Report("cannot define variable with same name as field in this scope: " + name);
+        WithStackElem *wse = nullptr;
+        if (LookupWithStruct(name, wse)) {
+            if (wse->alias.empty())
+                lex.Report("cannot define variable with same name as field in this scope: " + name);
+            else
+                lex.Report(cat("identifier shadowing: ", name));
+        }
         return Lookup(name);
     }
 
@@ -1084,38 +1105,68 @@ struct SymbolTable {
         return ident;
     }
 
-    void AddWithStruct(GUDT *gudt, Ident *id, SubFunction *sf) {
+    void AddWithStruct(GUDT *gudt, Ident *id, SubFunction *sf, const FieldPath &derefs = {}) {
         if (!gudt) {
             lex.Report(":: can only be used with struct/class types");
             return;
         }
+        WithStackElem wse { gudt, id, sf, nullptr, derefs };
         for (auto &wp : withstack) {
-            if (wp.gudt == gudt) {
+            // The same object again (a `case T::` on a `::` variable) names the same fields
+            // either way, so is not ambiguous.
+            if (wp.gudt == gudt && wp.alias.empty() && !wp.SameObject(wse)) {
                 lex.Report("type used twice in the same scope with ::");
                 return;
             }
         }
         // FIXME: should also check if variables have already been defined in this scope that clash
         // with the struct, or do so in LookupUse
-        withstack.push_back({ gudt, id, sf });
+        withstack.push_back(wse);
     }
 
-    void AddWithStructTT(TypeRef type, Ident *id, SubFunction *sf) {
+    void AddWithStructTT(TypeRef type, Ident *id, SubFunction *sf,
+                         const FieldPath &derefs = {}) {
         assert(type->t != V_UUDT);
-        withstack.push_back({ &type->udt->g, id, sf, type->udt });
+        withstack.push_back({ &type->udt->g, id, sf, type->udt, derefs });
     }
 
-    SharedField *LookupWithStruct(string_view name, Ident *&id) {
-        auto fld = FieldUse(name);
-        if (!fld) return nullptr;
-        assert(!id);
-        for (auto &wse : withstack) {
-            if (wse.gudt->Has(fld) >= 0) {
-                if (id) lex.Report("access to ambiguous field: " + fld->name);
-                id = wse.id;
-            }
+    // Declares `name` in the current scope as a pattern variable: another name for field
+    // `fld` of the object `id`/`derefs` (see WithStackElem). Like a variable, it may not
+    // shadow anything.
+    void AddPatternVar(string_view name, GUDT *gudt, SharedField *fld, Ident *id,
+                       SubFunction *sf, const FieldPath &derefs) {
+        WithStackElem *wse = nullptr;
+        if (LookupWithStruct(name, wse)) {
+            if (wse->alias.empty())
+                lex.Report("cannot define variable with same name as field in this scope: " + name);
+            else if (size_t(wse - withstack.data()) >= withstacklevels.back())
+                lex.Report(cat("identifier redefinition: ", name));
+            else
+                lex.Report(cat("identifier shadowing: ", name));
+        } else if (Lookup(name)) {
+            lex.Report(cat("identifier shadowing: ", name));
         }
-        return id ? fld : nullptr;
+        withstack.push_back({ gudt, id, sf, nullptr, derefs, name, fld });
+    }
+
+    // The field `name` stands for in this scope, if any: that of a pattern variable, or one
+    // of a type in scope thru `::`, with the entry providing it. A pattern variable shadows
+    // whatever is declared outside it, while two types in scope with the same field make
+    // it ambiguous, unless they are the same object.
+    SharedField *LookupWithStruct(string_view name, WithStackElem *&found) {
+        assert(!found);
+        auto fld = FieldUse(name);
+        for (auto &wse : reverse(withstack)) {
+            if (!wse.alias.empty()) {
+                if (wse.alias != name) continue;
+                if (!found) found = &wse;
+                break;
+            }
+            if (!fld || wse.gudt->Has(fld) < 0) continue;
+            if (!found) found = &wse;
+            else if (!found->SameObject(wse)) lex.Report("access to ambiguous field: " + fld->name);
+        }
+        return found ? (found->fld ? found->fld : fld) : nullptr;
     }
 
     void BlockScopeStart() {

@@ -60,6 +60,10 @@ contexts:
         - match: (?i)\b(class)\b
           scope: keyword.declaration.class.lobster
 
+        # Union Declaration:
+        - match: (?i)\b(union)\b
+          scope: keyword.declaration.union.lobster
+
 
         #####################################################################################
         # NameSpace Declaration:

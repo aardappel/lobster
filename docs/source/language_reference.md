@@ -38,7 +38,7 @@ Lexical definition
 -   Keywords: `nil return class struct import int float string any void
     def fn is from program private resource enum enum_flags typeof
     var let pakfile switch case default out_of_range namespace not and or attribute
-    if for while super constructor guard abstract member member_frame
+    if for while super constructor guard abstract union member member_frame
     static static_frame attribute operator`
 
 -   Linefeed is whitespace if it follows a token that indicates an incomplete
@@ -304,6 +304,27 @@ sub-structs can overwrite any others anywhere.
 Such a `struct` prints as the sub-struct it currently holds (without the
 invisible fields), and the serialization functions treat it like a class with
 sub-classes (`attribute serializable` is allowed on the sub-structs).
+
+`union class` is syntactic sugar for a compact declaration of this discriminated
+union use case, instead of writing:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+abstract class Foo
+class Bar : Foo
+    b:int
+class Baz : Foo
+    f:float
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can also write the equivalent:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+union class Foo:
+    Bar(b:int)
+    Baz(f:float)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Similarly, `union struct` declares an `abstract struct` with its sub-structs.
 
 
 Operators
@@ -830,6 +851,13 @@ causing all their subclasses to need their own case.
 
 The actual implementation use vtables much like the above dynamic dispatch,
 so is similar in speed too.
+
+You can write `::` after the typename to be able to access all fields in the case's
+body without dereferencing, e.g. the above first case becomes `case A:: print field_in_a`.
+Or, you can use a pattern matching style syntax and write `case A(f): print f` if
+you want to be able to give your own names to fields. All 3 forms are equivalent.
+Pattern variables name the fields in declaration order (inherited ones first), you may
+give fewer names than there are fields, and `_` skips a field you don't need.
 
 ### Functions with different number of arguments / default arguments.
 

@@ -19,6 +19,7 @@ import .math
 import .vectors
 import .structs
 import .abstract_structs
+import .unions
 import .vecutils
 import .control
 import .codegen_names

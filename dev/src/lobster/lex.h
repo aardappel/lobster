@@ -524,6 +524,9 @@ struct Lex : LoadedFile {
                         case 't':
                             if (sattr == TName(T_TYPEOF)) return T_TYPEOF;
                             break;
+                        case 'u':
+                            if (sattr == TName(T_UNION)) return T_UNION;
+                            break;
                         case 'v':
                             if (sattr == TName(T_VOIDTYPE)) return T_VOIDTYPE;
                             if (sattr == TName(T_VAR)) return T_VAR;

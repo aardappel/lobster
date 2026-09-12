@@ -122,6 +122,7 @@ namespace lobster {
     TOK(T_STATIC, "static") \
     TOK(T_STATIC_FRAME, "static_frame") \
     TOK(T_ABSTRACT, "abstract") \
+    TOK(T_UNION, "union") \
     TOK(T_GUARD, "guard") \
     TOK(T_CONSTRUCTOR, "constructor") \
     TOK(T_ASSERT, "assert") \
