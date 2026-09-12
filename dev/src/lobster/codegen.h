@@ -81,12 +81,15 @@ struct CodeGen  {
         bool jumped;
     };
     vector<InlineBlockState> inline_blocks;
-    vector<const Node *> loops;
-    // Per entry in `loops`, how deep the temp stack is just inside it, which is what a break
-    // or continue out of that loop needs it to still be at.
-    vector<size_t> loop_temp_levels;
+    // The loop and the stack depth and target its break/continue sites need, kept together
+    // so entering or leaving a loop changes a single stack.
+    struct LoopState {
+        const Node *node;
+        size_t temp_level;
+        int continue_label;
+    };
+    vector<LoopState> loops;
     vector<int> breaks;
-    vector<int> continues;
     vector<string_view> stringtable;  // sized strings.
     vector<const Node *> node_context;
     int runtime_checks;
@@ -969,7 +972,7 @@ struct CodeGen  {
 
         assert(temptypestack.empty());
         assert(breaks.empty());
-        assert(continues.empty());
+        assert(loops.empty());
         assert(inline_blocks.empty());
         assert(!tstack_size);
         cursf = nullptr;
@@ -5229,16 +5232,12 @@ void IfElse::Generate(CodeGen &cg, size_t retval) const {
 
 void While::Generate(CodeGen &cg, size_t retval) const {
     auto loopback = cg.EmitLabelDefBackwards();
-    cg.loops.push_back(this);
-    cg.loop_temp_levels.push_back(cg.temptypestack.size());
-    cg.continues.push_back(loopback);
+    cg.loops.push_back({ this, cg.temptypestack.size(), loopback });
     auto jumpout = cg.Label();
     cg.GenCondJump(condition, true, jumpout);
     auto break_level = cg.breaks.size();
     cg.Gen(wbody, 0);
     cg.loops.pop_back();
-    cg.loop_temp_levels.pop_back();
-    cg.continues.pop_back();
     cg.EmitJumpBack(loopback);
     cg.EmitLabelDef(jumpout);
     cg.ApplyBreaks(break_level);
@@ -5250,10 +5249,8 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.EmitPushInt(-1);  // i
     cg.temptypestack.push_back({ type_int, LT_ANY });
     cg.Gen(iter, 1);
-    cg.loops.push_back(this);
-    cg.loop_temp_levels.push_back(cg.temptypestack.size());
     auto startloop = cg.EmitLabelDefBackwards();
-    cg.continues.push_back(startloop);
+    cg.loops.push_back({ this, cg.temptypestack.size(), startloop });
     auto break_level = cg.breaks.size();
     auto tstack_level = cg.tstack_size;
     int exitloop = -1;
@@ -5267,8 +5264,6 @@ void For::Generate(CodeGen &cg, size_t retval) const {
     cg.EmitJumpBack(startloop);
     cg.EmitLabelDef(exitloop);
     cg.loops.pop_back();
-    cg.loop_temp_levels.pop_back();
-    cg.continues.pop_back();
     cg.TakeTemp(2, false);
     assert(tstack_level == cg.tstack_size); (void)tstack_level;
     cg.PopTemp();
@@ -5316,9 +5311,9 @@ void Break::Generate(CodeGen &cg, size_t retval) const {
     // The loop's own slots have to be the top of the stack for the pops below to name them.
     // Temps underneath are fine: an inlined block can sit in an expression that has temps live
     // across it, and those are still there at the break target, same as on the fall-out path.
-    assert(cg.temptypestack.size() == cg.loop_temp_levels.back());
+    assert(cg.temptypestack.size() == cg.loops.back().temp_level);
     int lab = -1;
-    if (Is<For>(cg.loops.back())) {
+    if (Is<For>(cg.loops.back().node)) {
         // The loop's own two slots come off here, but the code after the break still expects
         // them to be there, so put them back once the jump is emitted.
         cg.GenPop(cg.temptypestack[cg.temptypestack.size() - 1]);
@@ -5339,9 +5334,8 @@ void Continue::Generate(CodeGen &cg, size_t retval) const {
     assert(!cg.loops.empty());
     // The jump back lands on code generated for this stack depth, so nothing may be left
     // on top of the loop's own slots here either.
-    assert(cg.temptypestack.size() == cg.loop_temp_levels.back());
-    int startloop = cg.continues.back();
-    cg.EmitJumpBack(startloop);
+    assert(cg.temptypestack.size() == cg.loops.back().temp_level);
+    cg.EmitJumpBack(cg.loops.back().continue_label);
 }
 
 void Switch::Generate(CodeGen &cg, size_t retval) const {
