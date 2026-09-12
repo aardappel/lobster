@@ -1262,8 +1262,10 @@ struct VM : VMBase {
 
     EngineShutdownFunctionPtr engine_shutdown = nullptr;
 
-    // We stick this in here directly, since the constant offsets into this array in
-    // compiled mode a big win.
+    // Keep globals inline so AOT C++ accesses use vm + constant, without a buffer-pointer
+    // load. This measured about a 1.4% speedup in tests/bench/all.lobster, with potentially
+    // larger gains in freevar-heavy code (MSVC /O2 + LTO, Ryzen 9950X3D, September 2026).
+    // This benefit is specific to AOT C++; generated C/JIT code already uses fvars_ptr.
     Value fvars[1] = { -1 };
 
     // NOTE: NO MORE VAR DECLS AFTER "fvars"
