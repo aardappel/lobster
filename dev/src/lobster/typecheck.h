@@ -53,7 +53,7 @@ struct TypeChecker {
         vector<Member *> scoped_fields;
         size_t flowstack_size = 0;
     };
-    vector<Scope> scopes, named_scopes;
+    vector<Scope> scopes;
     vector<FlowItem> flowstack;
     vector<Borrow> borrowstack;
     vector<SpecIdent *> preferfreestack;
@@ -90,7 +90,6 @@ struct TypeChecker {
         CleanUpFlow(0);
         assert(borrowstack.empty());
         assert(scopes.empty());
-        assert(named_scopes.empty());
         TypeCheckDeadCode();
         #ifndef NDEBUG
             // The error type only ever stands in for something an error was reported for,
@@ -1401,7 +1400,6 @@ struct TypeChecker {
         scopes.push_back(scope);
         auto pfvss = preferfreestack.size();
         auto dss = definestack.size();
-        if (!sf.parent->anonymous) named_scopes.push_back(scope);
         st.BlockScopeStart();
         sf.typechecked = true;
         for (auto &arg : sf.args) {
@@ -1530,7 +1528,6 @@ struct TypeChecker {
             auto f = member->field();
             f->in_scope = false;
         }
-        if (!sf.parent->anonymous) named_scopes.pop_back();
         scopes.pop_back();
         LOG_DEBUG("function end ", Signature(sf), " returns ",
                              TypeName(sf.returntype));
@@ -5530,9 +5527,15 @@ Node *ObjectConstructor::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /
     if (udt->sfields.size() < children.size())
         tc.ErrorAlways(*this, "too many initializers for ", Q(udt->name));
     exptype = &udt->thistype;
-    if (udt->g.has_constructor_function &&
-        (tc.named_scopes.empty() ||
-            tc.named_scopes.back().sf->parent->is_constructor_of != &udt->g)) {
+    auto in_constructor = [&]() {
+        // Anonymous calls may build on behalf of their nearest named caller.
+        for (auto &scope : reverse(tc.scopes)) {
+            auto f = scope.sf->parent;
+            if (!f->anonymous) return f->is_constructor_of == &udt->g;
+        }
+        return false;
+    };
+    if (udt->g.has_constructor_function && !in_constructor()) {
         tc.ErrorAlways(*this, Q(udt->name),
                        " may only be constructed thru its constructor function");
     }
