@@ -253,7 +253,8 @@ string Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
     auto src_hash = lex.HashAll();
     CodeGen cg(parser, st, opts, src_hash, c_codegen);
     if (lex.num_errors) return lex.errors;
-    st.Serialize(cg.type_table, cg.sids, cg.stringtable, metadata_buffer, filenames, cg.ser_ids, src_hash);
+    st.Serialize(cg.type_table, cg.sids, cg.stringtable, metadata_buffer, filenames, cg.ser_ids,
+                 cg.udt_type_offsets, src_hash);
     if (pakfile) {
         auto err = BuildPakFile(*pakfile, metadata_buffer, parser.pakfiles, src_hash,
                                 opts.code_pak ? c_codegen : string());

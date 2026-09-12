@@ -363,8 +363,6 @@ struct UDT : Named {
     bool unnamed_specialization = false;
     Type thistype;  // convenient place to store the type corresponding to this.
     TypeRef sametype = type_undefined;  // If all fields are int/float, this allows vector ops.
-    type_elem_t typeinfonon = (type_elem_t)-1;  // Runtime type.
-    type_elem_t typeinfonil = (type_elem_t)-1;  // Runtime type.
     int numslots = -1;
     int vtable_start = -1;
     int serializable_id = -1;
@@ -431,14 +429,15 @@ struct UDT : Named {
     // false for a struct that (transitively) contains itself.
     bool ComputeSizes(SymbolTable &st, int depth = 0);
 
-    flatbuffers::Offset<metadata::UDT> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
+    flatbuffers::Offset<metadata::UDT> Serialize(flatbuffers::FlatBufferBuilder &fbb,
+                                               type_elem_t type_offset) {
         vector<flatbuffers::Offset<metadata::Field>> fieldoffsets;
         for (auto [i, sfield] : enumerate(sfields))
             fieldoffsets.push_back(
                 metadata::CreateField(fbb, fbb.CreateString(g.fields[i].id->name), sfield.slot,
                                       sfield.bitoff, sfield.bits));
         return metadata::CreateUDT(fbb, fbb.CreateString(name), idx, fbb.CreateVector(fieldoffsets),
-                                   numslots, ssuperclass ? ssuperclass->idx : -1, typeinfonon);
+                                   numslots, ssuperclass ? ssuperclass->idx : -1, type_offset);
     }
 };
 
@@ -2095,6 +2094,7 @@ struct SymbolTable {
                    string &bytecode,
                    vector<pair<string, string>> &filenames,
                    vector<type_elem_t> &ser_ids,
+                   span<const type_elem_t> udt_type_offsets,
                    uint64_t src_hash) {
         flatbuffers::FlatBufferBuilder fbb;
         vector<flatbuffers::Offset<flatbuffers::String>> fns;
@@ -2102,7 +2102,9 @@ struct SymbolTable {
         vector<flatbuffers::Offset<metadata::Function>> functionoffsets;
         for (auto f : functiontable) functionoffsets.push_back(f->Serialize(fbb));
         vector<flatbuffers::Offset<metadata::UDT>> udtoffsets;
-        for (auto u : udttable) udtoffsets.push_back(u->Serialize(fbb));
+        assert(udt_type_offsets.size() == udttable.size());
+        for (auto u : udttable)
+            udtoffsets.push_back(u->Serialize(fbb, udt_type_offsets[u->idx]));
         vector<flatbuffers::Offset<metadata::Ident>> identoffsets;
         for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb, i->scopelevel == 1));
         vector<flatbuffers::Offset<metadata::Enum>> enumoffsets;

@@ -60,6 +60,9 @@ struct CodeGen  {
     Parser &parser;
     SymbolTable &st;
     vector<type_elem_t> type_table;
+    // Offsets belong to this generated type table, not to the semantic UDTs. Reserve both
+    // arrays up front so recursive type emission can keep a reference to an entry.
+    vector<type_elem_t> udt_type_offsets, udt_nil_type_offsets;
     vector<type_elem_t> ser_ids;
     map<small_vector<type_elem_t, 2>, type_elem_t> type_lookup;  // Wasteful, but simple.
     map<iint, type_elem_t> default_ints_lookup;
@@ -532,7 +535,8 @@ struct CodeGen  {
             case V_STRUCT_R:
             case V_STRUCT_S: {
                 auto udt = type->udt;
-                auto &typeinfo = non_nil_version ? udt->typeinfonil : udt->typeinfonon;
+                auto &typeinfo = (non_nil_version ? udt_nil_type_offsets
+                                                 : udt_type_offsets)[udt->idx];
                 if (typeinfo >= 0)
                     return typeinfo;
                 typeinfo = (type_elem_t)type_table.size();
@@ -632,6 +636,8 @@ struct CodeGen  {
           cpp(!opts.jit_mode),
           mir(opts.jit_mode && opts.jit_options.mir), c_codegen(c_codegen) {
         node_context.push_back(parser.root);
+        udt_type_offsets.resize(st.udttable.size(), (type_elem_t)-1);
+        udt_nil_type_offsets.resize(st.udttable.size(), (type_elem_t)-1);
         AssignSubtypeIDs();
 
         // Reserve space and index for all vtables. The members of an abstract struct family
@@ -3583,7 +3589,7 @@ struct CodeGen  {
                 gen_string(udt->name);
                 auto fspan = udt->sfields.empty() ? "{}" : cat("span(", fieldsname(udt), ")");
                 append(sd, ", ", udt->idx, ", ", udt->numslots, ", ",
-                           (udt->ssuperclass ? udt->ssuperclass->idx : -1), ", ", udt->typeinfonon, ", ",
+                           (udt->ssuperclass ? udt->ssuperclass->idx : -1), ", ", udt_type_offsets[udt->idx], ", ",
                            fspan, " },\n");
             }
             sd += "};\n\n";
