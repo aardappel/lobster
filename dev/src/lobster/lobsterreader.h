@@ -167,9 +167,7 @@ struct Deserializer {
     pair<const TypeInfo *, type_elem_t> LookupSubClass(string_view sname,
             const TypeInfo *ti, type_elem_t typeoff) {
         // Attempt to find this a subsclass.
-        vm.EnsureUDTLookupPopulated();
-        auto &udts = vm.UDTLookup[sname];
-        for (auto udt : udts) {
+        for (auto udt : vm.LookupUDTs(sname)) {
             for (auto ludt = udt;;) {
                 auto super_idx = ludt->super_idx;
                 if (super_idx < 0) break;

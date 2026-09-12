@@ -40,6 +40,21 @@ def serialization_tests():
     let parsed, err = parse_data(typeof DSerAll, "{all}")
     test_eq(err, nil)
     test_true(equal(parsed, all), "parse_data round trip mismatch")
+    // Rejected dynamic type names must not become retained lookup keys: these names
+    // belong to temporary parser input and later parses reuse that storage.
+    for(8) i:
+        let unknown = "DSerUnknownTypeWithTemporaryStorage{i}"
+        let missing, missingerr = parse_data(typeof DSerBase, "{unknown} \{\}")
+        test_eq(missing, nil)
+        test_true(missingerr and missingerr.find_string(unknown) >= 0)
+        let unknownflex, jsonerr = flexbuffers_json_to_binary("\{ _type: \"{unknown}\" \}")
+        test_eq(jsonerr, nil)
+        let fmissing, fmissingerr = flexbuffers_binary_to_value(typeof DSerBase, unknownflex)
+        test_eq(fmissing, nil)
+        test_true(fmissingerr and fmissingerr.find_string(unknown) >= 0)
+        let known, knownerr = parse_data(typeof DSerBase, "DSerSub \{ 6, 7 \}")
+        test_eq(knownerr, nil)
+        test_true(equal(known, all.s))
     // Defaults can be omitted in the textual form.
     let pdef, deferr = parse_data(typeof DSerDefaults, "DSerDefaults \{\}")
     test_eq(deferr, nil)

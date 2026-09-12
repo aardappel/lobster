@@ -1257,8 +1257,12 @@ struct VM : VMBase {
 
     vector<Value> fvar_def_backup;
 
-    map<string_view, vector<const VMUDT *>> UDTLookup;
-    void EnsureUDTLookupPopulated();
+private:
+    // Keys and values borrow only from metadata, which outlives this VM.
+    map<string_view, vector<const VMUDT *>> udt_lookup;
+
+public:
+    span<const VMUDT *const> LookupUDTs(string_view name);
 
     EngineShutdownFunctionPtr engine_shutdown = nullptr;
 

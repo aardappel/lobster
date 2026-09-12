@@ -833,12 +833,14 @@ optional<int64_t> VM::LookupEnum(string_view name, int enumidx) {
     return {};
 }
 
-void VM::EnsureUDTLookupPopulated() {
-    if (!UDTLookup.empty()) return;
-    for (auto &udt : vma.meta->udts) {
-        auto &v = UDTLookup[udt.name];
-        v.push_back(&udt);
+span<const VMUDT *const> VM::LookupUDTs(string_view name) {
+    if (udt_lookup.empty()) {
+        for (auto &udt : vma.meta->udts) udt_lookup[udt.name].push_back(&udt);
     }
+    // A missing name may belong to a temporary parser string: never retain it in the cache.
+    auto it = udt_lookup.find(name);
+    if (it == udt_lookup.end()) return {};
+    return it->second;
 }
 
 string_view VM::BuildInfo() {
