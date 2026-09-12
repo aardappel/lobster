@@ -109,12 +109,10 @@ struct CodeGen  {
     bool mir = false;
 
     // C/C++ codegen related.
-    string &c_codegen;
     string cb;
     // The builtins the code calls, by index, which get declared at the spot in the prologue
     // reserved for them once it is known which they are.
     map<int, NativeFun *> natives_used;
-    size_t natives_decl_offset = 0;
     // The object types whose fields the code names, which get a struct of their own at the
     // same spot, see UDTName, with the members it has, see Members.
     struct UDTMember;
@@ -637,7 +635,7 @@ struct CodeGen  {
             string &c_codegen)
         : parser(_p), st(_st), runtime_checks(opts.runtime_checks), rcstats(opts.rcstats),
           cpp(!opts.jit_mode),
-          mir(opts.jit_mode && opts.jit_options.mir), c_codegen(c_codegen) {
+          mir(opts.jit_mode && opts.jit_options.mir) {
         node_context.push_back(parser.root);
         udt_type_offsets.resize(st.udttable.size(), (type_elem_t)-1);
         udt_nil_type_offsets.resize(st.udttable.size(), (type_elem_t)-1);
@@ -743,7 +741,7 @@ struct CodeGen  {
         }
 
         Prologue(c_codegen);
-        natives_decl_offset = c_codegen.size();
+        auto natives_decl_offset = c_codegen.size();
 
         // Start of the actual generated code.
         // Generate a dummmy function for function values that are never called.
