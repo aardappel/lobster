@@ -5719,7 +5719,7 @@ void IsType::Generate(CodeGen &cg, size_t retval) const {
         cg.TakeTemp(1, false);
         // Whether a nil value matches is resolved at compile time, so both ops
         // only ever compare against the non-nil type.
-        int nilres = resolvedtype->t == V_NIL;
+        int nilres = AcceptsNil();
         TypeRef te = resolvedtype->ElementIfNil();
         if (te->t == V_CLASS && te->udt->subtype_dfs_end > te->udt->subtype_dfs) {
             // The tested type has subclasses, so test the value's type against

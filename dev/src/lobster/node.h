@@ -736,10 +736,17 @@ struct Dot : Unary {
 struct IsType : Unary {
     UnTypeRef giventype;
     TypeRef resolvedtype = nullptr;
+    // The `?` of `is T?` for a T that cannot be nilable, which has no type to carry it: a
+    // nil value matches, as it does a nilable tested type.
+    bool accepts_nil = false;
     IsType(const Line &ln, Node *_a, UnTypeRef _type) : Unary(ln, _a), giventype(_type) {}
-    void Dump(string &sd) const { append(sd, Name(), ":", TypeName(giventype)); }
+    bool AcceptsNil() const { return accepts_nil || resolvedtype->t == V_NIL; }
+    void Dump(string &sd) const {
+        append(sd, Name(), ":", TypeName(giventype), accepts_nil ? "?" : "");
+    }
     bool EqAttr(const Node *o) const {
-        return giventype->Equal(*((IsType *)o)->giventype);
+        return giventype->Equal(*((IsType *)o)->giventype) &&
+               accepts_nil == ((IsType *)o)->accepts_nil;
     }
     SHARED_SIGNATURE(IsType, TName(T_IS), false)
     CONSTMETHOD

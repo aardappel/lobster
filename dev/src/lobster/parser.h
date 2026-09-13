@@ -1310,7 +1310,11 @@ struct Parser {
         return nullptr;
     }
 
-    template<typename T = UnTypeRef> T ParseType(bool withtype, SubFunction *sfreturntype = nullptr, bool allow_unresolved = true) {
+    // With `nil_any`, a trailing `?` on a type that cannot be nilable is not an error: it
+    // sets the flag and leaves the type as is, for `is`, which accepts it on any type.
+    template<typename T = UnTypeRef> T ParseType(bool withtype, SubFunction *sfreturntype = nullptr,
+                                                 bool allow_unresolved = true,
+                                                 bool *nil_any = nullptr) {
         T dest;
         switch(lex.token) {
             case T_INTTYPE:
@@ -1427,10 +1431,12 @@ struct Parser {
         }
         assert(!dest.Null() && dest->t != V_UNDEFINED);
         if (IsNext(T_QUESTIONMARK)) {
-            if (!st.IsNillable(dest) && dest->t != V_TYPEVAR)
-                Error("value types can\'t be made nilable");
-            else
+            if (st.IsNillable(dest) || dest->t == V_TYPEVAR)
                 dest = st.Wrap(dest, V_NIL);
+            else if (nil_any)
+                *nil_any = true;
+            else
+                Error("value types can\'t be made nilable");
         }
         if (withtype && dest->t != V_UUDT && !IsUDT(dest->t))
             Error(":: must be used with a class type");
@@ -1679,7 +1685,12 @@ struct Parser {
     Node *ParseOperand() {
         auto n = ParseUnary();
         if (!IsNext(T_IS)) return n;
-        return new IsType(lex, n, ParseType(false));
+        // `e is T?` is accepted for every T: for one that cannot be nilable, the `?` is
+        // kept on the node rather than in the type (which cannot exist).
+        bool accepts_nil = false;
+        auto is = new IsType(lex, n, ParseType(false, nullptr, true, &accepts_nil));
+        is->accepts_nil = accepts_nil;
+        return is;
     }
 
     // The arguments of a call to `idname`, into a GenericCall for the declchecker and the

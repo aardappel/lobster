@@ -125,10 +125,13 @@ ValueType IsType::ConstVal(TypeChecker *tc, VTValue &val) const {
                            (((ce->t == V_CLASS && te->t == V_CLASS) ||
                              (IsStruct(ce->t) && IsStruct(te->t))) &&
                             SuperDistance(te->udt, ce->udt) >= 0);
-    if (is_static_super && (resolvedtype->t == V_NIL || ctype->t != V_NIL)) {
+    if (is_static_super && (AcceptsNil() || ctype->t != V_NIL)) {
         val = VTValue(true);
         return V_INT;
     }
+    // Where the tested type can match nothing but the nil a possibly nil value may be, the
+    // test is a nil check at run time.
+    auto nil_check = AcceptsNil() && ctype->t == V_NIL;
     // Structs have no runtime type, so their static relation decides, except in an abstract
     // struct family, where a value of a supertype may hold the tested type.
     if (IsStruct(ce->t) || IsStruct(te->t)) {
@@ -137,6 +140,7 @@ ValueType IsType::ConstVal(TypeChecker *tc, VTValue &val) const {
             SuperDistance(ce->udt, te->udt) >= 0) {
             return V_VOID;
         }
+        if (nil_check) return V_VOID;
         val = VTValue(false);
         return V_INT;
     }
@@ -144,6 +148,7 @@ ValueType IsType::ConstVal(TypeChecker *tc, VTValue &val) const {
     // compile-time false. Tested against the non-nil element types, since
     // whether a nil value matches is determined by the tested type alone.
     if (!tc->ConvertsTo(te, ce, CF_UNIFICATION)) {
+        if (nil_check) return V_VOID;
         val = VTValue(false);
         return V_INT;
     }

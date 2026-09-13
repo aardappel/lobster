@@ -2637,7 +2637,9 @@ struct TypeChecker {
         condition = SkipCoercions(condition);
         auto type = condition->exptype;
         if (auto c = Is<IsType>(condition)) {
-            if (iftrue) CheckFlowTypeIdOrDot(*c->child, c->resolvedtype);
+            // A `?` on a type that cannot be nilable makes the test a nil check (see
+            // IsType::ConstVal), which promotes nothing.
+            if (iftrue && !c->accepts_nil) CheckFlowTypeIdOrDot(*c->child, c->resolvedtype);
         } else if (auto c = Is<Not>(condition)) {
             CheckFlowTypeChangesSub(!iftrue, c->child);
         } else if (auto eq = Is<Equal>(condition)) {
@@ -5263,8 +5265,10 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
         }
     } else {
         // ConstVal is always const for a struct that is not in an abstract struct family,
-        // since only those carry a dynamic type.
-        assert(!IsStruct(resolvedtype->t) || resolvedtype->udt->family_root);
+        // since only those carry a dynamic type, unless the test is a nil check of a
+        // reference (see the nil_check there).
+        assert(!IsStruct(resolvedtype->t) || resolvedtype->udt->family_root ||
+               (accepts_nil && child->exptype->t == V_NIL));
     }
     return this;
 }

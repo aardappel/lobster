@@ -17,6 +17,36 @@ def nil_tests():
     test_true(ns != "foo")
     test_true(no != DNBox {})
 
+    // `e is T?` is accepted for every T, also one that cannot otherwise be made nilable,
+    // and is true when e is nil or e is T.
+    test_true(1.5 is float?)
+    test_true(not (1 is float?))
+    test_true(1 is int?)
+    test_true(int2 { 1, 2 } is int2?)
+    test_true(not (int2 { 1, 2 } is int3?))
+    test_true(ns is string?)
+    test_true(no is DNBox?)
+    test_true(ns is DNBox?)  // ns is nil, which the `?` matches whatever the T.
+    test_true(not (ns is DNBox))
+    // For a possibly nil value and a T it can never be, that is a nil check at run time.
+    def opt_str(x) -> string?: return if x: "v" else: nil
+    def opt_box(x) -> DNBox?: return if x: DNBox {} else: nil
+    test_true(opt_str(0) is int?)
+    test_true(not (opt_str(1) is int?))
+    test_true(opt_str(0) is int2?)
+    test_true(not (opt_str(1) is int2?))
+    test_true(opt_box(0) is float?)
+    test_true(not (opt_box(1) is float?))
+    test_true(opt_str(0) is string?)
+    test_true(opt_str(1) is string?)
+    test_true(not (opt_str(1) is DNBox?))
+    // Which promotes nothing.
+    let os = opt_str(1)
+    if os is int?:
+        test_true(false, "\"v\" is int?")
+    else:
+        test_eq(os, "v")
+
     // if-promotion: inside the then-branch the value is non-nil.
     def maybe(x) -> string?: return if x: "v" else: nil
     let m1 = maybe(1)
