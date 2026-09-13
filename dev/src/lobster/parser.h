@@ -580,7 +580,9 @@ struct Parser {
         auto def = new Define(lex, nullptr);
         bool has_predeclaration_init = false;
         for (;;) {
-            auto idname = ExpectId();
+            // A variable declared at the file's top scope gets the namespace prefix like a
+            // function or type does (a conditional declaration is in the block it opens).
+            auto idname = st.MaybeMakeNameSpace(ExpectId(), !iscond);
             bool withtype = lex.token == T_TYPEIN;
             UnTypeRef type = (UnType *)nullptr;
             if (lex.token == T_COLON || withtype) {

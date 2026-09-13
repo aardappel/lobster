@@ -10,6 +10,8 @@ import .relimport.inner
 // A file whose only statement is a (here duplicate) import: it compiling at
 // all is the test.
 import .relimport.only_import
+// A file with namespaced variables at file scope.
+import .relimport.nsvars
 
 // Pure-Lobster stdlib modules not covered elsewhere: color, match and the
 // date_time enum. (quaternion and mat2x2 are covered in overloads.lobster.)
@@ -20,6 +22,25 @@ def modules_tests():
     // Relative imports, see import above.
     test_eq(relimport_inner(), 42)
     test_eq(relimport_inner2(), 41)
+
+    // The file scope variables of another file's namespace, readable and writable by
+    // their qualified names (the private one only thru the file's own functions).
+    test_eq(nsvars.x, 1)
+    test_eq(nsvars.y, 2)
+    nsvars.bump()
+    test_eq(nsvars.y, 3)
+    nsvars.y = 10
+    test_eq(nsvars.sum(), 14)
+    if not vm_compiled_mode():
+        // The dir this file is in relative to the main dir differs between an
+        // unittest.lobster run and running deep/test.lobster directly.
+        let dir = if read_file("deep/modules.lobster"): "deep" else: "."
+        expect_errors("import from \"{dir}\"\nimport relimport.nsvars\nreturn nsvars.z",
+                      [ "unknown identifier `nsvars.z`" ])
+        let nsret, nsrerr = compile_run_code(
+            "import from \"{dir}\"\nimport relimport.nsvars\nreturn nsvars.sum()", [])
+        test_eq(nsrerr, nil)
+        test_eq(nsret, "6")
 
     // color: a 4-float struct, so all float struct math applies.
     test_eq(color_red + color_blue, color { 1.0, 0.0, 1.0, 2.0 })

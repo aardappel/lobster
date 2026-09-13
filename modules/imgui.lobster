@@ -109,7 +109,6 @@ enum_flags table:
     table_sort_multi                      // Hold shift when clicking headers to sort on multiple column. TableGetSortSpecs() may return specs where (SpecsCount > 1).
     table_sort_tristate                   // Allow no sorting, disable default sorting. TableGetSortSpecs() may return specs where (SpecsCount == 0).
 
-let table_sizing_stretch_prop = table_sizing_fixed_fit | table_sizing_fixed_same // Columns default to _WidthStretch with default weights proportional to each columns contents widths.
 let table_borders_h           = table_borders_inner_h  | table_borders_outer_h   // Draw horizontal borders.
 let table_borders_v           = table_borders_inner_v  | table_borders_outer_v   // Draw vertical borders.
 let table_borders_inner       = table_borders_inner_v  | table_borders_inner_h   // Draw inner borders.

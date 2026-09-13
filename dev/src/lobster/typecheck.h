@@ -3439,9 +3439,17 @@ struct TypeChecker {
                            line.line, " ", type);
     }
 
+    // Whether a declared name is the queried identifier, either as is or in a namespace (a
+    // variable declared at file scope in a namespace, which its own file refers to
+    // unqualified).
+    static bool QueryNameMatches(string_view name, string_view iden) {
+        if (name == iden) return true;
+        return name.size() > iden.size() && name[name.size() - iden.size() - 1] == '.' &&
+               name.substr(name.size() - iden.size()) == iden;
+    }
     void FindVar(vector<Arg> &vars) {
         for (auto &var : vars) {
-            if (var.sid->id->name == query->iden) {
+            if (QueryNameMatches(var.sid->id->name, query->iden)) {
                 LocationQuery(var.sid->id->line, TypeName(var.sid->type));
             }
         }

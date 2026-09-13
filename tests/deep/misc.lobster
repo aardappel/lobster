@@ -18,6 +18,12 @@ def nsfun(): return (nsclass {}).method()
 enum nsenum:
     ns_one = 1
 
+// Variables declared at file scope are namespaced as well (those of another file, and
+// private ones, are tested in modules.lobster, see relimport/nsvars.lobster).
+let nsvar = 5
+var nscount = 0
+def nsbump(): nscount += nsvar
+
 namespace
 
 def misc_tests():
@@ -27,6 +33,18 @@ def misc_tests():
     test_eq(MiscNS.nsfun(), 4)
     test_eq((MiscNS.nsclass {}).x, 3)
     test_eq(MiscNS.ns_one, 1)
+    test_eq(MiscNS.nsvar, 5)
+    MiscNS.nsbump()
+    test_eq(MiscNS.nscount, 5)
+    MiscNS.nscount = 1
+    test_eq(MiscNS.nscount, 1)
+    if not vm_compiled_mode():
+        // The unqualified name is not reachable once the namespace has been left.
+        expect_errors("namespace ns\nlet v = 1\nnamespace\nreturn v",
+                      [ "unknown identifier `v`" ])
+        let nsret, nsrerr = compile_run_code("namespace ns\nlet v = 1\nnamespace\nreturn ns.v", [])
+        test_eq(nsrerr, nil)
+        test_eq(nsret, "1")
 
     // Dictionary module: scalar, string, struct and nilable values.
     let d1 = dictionary<string, int>(17)

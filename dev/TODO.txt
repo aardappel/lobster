@@ -2,13 +2,6 @@
   The spec describes the intended semantics as decided on 2026-09-12; each item says what
   the implementation has to change to catch up, and names the spec section:
 
-  - Namespaces ("namespace"): file scope `let`/`var` declarations must get the namespace
-    prefix like functions, types and enums do (now `namespace ns` + `let v` is reachable
-    as plain `v` from other files and never as `ns.v`). Parser::ParseDefine (from ParseTopExp
-    T_VAR/T_CONST) should apply st.MaybeMakeNameSpace at file scope; SymbolTable::Lookup
-    already tries the namespaced name first. Check that `private` and pre-declarations
-    (which compare names) and the LSP queries (FindVar etc.) handle the prefixed names.
-
   - Integer overflow ("Operators on numbers"): `+ - *` and unary `-` on ints are specified
     to wrap (two's complement), but the generated C does them on signed long long (UB on
     overflow, which a C compiler may exploit), and the constant folder in constval.h does
