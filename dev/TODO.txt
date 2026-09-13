@@ -1,13 +1,3 @@
-- Borrow checker improvements (the visible rules are documented in the spec's "Borrowing"
-  section and must stay documented there):
-
-  - A function value passed as a declared function type has its parameters fixed to
-    LT_BORROW (see TypeChecker::SubType for V_FUNCTION), so a lambda body that assigns to
-    its own parameter is an error ("cannot assign to borrowed argument"). Lift it by giving
-    such a parameter an owning copy on entry when the body assigns it (as ArgLifetime does
-    for ordinary calls); the function type's calling convention can stay borrowing at the
-    call site.
-
 - constant string caching breaks in-place writes: write_int8_le and friends write into the one
   shared copy of a string constant when it is big enough, so later evaluations of that constant
   see the writes. This prints A, AB, ABC, ..:

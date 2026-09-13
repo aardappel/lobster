@@ -297,6 +297,10 @@ Node *Call::Optimize(Optimizer &opt) {
         // Borrowing could be problematic if 2 copies of the same function get inlined, since
         // that creates an overwite of a borrowed variable, but the codegen ensures the overwrite
         // does not decref.
+        // A parameter that copies its (borrowed) argument on entry does so here instead, see
+        // SpecIdent::copy_on_entry.
+        if (arg.sid->copy_on_entry && IsRefNil(c->exptype->t))
+            c = opt.Typed(c->exptype, LT_KEEP, new ToLifetime(line, c, 1, 0));
         auto def = new Define(line, c);
         def->tsids.push_back({ arg.sid, { arg.spec_type } });
         list->Add(opt.Typed(type_void, LT_ANY, def));

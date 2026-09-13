@@ -154,6 +154,15 @@ struct SpecIdent {
     // whose loop does the inc, see ForLoopElem::Generate.
     bool speculative = false;
     Define *spec_define = nullptr;
+    // An owning parameter (lt == LT_KEEP) whose callers pass a borrowed argument all the
+    // same, which it copies (an inc) on entry, and gives up on exit like any owning variable.
+    // For a function value that is called thru a declared function type, since every value of
+    // that type is called the same way, and for every anonymous function so that it can become
+    // one: a parameter it assigns (or a struct of references, see TypeChecker::ArgLifetime)
+    // owns this way, see TypeChecker::SubType.
+    bool copy_on_entry = false;
+    // The lifetime a call adjusts its argument to, see TypeChecker::PrepareCallLifetimes.
+    Lifetime CallerLifetime() const { return copy_on_entry ? LT_BORROW : lt; }
 
     SpecIdent(Ident *_id, TypeRef _type, int idx, bool withtype)
         : id(_id), type(_type), idx(idx), withtype(withtype) {}

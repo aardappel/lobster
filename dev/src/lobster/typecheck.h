@@ -720,10 +720,20 @@ struct TypeChecker {
                 // Note this has the args in reverse: function args are contravariant.
                 if (!ConvertsTo((*args)[i].spec_type, arg.spec_type, CF_UNIFICATION))
                     goto error;
-                // This function must be compatible with all other function values that
-                // match this type, so we fix lifetimes to LT_BORROW.
-                // See typechecking of istype calls.
-                if (!sf->parent->istype) arg.sid->lt = LT_BORROW;
+                // Every function value of this type is called the same way, with borrowed
+                // arguments (see TypeCheckDynCall), so a parameter that needs a reference
+                // of its own copies the argument on entry, see SpecIdent::copy_on_entry.
+                if (!sf->parent->istype) {
+                    if (!sf->typechecked) {
+                        auto owns = ParamOwns(arg, arg.spec_type);
+                        arg.sid->lt = owns ? LT_KEEP : LT_BORROW;
+                        arg.sid->copy_on_entry = owns;
+                    }
+                    // Only anonymous functions are values, and a specialization of one
+                    // typechecked for a direct call was given these same lifetimes, see
+                    // ArgLifetime.
+                    assert(IsBorrow(arg.sid->lt) || arg.sid->copy_on_entry);
+                }
             }
             if (sf->typechecked) {
                 if (sf->reqret != reqret)
@@ -1684,9 +1694,21 @@ struct TypeChecker {
     // writes in lambdas called by the callee.
     void PrepareCallLifetimes(SubFunction *sf, List &call_args) {
         for (auto [i, c] : enumerate(call_args.children)) {
-            if (sf->args[i].sid->lt == LT_KEEP && IsBorrow(c->lt))
+            if (sf->args[i].sid->CallerLifetime() == LT_KEEP && IsBorrow(c->lt))
                 AdjustLifetime(c, LT_KEEP);
         }
+    }
+
+    // Whether a parameter needs a reference of its own rather than borrowing the argument:
+    // one the function assigns to (with a borrowed value at refc==1 the overwrite would free
+    // what the caller still uses, and in general the overwrites can be too complicated to
+    // track, loops etc.), and a struct of references, which is several such values.
+    // FIXME: the latter is conservative, since a struct that never gets assigned to would
+    // not need this. But where we track assignment in the parser we have no idea of types,
+    // and here we don't know if it is assigned to, so that would require some new kind of
+    // tracking this info.
+    bool ParamOwns(const Arg &arg, TypeRef argtype) {
+        return !arg.sid->id->single_assignment || argtype->t == V_STRUCT_R;
     }
 
     TypeRef TypeCheckMatchingCall(SubFunction *sf, List &call_args, bool static_dispatch,
@@ -1734,7 +1756,7 @@ struct TypeChecker {
                 // A new dynamic dispatch must retain the arguments' borrows until every
                 // implementation has checked its writes, see TypeCheckCallDispatch.
                 if (static_dispatch) {
-                    AdjustLifetime(c, arg.sid->lt);
+                    AdjustLifetime(c, arg.sid->CallerLifetime());
                     // This has to happen even to dead args:
                     DecBorrowers(c->lt, call_args);
                 }
@@ -1943,17 +1965,15 @@ struct TypeChecker {
         auto ArgLifetime = [&](const Node *c, const Arg &arg, size_t i) {
             if (dispatch_lts)
                 return (*dispatch_lts)[i];
-            // We force !single_assignment to LT_KEEP, since any overwriting of the arg would be problematic
-            // with incoming borrowed values at refc==1, and more generally if the pattern of overwriting is
-            // complicated due to loops etc, this is the only way we can track the refc correctly.
-            if (!arg.sid->id->single_assignment)
-                return LT_KEEP;
-            // Similarly, a V_STRUCT_R is an exception in that is essentially multiple ref arguments, subject
-            // to the same pitfalls, so must get the same treatment.
-            // FIXME: this is conservative, since V_STRUCT_R args that never get assigned to should not get this
-            // treatment. But where we track assignment in the parser we have no idea of types, and here we don't
-            // know if it is assigned to, so that would require some new kind of tracking this info.
-            if (c->exptype->t == V_STRUCT_R)
+            // An anonymous function may later be passed as a declared function type, which
+            // calls every function value the same way: with borrowed arguments, a parameter
+            // that needs a reference of its own copying the argument on entry (see SubType
+            // for V_FUNCTION). Every specialization of one is called that way from the start,
+            // so that passing it as such a type never changes what its callers were
+            // typechecked with, see SpecIdent::copy_on_entry.
+            if (f.anonymous)
+                return ParamOwns(arg, c->exptype) ? LT_KEEP : LT_BORROW;
+            if (ParamOwns(arg, c->exptype))
                 return LT_KEEP;
             // This is a very special case that tends to happen if we pass a variable to a HOF, and then inside
             // the lambda to that HOF we assign to the same var. To avoid that, check !single_assignment for the
@@ -2029,6 +2049,7 @@ struct TypeChecker {
         for (auto [i, c] : enumerate(call_args.children)) {
             auto &arg = sf->args[i];
             arg.sid->lt = ArgLifetime(c, arg, i);
+            arg.sid->copy_on_entry = f.anonymous && arg.sid->lt == LT_KEEP;
             arg.spec_type = st.ResolveTypeVars(sf->overload->givenargs[i], call_args.line);
             LOG_DEBUG("arg: ", arg.sid->id->name, ":", TypeName(arg.spec_type));
         }
@@ -3004,11 +3025,10 @@ struct TypeChecker {
 
     void CheckLvalBorrowed(Node *n, Borrow &lv) {
         if (lv.derefs.empty() && LifetimeType(lv.sid->lt) == LT_BORROW) {
-            // This should only happen for multimethods and anonymous functions used with istype
-            // where we can't avoid arguments being LT_BORROW.
-            // All others should have been specialized to LT_KEEP when a var is not
-            // single_assignment.
-            // This is not particularly elegant but should be rare.
+            // A parameter that is assigned owns (see ParamOwns), whichever way the function
+            // is called (a dynamic dispatch, or a function value called thru its type, copies
+            // on entry), so this is only reachable when a parameter the parser saw no
+            // assignment to gets assigned after all (a FreeVarRef, see CheckLval).
             ErrorAlways(*n, "cannot assign to borrowed argument ", Q(lv.sid->id->name));
         }
         // Borrows and the write are compared as every path that may name the location: a

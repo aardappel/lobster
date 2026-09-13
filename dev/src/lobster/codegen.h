@@ -3314,22 +3314,22 @@ struct CodeGen  {
         }
     }
 
-    void GenIncRef(const Place &p) {
+    void GenIncRef(string &sd, const Place &p) {
         if (IsNilConstant(p)) return;
         auto r = Read(p);
         auto rs = cpp ? string() : RcStatCall(true);
         if (p.var) {
-            if (cpp) append(cb, "    if (", r, ") ", r, "->Inc();\n");
-            else if (rs.empty()) append(cb, "    if (", r, ") ", r, "->refc++;\n");
-            else append(cb, "    if (", r, ") { ", rs, r, "->refc++; }\n");
+            if (cpp) append(sd, "    if (", r, ") ", r, "->Inc();\n");
+            else if (rs.empty()) append(sd, "    if (", r, ") ", r, "->refc++;\n");
+            else append(sd, "    if (", r, ") { ", rs, r, "->refc++; }\n");
         } else if (cpp && !p.typed) {
-            append(cb, "    ", p.s, ".LTINCRTNIL();\n");
+            append(sd, "    ", p.s, ".LTINCRTNIL();\n");
         } else if (cpp) {
-            append(cb, "    { ", CType(p.k()), "_r = ", r, "; if (_r) _r->Inc(); }\n");
+            append(sd, "    { ", CType(p.k()), "_r = ", r, "; if (_r) _r->Inc(); }\n");
         } else if (rs.empty()) {
-            append(cb, "    { ", CType(p.k()), "_r = ", r, "; if (_r) _r->refc++; }\n");
+            append(sd, "    { ", CType(p.k()), "_r = ", r, "; if (_r) _r->refc++; }\n");
         } else {
-            append(cb, "    { ", CType(p.k()), "_r = ", r, "; if (_r) { ", rs, "_r->refc++; } }\n");
+            append(sd, "    { ", CType(p.k()), "_r = ", r, "; if (_r) { ", rs, "_r->refc++; } }\n");
         }
     }
 
@@ -3339,7 +3339,7 @@ struct CodeGen  {
         // still possible we get passed an int false value due to the way and/or are compiled?
         // See e.g. astar_result in the test.
         // Would be great to remove this case since the if-check is not needed in almost all cases.
-        GenIncRef(Slot(off + 1, rtt));
+        GenIncRef(cb, Slot(off + 1, rtt));
     }
 
     // The ones below are a move or a test on the stack and nothing else. Calling a helper for
@@ -3450,6 +3450,23 @@ struct CodeGen  {
             } else if (ShadowLocals()) {
                 CopyValue(sd, Shadow(var_to_local[varidx]), p);
             }
+        }
+        // A parameter that owns a copy of what the caller passed takes it here, see
+        // SpecIdent::copy_on_entry. Given up on exit with the other owned variables, see
+        // EmitReturn, which is where --rcstats counts it.
+        if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
+            rc_suppress = true;
+            for (auto &arg : st.subfunctiontable[sf_idx]->args) {
+                if (!arg.sid->copy_on_entry || arg.sid->constprop) continue;
+                for (int i = 0; i < ValWidth(arg.sid->type); i++) {
+                    auto varidx = arg.sid->Idx() + i;
+                    if (!IsRefNil(var_types[varidx]->t)) continue;
+                    GenIncRef(sd, sids[varidx].used_as_freevar()
+                                      ? Global(varidx)
+                                      : Local(var_to_local[varidx]));
+                }
+            }
+            rc_suppress = false;
         }
         for (int i = 0; i < (int)f_defs.size(); i++) {
             // for most locals, this just saves an nil, only in recursive cases it has an
@@ -3991,7 +4008,7 @@ struct CodeGen  {
         }
         rc_tag = "forelem";
         for (int i = 0; i < width; i++) {
-            if ((1 << i) & bitmask) GenIncRef(Slot(-i, elemtype, i));
+            if ((1 << i) & bitmask) GenIncRef(cb, Slot(-i, elemtype, i));
         }
         rc_tag.clear();
     }

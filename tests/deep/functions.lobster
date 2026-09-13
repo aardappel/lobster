@@ -8,6 +8,13 @@ import vec
 
 // Function type declaration, usable as an explicit (non-inlined) arg type.
 def int_to_int_fun(i:int) -> int
+def str_to_str_fun(s:string) -> string
+
+// A struct of references, which a parameter takes as several reference arguments.
+struct SRefPair:
+    a:string
+    b:string
+def sref_fun(r:SRefPair) -> string
 
 // Explicit free variables: usable outside lexical scope of the vars.
 def freevar_add(c, d) [dfv_a, dfv_b]:
@@ -285,6 +292,28 @@ def functions_tests():
     let fboth = fn(i:int) -> int: i * 100
     test_eq(fboth(1), 100)
     test_eq(calls_ft(fboth), 201)
+    // A function value that assigns to its parameter owns a copy of the argument, so the
+    // caller's variable is unaffected, also when called thru a function type (which passes
+    // the argument borrowed), and also when it was called directly before that.
+    def calls_sft(f:str_to_str_fun, s:string) -> string: return f(s)
+    let fassign = fn(s:string) -> string:
+        s = s + "!"
+        s
+    let fsrc = "hi" + ""
+    test_eq(fassign(fsrc), "hi!")
+    test_eq(calls_sft(fassign, fsrc), "hi!")
+    test_eq(fsrc, "hi")
+    let fassign2 = fn(s:string) -> string:
+        s += "?"
+        s
+    test_eq(calls_sft(fassign2, fsrc), "hi?")
+    test_eq(fsrc, "hi")
+    // A struct of references as a parameter is several such references.
+    def calls_sref(f:sref_fun, r:SRefPair) -> string: return f(r)
+    let fsref = fn(r:SRefPair) -> string: r.a + r.b
+    let pr = SRefPair { "x" + "", "y" + "" }
+    test_eq(fsref(pr), "xy")
+    test_eq(calls_sref(fsref, pr), "xy")
     // call_function_value invokes a function value from native code.
     var cfv_state = 1
     let cfv = fn() -> void:

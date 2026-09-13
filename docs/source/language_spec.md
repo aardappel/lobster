@@ -1019,8 +1019,8 @@ values of one anonymous function type do not convert to another, so a vector
 of distinct lambdas needs `::ft`. Calling a variable of function type passes
 exactly the parameters; extra arguments to a function value whose function
 takes fewer are dropped without being evaluated, fewer is an error. A
-function value passed as a declared function type may not assign to its
-parameters (error "cannot assign to borrowed argument"). `x()` calls the
+function value may assign to its parameters like any function, also when it
+is called thru a declared function type (see Borrowing). `x()` calls the
 function value held by `x` only when `x` is a variable (and no function or
 builtin takes precedence, see Call resolution); calling any other expression
 (`f()()`, `v[0]()`) is an error. Named functions are not values ("can't use
@@ -1482,7 +1482,9 @@ write elsewhere in the expression holding the borrow (e.g. `v[0] + v.pop()`,
 where an operand borrows) is an error ("cannot modify `v[..]` while `v[0]`
 borrows it").
 A parameter that the function assigns to always owns its own reference; the
-caller's variable is unaffected.
+caller's variable is unaffected. This includes the parameters of an anonymous
+function, whichever way it is called: a call thru a declared function type
+passes every argument borrowed, and such a parameter copies it on entry.
 
 
 Runtime semantics
