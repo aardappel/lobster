@@ -1620,12 +1620,12 @@ struct Parser {
             { T_EQ, T_NEQ, T_NONE, T_NONE },
             { T_AND, T_OR, T_NONE, T_NONE },
         };
-        unique_ptr<Node> exp(level ? ParseOpExp(level - 1) : ParseUnary());
+        unique_ptr<Node> exp(level ? ParseOpExp(level - 1) : ParseOperand());
         TType *o = &ops[level][0];
         while (Either(o[0], o[1]) || Either(o[2], o[3])) {
             TType op = lex.token;
             lex.Next();
-            auto rhs = level ? ParseOpExp(level - 1) : ParseUnary();
+            auto rhs = level ? ParseOpExp(level - 1) : ParseOperand();
             auto lhs = exp.release();
             switch (op) {
                 case T_MULT:   exp.reset(new Multiply(lex, lhs, rhs)); break;
@@ -1671,6 +1671,15 @@ struct Parser {
             default:
                 return ParseDeref();
         }
+    }
+
+    // The operand of a binary operator: a unary expression, optionally tested with `is`,
+    // which thus binds looser than the prefix operators (`-x is int` is `(-x) is int`) and
+    // tighter than every binary operator.
+    Node *ParseOperand() {
+        auto n = ParseUnary();
+        if (!IsNext(T_IS)) return n;
+        return new IsType(lex, n, ParseType(false));
     }
 
     // The arguments of a call to `idname`, into a GenericCall for the declchecker and the
@@ -1812,11 +1821,6 @@ struct Parser {
                 n = new PostDecr(lex, Modify(n));
                 lex.Next();
                 return n;
-            case T_IS: {
-                lex.Next();
-                auto is = new IsType(lex, n, ParseType(false));
-                return is;
-            }
             default:
                 return n;
         }

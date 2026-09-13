@@ -43,6 +43,18 @@ def operators_tests():
     test_true(1 == 1 and 2 == 2)    // and/or loosest.
     test_eq(-2 * 3, -6)
     test_eq(2 * -3, -6)
+    // `is` binds looser than the prefix operators and tighter than every binary
+    // operator: `-x is int` is `(-x) is int`, `a + b is int` is `a + (b is int)`,
+    // and `not x is int` is `not (x is int)`.
+    test_true(-i1 is int)
+    test_true(-i1 is int == true)
+    test_eq(i7 + i1 is int, 8)
+    test_eq(i7 * i1 is float, 0)
+    test_true(not i1 is float)
+    test_true(not (i1 is float) and i1 is int)
+    let isv = [ 1 ]
+    test_true(-isv[0] is int)
+    test_true(isv.length is int)
     // & | ^ are a single precedence level, left associative.
     let i2 = 2
     test_eq(i2 | 1 & 1, 1)          // (2|1)&1, not 2|(1&1).

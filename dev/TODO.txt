@@ -19,11 +19,6 @@
     (same enum keeps it, an enum mixed with int or another enum forces bool, see
     TypeCheckAndOr).
 
-  - `is` precedence ("Grammar and precedence"): `-x is int` must parse as `(-x) is int`;
-    `is` binds looser than the prefix operators `- ~ ++ --` and tighter than every binary
-    operator. Move the T_IS handling out of ParseDeref into a wrapper around ParseUnary
-    (the operand production of ParseOpExp); `not x is int` stays `not (x is int)`.
-
   - `is T?` ("is, typeof, assert, nil"): `e is T?` must be accepted for every T, meaning
     `e` is nil or `e is T`, so `1.5 is float?` is true and `1 is float?` false; now
     ParseType reports "value types can't be made nilable" for a scalar or struct T. In
