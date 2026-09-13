@@ -578,7 +578,7 @@ struct Call : List {
     int vtable_idx = -1;
     SubFunction *sf;
     vector<UnTypeRef> specializers;
-    bool super;
+    bool super = false;
     // Typechecking gave up on this call (see TypeChecker::GiveUpCall), so `sf` says nothing
     // about it.
     bool failed = false;

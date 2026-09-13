@@ -2298,24 +2298,27 @@ struct TypeChecker {
         // other structs, since they can never dynamically be different from their static
         // type), and only when there is a sub-class that has a method that can be called also.
         UDT *dispatch_udt = nullptr;
+        // The class or struct of the receiver, whose superclass a `super` call goes to.
+        UDT *receiver_udt = nullptr;
         TypeRef type0;
         if (call_args.Arity()) {
             type0 = call_args.children[0]->exptype;
             if (IsDynamicType(type0)) dispatch_udt = type0->udt;
+            if (IsUDT(type0->t)) receiver_udt = type0->udt;
         }
-        if (dispatch_udt) {
-            if (super) {
-                // We're forcing static dispatch to the superclass;
-                type0 = &dispatch_udt->ssuperclass->thistype;
-            } else {
-                // Go thru all other overloads, and see if any of them have this one as superclass.
-                for (auto ov : csf->parent->overloads) {
-                    if (ov->method_of &&
-                        DistanceFromSpecializedSub(dispatch_udt, ov->method_of) > 0) {
-                        LOG_DEBUG("dynamic dispatch: ", Signature(*ov->sf));
-                        return TypeCheckCallDispatch(*dispatch_udt, csf, call_args,
-                            reqret, specializers, vtable_idx);
-                    }
+        if (super) {
+            // Static dispatch to the superclass's implementation (that there is a
+            // superclass was checked by GenericCall::TypeCheck).
+            if (receiver_udt && receiver_udt->ssuperclass)
+                type0 = &receiver_udt->ssuperclass->thistype;
+        } else if (dispatch_udt) {
+            // Go thru all other overloads, and see if any of them have this one as superclass.
+            for (auto ov : csf->parent->overloads) {
+                if (ov->method_of &&
+                    DistanceFromSpecializedSub(dispatch_udt, ov->method_of) > 0) {
+                    LOG_DEBUG("dynamic dispatch: ", Signature(*ov->sf));
+                    return TypeCheckCallDispatch(*dispatch_udt, csf, call_args,
+                        reqret, specializers, vtable_idx);
                 }
             }
             // Yay there are no sub-class implementations, we can just statically dispatch.
@@ -2334,9 +2337,17 @@ struct TypeChecker {
             if (pickfrom.size() == 1) {
                 // We're done, found unique match.
                 auto pick = pickfrom[0];
-                LOG_DEBUG("static dispatch: ", Signature(*pick->sf));
                 pickfrom.clear();
                 matches.clear();
+                // A `super` call must land on a method of a strict superclass: with nothing
+                // else to pick from, this may be the calling method itself.
+                if (super && (!receiver_udt || !pick->method_of ||
+                              DistanceToSpecializedSuper(pick->method_of, receiver_udt) <= 0)) {
+                    ErrorAlways(call_args, "super must be used on a method that has a"
+                                           " superclass implementation");
+                    return GiveUpCall(call_args);
+                }
+                LOG_DEBUG("static dispatch: ", Signature(*pick->sf));
                 return TypeCheckCallStatic(csf, call_args, reqret, specializers, *pick, true,
                                            false, nullptr, nullptr);
             }

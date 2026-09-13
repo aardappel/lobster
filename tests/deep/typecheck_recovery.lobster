@@ -524,4 +524,22 @@ def typecheck_recovery_tests():
         return A {}.x + B {}.y
         """, [ "index that is already in use: 1", "requires type `float`, got `string`" ])
 
+    // A `super` call in a method whose superclass has no implementation of it, which
+    // would otherwise resolve to the method itself. The same for structs. (The methods
+    // are typechecked where they are first called, after the initializer.)
+    expect_errors("""
+        class A:
+            x:int
+        class B : A
+            def f(): return super f()
+        struct S:
+            y:int
+        struct T : S
+            def g(): return super g()
+        let z:float = "s"
+        return B { 1 }.f() + T { 2 }.g()
+        """, [ "requires type `float`, got `string`",
+               "super must be used on a method that has a superclass implementation",
+               "super must be used on a method that has a superclass implementation" ])
+
 typecheck_recovery_tests()

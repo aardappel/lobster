@@ -169,9 +169,22 @@ class DD2 : DD1
 class DD3<T> : DD1
     c:T
     def dd_f(x:int): return x + length(c)
+// `super` finds the closest implementation up the chain, here the grandparent's.
+class DD4 : DD2
+    def dd_sni(): return 1 + super dd_sni()
+// Also for structs.
+struct SS1:
+    x:int
+    def ss_f(): return x
+struct SS2 : SS1
+    def ss_f(): return 10 + super ss_f()
 
 def classes_tests():
     suite("classes")
+
+    // super, see DD4 and SS2.
+    test_eq(DD4 {}.dd_sni(), 13)
+    test_eq(SS2 { 1 }.ss_f(), 11)
 
     // Field access, defaults, tagged constructors, field writes.
     class Point:
