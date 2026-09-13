@@ -9,17 +9,6 @@
     Unary (and fold them that way), like the shifts already do; check the integer math
     builtins (pow, abs, ...) as well.
 
-  - Struct equality ("Operators on structs"): `==`/`!=` on two structs of the same type
-    must be the conjunction of the `==` of every field: strings by contents, class/vector/
-    resource references by identity, ints and floats by value, nested structs recursively,
-    plus the type slot for a family struct; allowed for every struct. Now GenStructCompare
-    compares every slot by its kind (a string slot by pointer, so `S { "x" } == S { "x" }`
-    is false) and TypeCheckComp rejects structs of scalars that aren't numeric ("requires
-    numeric struct"). Implement as specialized codegen: per slot, emit the compare the
-    slot type wants (RtSEq / RtSnEq for string / nilable string slots, `==` for the rest)
-    joined by `&&` (`||` of the negations for `!=`), rather than a generic helper. Also
-    let TypeCheckComp accept every struct type.
-
 - Borrow checker improvements (the visible rules are documented in the spec's "Borrowing"
   section and must stay documented there):
 

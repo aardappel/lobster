@@ -868,7 +868,9 @@ mix of its field types) yields one `bool`: `a == b` is true when every field
 of `a` equals the corresponding field of `b` under the `==` of that field's
 type (`int` and `float` by value, strings by contents, class, vector and
 resource references by identity, function values by identity, nested structs
-by this same rule), and, for family structs, the dynamic types are equal;
+by this same rule), and, for family structs, the dynamic types are equal and
+the fields the static type does not declare (those of the dynamic type) are
+equal slot by slot, numbers by value and references by identity;
 `a != b` is `not (a == b)`. Indexing `s[i]` reads element
 `i` (0-based, field order flattened) of a numeric struct; out of range is a
 runtime error; `s[i] = v` assigns it. Compound assignments `s += x` etc. apply

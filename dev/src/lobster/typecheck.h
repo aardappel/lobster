@@ -980,12 +980,6 @@ struct TypeChecker {
                     RequiresError(TypeName(n.left->exptype), n.right->exptype, n,
                                   "right-hand side");
                     u = type_error;
-                } else if (u->t == V_STRUCT_S && !u->udt->sametype->Numeric() &&
-                           !u->udt->family_root && !u->udt->HasPackedFields()) {
-                    // A struct with fields stored in part of their slots has no sametype
-                    // (see CheckUDTSameTypeRec), but compares slot by slot like any other.
-                    RequiresError("numeric struct", u, n);
-                    u = type_error;
                 }
             } else {
                 // Comparison vector op: vector inputs, vector out.

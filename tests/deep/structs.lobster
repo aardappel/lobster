@@ -150,6 +150,43 @@ def structs_tests():
     // == on structs is full value equality (a single bool).
     test_true(int3 { 1, 2, 3 } == int3 { 1, 2, 3 })
     test_true(int3 { 1, 2, 3 } != int3 { 1, 2, 4 })
+    // For any struct, comparing every field the way == of its type does: strings (also
+    // nilable ones) by contents, other references by identity, nested structs recursively.
+    // != is the negation.
+    let sx = "x"
+    let sx2 = substring("xyz", 0, 1)  // Same contents as sx, another string.
+    struct SEq:
+        s:string
+        n:int
+    test_true(SEq { sx, 1 } == SEq { sx2, 1 })
+    test_true(SEq { sx, 1 } != SEq { sx2, 2 })
+    test_true(SEq { sx, 1 } != SEq { "y", 1 })
+    struct SNil:
+        s:string?
+        f:float
+    test_true(SNil { nil, 1.0 } == SNil { nil, 1.0 })
+    test_true(SNil { sx, 1.0 } == SNil { sx2, 1.0 })
+    test_true(SNil { nil, 1.0 } != SNil { sx, 1.0 })
+    test_true(SNil { sx, 1.0 } != SNil { nil, 1.0 })
+    struct SRef:
+        v:[int]
+        b:bool
+    let rv = [ 1 ]
+    test_true(SRef { rv, true } == SRef { rv, true })
+    test_true(SRef { rv, true } != SRef { [ 1 ], true })  // Identity, not contents.
+    test_true(SRef { rv, true } != SRef { rv, false })
+    struct SNestEq:
+        inner:SEq
+        pos:int2
+    test_true(SNestEq { SEq { sx, 1 }, int2_1 } == SNestEq { SEq { sx2, 1 }, int2 { 1, 1 } })
+    test_true(SNestEq { SEq { sx, 1 }, int2_1 } != SNestEq { SEq { sx2, 2 }, int2_1 })
+    test_true(SNestEq { SEq { sx, 1 }, int2_1 } != SNestEq { SEq { sx2, 1 }, int2_0 })
+    // Also for structs of scalars that are not all numeric.
+    struct SMix:
+        b:bool
+        f:float
+    test_true(SMix { true, 1.5 } == SMix { true, 1.5 })
+    test_true(SMix { true, 1.5 } != SMix { false, 1.5 })
 
     // Generic vec2<T> works for non-numeric types too.
     let strvec = vec2<string> { "a", "b" }

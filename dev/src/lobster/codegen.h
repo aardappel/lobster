@@ -1289,6 +1289,25 @@ struct CodeGen  {
         return IsStruct(type->t) ? SlotTypeOf(*type->udt, i) : type;
     }
 
+    // The declared type of the field slot i of a struct belongs to (int for the type slot and
+    // for fields packed into part of a slot), which for a struct in an abstract struct family
+    // is more specific than the kind SlotTypeOf gives the slot, and decides what comparing
+    // the slot means, see GenStructCompare.
+    static TypeRef DeclaredSlotType(const UDT &udt, int i) {
+        for (auto &sfield : udt.sfields) {
+            if (i >= sfield.slot && i < sfield.slot + ValWidth(sfield.type)) {
+                if (IsStruct(sfield.type->t))
+                    return DeclaredSlotType(*sfield.type->udt, i - sfield.slot);
+                return sfield.bits ? type_int : sfield.type;
+            }
+        }
+        for (auto &sfield : udt.hidden_sfields) {
+            if (sfield.slot == i) return sfield.type;
+        }
+        assert(false);
+        return type_undefined;
+    }
+
     // The runtime type of each slot of a value of this type, or of that many of them.
     static void AddTypes(Types &ts, TypeRef type) {
         for (int i = 0; i < ValWidth(type); i++) ts.push_back(RtTypeOf(SlotType(type, i)));
@@ -3804,17 +3823,36 @@ struct CodeGen  {
                   BinExpr(isfloat, op, Slot(2, k), Slot(1, k), divisor_safe));
     }
 
-    // Comparing two structs is a compare per slot, of whatever kind it is, joined by && (or ||
-    // for a !=) into one expression like a scalar compare is, so it can stay pending and a
-    // condition can jump on it directly.
+    // Comparing two structs is a compare per slot, joined by && (or || for a !=) into one
+    // expression like a scalar compare is, so it can stay pending and a condition can jump on
+    // it directly. A slot compares the way the == of its declared field type does: a string
+    // (or nilable string) by contents, everything else (numbers, the type slot of a struct in
+    // an abstract struct family, and other references, which compare by identity) with ==.
     void GenStructCompare(bool eq, TypeRef type) {
         auto len = ValWidth(type);
         auto prec = eq ? 11 : 12;
         Expr acc;
         for (int j = 0; j < len; j++) {
-            auto l = Operand(Slot(len * 2 - j, type, j), 7);
-            auto r = Operand(Slot(len - j, type, j), 7, true);
-            auto e = Combine(7, cat(l.text, eq ? " == " : " != ", r.text), l, r);
+            auto lp = Slot(len * 2 - j, type, j);
+            auto rp = Slot(len - j, type, j);
+            auto ftype = DeclaredSlotType(*type->udt, j);
+            Expr e;
+            if (ftype->t == V_STRING || (ftype->t == V_NIL && ftype->sub->t == V_STRING)) {
+                // The slot may hold the string as another kind of reference (a field of a
+                // struct in an abstract struct family, see SlotTypeOf), which is a cast.
+                auto l = Operand(lp, 2), r = Operand(rp, 2);
+                if (lp.k() != VK_STRING) l.text = cat("(", CType(VK_STRING), ")", l.text);
+                if (rp.k() != VK_STRING) r.text = cat("(", CType(VK_STRING), ")", r.text);
+                auto op = eq ? MOP_EQ : MOP_NE;
+                e = Combine(1, cat(MathOpName(ftype->t == V_NIL ? "Sn" : "S", op), "(", l.text,
+                                   ", ", r.text, ")"), l, r);
+                // A call is not worth (and this one not safe) evaluating twice, see WriteExpr.
+                e.pure = false;
+            } else {
+                auto l = Operand(lp, 7);
+                auto r = Operand(rp, 7, true);
+                e = Combine(7, cat(l.text, eq ? " == " : " != ", r.text), l, r);
+            }
             if (!j) {
                 acc = e;
             } else {

@@ -440,6 +440,19 @@ def abstract_structs_tests():
     let ev2:ASValue = ASFloat { 1.0 }
     test_true(ev1 != ev2)
     test_true(ev1 == vi)
+    // A string field of the static type compares by contents, also here, where its slot
+    // holds it as a generic reference. At a supertype that does not declare the field, the
+    // slot compares like any reference, by identity.
+    let fs1 = "f"
+    let fs2 = substring("fg", 0, 1)
+    test_true(ASStr { fs1 } == ASStr { fs2 })
+    test_true(ASMix { fs1, 1 } == ASMix { fs2, 1 })
+    test_true(ASMix { fs1, 1 } != ASMix { fs2, 2 })
+    test_true(ASMix2 { 1, [ 2 ], fs1 } != ASMix2 { 1, [ 2 ], fs2 })  // The vectors differ.
+    let es1:ASValue = ASStr { fs1 }
+    let es2:ASValue = ASStr { fs1 }
+    test_true(es1 == es2)
+    test_true(es1 != ev1)
     test_true(equal([ ASInt { 1 }, ASNone {} ]::ASValue, [ ASInt { 1 }, ASNone {} ]::ASValue))
     test_true(not equal([ ASInt { 1 } ]::ASValue, [ ASNone {} ]::ASValue))
 
