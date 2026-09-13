@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Lobster Language Specification</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="github.css" />
+  <link rel="icon" type="image/svg" href="lobster.svg" />
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Lobster Language Specification</h1>
+</header>
+<h2 id="scope-and-conventions">Scope and conventions</h2>
+<p>This document specifies the Lobster language as implemented by the
+reference compiler and runtime (<code>dev/src</code>). It is written for
+implementors of Lobster and for users who need an unambiguous answer
+about how a construct behaves. It describes what programs are accepted
+and what they mean; it does not teach the language, and it does not
+describe the builtin function library beyond the rules the language
+imposes on calls to it.</p>
+<p>The specification is normative for the reference implementation:
+where the two disagree, one of them has a bug.</p>
+<p>Terminology:</p>
+<ul>
+<li><em>Error</em> means a compile-time diagnostic. Compilation stops
+after the pass that reported it (the parser, declaration checker, type
+checker or code generator), so no program with an error runs.</li>
+<li><em>Warning</em> means a diagnostic that does not stop
+compilation.</li>
+<li><em>Runtime error</em> means the program terminates with a message
+when the construct executes.</li>
+<li><em>Unspecified</em> marks behavior the implementation inherits from
+the host C compiler or platform rather than defining itself.</li>
+</ul>
+<p>Grammar fragments use an informal EBNF: <code>x*</code> zero or more,
+<code>x+</code> one or more, <code>x?</code> optional, <code>|</code>
+alternatives, terminals in backticks, and the token names
+<code>NL</code>, <code>INDENT</code>, <code>DEDENT</code> from the
+lexical section.</p>
+<h2 id="lexical-structure">Lexical structure</h2>
+<h3 id="source-files">Source files</h3>
+<p>A source file is a sequence of bytes. Bytes with the high bit set are
+accepted as identifier characters and as string content without
+validation, so identifiers and strings may contain UTF-8, but the
+compiler never decodes it (the <code>\u</code> string escape encodes to
+UTF-8). A NUL byte ends the file. Lines end in LF; CR is whitespace. If
+the main file starts with <code>#!</code>, its first line is
+ignored.</p>
+<h3 id="whitespace-and-comments">Whitespace and comments</h3>
+<p>Space, tab, CR and FF are whitespace. <code>//</code> starts a
+comment to the end of the line. <code>/*</code> starts a comment that
+ends at the first <code>*/</code>; such comments do not nest, and one
+that reaches the end of the file is an error. A comment counts as
+whitespace, except that the indentation of the line on which a
+multi-line comment ends is measured from the end of the comment.</p>
+<p><code>;</code> is an error ("isn't used as a statement
+terminator").</p>
+<h3 id="tokens">Tokens</h3>
+<p>Tokens are matched longest-first. The operator and punctuation tokens
+are:</p>
+<pre><code>+  -  *  /  %  ++  --  ==  !=  &lt;  &gt;  &lt;=  &gt;=  &amp;  |  ^  ~  &lt;&lt;  &gt;&gt;
+=  +=  -=  *=  /=  %=  &amp;=  |=  ^=  &lt;&lt;=  &gt;&gt;=
+.  ..  -&gt;  (  )  [  ]  {  }  ?  ,  :  ::</code></pre>
+<p><code>!</code> (other than in <code>!=</code>),
+<code>&amp;&amp;</code> and <code>||</code> are errors that direct the
+user to <code>not</code>, <code>and</code> and <code>or</code>. Any
+other character outside a string or comment is an error ("illegal
+token").</p>
+<p><code>&gt;&gt;</code> and <code>&gt;&gt;=</code> are only recognized
+outside a type argument list; inside <code>&lt;</code> <code>&gt;</code>
+in a type, two <code>&gt;</code> characters are two <code>&gt;</code>
+tokens (so
+<code>dictionary&lt;string, dictionary&lt;string, int&gt;&gt;</code>
+parses).</p>
+<h3 id="identifiers-and-keywords">Identifiers and keywords</h3>
+<pre><code>identifier = idstart idcont*
+idstart    = letter | `_` | any byte &gt;= 0x80
+idcont     = idstart | digit</code></pre>
+<p>The following words are keywords and cannot be identifiers:</p>
+<pre><code>abstract and any assert attribute break case class constructor continue
+def default elif else enum enum_flags float fn for from guard if import
+int is let member member_frame namespace nil nonlocal not operator or
+out_of_range pakfile private program resource return static static_frame
+string struct super switch typeof union var void while</code></pre>
+<p><code>inf</code>, <code>infinity</code> and <code>nan</code> are
+float literals (see below) and therefore also not usable as identifiers.
+<code>true</code>, <code>false</code> and <code>this</code> are not
+keywords: <code>true</code> and <code>false</code> are the values of the
+enum <code>bool</code> declared by the prelude, and <code>this</code> is
+an ordinary identifier that method declarations introduce (a variable
+named <code>this</code> in an enclosing scope therefore makes every
+method in that scope an error, see shadowing).</p>
+<p>Namespaced identifiers: once a namespace <code>ns</code> has been
+declared (by a <code>namespace</code> statement earlier in parse order,
+in any file, or by the host program), the character sequence
+<code>ns</code> <code>.</code> <code>identifier</code> is lexed as a
+single identifier token with the text <code>ns.identifier</code>, and
+this repeats for nested namespaces (<code>a.b.c</code>). Consequently a
+<code>.</code> directly after a namespace name never denotes field
+access, even if a variable of that name exists.</p>
+<h3 id="integer-literals">Integer literals</h3>
+<pre><code>intlit = digit+ | (`0x` | `0X`) hexdigit+</code></pre>
+<p>A decimal literal must fit in a signed 64-bit integer; otherwise it
+is an error ("int constant overflow"). Unary minus is a separate
+operator, so <code>-9223372036854775808</code> is an error; the smallest
+integer is written as <code>-9223372036854775807 - 1</code> or
+<code>0x8000000000000000</code>. A hex literal is parsed as an unsigned
+64-bit value and reinterpreted as signed, so
+<code>0xFFFFFFFFFFFFFFFF</code> is <code>-1</code>; more than 64 bits is
+an error. There are no octal or binary literals, digit separators or
+suffixes.</p>
+<h3 id="character-literals">Character literals</h3>
+<pre><code>charlit = `&#39;` (char | escape)* `&#39;`</code></pre>
+<p>The escapes are those of strings. The literal denotes an integer: the
+bytes of its contents packed big-endian (the first byte most
+significant). Up to 8 bytes are allowed (more is an error); an empty
+literal is <code>0</code>. A raw <code>"</code> inside is an error.</p>
+<h3 id="float-literals">Float literals</h3>
+<pre><code>floatlit = digit+ `.` digit* exponent?
+         | `.` digit+ exponent?
+         | `inf` | `infinity` | `nan`
+exponent = (`e` | `E`) (`+` | `-`)? digit+</code></pre>
+<p><code>digit+ .</code> is only a float when the character after the
+<code>.</code> is neither <code>.</code> nor a letter: <code>1..2</code>
+is <code>1</code> <code>..</code> <code>2</code>, and <code>1.abs</code>
+is <code>1</code> <code>.</code> <code>abs</code>. An exponent is only
+part of the literal after a form containing <code>.</code>:
+<code>1e5</code> lexes as <code>1</code> followed by the identifier
+<code>e5</code>. Literals are unsigned: <code>-inf</code> is the unary
+minus operator applied to <code>inf</code>, so <code>a -inf</code> is
+<code>a - inf</code>. The value is the nearest double as converted by
+the C library.</p>
+<h3 id="string-literals">String literals</h3>
+<pre><code>strlit = `&quot;` (char | escape | interpolation)* `&quot;`</code></pre>
+<p>A raw newline ends the literal with an error. Raw bytes below 0x20
+and 0x7F are errors; other bytes, including those above 0x7F, are
+content. A raw <code>'</code> is an error (it must be written
+<code>\'</code>). The escapes are <code>\n</code>, <code>\t</code>,
+<code>\r</code>, <code>\\</code>, <code>\"</code>, <code>\'</code>,
+<code>\{</code>, <code>\}</code>, <code>\x</code> followed by exactly
+two hex digits (one byte), and <code>\u</code> followed by exactly four
+hex digits (the code point, encoded as UTF-8). Any other <code>\</code>
+sequence is an error.</p>
+<p><code>{</code> starts an interpolation (below) unless written
+<code>{{</code> or <code>\{</code>; <code>}</code> outside an
+interpolation is an error unless written <code>}}</code> or
+<code>\}</code>.</p>
+<p>Interpolation: <code>{</code> <em>expr</em> <code>}</code> inside a
+string embeds an expression, which is an operator expression (an
+expression without assignment, see the expression grammar). It may
+itself contain string literals and interpolations. The lexer turns the
+string into a sequence of string-part and expression tokens; the parser
+builds the expression described under String interpolation.</p>
+<p>Multi-line strings: <code>"""</code> starts a literal that ends at
+the next <code>"""</code>. If the opening is followed by a line end
+(<code>\n</code> or <code>\r\n</code>), that line end is skipped; the
+number N of spaces at the start of the first content line is then
+removed from the start of every following line (as many of its leading
+spaces as it has, up to N; tabs are not stripped). CR bytes are dropped.
+No escapes and no interpolation are recognized; <code>{</code>,
+<code>}</code>, <code>\</code> and single <code>"</code> are
+content.</p>
+<h3 id="lines-indentation-and-blocks">Lines, indentation and blocks</h3>
+<p>The lexer produces <code>NL</code> (linefeed), <code>INDENT</code>
+and <code>DEDENT</code> tokens from the layout of the source:</p>
+<ol type="1">
+<li>Lines without tokens (empty, or comment only) are ignored.</li>
+<li>An <code>NL</code> token is produced at the end of every line that
+has tokens, except:
+<ol type="a">
+<li>inside an unclosed <code>(</code>, <code>[</code>, <code>{</code> or
+string interpolation, where line ends are ignored entirely; (b) when the
+line's last token is a <em>continuation token</em>: <code>,</code>
+<code>+</code> <code>-</code> <code>*</code> <code>/</code>
+<code>%</code> <code>&lt;</code> <code>&gt;</code> <code>&lt;=</code>
+<code>&gt;=</code> <code>&lt;&lt;</code> <code>&gt;&gt;</code>
+<code>==</code> <code>!=</code> <code>=</code> any compound assignment
+operator <code>&amp;</code> <code>|</code> <code>^</code> <code>~</code>
+<code>::</code> <code>-&gt;</code> <code>and</code> <code>or</code>
+<code>operator</code> (<code>:</code> <code>.</code> <code>not</code>
+<code>is</code> are not); (c) when the next line's first token is
+<code>.</code> (this lets a method chain continue on the next
+line).</li>
+</ol></li>
+<li>The indentation of a line is the number of whitespace characters
+before its first token; tabs and spaces each count as one. The leading
+whitespace of two consecutive token-bearing lines must agree character
+by character for the length of the shorter one, else it is an
+error.</li>
+<li>A line indented more than the current block level opens a block:
+<code>INDENT</code> is produced. A line indented less closes blocks: for
+each level closed, <code>NL</code> <code>DEDENT</code> is produced; the
+line's indentation must then equal the level of an enclosing block (else
+error "inconsistent dedent"). A line at the current level produces
+<code>NL</code> before its tokens (which is the <code>NL</code> of the
+previous line under rule 2).</li>
+<li>A line following a continuation token may be indented more than the
+current block; this does not open a block. It may not be indented less
+(error).</li>
+<li>The end of the file closes all open blocks; an unclosed bracket at
+the end of a file is an error. No <code>NL</code> is produced after the
+last line.</li>
+</ol>
+<p>The parser treats a block as <code>INDENT statements DEDENT</code>,
+or, for one-line forms, as the statement(s) following <code>:</code> on
+the same line.</p>
+<h2 id="programs-files-namespaces-and-privacy">Programs, files,
+namespaces and privacy</h2>
+<h3 id="program">Program</h3>
+<p>A program consists of a main file and the files it imports
+transitively. The compiler parses all files, then runs declaration
+checking, type checking, optimization and code generation over the whole
+program; execution begins with the first top-level statement of the main
+file. Top-level statements of all files execute in the order in which
+they appear after import expansion.</p>
+<p>The prelude <code>stdtype.lobster</code> is imported implicitly
+before the main file's first statement. It declares
+<code>struct vec2&lt;T&gt;</code>, <code>vec3&lt;T&gt;</code> (: vec2),
+<code>vec4&lt;T&gt;</code> (: vec3) with fields <code>x</code>,
+<code>y</code>, <code>z</code>, <code>w</code>, the specializations
+<code>float2</code>, <code>int2</code>, <code>float3</code>,
+<code>int3</code>, <code>float4</code>, <code>int4</code>, and
+<code>enum bool: false, true</code>. The language depends on these names
+existing: <code>bool</code> is the type of comparisons and
+<code>not</code>, and the <code>intN</code> types are the results of
+struct comparisons.</p>
+<h3 id="import">import</h3>
+<pre><code>importstmt = `import` ident (`.` ident)*
+           | `import` `.` ident (`.` ident)*
+           | `import` strlit
+           | `import` `from` strlit</code></pre>
+<p><code>import a.b</code> names the file <code>a/b.lobster</code>;
+<code>import .a.b</code> names it relative to the directory of the
+importing file; a string literal is a path used verbatim. A file is
+searched for as <code>modules/&lt;path&gt;</code> relative to the
+executable's directory first (not for relative imports), then as
+<code>&lt;path&gt;</code> via the program's file loader (the main file's
+directory and data directories). <code>import from "dir"</code> adds a
+data directory and imports nothing. The statement must be the only thing
+on its line, and at file scope (not inside a block or a function; error
+otherwise). Files are identified by the resulting path string: a file
+that was imported before (anywhere in the program) is not imported
+again, and produces nothing; an import cycle is an error.</p>
+<p>An import parses the imported file's statements as if they were
+written at the point of the import, with two differences: the current
+namespace is empty while parsing the imported file and restored
+afterwards, and <code>private</code> declarations of the file become
+inaccessible after it ends. The imported file's declarations are visible
+from the import point on.</p>
+<h3 id="namespace">namespace</h3>
+<pre><code>nsstmt = `namespace` ident (`.` ident)* | `namespace`</code></pre>
+<p>Only at file scope. Sets the current namespace for the rest of the
+file (or until the next <code>namespace</code> statement);
+<code>namespace</code> alone clears it. The namespace applies to
+declarations at the file's top scope only, and only to: variables,
+functions (including methods declared with <code>::</code> outside a
+class, but not methods declared inside a class body), classes, structs
+and unions (and their members), enums and enum values. Fields are never
+namespaced, and neither are declarations inside blocks or functions.
+Such a declaration's name is <code>ns.name</code>. Looking up an
+unqualified name while the current namespace is <code>ns</code> tries
+<code>ns.name</code> first, then <code>name</code>; a qualified name
+<code>ns.name</code> (a single identifier token, see Lexical structure)
+works from anywhere. The lexer only recognizes a namespace from the
+statement declaring it onward.</p>
+<h3 id="private">private</h3>
+<p><code>private</code> may prefix a file-scope
+<code>let</code>/<code>var</code>, <code>def</code>,
+<code>constructor</code>, <code>class</code>, <code>struct</code>,
+<code>union</code>, <code>abstract</code> and <code>enum</code>
+declaration, and a field or method inside a class body. Everything
+private is fully usable within its file. After the file has been parsed
+to its end, private variables, types, enums (with their values) are no
+longer reachable by name from other files, and a call from another file
+that selects an overload declared private is an error ("call to
+(partially) private function"); a private field read or written from
+another file is an error. A <code>static</code> variable is always
+private; a <code>member</code> field is method-scoped (see below). A
+named specialization must have the same privacy as its generic type.</p>
+<h2 id="declarations-and-scope">Declarations and scope</h2>
+<h3 id="scopes">Scopes</h3>
+<p>There are file scope, function scopes (each <code>def</code>,
+<code>fn</code>, and trailing block body), and block scopes (the bodies
+of
+<code>if</code>/<code>elif</code>/<code>else</code>/<code>guard</code>,
+<code>while</code>, <code>for</code>, and each <code>switch</code> case;
+the condition of an <code>if</code> is in a scope of its own). A block
+is either an indented sequence of statements or a single statement after
+<code>:</code>.</p>
+<p>Variables (from <code>let</code>, <code>var</code>, parameters, loop
+variables, pattern variables, <code>static</code>) are visible from
+their declaration to the end of the innermost enclosing function or
+block scope, including inside nested function bodies (where they are
+free variables, see Function values).</p>
+<p>Named functions are visible in the whole block that declares them,
+before as well as after the declaration, and in everything lexically
+nested in it; an inner declaration hides an outer function of the same
+name for the nested code only. Two <code>def</code>s of the same name in
+the same scope declare overloads (same arity) or arity variants
+(different arity) of one function.</p>
+<p>Types (<code>class</code>, <code>struct</code>, <code>union</code>,
+<code>enum</code>) are visible from their declaration to the end of the
+block that declares them, and inside nested code. A type must be
+declared, or pre-declared, before (in parse order) any use of its
+name.</p>
+<p>Shadowing: declaring a variable whose name is visible as a variable
+of an enclosing scope is an error ("identifier shadowing"); a second
+declaration in the same scope is an error ("identifier redefinition").
+This applies to parameters, <code>fn</code> parameters, loop variables,
+pattern variables and the implicit <code>this</code>. A variable may not
+have the name of a field that is in scope through <code>::</code>
+(error). Variables, functions, types and fields are otherwise separate
+namespaces: a variable may share its name with a function, a type or a
+field. When an identifier could be an enum value or a variable, the enum
+value wins (see Names in expressions).</p>
+<h3 id="variable-declarations">Variable declarations</h3>
+<pre><code>vardecl = (`let` | `var`) binding (`,` binding)* (`=` exprlist)?
+binding = ident (`:` type)?
+exprlist = opexpr (`,` opexpr)*</code></pre>
+<p>A <code>let</code> variable is single-assignment: any assignment,
+compound assignment or <code>++</code>/<code>--</code> to it is an error
+("variable is constant"), and if its type is a struct, assigning any of
+its fields (at any nesting, including indexed elements of nested numeric
+structs) is an error; the contents of a class instance or vector it
+refers to may be modified. A <code>var</code> may be reassigned.</p>
+<p>With several bindings the initializer must produce at least that many
+values (a multiple-value call, or an expression list); extra values are
+discarded, fewer is an error. Each binding takes the corresponding
+value.</p>
+<p>The variable's type is its annotation, to which the initializer must
+convert (with coercions, see Conversions); without an annotation it is
+the initializer's type. An initializer of <code>nil</code> without
+annotation gives a nilable type whose element type is a type variable
+bound by later use (an error if that use binds it to a type that cannot
+be nilable). A value of type <code>void</code> cannot be stored
+(error).</p>
+<p>Pre-declaration: at file scope only, <code>let x:T</code> or
+<code>var x:T</code> without an initializer declares <code>x</code> for
+later definition. The definition is a later
+<code>let</code>/<code>var x:T = e</code> in the same scope with an
+identical type annotation, the same keyword and the same privacy; one
+that never comes is an error, and one in a nested scope or a condition
+is an error. Reading the variable in code that the compiler type checks
+before it reaches the definition is an error ("access of x before being
+initialized"); the check follows the type checker's traversal (call
+graph order from the top of the main file), not execution.</p>
+<p>A declaration produces no value and may not be the last statement of
+a block (except at the end of a file). A local variable that is never
+read gets a warning (unless its name starts with <code>_</code> and it
+is one of several bindings); a <code>var</code> that is never reassigned
+gets a warning suggesting <code>let</code>.</p>
+<h3 id="static-and-static_frame">static and static_frame</h3>
+<pre><code>staticdecl = (`static` | `static_frame`) ident (`:` type)? `=` expr</code></pre>
+<p>Allowed in any nested scope (a function body, or a block at file
+scope; not directly at file scope). Declares a variable with program
+lifetime, private to its file, initialized once, immediately before the
+top-level statement that (lexically) contains the declaring function
+executes; the initializer is evaluated in the top-level context. Its
+type is the given type or the initializer's type.
+<code>static_frame</code> additionally re-evaluates the initializer and
+stores its value each time the statement is executed after a frame has
+passed since its previous execution (frames are counted by the engine's
+frame builtin; without frames it behaves like <code>static</code>).</p>
+<h3 id="member-and-member_frame">member and member_frame</h3>
+<pre><code>memberdecl = (`member` | `member_frame`) ident (`:` type)? `=` expr</code></pre>
+<p>Allowed inside a method (a <code>def</code> in a <code>class</code>
+body) of a class that is not a struct and has no subclasses yet.
+Declares an additional field of the class, with the initializer as its
+default value (evaluated like any field default: at every construction
+site, so it may not refer to fields, locals of the method, or anything
+declared by the method), and the annotation or the initializer's type as
+its type. The field is accessible by its unqualified name only lexically
+inside the declaring method (including nested functions), and only after
+the <code>member</code> statement in the method body; it is not
+accessible through <code>obj.name</code>. <code>member_frame</code>
+re-runs the initializer and assigns the field, per object, each time the
+statement executes after a frame has passed since it last executed for
+that object.</p>
+<h3 id="nonlocal">nonlocal</h3>
+<p><code>nonlocal var/let x = e</code> declares <code>x</code> normally
+and marks it as preferred when binding explicit free variables (see
+Function values). <code>nonlocal from a, b, ...</code> restricts, for
+the whole program, the names allowed in explicit free variable lists to
+those listed.</p>
+<h3 id="function-declarations">Function declarations</h3>
+<pre><code>fundecl  = (`def` | `constructor`) funname generics? `(` params? `)`
+           freevars? (`-&gt;` rettypes)? (`:` body)?
+funname  = ident | `operator` op
+generics = `&lt;` ident (`,` ident)* `&gt;`
+params   = param (`,` param)*
+param    = ident ((`:` | `::`) type)? (`=` opexpr)?
+freevars = `[` ident (`:` type)? (`,` ident (`:` type)?)* `]`
+rettypes = type (`,` type)* | `void`
+body     = INDENT statements DEDENT | statement</code></pre>
+<p>A <code>def</code> declares a named function. The body is a block. A
+<code>def</code> at the file's top scope gets the current namespace
+prefixed to its name.</p>
+<p>Parameters: a parameter without a type is generic: it gets an
+implicit type variable (named <code>A</code>, <code>B</code>, ... in
+order of appearance), so the function is specialized per argument type.
+<code>name::T</code> puts the fields of <code>T</code> (a class or
+struct type) in scope in the body by their unqualified names, referring
+to that parameter, and makes methods of <code>T</code> callable without
+a receiver. A default value <code>= e</code> makes the parameter
+optional; defaults must be trailing; the expression is parsed in the
+scope enclosing the function (it can refer to variables visible there;
+referring to a parameter of the function is an error) and is evaluated
+at each call site in the caller's context. All overloads of one arity
+variant must declare the same number of defaults, with structurally
+identical default expressions.</p>
+<p>Explicit generics <code>def f&lt;T, U&gt;(...)</code> declare type
+variables usable in the parameter types, return type and body. Without
+an explicit list, type variables are implicit as above.</p>
+<p>Explicit free variables <code>[a, b:T]</code> name variables that the
+function reads or writes from the environment of its callers rather than
+its lexical scope (see Function values).</p>
+<p>Return types: <code>-&gt; T</code> a single value,
+<code>-&gt; T1, T2</code> several, <code>-&gt; void</code> none. Without
+a return type it is inferred (see Return).</p>
+<p>A <code>def</code> without <code>:</code> and body declares a
+function type: it must be at the file's top scope, have no generics, all
+parameters typed with concrete types, and a return type. The name then
+denotes that function type (see Types).</p>
+<p><code>constructor T(params): body</code> declares a constructor
+function for the type <code>T</code>: it must return a value of type
+<code>T</code>, and once any constructor function is declared for
+<code>T</code>, <code>T { ... }</code> construction is only allowed
+inside a constructor of <code>T</code> (or in anonymous functions called
+from one); all overloads of a name must agree on being constructors.</p>
+<p>Operator overloads: <code>def operator+(a:T, b:U): ...</code> at the
+file's top scope; one declared anywhere else (inside a function, a class
+body or a block) is an error. The operator may be any of
+<code>+ - * / % ++ -- == != &lt; &gt; &lt;= &gt;= &amp; | ^ ~ &lt;&lt; &gt;&gt; =</code>
+and the compound assignments
+<code>+= -= *= /= %= &amp;= |= ^= &lt;&lt;= &gt;&gt;=</code>, or
+<code>[]</code> (written <code>operator[]</code>). Unary <code>-</code>,
+<code>~</code>, <code>++</code>, <code>--</code> take one parameter, the
+rest two. See Operator overloading for when they apply.</p>
+<p>A function of the same name as a builtin, whose arity the builtin
+also accepts, is an error at the declaration.</p>
+<h3 id="class-and-struct-declarations">Class and struct
+declarations</h3>
+<pre><code>typedecl = `abstract`? (`class` | `struct`) tname generics? `:` super?
+           (INDENT members DEDENT)?
+         | (`class` | `struct`) tname                           (pre-declaration)
+         | (`class` | `struct`) tname `=` tname `&lt;` types `&gt;`   (named specialization)
+super    = tname (`&lt;` types `&gt;`)?
+members  = (attribute | field | `private`? `def` ...)*
+field    = `private`? ident (`:` type (`&lt;` intlit `&gt;`)?)? (`=` opexpr)?</code></pre>
+<p>A <code>struct</code> is a value type; a <code>class</code> is a
+reference type (see Types). The name gets the namespace prefix at file
+scope. Generics <code>&lt;T, U&gt;</code> declare type variables usable
+in field types, defaults, and the superclass arguments.</p>
+<p>Fields come before methods. A field has a declared type, a default
+value, or both; with only a default, the type is derived from it: from
+its syntactic form where that is decidable without type checking
+(literals, constructors, typed nil, arithmetic on such values, string
+interpolation, some builtin calls), otherwise by type checking the
+default when the type is first completed. A field default is evaluated
+anew at each construction that does not supply the field, in the scope
+of the class declaration (it may refer to globals and to variables
+visible at the declaration, not to other fields or <code>this</code>). A
+default that constructs its own type (directly or through other types'
+defaults) is an error. Field names are program-wide: the same name used
+in several types refers to one field identity, which is what
+<code>x.name</code> resolves against. A type may not declare a field
+twice, nor redeclare an inherited one.</p>
+<p>Inheritance: <code>class Sub : Super</code> gives <code>Sub</code>
+all fields of <code>Super</code> first (in order), then its own; a
+struct may only inherit from a struct and a class from a class. A
+generic superclass takes type arguments, which may mention the
+subclass's type variables. Inheriting from a pre-declared type is
+allowed; its fields are added when it is defined. An inheritance cycle
+is an error. <code>abstract</code> types cannot be constructed.</p>
+<p>A struct with no fields is an error unless it is (in) an abstract
+struct family (below). A struct may not contain itself, directly or
+through nested structs.</p>
+<p>Pre-declaration: <code>class Name</code> (no <code>:</code>) declares
+the name so it can be used in types (typically nilable references to it)
+before its definition; the definition must follow in the same block,
+with the same kind, and may not add generics. Until the definition, the
+type has no fields.</p>
+<p>Named specialization:
+<code>class Name = Generic&lt;T1, ...&gt;</code> declares
+<code>Name</code> as the specialization of a fully defined generic type
+with exactly its number of type arguments. It is the same type as
+<code>Generic&lt;T1, ...&gt;</code> written anywhere.</p>
+<p>Bit-width fields: <code>name:int&lt;N&gt;</code> with N a multiple of
+8 up to 64, or
+<code>name:float&lt;32&gt;</code>/<code>float&lt;64&gt;</code>, or an
+enum type with <code>&lt;N&gt;</code>, gives the field a storage width.
+Only the storage differs: reads produce the whole
+<code>int</code>/<code>float</code> (ints sign-extended, floats widened
+from single precision), writes store the low N bits (ints) or the value
+rounded to single precision (floats), and consecutive such fields share
+a 64-bit slot while they fit (so compound assignment and <code>++</code>
+on them read and write the bits). A struct with such a field is not a
+numeric struct (no vector arithmetic, indexing or use as a
+numeric-struct builtin argument). <code>&lt;64&gt;</code> is the same as
+no width.</p>
+<p>Attributes: <code>attribute name</code> or
+<code>attribute name = value</code> inside a class body records
+metadata. <code>attribute serializable</code> (optionally
+<code>= id</code>, 0..65536, otherwise the previous id plus one) assigns
+the serialization id used by the binary serialization builtins; it is
+only allowed on non-generic, non-abstract classes and on structs that
+belong to an abstract struct family, and ids must be unique. Inside a
+function body, <code>attribute name [= value]</code> records an
+attribute of that function (<code>profile</code> is used by the
+profiler).</p>
+<p>Methods: a <code>def</code> inside a class body declares a function
+whose first parameter is <code>this::Type</code> (implicit; it is named
+<code>this</code>, is a <code>::</code> parameter, and is not counted in
+the written parameter list), so inside the body the fields of the class
+are in scope by name and other methods of the class can be called
+without a receiver (see Call resolution). A generic class's type
+variables are in scope in its methods, but not in the methods of a
+subclass of one of its specializations. Such a method takes no namespace
+prefix. <code>constructor</code> inside a class body is an error. Any
+function whose first parameter has a class or struct type is a method of
+that type for the purposes of dispatch and <code>x.f()</code> syntax,
+whether declared inside or outside the class body, with <code>:</code>
+or <code>::</code>.</p>
+<h3 id="union-declarations">union declarations</h3>
+<pre><code>uniondecl = `union` (`class` | `struct`) tname `:`
+            INDENT (tname (`(` fields `)`)? NL)+ DEDENT</code></pre>
+<p><code>union class U:</code> with members <code>A(fields)</code>,
+<code>B</code> declares <code>abstract class U</code> and, for each
+member, <code>class A : U</code> with the given fields (fields as in a
+class body, comma separated, <code>private</code> allowed; parentheses
+optional for a member without fields). <code>union struct</code> does
+the same with structs, declaring an abstract struct family. The members
+are ordinary types in every respect.</p>
+<h3 id="abstract-structs-families">Abstract structs (families)</h3>
+<p>A struct that has an abstract struct among its superclasses (itself
+included) is a member of the <em>family</em> rooted at the topmost such
+abstract struct. All members of a family have the same size, and a value
+of any member type carries its dynamic type, so a value of a supertype
+in the family may hold any member: conversions between family types
+follow the class rules, and <code>is</code>, <code>switch</code> on the
+value and dynamic dispatch see the dynamic type. A family member is a
+struct of references if any member of the family (over all declarations,
+including generic ones) can hold a reference. A family member may not
+(transitively) contain a value of its own family. A family has at most
+256 members. Members of a family are never numeric structs. A member
+that is never used and whose field types could not be inferred is an
+error when any member is completed.</p>
+<h3 id="enum-declarations">Enum declarations</h3>
+<pre><code>enumdecl = (`enum` | `enum_flags`) tname `:` INDENT
+           (ident (`=` opexpr)? ((`,` | NL) ident (`=` opexpr)?)*) DEDENT</code></pre>
+<p>Declares an enum type and its values (both namespaced at file scope;
+the value names are program-wide identifiers, not qualified by the
+type). An explicit value must be a compile-time integer constant
+expression (integer literals, enum values, and the arithmetic,
+comparison, bitwise and logical operators on them). Without one, the
+value is the previous value plus 1 for <code>enum</code> (0 for the
+first), and for <code>enum_flags</code> the smallest power of two
+greater than the previous value (1 for the first, or after a previous
+value that is not positive); an explicit value resets the sequence. A
+value equal to an earlier value of the same enum is an error, as is
+redeclaring an enum name or a value name. The prelude's
+<code>bool</code> is <code>enum bool</code> with <code>false = 0</code>,
+<code>true = 1</code>.</p>
+<h2 id="types">Types</h2>
+<h3 id="type-syntax">Type syntax</h3>
+<pre><code>type   = `int` | `float` | `string` | tname | tname `&lt;` types `&gt;`
+       | `[` type `]` | `resource` `&lt;` ident `&gt;` | typevar | ftname
+       | type `?`
+types  = type (`,` type)*</code></pre>
+<p><code>tname</code> names a class, struct or enum (with namespace
+lookup); a generic type needs its type arguments except where a generic
+reference is explicitly allowed (a generic <code>::</code> parameter,
+the constructor forms below); <code>typevar</code> is a type variable in
+scope; <code>ftname</code> is the name of a function type declared by a
+bodiless <code>def</code>. <code>[T]</code> is a vector of
+<code>T</code>. <code>T?</code> is the nilable version of
+<code>T</code>, allowed only for reference types (string, vector, class,
+resource, function types are not, structs are not) and type variables.
+<code>void</code> is allowed only as a function's return type.
+<code>any</code> is not a type in source (only the builtin function
+<code>any</code>).</p>
+<h3 id="kinds-of-types">Kinds of types</h3>
+<ul>
+<li><code>int</code>: 64-bit two's complement integer. Enum types are
+distinct int types.</li>
+<li><code>float</code>: 64-bit IEEE 754 binary float.</li>
+<li><code>string</code>: immutable byte sequence, reference type,
+compared by value.</li>
+<li><code>[T]</code>: vector, a resizable sequence of <code>T</code>,
+reference type.</li>
+<li>class types: reference types with named fields, single inheritance,
+identity comparison.</li>
+<li>struct types: value types with named fields (a struct value is the
+tuple of its fields; nested structs are inline), single inheritance; a
+struct is either a struct of scalars or a struct of references (it has a
+field, at any nesting, holding a reference or nilable value).</li>
+<li>function types: the type of a function value, either the signature
+of a specific anonymous function (not nameable) or a declared function
+type.</li>
+<li><code>resource&lt;name&gt;</code>: opaque reference type provided by
+the host; compared by identity, nilable.</li>
+<li>typeid: the type of <code>typeof</code> expressions, represented as
+an <code>int</code> at run time.</li>
+<li><code>T?</code>: <code>T</code> or <code>nil</code>.
+<code>nil</code> is the null reference; there is one nil value for all
+nilable types.</li>
+<li><code>void</code>: no value; the type of statements and of calls to
+functions that return nothing.</li>
+<li>tuples: the type of an expression producing several values; only in
+multiple-value contexts (returns, multi-declarations,
+multi-assignments).</li>
+</ul>
+<p>Type variables (from generic functions and types) stand for a type to
+be bound per specialization; implementation-internal inference variables
+stand for a type not yet known (e.g. the element type of <code>[]</code>
+or <code>nil</code>), and are bound by unification with the first type
+they meet.</p>
+<h3 id="numeric-structs">Numeric structs</h3>
+<p>A struct is <em>numeric</em> when it is not in an abstract struct
+family, has no bit-width fields, and all its fields, flattened through
+nested struct fields, have the same numeric type (the same
+<code>int</code> type, i.e. the same enum or plain <code>int</code>, or
+<code>float</code>). Numeric structs support vector arithmetic,
+comparisons, indexing, and use as vector arguments of builtins (see the
+respective sections). The prelude's <code>int2</code>,
+<code>int3</code>, <code>int4</code>, <code>float2</code>,
+<code>float3</code>, <code>float4</code> are the canonical numeric
+structs of arities 2 to 4.</p>
+<h3 id="generics">Generics</h3>
+<p>A generic function (explicit <code>&lt;T&gt;</code> list or untyped
+parameters) and a generic type (<code>class G&lt;T&gt;</code>) are
+templates; every distinct binding of their type variables is a separate
+specialization, created on demand. A type variable of a function is
+bound, per call, from the explicit type arguments (in order; fewer than
+declared may be given), else from the argument types by matching the
+parameter's given type structurally against the argument's type: through
+<code>[..]</code> and <code>..?</code> wrappers, and through the type
+arguments of a generic type (where the argument may be a subtype whose
+superclass is the generic type instantiated). A type variable that no
+argument determines is an error ("cannot implicitly bind type
+variable"). Inside the specialization the variable is the bound type:
+usable in <code>nil::T</code>, <code>[]::T</code>, <code>T {}</code>,
+<code>x is T</code>, annotations and type arguments. A generic type's
+variables are in scope in its field types and defaults, its superclass
+arguments and its methods. <code>G&lt;A, B&gt;</code> written anywhere
+with the same arguments is one type; a named specialization
+<code>class N = G&lt;A, B&gt;</code> is that same type under a second
+name. A generic type may be subclassed with its type arguments passed on
+(<code>class S&lt;T&gt; : G&lt;T&gt;</code>) or fixed
+(<code>class S : G&lt;int&gt;</code>).</p>
+<h3 id="conversions">Conversions</h3>
+<p>A value of type S <em>converts</em> to a type T (is accepted where T
+is expected) under these rules; "with coercion" marks conversions that
+change the value's representation and are only applied where stated:</p>
+<ol type="1">
+<li>S and T are the same type.</li>
+<li>T is <code>float</code> and S is <code>int</code> (with coercion; an
+integer literal converted this way gets a warning). Not any enum
+type.</li>
+<li>T is plain <code>int</code> and S is an enum type (an enum converts
+to <code>int</code>, not the reverse, and not to another enum). T is
+<code>int</code> and S is a typeid (with coercion).</li>
+<li>T is <code>E?</code>: S is <code>F?</code> with F converting to E
+without coercion; or S is a reference type (not <code>void</code>, not
+numeric, not a struct) converting to E without coercion. Numeric S
+converts to <code>E?</code> only as a builtin argument.</li>
+<li>T is <code>[E]</code>: S is <code>[F]</code> with F the same type as
+E (vectors are invariant), except that a vector literal or object
+constructor expression (a fresh, unaliased value) converts covariantly
+(F a subtype of E under these rules without coercion).</li>
+<li>T is a class: S is the same class or a subclass; as a vector element
+type or where an exact type is required, only the same class.</li>
+<li>T is a struct: S is the same struct or a subclass of the same kind
+(both structs of scalars or both of references); in an abstract struct
+family any subtype converts; outside a family only a subclass that adds
+no fields converts (a struct is exactly its fields, so it is never
+truncated).</li>
+<li>T is a declared function type: see Function values.</li>
+<li>T is a tuple: S is a tuple of the same length converting
+element-wise.</li>
+<li>T is <code>void</code>: any S, where coercion is allowed (a value is
+discarded).</li>
+<li>Either side is an unbound inference variable: it is bound to the
+other. Binding the element type variable of a <code>nil</code> (see Type
+syntax for which types can be nilable) to a type that cannot be nilable
+is an error, so a type such as <code>int?</code> never exists.</li>
+</ol>
+<p>A vector or vector literal argument to a builtin parameter declared
+read-only also converts covariantly. <code>nil</code> converts to every
+nilable type.</p>
+<p>The <em>union</em> (common supertype) of two types A and B, used by
+<code>if</code>/<code>else</code> branches, <code>switch</code> cases,
+vector literal elements, <code>and</code>/<code>or</code>, and untyped
+function returns: B if A converts to B, else A if B converts to A (with
+coercion where the construct allows it), else for two vectors the vector
+of the union of their elements (without coercion), for nilables the
+nilable of the union of the elements (both must be reference types), for
+two classes their nearest common superclass, for two structs of the same
+family their nearest common superclass. Otherwise there is no union (an
+error, or a fallback, as each construct states).</p>
+<h2 id="expressions">Expressions</h2>
+<h3 id="grammar-and-precedence">Grammar and precedence</h3>
+<pre><code>expr     = opexpr (assignop expr)?                  (right associative)
+assignop = `=` | `+=` | `-=` | `*=` | `/=` | `%=` | `&amp;=` | `|=` | `^=`
+         | `&lt;&lt;=` | `&gt;&gt;=`
+opexpr   = binary expression over operands, levels below
+operand  = unary (`is` type)?
+unary    = `-` unary | `~` unary | `++` unary | `--` unary
+         | `not` opexpr(level 5)
+         | postfix
+postfix  = factor ( `.` ident callargs? | `[` expr `]` | `++` | `--` )*</code></pre>
+<p>Binary operators, from tightest to loosest, all left associative:</p>
+<pre><code>0: `*`  `/`  `%`
+1: `+`  `-`
+2: `&lt;&lt;` `&gt;&gt;`
+3: `&amp;`  `|`  `^`
+4: `&lt;`  `&gt;`  `&lt;=` `&gt;=`
+5: `==` `!=`
+6: `and` `or`</code></pre>
+<p><code>not</code> takes as its operand an expression of level 5 (so
+<code>not a == b</code> is <code>not (a == b)</code>, while
+<code>not a and b</code> is <code>(not a) and b</code>). The prefix
+operators <code>-</code> <code>~</code> <code>++</code> <code>--</code>
+bind tighter than all binary operators and apply to a unary expression,
+so <code>-a * b</code> is <code>(-a) * b</code>, but they bind looser
+than postfix operators: <code>-x.y</code> is <code>-(x.y)</code>,
+<code>-x[0]</code> is <code>-(x[0])</code>. <code>is</code> binds looser
+than the prefix operators and tighter than every binary operator:
+<code>-x is int</code> is <code>(-x) is int</code>,
+<code>a + b is int</code> is <code>a + (b is int)</code>, and
+<code>not x is int</code> is <code>not (x is int)</code>. Postfix
+<code>++</code>/<code>--</code> end a postfix chain (nothing can follow
+them). Comparisons chain as ordinary left-associative binary operators:
+<code>1 &lt; 2 &lt; 3</code> is <code>(1 &lt; 2) &lt; 3</code>.
+<code>&amp;</code>, <code>|</code> and <code>^</code> share one level:
+<code>a | b &amp; c</code> is <code>(a | b) &amp; c</code>.
+<code>and</code> and <code>or</code> share one level:
+<code>a or b and c</code> is <code>(a or b) and c</code>.</p>
+<p>Assignment is only parsed at the top of an expression
+(<code>expr</code>), i.e. in a statement, a parenthesized expression, a
+call argument, an initializer, or the right side of another assignment;
+it is not an operand of any operator.</p>
+<h3 id="factors">Factors</h3>
+<pre><code>factor = intlit | floatlit | strlit | charlit | `nil` (`::` type)?
+       | `(` expr (`,` opexpr)* `)`
+       | `[` (expr (`,` expr)*)? `]` (`::` type)?
+       | `{` initializers `}`
+       | tname (`&lt;` types `&gt;`)? `{` initializers `}`
+       | typevar `{` initializers `}`
+       | `fn` ...                                   (function value)
+       | `typeof` (ident | type)
+       | `super` ident callargs
+       | `pakfile` strlit
+       | `assert` expr
+       | `if` ... | `switch` ...
+       | ident callargs? | ident `&lt;` types `&gt;` callargs
+       | (`int` | `float` | `string` | `any`) callargs</code></pre>
+<p><code>(e)</code> groups; <code>(e1, e2)</code> is a multiple-value
+expression (only meaningful where several values are consumed).
+<code>pakfile "path"</code> is the string literal <code>"path"</code>
+and additionally records the file for inclusion in a pak file.</p>
+<h3 id="names-in-expressions">Names in expressions</h3>
+<p>An identifier in expression position is resolved, in this order:</p>
+<ol type="1">
+<li>If it starts with <code>_</code>, it is an implicit argument (see
+Function values).</li>
+<li>A namespace-qualified or unqualified variable visible here, and any
+field in scope through <code>::</code> or a pattern variable, are looked
+up. If neither exists, and a function or builtin of the name exists, and
+the identifier is followed by whitespace and then a token other than
+<code>NL</code>, the identifier is a call without parentheses taking a
+single argument (<code>print x</code>); the argument is an
+<code>expr</code> (in which a nested call cannot take trailing function
+values), optionally followed by trailing function values of the
+<code>: body</code> form.</li>
+<li>If the name is an enum value, the expression is that value (even if
+a variable of the same name exists).</li>
+<li>If the name is a field in scope through <code>::</code> or a pattern
+variable, the expression reads that field of the corresponding
+object.</li>
+<li>If the name is an explicit free variable of an enclosing function,
+it refers to that.</li>
+<li>Otherwise it must be a variable; a name that is only a function or
+builtin is an error ("can't use named function as value"), anything else
+is "unknown identifier".</li>
+</ol>
+<p><code>ident(</code> with no whitespace before <code>(</code> is a
+call with parenthesized arguments; <code>ident (</code> is a call
+without parentheses whose single argument is the parenthesized
+expression (<code>f (1) * 3</code> is <code>f((1) * 3)</code>).
+<code>ident&lt;</code> with no whitespace before <code>&lt;</code>,
+where <code>ident</code> is a function that is not also a builtin or
+enum, starts a type argument list of a call; otherwise <code>&lt;</code>
+is the comparison operator. <code>E(e)</code> where <code>E</code> is an
+enum type (and not a function) converts an <code>int</code> expression
+to the enum (no range check).</p>
+<h3 id="constructors">Constructors</h3>
+<p><code>T { ... }</code> constructs a value of class or struct type
+<code>T</code>, <code>T&lt;A&gt; { ... }</code> of a specialization,
+<code>{ ... }</code> of the type expected by the context, and
+<code>V { ... }</code> of the type a type variable <code>V</code> is
+bound to. The context type of <code>{ ... }</code> (ignoring nilability)
+is: the annotation of a single-binding variable declaration it
+initializes; the type of the field it initializes in another
+constructor; the element type of a vector literal that has one
+(<code>::T</code>, or a vector context); the parameter type of a
+function with exactly one definition (no overloads or arity variants)
+whose parameter type is concrete, or of a builtin with a single
+overload. Elsewhere (including <code>return</code>) it is an error
+("class/struct type for auto constructor unknown in this context").
+Initializers are <code>expr</code> or <code>field: expr</code>. Tagged
+initializers assign the named field (each at most once; unknown field is
+an error). Untagged initializers assign, in order, the fields that have
+no default value (an untagged initializer left over is an error "too
+many initializers"). Every field not initialized takes its default; one
+without a default is an error. Each initializer must convert (with
+coercion) to the field type. An abstract type cannot be constructed. A
+generic type without type arguments, <code>G { ... }</code>, requires
+the initializers to have exactly one per field and picks the named
+specialization of <code>G</code> whose field types the most initializers
+convert to without coercion (error if none). If a type variable is bound
+to a non-class type, <code>V {}</code> is the default value of that type
+(<code>0</code>, <code>0.0</code>, <code>""</code>, <code>[]</code>,
+<code>nil</code>) and initializers are not allowed. Once a constructor
+function exists for <code>T</code>, <code>T { ... }</code> is only
+allowed inside one (error otherwise).</p>
+<p>A vector literal <code>[e1, e2]</code> has element type the union
+(with coercion) of the element types, each element converted to it;
+<code>[...]::T</code> makes the element type <code>T</code> with each
+element converted (with coercion); <code>[]</code> has an inference
+variable as element type. Elements that are structs are stored
+inline.</p>
+<h3 id="operators-on-numbers">Operators on numbers</h3>
+<p>For <code>+ - * / %</code> with both operands numeric: if either is
+<code>float</code>, the other is converted and the result is
+<code>float</code>; otherwise the result is <code>int</code>. Enum
+operands convert to <code>int</code> (any enum, or two different enums,
+may be mixed) and the result is plain <code>int</code>. Integer
+<code>+</code>, <code>-</code>, <code>*</code> wrap modulo 2^64 (two's
+complement). Integer <code>/</code> truncates toward zero and
+<code>%</code> has the sign of the dividend, with
+<code>a == (a / b) * b + a % b</code>; a divisor of <code>0</code> is a
+runtime error ("division by zero"), and <code>INT_MIN / -1</code> and
+<code>INT_MIN % -1</code> are runtime errors ("integer overflow"). Float
+<code>/</code> by zero gives <code>inf</code>, <code>-inf</code> or
+<code>nan</code> per IEEE 754; float <code>%</code> is C
+<code>fmod</code> (result has the sign of the dividend). Unary
+<code>-</code> negates (integer <code>-INT_MIN</code> is
+<code>INT_MIN</code>; on an enum the result is <code>int</code>).</p>
+<p>Bitwise <code>&amp; | ^</code> and <code>~</code> require
+<code>int</code> operands (enums convert) and produce <code>int</code>,
+except that <code>&amp; | ^</code> on two operands of the same
+<code>enum_flags</code> type, and <code>~</code> on one, produce that
+<code>enum_flags</code> type. <code>&lt;&lt;</code> and
+<code>&gt;&gt;</code> require <code>int</code> and produce
+<code>int</code>; the shift count is taken modulo 64
+(<code>x &lt;&lt; 64 == x</code>,
+<code>x &lt;&lt; -1 == x &lt;&lt; 63</code>); <code>&lt;&lt;</code>
+shifts the 64-bit pattern, <code>&gt;&gt;</code> is arithmetic (sign
+propagating).</p>
+<p>Comparisons <code>&lt; &gt; &lt;= &gt;=</code> on numbers follow the
+same operand conversion as arithmetic (enums compare as
+<code>int</code>, so values of different enums may be compared) and
+produce <code>bool</code>; <code>==</code>/<code>!=</code> likewise, and
+also accept: two strings (by value), two vectors, two class references
+(identity; the operand types must be related by conversion: comparing
+unrelated classes is an error), two nilables, <code>nil</code> against a
+reference (a non-nilable reference is simply never nil), two function
+values (identity), two resources (identity), two typeids, two structs
+(see below). Floats compare per IEEE 754 (<code>nan</code> is not equal
+to itself, <code>-0.0 == 0.0</code>).</p>
+<p><code>++</code>/<code>--</code> prefix and postfix apply to an lvalue
+of type <code>int</code> or <code>float</code>; prefix yields the new
+value, postfix the old.</p>
+<h3 id="operators-on-strings">Operators on strings</h3>
+<p><code>s + x</code> where either operand is a string: the other
+operand, if not a string, is converted to a string (as by the builtin
+<code>string</code>, see String conversion) and the result is the
+concatenation. <code>s += x</code> converts <code>x</code>.
+<code>+</code> is the only arithmetic operator on strings. Comparisons
+<code>&lt; &gt; &lt;= &gt;=</code> order strings lexicographically by
+unsigned byte, a prefix ordering before the longer string;
+<code>==</code> compares bytes. Strings are immutable: indexed
+assignment is an error.</p>
+<h3 id="operators-on-structs">Operators on structs</h3>
+<p>For a numeric struct <code>S</code> with element type <code>N</code>:
+<code>S op S</code> for <code>+ - * / %</code> applies the operator
+element-wise and yields <code>S</code>; <code>S op N</code> and
+<code>N op S</code> (a scalar on either side) apply it to every element
+(an <code>int</code> scalar with a <code>float</code> struct is
+converted; a <code>float</code> scalar with an <code>int</code> struct
+is an error). Unary <code>-</code> negates element-wise. Comparisons
+<code>&lt; &gt; &lt;= &gt;=</code> between two numeric structs, or a
+struct and a scalar, yield an <code>int</code> struct of the same arity
+(<code>int2</code>, <code>int3</code> or <code>int4</code>, so arity 2
+to 4 only) with <code>1</code>/<code>0</code> per element.
+<code>==</code> between two structs of the same type (any struct,
+whatever the mix of its field types) yields one <code>bool</code>:
+<code>a == b</code> is true when every field of <code>a</code> equals
+the corresponding field of <code>b</code> under the <code>==</code> of
+that field's type (<code>int</code> and <code>float</code> by value,
+strings by contents, class, vector and resource references by identity,
+function values by identity, nested structs by this same rule), and, for
+family structs, the dynamic types are equal; <code>a != b</code> is
+<code>not (a == b)</code>. Indexing <code>s[i]</code> reads element
+<code>i</code> (0-based, field order flattened) of a numeric struct; out
+of range is a runtime error; <code>s[i] = v</code> assigns it. Compound
+assignments <code>s += x</code> etc. apply the corresponding operator.
+Integer division and modulo per element check their divisors like
+scalars. Any struct that is not numeric supports none of these except
+<code>==</code>/<code>!=</code> as stated.</p>
+<h3 id="operator-overloading">Operator overloading</h3>
+<p>For a binary operator whose left operand has a class or struct type,
+unary <code>-</code>, <code>~</code>, <code>++</code>, <code>--</code>
+whose operand does, <code>[</code> <code>]</code> whose object does, and
+<code>=</code> and the compound assignments whose left operand does, the
+compiler looks for a top-level function named
+<code>operator&lt;op&gt;</code> whose arity matches and one of whose
+overloads takes a first parameter of a type related to the operand's
+type. If found, the expression becomes a call to that function with the
+operands as arguments, resolved as any call (so other overloads may
+decide on the second operand); its result is the function's result.
+Otherwise the built-in meaning applies. An assigning operator overload
+on a struct type is an error (structs cannot model side effects).
+<code>operator=</code> on a class replaces the assignment with a call
+(the variable is not rebound). Only the left (or sole) operand selects
+an overload: <code>2 * x</code> never calls <code>operator*</code>.</p>
+<h3 id="logical-operators-and-truth">Logical operators and truth</h3>
+<p>A value is <em>true</em> when its 64-bit representation is non-zero:
+an <code>int</code> other than 0, a <code>float</code> other than
+positive zero (so <code>-0.0</code> and <code>nan</code> are true), a
+non-nil reference; function values are always true; <code>nil</code> and
+<code>0</code> are false. Struct values cannot be tested (error in
+<code>if</code>, <code>while</code>, <code>not</code>,
+<code>and</code>/<code>or</code>, <code>assert</code>, and the
+conditional <code>guard</code>).</p>
+<p><code>a and b</code>: evaluates <code>a</code>; if false, the value
+is <code>a</code>, else <code>b</code>. <code>a or b</code>: evaluates
+<code>a</code>; if true, the value is <code>a</code>, else
+<code>b</code>. The type is the union (without coercion) of the operand
+types, where a nilable left operand of <code>or</code> contributes its
+non-nil type, and an <code>and</code> that is itself the left operand of
+an <code>or</code> contributes only its right operand's type
+(<code>(a and b) or c</code> is typed from <code>b</code> and
+<code>c</code>); if there is no union, or one operand is an enum and the
+other a plain <code>int</code> or a different enum, both operands are
+converted to <code>bool</code> (<code>1</code>/<code>0</code> by truth)
+and the result is <code>bool</code>. Thus <code>n or 1</code> with
+<code>n:string?</code> is <code>true</code> of type <code>bool</code>,
+as is <code>1 or nil</code>, and <code>0 or 2.5</code> is
+<code>true</code>. A bare <code>nil</code> (or a variable initialized
+from an untyped <code>nil</code>) has an unbound element type, which
+unifies with the other operand's type; when that type cannot be nilable
+this is an error (<code>nil or 1</code>, see Conversions).
+<code>not a</code> yields <code>bool</code>: <code>true</code> when
+<code>a</code> is false. A condition whose type is a non-nilable
+reference type gets a warning (it is always true).</p>
+<h3 id="field-access-and-indexing">Field access and indexing</h3>
+<p><code>e.f</code> reads field <code>f</code> of a class or struct
+value <code>e</code> (an error if <code>e</code>'s type has no such
+field, if it is nilable, or if it is not a class/struct);
+<code>e.f = v</code> writes it. A private field is only accessible in
+its file; a <code>member</code> field only in its method. Reading a
+field through a nilable expression is an error ("dereferencing nillable
+type").</p>
+<p><code>v[i]</code> with <code>v:[T]</code> and <code>i:int</code>
+reads element <code>i</code>; <code>i</code> outside
+<code>0 .. length-1</code> (negative included) is a runtime error.
+<code>v[p]</code> with <code>p</code> an <code>int</code> numeric struct
+of arity N indexes N levels of nested vectors, last component outermost:
+<code>m[int2 { x, y }]</code> is <code>m[y][x]</code>. <code>s[i]</code>
+with <code>s:string</code> reads byte <code>i</code> as an
+<code>int</code> in <code>0..255</code>; <code>i</code> may equal the
+length (the result is <code>0</code>); beyond that is a runtime error.
+Elements of vectors, and fields and elements of structs stored in them,
+are lvalues (<code>v[i] = e</code>, <code>v[i].x = e</code>,
+<code>v[i] += e</code>).</p>
+<h3 id="calls">Calls</h3>
+<pre><code>callargs = `(` (expr (`,` expr)*)? `)` trailing*
+         | trailing+                                 (no parentheses)
+trailing = `:` body
+         | ident (`,` ident)* `:` body
+         | `(` params `)` (`-&gt;` type)? `:` body
+         | NL? `fn` ...</code></pre>
+<p>Call forms:</p>
+<ul>
+<li><code>f(args)</code>: call of function or builtin <code>f</code>
+(namespace lookup applies).</li>
+<li><code>x.f(args)</code>: <code>f(x, args)</code>, for any
+<code>x</code> (the receiver is the first argument; this is the only way
+to call a method-like function on a receiver, and works for any function
+whose first parameter accepts <code>x</code>, including builtins).
+<code>x.f</code> without <code>(</code> is a field access when the type
+of <code>x</code> has a field <code>f</code>, and otherwise the call
+<code>f(x)</code>.</li>
+<li><code>f x</code> (see Names in expressions): a call with one
+argument.</li>
+<li><code>f&lt;T1, T2&gt;(args)</code>: a call with explicit type
+arguments for the function's generics (fewer than declared is allowed;
+the rest are inferred).</li>
+<li><code>super f(args)</code>: inside a method, a call of the
+superclass's implementation of <code>f</code> with <code>this</code> as
+receiver (static, no dispatch); an error if there is none.</li>
+<li>Trailing function values: after the argument list (or after the
+single argument of a call without parentheses), <code>: body</code>
+passes an anonymous function with implicit parameters,
+<code>x, y: body</code> one with named untyped parameters (not after a
+call without parentheses), <code>(x:T, y): body</code> one with typed
+parameters, and further function values follow on their own lines as
+<code>fn ...</code>. Each such value is one more argument. In a one-line
+trailing body a <code>,</code> after the expression ends the body (it
+separates the arguments of the enclosing call), so multiple assignment
+is not available there. An identifier after a call's closing
+<code>)</code> only starts a trailing function when followed by
+<code>,</code> or <code>:</code>.</li>
+</ul>
+<p>Arguments are evaluated left to right, before the call. Which
+function a call invokes is decided at compile time (see Call
+resolution), except that dynamic dispatch may select an implementation
+at run time.</p>
+<h3 id="function-values">Function values</h3>
+<pre><code>fnexpr = `fn` `(` params `)` (`-&gt;` type)? `:` body
+       | `fn` ident (`,` ident)* `:` body
+       | `fn` `:` body</code></pre>
+<p>An anonymous function is a value of a function type specific to that
+function. Its parameters are typed or generic like a <code>def</code>'s;
+<code>-&gt; T</code> coerces the result. Its body's last statement's
+value is its return value (unlike a named function); <code>return</code>
+inside it returns from the nearest enclosing <em>named</em> function (or
+the program at file scope), not from the anonymous function.</p>
+<p>Implicit parameters: inside an anonymous function whose parameters
+are not declared (<code>fn: ...</code>, <code>f(): ...</code>), each
+distinct identifier starting with <code>_</code> that is not a visible
+variable declares a parameter, in order of first appearance
+(<code>_</code>, <code>_a</code>, <code>_b</code>). They cannot be mixed
+with declared parameters and cannot be used in a named function or at
+file scope. In a <code>for</code> body with no declared loop variables,
+<code>_</code> and <code>_name</code> declare the loop variables in the
+same way (the element, then the index).</p>
+<p>Free variables: function values carry no state (they are not
+closures). An anonymous or nested named function may use variables of
+enclosing functions; such a variable becomes a <em>free variable</em>:
+it gets a single storage location for the whole program, like a global,
+which the declaring function saves on entry and restores on exit. The
+nested function reads and writes that location, so writes are visible
+both ways, and what it sees is the value of the most recent activation
+of the declaring function that is still active, whichever activation
+created the function value. A function value may only be called while
+every function whose variables it uses is active (on the call stack); a
+call that the compiler can see violates this is an error ("free variable
+not in scope"). Explicit free variables (<code>def f() [x]</code>) are
+bound at each call of <code>f</code>, at type checking time, to the
+nearest variable named <code>x</code> among: variables declared
+<code>nonlocal</code>, then the locals and parameters of the functions
+active at the call (innermost first, including fields of <code>::</code>
+parameters); no such variable is an error.</p>
+<p>Function values are typed and called statically. A value of a
+specific anonymous function type can be stored in a variable and called
+through it, and passed to a parameter whose type is a declared function
+type <code>ft</code> (a bodiless <code>def</code>): it must have the
+same number of parameters, each of <code>ft</code>'s parameter types
+must convert to the corresponding parameter type, and its result must
+convert to <code>ft</code>'s return type (or both be void). Only
+declared function types can be the type of a field, vector element or
+explicitly typed variable; values of one anonymous function type do not
+convert to another, so a vector of distinct lambdas needs
+<code>::ft</code>. Calling a variable of function type passes exactly
+the parameters; extra arguments to a function value whose function takes
+fewer are dropped without being evaluated, fewer is an error. A function
+value passed as a declared function type may not assign to its
+parameters (error "cannot assign to borrowed argument").
+<code>x()</code> calls the function value held by <code>x</code> only
+when <code>x</code> is a variable (and no function or builtin takes
+precedence, see Call resolution); calling any other expression
+(<code>f()()</code>, <code>v[0]()</code>) is an error. Named functions
+are not values ("can't use named function as value").</p>
+<p>Functions as environments: a named function declared inside a
+function <code>g</code> may also be called by name from code outside
+<code>g</code> while an activation of <code>g</code> is on the call
+stack (the innermost active declaring function wins), provided no
+lexically visible function of that name exists at the call and the call
+is not lexically inside <code>g</code> in a block that does not contain
+the declaration.</p>
+<h3 id="conditional-and-switch-expressions">Conditional and switch
+expressions</h3>
+<p><code>if c: a else: b</code> (and with <code>elif</code>) is an
+expression whose type is the union (with coercion) of the branch types;
+each branch is a block whose last statement provides the value.
+<code>if c: a</code> without <code>else</code> has no value.
+<code>switch</code> is an expression whose type is the union (with
+coercion) of its cases' values; on <code>int</code>, <code>float</code>
+and <code>string</code> values it must have a <code>default</code> when
+its value is used. Cases ending in a terminal statement (a
+<code>return</code>, <code>break</code>, <code>continue</code>, a call
+that never returns) do not contribute. See Statements for the full
+forms.</p>
+<p>A condition that is a compile-time constant selects its branch at
+compile time; the other branch is discarded without type checking, which
+is what makes <code>if x is int: ... else: ...</code> in a generic
+function specialize per type.</p>
+<h3 id="is-typeof-assert-nil">is, typeof, assert, nil</h3>
+<p><code>e is T</code> yields <code>bool</code>: whether the value of
+<code>e</code> has type <code>T</code>, where a value of a subtype
+counts as having each of its supertypes. <code>e is T?</code> is true
+when <code>e</code> is <code>nil</code> or <code>e is T</code>; the
+<code>?</code> is accepted here for any <code>T</code>, including types
+that cannot otherwise be made nilable (so <code>1.5 is float?</code> is
+<code>1.5 is float</code>). For values of scalar, string, vector and
+(non-family) struct types the result is decided at compile time from the
+static types (<code>x is T</code> with <code>x:T?</code> being a nil
+check at run time). For class and family struct values it is a runtime
+test against the dynamic type: true if that type is <code>T</code> or a
+subclass of <code>T</code>. If the static type makes the result certain,
+the test folds to a constant (side effects of <code>e</code> are kept).
+<code>e</code> is not evaluated more than once.</p>
+<p><code>typeof x</code> for a variable <code>x</code>, or
+<code>typeof T</code> for a type, is an <code>int</code> typeid
+identifying the type in the program's type table
+(<code>typeof int</code> is always <code>0</code>). Typeids convert to
+<code>int</code>; comparing typeids of different static types is an
+error.</p>
+<p><code>assert e</code> evaluates <code>e</code>; if false, it is a
+runtime error ("assertion failed: <expression>") unless assertions are
+compiled out (<code>--runtime-no-asserts</code>, in which case
+<code>e</code> is still evaluated for its side effects and the result is
+<code>e</code> itself). Its value and type are those of <code>e</code>,
+except that a nilable type becomes non-nilable, and <code>e</code> is
+promoted for the following code (see Flow-sensitive typing). A
+constant-true or non-nilable-reference assertion gets a warning.
+<code>assert let x = e</code> declares <code>x</code> (see Conditional
+declarations).</p>
+<p><code>nil</code> is the nil value; its type is <code>T?</code> for a
+<code>T</code> inferred from use, or given by <code>nil::T</code>
+(<code>T</code> must be nilable).</p>
+<h3 id="string-interpolation">String interpolation</h3>
+<p>A string literal with interpolations <code>"s0{e1}s1{e2}s2"</code>
+denotes the expression <code>"s0" + e1 + "s1" + e2 + "s2"</code> (each
+<code>+</code> with a string left operand converting the right operand,
+see Operators on strings), with empty pieces omitted; when the literal
+starts with an interpolation, the first expression is wrapped in the
+builtin <code>string()</code> to make it a string. Interpolated
+expressions are <code>opexpr</code>s and may not contain assignments.
+Nested strings and interpolations are allowed.</p>
+<h3 id="evaluation-order">Evaluation order</h3>
+<p>Operands of binary operators and arguments of calls are evaluated
+left to right; <code>and</code>/<code>or</code> short-circuit. In an
+assignment <code>lhs = rhs</code> (and the compound forms),
+<code>rhs</code> is evaluated first, then the subexpressions of
+<code>lhs</code> (the object and index of <code>a[i]</code>, the object
+of <code>a.b</code>), each once. In <code>a, b = e</code>,
+<code>e</code> is evaluated, then the targets are assigned right to
+left. The initializers of a constructor and the elements of a vector
+literal are evaluated in order. A <code>for</code> loop's iterable is
+evaluated once, before the loop. A <code>switch</code> value is
+evaluated once.</p>
+<h2 id="statements">Statements</h2>
+<pre><code>statement = vardecl | staticdecl | memberdecl | fundecl | typedecl
+          | uniondecl | enumdecl | importstmt | nsstmt | `private` statement
+          | `attribute` ...
+          | `if` ... | `guard` ... | `while` ... | `for` ... | `switch` ...
+          | `return` ... | `break` | `continue` | `assert` expr
+          | multiassign | expr</code></pre>
+<p>The value of a block is the value of its last statement (only a value
+where the block is used as one). Statements produce <code>void</code>
+except expressions. A <code>return</code> must be the last statement of
+its block. A declaration may not be the last statement of a block
+(except at file end).</p>
+<p>An expression statement whose expression has no side effects and is
+not the last statement of its block gets a warning ("expression
+statement has no effect"); calls always count as side effects. A
+<code>switch</code> or <code>if</code> used as a statement discards its
+value.</p>
+<h3 id="if-elif-else">if, elif, else</h3>
+<pre><code>ifstmt = `if` cond `:` body (NL `elif` cond `:` body)* (NL `else` `:` body)?
+cond   = expr | (`let` | `var`) ident (`:` type)? `=` opexpr
+         (`and` (`let` | `var`) ident ... `=` opexpr)*</code></pre>
+<p>The condition is any expression except a struct value; it is tested
+for truth. <code>elif</code>/<code>else</code> must start a line at the
+same indentation as the <code>if</code> (or follow the one-line body on
+the same line). A conditional declaration in the condition declares the
+variable(s) in a scope that ends with the <code>if</code> statement; the
+condition is the truth of the (last) declared variable, and with
+<code>and</code> chains each subsequent initializer is only evaluated if
+the previous variable is true. A conditional declaration is not allowed
+in an <code>elif</code>. Any branch may be a block or a one-line
+statement. As a statement, the branches need not agree in type.</p>
+<h3 id="guard">guard</h3>
+<pre><code>guardstmt = `guard` cond (`:` body)?</code></pre>
+<p><code>guard c: exit</code> followed by the rest of the block is
+<code>if c: rest else: exit</code>; <code>guard c</code> without a body
+is <code>if c: rest</code>. The exit body typically ends in
+<code>return</code>, <code>break</code> or <code>continue</code> but
+need not. A <code>guard let x = e</code> declares <code>x</code> in the
+enclosing block (visible in the rest of it, and holding the false value
+inside the exit body).</p>
+<h3 id="while">while</h3>
+<pre><code>whilestmt = `while` expr `:` body</code></pre>
+<p>Evaluates the condition before each iteration; runs the body while it
+is true. No declaration is allowed in the condition. Promotions
+established by the condition hold in the body.</p>
+<h3 id="for">for</h3>
+<pre><code>forstmt = `for` `(` expr `)` loopvars? `:` body
+        | `for` expr `:` body
+loopvars = ident (`,` ident)?
+         | `(` ident ((`:` | `::`) type)? (`,` ident (`:` type)?)? `)`</code></pre>
+<p>The iterable is evaluated once. For an <code>int</code>
+<code>n</code>, the body runs for <code>i = 0, 1, ..., n-1</code> (not
+at all for <code>n &lt;= 0</code>), the element and the index both being
+<code>i</code>. For a string, the body runs once per byte, with the byte
+as an <code>int</code> element. For a vector, the body runs for each
+index from <code>0</code> while the index is less than the vector's
+current length (re-read every iteration, so elements appended during the
+loop are visited and removed elements skipped), with the element at that
+index (a copy of a struct element, a reference for a reference element).
+The first loop variable is the element, the second the index; at most
+two, each assignable in the body (a fresh binding per iteration);
+<code>(x::T)</code> puts the element's fields in scope. With no loop
+variables, <code>_</code> and <code>_name</code> in the body declare
+them (see Function values); the form without parentheses around the
+iterable takes no loop variables. The body is a block scope.</p>
+<h3 id="break-continue">break, continue</h3>
+<p>Only inside a <code>while</code> or <code>for</code> body of the same
+function; <code>break</code> leaves the innermost enclosing loop,
+<code>continue</code> proceeds to its next iteration (the condition or
+index increment). Both pass through any enclosing <code>switch</code> or
+<code>if</code>.</p>
+<h3 id="switch">switch</h3>
+<pre><code>switchstmt = `switch` expr `:` INDENT (case NL)+ DEDENT
+case   = `case` pattern (`,` pattern)* (`:` body | `::` body)
+       | `case` tname `(` (ident (`,` ident)*)? `)` `:` body
+       | `default` `:` body
+       | `out_of_range` `:` body
+pattern = unary | unary `..` unary | tname</code></pre>
+<p>The value must be <code>int</code> (including enums),
+<code>float</code>, <code>string</code>, a class, or a family struct; a
+struct outside a family is an error. Patterns are unary expressions (an
+operator expression needs parentheses); <code>a..b</code> is an
+inclusive range. Cases are tried in order; the first whose pattern
+matches runs, then the switch ends (no fall-through). For
+<code>int</code> values with all patterns constant and dense enough,
+matching is by table; either way the behavior is that of sequential
+matching except that a constant integer (or integer range member)
+appearing in two cases is an error. Strings match by value, floats by
+<code>==</code> and inclusive ranges. <code>default</code> runs when no
+case matches; at most one.</p>
+<p>Enums: a switch on an enum value without <code>default</code> must
+have a case for every declared value of the enum (error "not tested in
+switch"); at run time a value that matches no case (a value outside the
+enum's declared ones) is a runtime error ("out of range of possible
+values in switch"), unless an <code>out_of_range</code> case is present,
+which then runs. <code>out_of_range</code> is only allowed for enum
+values, at most once, not together with <code>default</code>, and does
+not relieve the exhaustiveness requirement. Inside an
+<code>out_of_range</code> body, the switch value (if a variable or field
+path) has type <code>int</code>.</p>
+<p>Types: on a class or family struct value, every pattern is a type
+name (a class or struct); one type per case. The case whose type is the
+closest supertype (or the type itself) of the value's dynamic type runs;
+<code>default</code> covers the rest. Without <code>default</code>,
+every concrete (non-abstract) subtype of the value's static type, as
+declared anywhere in the program, must be covered (error "no case
+applies"); two cases equally close for some type is an error. Inside the
+case, the switch value (if a variable or field path) has the case's
+type. <code>case T:: body</code> additionally brings the fields of
+<code>T</code> into scope by their names, and <code>T</code>'s methods
+callable without receiver, referring to the switch value, which must
+then be a variable or a field path from one (<code>x</code>,
+<code>x.a.b</code>). <code>case T(n1, n2): body</code> declares pattern
+variables <code>n1</code>, <code>n2</code> for the first fields of
+<code>T</code> in declaration order (fewer than all is fine;
+<code>_</code> skips a field; a name starting with <code>_</code> is an
+error); each is another name for that field of the switch value
+(assignable, promotable). Pattern variables follow the shadowing rules
+of variables. A type used twice in <code>::</code> scope for different
+objects, or a field name that two objects in <code>::</code> scope both
+have, is an error at use ("access to ambiguous field").</p>
+<p>As an expression the value type is the union (with coercion) of the
+values of the cases that can complete normally; a non-exhaustive
+<code>int</code>/<code>float</code>/<code>string</code> switch used as a
+value must have <code>default</code>.</p>
+<h3 id="return">return</h3>
+<pre><code>returnstmt = `return` (opexpr (`,` opexpr)*)? (`from` (ident | `program`))?</code></pre>
+<p>Without <code>from</code>, returns from the nearest lexically
+enclosing named function (passing through any anonymous functions and
+blocks), or ends the program at file scope. <code>return e from f</code>
+returns from the innermost active call of the named function
+<code>f</code> (which must have a single overload and arity variant),
+and <code>from program</code> ends the program; the function returned
+from must be on the call stack: the compiler verifies that
+<code>f</code> is active in every calling context the return is type
+checked in, and a return that would have to pass through a call of a
+function value is an error ("cannot return through dynamic function
+value").</p>
+<p>The values: none (<code>return</code> alone, only valid in a function
+that returns no value; error "returns 0 values, 1 needed" otherwise),
+one, or several (a tuple). The function's return type is its declared
+one, to which each value must convert (with coercion); with more
+declared values than the caller requires, the extra are dropped; with
+fewer, an error. Without a declared return type, the type is the union,
+without coercion, of the values of all <code>return</code> statements
+the function contains (in the specialization), including those in nested
+anonymous functions that return from it; a function whose every path
+ends in a non-local return to another function has type
+<code>void</code>. A function that is called recursively must declare
+its return type (error otherwise). A named function's body that does not
+end in <code>return</code> returns nothing (its last expression is
+evaluated and discarded); if the function returns a value elsewhere
+(declared or inferred), reaching the end of the body is an error
+("control reaches end of non-void function"), and a declared non-void
+function without any <code>return</code> is an error ("missing return
+statement").</p>
+<p>The number of values a call yields is the number the context
+consumes, up to the number the function returns: in a single-value
+context the first value, in a statement context none (the values are
+discarded), in <code>let a, b = f()</code> two.</p>
+<h3 id="assert-statement">assert (statement)</h3>
+<p><code>assert e</code> as a statement is the assert expression with
+its value discarded.</p>
+<h3 id="multiple-assignment">Multiple assignment</h3>
+<pre><code>multiassign = target (`,` target)+ `=` opexpr (`,` opexpr)*
+target = ident | postfix-with-field-access</code></pre>
+<p>Only as a statement (also as a one-line body). The right side is
+evaluated first; it must produce at least as many values as there are
+targets (extra are dropped). Targets are variables or fields (not
+indexed elements). Each value must convert (without coercion) to its
+target's type.</p>
+<h2 id="functions-resolution-dispatch-and-specialization">Functions:
+resolution, dispatch and specialization</h2>
+<h3 id="specialization">Specialization</h3>
+<p>A function's body is type checked once per <em>specialization</em>: a
+combination of the types bound to its generic parameters and type
+variables, the number of return values the caller requires, the types
+(as promoted) of free variables it uses, and the ownership convention
+chosen for its parameters. Each call site either reuses a compatible
+specialization or creates a new one; a function that returns a type
+still containing an inference variable is re-specialized per call.
+Specialization is not observable except through the diagnostics it
+produces and the "compile-time if" behavior of <code>is</code>.</p>
+<p>A top-level function that is never called but whose parameters all
+have concrete types is type checked anyway, for its errors (uses that
+need an active caller, such as free variables, make the rest of the body
+skip). One with generic parameters is not checked unless called.</p>
+<h3 id="call-resolution">Call resolution</h3>
+<p>For a call of name <code>f</code> with arguments
+<code>a0, a1, ...</code> (after the receiver of a <code>.</code> call
+has been placed first), the candidates are: the lexically visible
+function <code>f</code> (with its arity variants), the builtin
+<code>f</code>, the field <code>f</code> (for a receiver call without
+parentheses), and a variable <code>f</code> (for a non-receiver call).
+The choice:</p>
+<ol type="1">
+<li>A <code>.f</code> without parentheses where the receiver's type has
+field <code>f</code> is a field access.</li>
+<li>A variable <code>f</code> that holds a function value is called (as
+a dynamic call), unless a builtin <code>f</code> exists, or a function
+<code>f</code> is declared in a scope deeper than the variable's (a
+function declared in the same block as the variable counts as
+deeper).</li>
+<li>Otherwise, among the arity variants of function <code>f</code>: a
+variant is viable if its parameter count equals the argument count, or
+exceeds it by parameters that have defaults, or (for a call without
+receiver, inside a method or a function with a <code>::</code>
+parameter) exceeds it by one that an implicit <code>this</code> argument
+can fill (the variant has an overload whose first parameter is
+<code>::</code> of a type the in-scope <code>this</code> converts to;
+the innermost such <code>this</code> is inserted as first argument).
+Among viable variants, if the first argument is a class or struct, the
+variant with an overload whose first parameter type is the closest
+supertype of it wins (a generic first parameter counts as a match
+farther than any concrete one); otherwise, and on ties, the variant with
+the most parameters wins. If a builtin <code>f</code> also exists, the
+builtin is called unless the chosen variant matched the receiver's class
+concretely, or has exactly the argument count and more parameters than
+the builtin. Missing arguments are filled with defaults (evaluated at
+the call). No viable variant is an error listing the declared ones.</li>
+<li>Among the overloads of the chosen variant, one is selected by the
+argument types, argument by argument from the first: keep the overloads
+whose parameter type matches the argument exactly; if none, those whose
+parameter is the argument's generic type (any instantiation); if none,
+for a class/family argument, those whose parameter is a supertype (the
+closest only); if none, those the argument converts to without coercion
+(closest class supertype preferred); if none, those with a fully generic
+parameter; if none, those matching after applying the explicit type
+arguments; if none, those the argument converts to with coercion; if
+none, an error ("no overloads apply"). If one remains, it is chosen; if
+several remain after the last argument, and explicit type arguments
+select one by generic count, it is chosen, else the call is ambiguous
+(error).</li>
+<li>Before step 4, if the first argument's static type is a class or
+family struct and any overload's first parameter type is a strict
+subtype of it, the call is a dynamic dispatch (below) instead.</li>
+</ol>
+<p>Builtin calls: a builtin may have several overloads, tried in
+declaration order; the first whose parameters all accept the arguments
+(with the builtin conversion rules: <code>int</code> to
+<code>float</code> coercion, numeric to nilable, a numeric struct
+argument for a struct parameter of the right element type and arity, any
+vector for a generic vector parameter, any reference type for a generic
+reference parameter, any value for a parameter declared as converting to
+string (as <code>print</code> and <code>string</code> do), and enum
+conversions) is called; missing optional arguments take the builtin's
+default. Some builtins are typed by their arguments (the return type is
+that of an argument, or the element type of a vector argument, or the
+result of a function argument). A builtin's numeric struct parameter of
+unspecified arity requires a struct argument that is one of the
+prelude's <code>intN</code>/<code>floatN</code> types or a struct of the
+same element type and a specified arity ("cannot deduce struct type"
+otherwise).</p>
+<h3 id="dynamic-dispatch">Dynamic dispatch</h3>
+<p>When a call dispatches dynamically on its first argument (a class or
+family struct value with static type <code>C</code>), the implementation
+run is chosen at run time by the argument's dynamic type <code>D</code>:
+the overload whose first parameter type is the closest supertype of
+<code>D</code> (including <code>D</code> itself) among the overloads of
+the function, with the remaining arguments resolved statically against
+it. Every concrete (non-abstract) type in the program that is
+<code>C</code> or a subtype of <code>C</code> must have such an
+implementation (error "no implementation for D.f"); an ambiguity (two
+equally close) is an error. All implementations in a dispatch are type
+checked for the call, must agree on the types of the parameters other
+than the first (unless generic), and must agree on their return type
+without coercion (the dispatch's return type is their union; recursive
+dispatch requires declared return types). The set of subtypes is that of
+the whole program as declared; a specialization of a generic class
+created (by first use) after a dispatch on its superclass was type
+checked is an error ("already used in dynamic dispatch ... before it has
+been declared"). A <code>super f(...)</code> call resolves statically to
+the implementation for the superclass of the enclosing method's class.
+Methods of related types declared in different scopes cannot dispatch
+together (error).</p>
+<h3 id="default-arguments">Default arguments</h3>
+<p>A default is evaluated at the call site each time it is used, after
+the explicit arguments, in the caller's context (it may read variables
+that were visible at the function's declaration).</p>
+<h3 id="multiple-return-values-and-tuples">Multiple return values and
+tuples</h3>
+<p>A function may return several values (<code>return a, b</code>,
+declared <code>-&gt; A, B</code>). They are consumed by
+<code>let a, b = f()</code>, <code>a, b = f()</code>, another
+<code>return f()</code> (pass-through), or a builtin taking several; in
+an <code>if</code>/<code>switch</code> expression branch several values
+need parentheses <code>(a, b)</code>. Any context consuming fewer values
+drops the rest; one consuming more is an error.</p>
+<h2 id="flow-sensitive-typing">Flow-sensitive typing</h2>
+<p>The type checker tracks <em>promotions</em> of variables and field
+paths (a variable followed by field accesses; indexed elements are never
+promoted) within a function:</p>
+<ul>
+<li>After <code>if x:</code> (and inside <code>x and ...</code>), a
+nilable <code>x</code> has its non-nil type in the true branch; after
+<code>if not x:</code> or <code>if x == nil:</code> in the false branch
+(<code>x != nil</code> the true branch). Chains of <code>and</code>
+promote for later operands and the true branch; <code>or</code> promotes
+for the false branch. Only chains of one operator kind are
+analyzed.</li>
+<li>After <code>if x is T:</code>, <code>x</code> has type
+<code>T</code> in the true branch (for a nilable <code>x</code>,
+<code>x is T</code> with non-nilable <code>T</code> also excludes
+nil).</li>
+<li><code>assert x</code> promotes <code>x</code> for the following code
+(nil excluded, <code>is</code> applied).</li>
+<li>Assigning a non-nil value to a nilable variable or field path
+promotes it for the following code (the promotion is the assigned type's
+non-nil form). A variable declared with a nilable annotation and a
+non-nil initializer is promoted likewise.</li>
+<li>In a <code>switch</code> case on a type, and in
+<code>out_of_range</code>, the switch value (if a path) is
+promoted.</li>
+</ul>
+<p>A promotion is dropped by an assignment to the path or to any prefix
+of it, including writes performed by called functions through parameters
+that alias the path (the compiler tracks parameter aliases per call), by
+<code>and</code>/<code>or</code> operands' assignments, and at the end
+of the branch that established it. After an
+<code>if</code>/<code>elif</code>/<code>else</code> or
+<code>switch</code>, a promotion survives only if every branch that can
+fall through establishes it (with a common type); a branch that ends in
+<code>return</code>/<code>break</code>/<code>continue</code> or a
+never-returning call is not one that falls through. Demotions
+(assignments) in any branch, including ones followed by
+<code>break</code>/<code>continue</code>, apply after the statement. A
+loop body's promotions do not survive the loop; its demotions apply
+around it. Promotions of free variables are visible inside nested
+functions called while they hold, and functions are specialized on
+them.</p>
+<p>Dereferencing a nilable value (<code>x.f</code> where
+<code>x:T?</code>, passing it where <code>T</code> is required) is an
+error unless promoted.</p>
+<h2 id="values-ownership-and-borrowing">Values, ownership and
+borrowing</h2>
+<h3 id="value-and-reference-semantics">Value and reference
+semantics</h3>
+<p><code>int</code>, <code>float</code>, function values, typeids and
+structs are values: assignment and passing copy them (a struct copy
+copies all its fields, including reference fields, which are then
+shared). Strings, vectors, class instances and resources are references:
+assignment and passing share the object; <code>copy</code> and
+<code>deepcopy</code> (builtins) duplicate. Strings are immutable.
+Memory is reclaimed by reference counting when the last reference
+disappears; reference cycles are not reclaimed (they are reported as
+leaks when the program ends).</p>
+<h3 id="borrowing">Borrowing</h3>
+<p>The compiler decides per parameter, variable and temporary whether it
+owns a reference or borrows one, which is not observable except for one
+class of errors. A <em>borrow</em> is taken of a value read from a
+variable, field path or vector element (path <code>x</code>,
+<code>x.a.b</code>, <code>v[i]</code>, <code>v[..]</code>) when it is
+used as a function argument, as the object of a field access or index,
+in the initializer of a single-assignment variable, or as a
+<code>for</code> loop element. While a borrow is live (until the
+enclosing expression or statement completes, or for the variable's
+scope), a write to that location (or one that may alias it: any element
+of the same vector counts as one location unless both indices are
+different constants; builtins that remove elements count as writes) is
+detected: if the write happens in a called function, or after the
+borrowing variable was initialized, the compiler instead makes the
+borrower own a reference and the program is accepted; if it happens
+while the borrowed value is still being prepared as an argument of the
+same call (e.g. <code>f(v[0], v.pop())</code>), it is an error ("cannot
+modify <code>v[..]</code> while <code>v[0]</code> borrows it"). A
+parameter that the function assigns to always owns its own reference;
+the caller's variable is unaffected.</p>
+<h2 id="runtime-semantics">Runtime semantics</h2>
+<h3 id="program-execution-and-termination">Program execution and
+termination</h3>
+<p>Execution proceeds statement by statement from the start of the
+expanded main file. <code>return e</code> at file scope (or
+<code>return e from program</code> anywhere) ends the program with
+<code>e</code> as its result value (converted to a string for
+<code>compile_run_code</code>; ignored by the main program, whose exit
+code is that set by the exit code builtin, <code>0</code> by default). A
+runtime error prints its message (with a source location and stack trace
+when compiled with those enabled) and terminates the program with a
+non-zero exit code. Exceeding the host stack in deep recursion is
+unspecified (a crash).</p>
+<h3 id="runtime-errors-defined-by-the-language">Runtime errors defined
+by the language</h3>
+<ul>
+<li>integer division or modulo by zero: "division by zero";</li>
+<li><code>INT_MIN / -1</code>, <code>INT_MIN % -1</code>: "integer
+overflow";</li>
+<li>vector, string or struct index out of range;</li>
+<li>an enum <code>switch</code> value matching no case, without
+<code>out_of_range</code>;</li>
+<li>a failed <code>assert</code>;</li>
+<li>a <code>return from</code> passing through a function value
+call.</li>
+</ul>
+<p>Builtins define their own errors (empty vector <code>pop</code>,
+etc.).</p>
+<h3 id="string-conversion">String conversion</h3>
+<p>Values convert to strings (<code>string()</code>, <code>print</code>,
+interpolation, string <code>+</code>) as: <code>int</code> in decimal;
+enum values by name (for <code>enum_flags</code>, the names of the set
+bits joined by <code>|</code>), or in decimal when the value is not a
+declared value (for flags: any undeclared bit set); <code>float</code>
+in fixed (non-exponent) decimal notation with the shortest digits that
+read back to the same value, always with a fractional part
+(<code>1.0</code>, <code>100000000000000000000.0</code>,
+<code>0.0000001</code>), <code>inf</code>, <code>-inf</code>,
+<code>-0.0</code>, and <code>nan</code> in the host's spelling
+(unspecified, e.g. <code>-nan(ind)</code>); strings as themselves at top
+level, and quoted with the escapes <code>\n \t \r \\ \" \'</code> and
+<code>\xHH</code> for other bytes outside <code>0x20..0x7E</code> when
+nested in a vector or object; vectors as <code>[e1, e2]</code>; class
+and struct values as <code>Name{f1, f2}</code> with the dynamic type's
+name and its fields in order (a family struct prints as the member it
+holds); <code>nil</code> as <code>nil</code>; function values as
+<code>&lt;FUNCTION:n&gt;</code>; resources as
+<code>(resource:name)</code>; typeids as <code>int</code>. Nesting
+deeper than the print depth (default 10) prints <code>..</code>, and
+output beyond the print length budget is cut with <code>....</code>;
+both, the number of float decimals, top-level string quoting and
+indentation are settable by builtins.</p>
+<h3 id="equality-and-hashing">Equality and hashing</h3>
+<p><code>==</code> is as specified under operators. The builtin
+<code>equal</code> compares structurally (vectors and objects element by
+element, recursively); <code>hash</code> hashes ints, floats, enums and
+function values by value, strings by contents, and vectors, objects and
+resources by identity.</p>
+<h3 id="numeric-conversions">Numeric conversions</h3>
+<p><code>float(i)</code> and the implicit <code>int</code> to
+<code>float</code> coercion convert to the nearest double.
+<code>int(f)</code> truncates toward zero; for values outside the
+<code>int</code> range, <code>nan</code> and infinities the result is
+unspecified (the host conversion; on the reference platform
+<code>INT_MIN</code>).</p>
+<h3 id="threads">Threads</h3>
+<p>Worker threads run copies of the program with their own memory; the
+only communication is by copying objects through the worker builtins.
+Nothing else in the language is concurrent.</p>
+</body>
+</html>

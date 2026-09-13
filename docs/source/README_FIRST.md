@@ -47,6 +47,8 @@ To learn the language more in-depth: The [language
 reference](language_reference.html). Check out the [style
 guide](style_guide.html) before you write lots of code :) Read about the [type
 system](type_checker.html) or [memory management](memory_management.html).
+The [language spec](language_spec.html) has more detail on the exact behavior
+of current language features.
 
 Building Lobster
 ----------------
