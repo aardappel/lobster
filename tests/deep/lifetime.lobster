@@ -58,6 +58,22 @@ def lifetime_tests():
     n = iv[1]
     test_eq(n, 2)
 
+    // A later argument of the same call writes what an earlier one borrows: the earlier
+    // argument takes a reference of its own, so it keeps what it was passed. Also for
+    // an argument that is a variable being assigned, and for the values of a return.
+    let av = [ "a" + "", "b" + "", "c" + "" ]
+    def two_args(a:string, b:string) -> string: return a + b
+    test_eq(two_args(av[0], av.pop()), "ac")
+    test_eq(av.length, 2)
+    test_eq(two_args(av[0], (av[0] = "x")), "ax")
+    var as = "s" + ""
+    test_eq(two_args(as, (as = "t")), "st")
+    def two_rets(v:[string]) -> string, string: return v[0], v.pop()
+    let r1, r2 = two_rets(av)
+    test_eq(r1 + r2, "xb")
+    test_eq(av.length, 1)
+    test_eq(av[0], "x")
+
     // Overwriting vector elements that hold references.
     sv[0] = sv[1]
     test_eq(sv[0], "b")

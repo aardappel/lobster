@@ -55,6 +55,10 @@ struct TypeChecker {
     vector<Scope> scopes;
     vector<FlowItem> flowstack;
     vector<Borrow> borrowstack;
+    // The argument lists (of calls, and of returns of several values) whose elements are being
+    // typechecked, innermost last: what the elements done so far borrow, a later element may
+    // write, see CheckLvalBorrowed.
+    vector<List *> arglists;
     vector<SpecIdent *> preferfreestack;
     vector<Define *> definestack;
     // UDTs whose field default values are being type checked, to detect recursion.
@@ -3049,6 +3053,18 @@ struct TypeChecker {
                 }
                 if (pick) KeepArgAlive(const_cast<SpecIdent *>(pick));
             }
+            // Or it may be held by an earlier element of an argument list whose later
+            // element is doing the write (f(v[0], v.pop())): that element takes a reference
+            // of its own instead (an inc), which the call it is for adjusts like any owned
+            // value it is passed. The elements still to be typechecked have no lifetime yet.
+            for (auto list : arglists) {
+                for (auto &c : list->children) {
+                    if (c->lt != bi) continue;
+                    LOG_DEBUG("argument ", NiceName(*c), " owns a reference for a later write");
+                    DecBorrowers(c->lt, *c);
+                    MakeLifetime(c, LT_KEEP, 1, 0);
+                }
+            }
             if (!b.refc) continue;
             if (!WriteHits(ExpandAliases(b), written)) continue;
             LValContext cb = b;
@@ -3299,9 +3315,11 @@ struct TypeChecker {
     }
 
     void TypeCheckList(List *n, Lifetime lt, TypeRef parent_bound = {}) {
+        arglists.push_back(n);
         for (auto &c : n->children) {
             TT(c, 1, lt, parent_bound);
         }
+        arglists.pop_back();
     }
 
     const Coercion *IsCoercion(const Node *n) {
@@ -4781,6 +4799,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
     // We first typecheck the children, because we want to at least look at arg 1 to decide
     // what to call. But this doesn't allow an accurate parent_bound, so we only specify
     // one if it looks unambiguous.
+    tc.arglists.push_back(this);
     for (auto [i, c] : enumerate(children)) {
         TypeRef parent_bound;
         // Only if the name seems to refer to 1 thing.
@@ -4803,6 +4822,7 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
         }
         tc.TT(c, 1, LT_ANY, parent_bound);
     }
+    tc.arglists.pop_back();
     TypeRef type;
     UDT *udt = nullptr;
     UDT *niludt = nullptr;

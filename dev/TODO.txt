@@ -1,14 +1,6 @@
 - Borrow checker improvements (the visible rules are documented in the spec's "Borrowing"
   section and must stay documented there):
 
-  - "The caller keeps the argument alive" (KeepArgAlive) only resolves conflicts where the
-    write happens inside a called function. A write while the borrow is still being
-    prepared as an argument of the same call, e.g. `f(v[0], v.pop())`, is an error ("cannot
-    modify `v[..]` while `v[0]` borrows it"). Extend the same idea: when a later argument
-    writes a location an earlier argument borrows, give the earlier argument an owning
-    reference (inc at the borrow, dec after the call) instead of erroring, at the cost of
-    one inc/dec at such call sites only.
-
   - A function value passed as a declared function type has its parameters fixed to
     LT_BORROW (see TypeChecker::SubType for V_FUNCTION), so a lambda body that assigns to
     its own parameter is an error ("cannot assign to borrowed argument"). Lift it by giving

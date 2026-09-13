@@ -1474,11 +1474,13 @@ are different constants; builtins that remove elements count as writes; a
 write through a variable that was assigned the object from a variable path
 counts as a write to that path, with the same limits as for promotions, see
 Flow typing) is
-detected: if the write happens in a called function, or after the borrowing
-variable was initialized, the compiler instead makes the borrower own a
-reference and the program is accepted; if it happens while the borrowed value
-is still being prepared as an argument of the same call (e.g. `f(v[0],
-v.pop())`), it is an error ("cannot modify `v[..]` while `v[0]` borrows it").
+detected: if the write happens in a called function, after the borrowing
+variable was initialized, or in a later argument of the same call (or a
+later value of the same `return` list), e.g. `f(v[0], v.pop())`, the compiler
+instead makes the borrower own a reference and the program is accepted; a
+write elsewhere in the expression holding the borrow (e.g. `v[0] + v.pop()`,
+where an operand borrows) is an error ("cannot modify `v[..]` while `v[0]`
+borrows it").
 A parameter that the function assigns to always owns its own reference; the
 caller's variable is unaffected.
 

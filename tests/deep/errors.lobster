@@ -218,10 +218,9 @@ def errors_tests():
         "var x = \"hello\"\ndef f(y):\n    x = \"world\"\n    return y\nreturn f(x)", [])
     test_eq(berr, nil)
     test_eq(bret, "hello")
-    // But not for a borrow that is still being evaluated as an argument.
-    expect_error("let v = [ \"a\" + \"\" ]\ndef f(a:string, b:string): return a + b\n" +
-                 "return f(v[0], v.pop())",
-                 "borrows it")
+    // The same for a later argument of the same call (see lifetime.lobster), but a write
+    // while an operand of the same expression borrows the location is an error.
+    expect_error("let v = [ \"a\" + \"\" ]\nreturn v[0] + v.pop()", "borrows it")
 
     // A `member` initializer is the field's default, so it runs wherever the
     // class is constructed and cannot read the object or the method's locals.
