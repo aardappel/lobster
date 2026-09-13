@@ -720,9 +720,13 @@ struct FlowItem : LValContext {
 // checked against the borrows and flow promotions of the new context, see
 // TypeChecker::ReplayAssigns. The path is what the function it is recorded in calls the
 // location: a variable it can see, or its own parameter that aliases the location.
+// `overwritetype` is the type of what an assignment stores, which is what decides whether the
+// context's flow promotions of the location survive it; null for a write that leaves the type
+// alone (a builtin dropping elements, a compound assignment).
 struct AssignEvent {
     Node *n;
     LValContext lv;
+    TypeRef overwritetype;
 };
 
 struct Arg {

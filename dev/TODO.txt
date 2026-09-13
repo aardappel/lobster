@@ -46,16 +46,6 @@
       if x.t:
           y.t = nil
           print x.t.t
-  - a call that reuses an already typechecked function doesn't apply that function's demotes
-    again (should it, or for now force a specialization if it has demotes?):
-      var x:string? = ""
-      def f(): x = nil
-      if x:  // promoted
-          f() // demoted
-      x = "abc"
-      if x:  // promoted
-          f() // nothing happens, f() has already been typechecked
-          print x.length
   See also "A more conservative mode" below.
 
 - Borrow checker: writes thru a borrowed parameter (or `this`) are now checked against what

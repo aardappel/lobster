@@ -2847,7 +2847,8 @@ struct TypeChecker {
         return {};
     }
 
-    void CheckLval(Node *n) {
+    // `overwritetype` is what an assignment stores, see AssignEvent.
+    void CheckLval(Node *n, TypeRef overwritetype = {}) {
         // This can happen due to late specialization of GenericCall.
         if (Is<Call>(n) || Is<NativeCall>(n))
             ErrorAlways(*n, "function-call cannot be an l-value");
@@ -2873,7 +2874,7 @@ struct TypeChecker {
         }
         Borrow lv(*n);
         if (!lv.IsValid()) return;  // FIXME: force these to LT_KEEP?
-        if (IsRefNil(n->exptype->t)) RecordWrite(n, lv);
+        if (IsRefNil(n->exptype->t)) RecordWrite(n, lv, overwritetype);
         CheckLvalBorrowed(n, lv);
     }
 
@@ -2883,7 +2884,7 @@ struct TypeChecker {
         LValContext lv(*vec);
         if (!lv.IsValid()) return;
         lv.derefs.push_back(&elem_field);
-        RecordWrite(call, lv);
+        RecordWrite(call, lv, {});
         Borrow b(lv);
         CheckLvalBorrowed(call, b);
     }
@@ -2895,7 +2896,7 @@ struct TypeChecker {
     // passed, in which case the functions further out know it under the path the call passed:
     // each function on the stack up to the one that holds the variable records it as the path
     // it can see.
-    void RecordWrite(Node *n, const LValContext &lv) {
+    void RecordWrite(Node *n, const LValContext &lv, TypeRef overwritetype) {
         LValContext ev = lv;
         LValContext root = lv;
         root.Canonicalize();
@@ -2906,7 +2907,7 @@ struct TypeChecker {
             // slower than the redundant calls to CheckLvalBorrowed this causes later?
             // Especially since this uniqueifying cost is paid always, even when there
             // are no actual repeated assigns in a scope, which is not that common.
-            sc.sf->reuse_assign_events.push_back({ n, ev });
+            sc.sf->reuse_assign_events.push_back({ n, ev, overwritetype });
             // Don't go further than where the variable really written is defined.
             if (sc.sf == root.sid->sf_def) break;
         }
@@ -3092,9 +3093,9 @@ struct TypeChecker {
             Borrow lv(ev.lv);
             CheckLvalBorrowed(ev.n, lv);
             // The write also stands for any promotion this context has of what it overwrites.
-            if (auto a = Is<Assign>(ev.n); a && !ev.lv.HasElem()) {
-                FlowItem fi(ev.lv, a->left->exptype);
-                AssignFlowDemote(fi, a->right->exptype, CF_COERCIONS);
+            if (!ev.overwritetype.Null() && !ev.lv.HasElem()) {
+                FlowItem fi(ev.lv, ev.n->exptype);
+                AssignFlowDemote(fi, ev.overwritetype, CF_COERCIONS);
             }
         }
         replaying = outer;
@@ -4210,8 +4211,8 @@ Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
     for (size_t i = 0; i < children.size() - 1; i++) {
         auto left = children[i];
         if (!Is<IdentRef>(left) && !Is<Dot>(left)) continue;  // Reported above.
-        tc.CheckLval(left);
         TypeRef righttype = children.back()->exptype->Get(i);
+        tc.CheckLval(left, righttype);
         FlowItem fi(*left, left->exptype);
         assert(fi.IsValid());
         tc.AssignFlowDemote(fi, righttype, CF_NONE);
@@ -4582,7 +4583,7 @@ Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     if (auto idr = Is<IdentRef>(left)) tc.FlipSpeculative(idr->sid);
     tc.DecBorrowers(left->lt, *this);
     tc.TT(right, 1, tc.LvalueLifetime(*left, false));
-    tc.CheckLval(left);
+    tc.CheckLval(left, right->exptype);
     FlowItem fi(*left, left->exptype);
     if (fi.IsValid()) {
         left->exptype = tc.AssignFlowDemote(fi, right->exptype, CF_COERCIONS);

@@ -125,6 +125,11 @@ def errors_tests():
     expect_error("class N:\n    v = 1\nvar a:N? = N \{\}\n" +
                  "if a:\n    while rnd(2):\n        a = nil\n    return a.v\nreturn 0",
                  "dereferencing nillable")
+    // A call to a specialization typechecked for an earlier call replays its writes
+    // against this call's promotions.
+    expect_error("class N:\n    v = 1\nvar a:N? = N \{\}\ndef f(): a = nil\n" +
+                 "if a: f()\na = N \{\}\nif a:\n    f()\n    return a.v\nreturn 0",
+                 "dereferencing nillable")
 
     // Flow-sensitivity: dereferencing a possibly-nil value.
     expect_error("def f(s:string?) -> int: return s.length\nreturn f(nil)", "error")
