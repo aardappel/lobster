@@ -209,6 +209,15 @@ def recovery_tests():
         print(f())
         """, [ "operator overload must be declared at file scope",
                "operator overload must be declared at file scope" ])
+    // A default argument is evaluated at the call site, where the function's parameters
+    // (and the fields a `::` one brings into scope) do not exist, so it cannot see them.
+    expect_errors("""
+        def f(a, b = a): return a + b
+        def g(a, b = 1, c = a + b): return a + b + c
+        def h(v::int2, w = y): return x + w
+        print(f(1) + g(1) + h(int2 { 1, 1 }))
+        """, [ "unknown identifier `a`", "unknown identifier `a`", "unknown identifier `b`",
+               "unknown identifier `y`" ])
 
     // Errors found by the lexer.
     expect_errors("let x = 1)\nprint(z)\n", [ "unmatched \')\'", "unknown identifier `z`" ])

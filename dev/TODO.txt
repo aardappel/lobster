@@ -33,14 +33,6 @@
     method that has a superclass implementation" when the overload picked is the caller's
     own (or not one of a strict superclass).
 
-  - Default arguments ("Function declarations"): `def f(a, b = a)` crashes the compiler
-    (silent exit, no output). PopOutOfFunctionScope pops the scope levels while parsing the
-    default, but the parameter idents stay in st.idents, so `a` resolves to the parameter
-    and the default is later cloned into call sites as an IdentRef of another function's
-    sid. Must be an error ("default argument cannot refer to a parameter"): hide the
-    function's own args while parsing a default, or check the default's IdentRefs after
-    parsing it.
-
   - Untyped nil ("Conversions", "Logical operators and truth"): the element type variable
     of a `nil` must never be bound to a type that can't be nilable (numeric, struct,
     function), so that a type like `int?` can't exist. Now `let x = nil` followed by

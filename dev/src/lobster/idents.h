@@ -1213,9 +1213,14 @@ struct SymbolTable {
         // So temp remove and put back is the easiest way around that, since starting the scope
         // later would affect the args being parsed (if this ever is a problem, could attempt to
         // parse those without processing first).
+        // The arguments parsed so far (and the fields a `::` one brings into scope) are hidden
+        // as well: a default is evaluated at call sites, where they do not exist.
         auto sf = defsubfunctionstack.back();
         auto sl = scopelevels.back();
         auto ws = withstacklevels.back();
+        for (auto i = sl; i < identstack.size(); i++) idents.erase(identstack[i]->name);
+        vector<WithStackElem> hidden_with(withstack.begin() + ws, withstack.end());
+        withstack.resize(ws);
         defsubfunctionstack.pop_back();
         scopelevels.pop_back();
         withstacklevels.pop_back();
@@ -1223,6 +1228,8 @@ struct SymbolTable {
         withstacklevels.push_back(ws);
         scopelevels.push_back(sl);
         defsubfunctionstack.push_back(sf);
+        withstack.insert(withstack.end(), hidden_with.begin(), hidden_with.end());
+        for (auto i = sl; i < identstack.size(); i++) idents[identstack[i]->name] = identstack[i];
     }
 
     void UnregisterEnum(const Enum *e) {

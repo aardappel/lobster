@@ -121,6 +121,10 @@ def functions_tests():
     def dfb(a): return a
     test_eq(dfb(1) + dfb(1, 2) + dfb(1, 2, 3), 1 + 14 + 6)
     test_eq(dfb(2.0, 1), -10)
+    // A default cannot see the parameters (see recovery.lobster), which also means a
+    // function value in a default may name its own parameters like them.
+    def dfc(a, f = fn(a): a + 1): return f(a)
+    test_eq(dfc(1), 2)
 
     // Explicit generics.
     def gadd<T>(x:T, y:T): return x + y
