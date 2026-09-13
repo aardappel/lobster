@@ -3791,12 +3791,16 @@ struct CodeGen  {
     // After a call to a function a non-local return can come out of. If one is in flight this
     // function is done too: either it is the one being returned from, in which case what it
     // returns is in the VM's buffer and goes out thru its own return channel, or it passes the
-    // return on to its caller, see EmitReturn.
-    void GenUnwind(const Types &rets) {
-        auto lab = Label();
+    // return on to its caller, see EmitReturn. A call that never completes comes back this way
+    // if it comes back at all, so then there is no path around it, see GenCall.
+    void GenUnwind(const Types &rets, bool completes) {
         TrackUseDef(0, 0);
         Flush();
-        append(cb, "    if (", vmref(), "ret_unwind_to < 0) goto block", lab, ";\n");
+        auto lab = -1;
+        if (completes) {
+            lab = Label();
+            append(cb, "    if (", vmref(), "ret_unwind_to < 0) goto block", lab, ";\n");
+        }
         // Here we are emitting code executed only if we're unwinding, so temp modify the
         // tstack to match that.
         auto tstackbackup = tstack_size;
@@ -3815,7 +3819,7 @@ struct CodeGen  {
             SetNil(cb, RetVar());
         }
         EmitReturn(RET_ANY, rets, -1, 0);
-        EmitLabelDef(lab);
+        if (completes) EmitLabelDef(lab);
         tstack_size = tstackbackup;
     }
 
@@ -3840,10 +3844,15 @@ struct CodeGen  {
                       " slots where it takes ", args.size()),
                   node_context.back()->line);
         }
+        auto nretvals = sf.returntype->NumValues();
+        // Only a call that never completes is asked for values it does not return, see
+        // TypeChecker::TT. The code after it reads them from slots nothing writes (see Read), so
+        // nothing in the C may reach that code either, or a C++ compiler warns about the reads.
+        auto completes = nretvals >= retval;
         if (call.vtable_idx < 0) {
             EmitCall(sf, inw);
-            if (sf.returned_thru_to_max >= 0) {
-                GenUnwind(rets);
+            if (sf.returned_thru_to_max >= 0 || !completes) {
+                GenUnwind(rets, completes);
             }
         } else {
             EmitDynDispatch(call.vtable_idx, args, rets, call.children[0]->exptype);
@@ -3855,10 +3864,9 @@ struct CodeGen  {
             assert(de->dispatch_root && !de->returntype.Null() && de->subudts_size);
             if (de->returned_thru_to_max >= 0) {
                 // This works because all overloads of a DD sit under a single Function.
-                GenUnwind(rets);
+                GenUnwind(rets, completes);
             }
         }
-        auto nretvals = sf.returntype->NumValues();
         for (size_t i = 0; i < nretvals; i++) {
             if (retval) {
                 rettypes.push_back({ sf, i });

@@ -213,7 +213,8 @@ def functions_tests():
     test_eq(mid_g2(), 3)
     // A branch that never completes where a value is expected, and a call to a function
     // value whose only return is non-local: the value slot the code after them reads is
-    // never written, but the code must still compile.
+    // never written, but the code must still compile, and nothing in the C may reach that
+    // read, or a C++ compiler warns about it.
     def term_branch(c:int) -> int:
         let r = if c: return 1 else: 3
         return r
@@ -225,6 +226,23 @@ def functions_tests():
         return 2
     test_eq(term_call(1), 1)
     test_eq(term_call(0), 2)
+    // The same where another branch provides the value, and for calls to a function that ends
+    // in such a call and to one that never comes back at all.
+    def term_if(c:int) -> int:
+        let f = fn(): return 1 from term_if
+        let r = if c: f() else: 3
+        return r
+    test_eq(term_if(1), 1)
+    test_eq(term_if(0), 3)
+    def term_thru(c:int) -> int:
+        let f = fn(): return 1 from term_thru
+        def g(): f()
+        def h(): assert false
+        if c == 1: print g()
+        if c == 2: print h()
+        return 2
+    test_eq(term_thru(1), 1)
+    test_eq(term_thru(0), 2)
     // Multiple different paths through the same unwind point, with different
     // return types and value counts.
     def unwind2(mode):
