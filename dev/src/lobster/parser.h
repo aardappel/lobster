@@ -271,52 +271,59 @@ struct Parser {
                 if (isprivate)
                     Error("import cannot be private");
                 auto errors_before = lex.num_errors;
+                if (st.scopelevels.size() != 1)
+                    Error("import must be used at file scope");
                 lex.Next();
-                if (IsNext(T_FROM)) {
-                    string fn = std::move(lex.sval);
+                auto from = IsNext(T_FROM);
+                string fn;
+                bool relative = false;
+                if (from || lex.token == T_STR) {
+                    fn = std::move(lex.sval);
                     Expect(T_STR);
-                    AddDataDir(fn);
                 } else {
-                    string fn;
-                    bool relative = false;
-                    if (lex.token == T_STR) {
-                        fn = std::move(lex.sval);
-                        lex.Next();
-                    } else {
-                        // A leading dot makes the import relative to the directory of
-                        // the importing file, e.g. "import .foo" or "import .sub.foo".
-                        relative = IsNext(T_DOT);
-                        fn = lex.sattr;
+                    // A leading dot makes the import relative to the directory of
+                    // the importing file, e.g. "import .foo" or "import .sub.foo".
+                    relative = IsNext(T_DOT);
+                    fn = lex.sattr;
+                    Expect(T_IDENT);
+                    while (IsNext(T_DOT)) {
+                        fn += "/";
+                        fn += lex.sattr;
                         Expect(T_IDENT);
-                        while (IsNext(T_DOT)) {
-                            fn += "/";
-                            fn += lex.sattr;
-                            Expect(T_IDENT);
-                        }
-                        fn += ".lobster";
-                        if (relative) {
-                            // Prefix the directory of the current file. Normalize any \ to /
-                            // (e.g. from a command-line main file) such that files imported
-                            // both relatively and thru a path from the main dir get the
-                            // same name for import deduplication.
-                            auto dir = lex.filename.substr(
-                                0, lex.filename.find_last_of("/\\") + 1);
-                            for (auto &c : dir) if (c == '\\') c = '/';
-                            fn = dir + fn;
-                        }
                     }
-                    // The lexer generates no linefeed at the end of a file, so
-                    // an import may be the last thing in one.
-                    if (!AtEndOfFile()) Expect(T_LINEFEED);
-                    // What a malformed import names is not worth looking for.
-                    if (lex.num_errors != errors_before) break;
-                    // A file already imported elsewhere is not included again,
-                    // and thus also has no T_ENDOFINCLUDE to close a scope with.
-                    if (lex.Include(fn, true, relative)) st.StartOfInclude();
-                    // Parses the first statement of the included file, or, if
-                    // there was none, the next statement of the current one.
-                    if (!AtEndOfFile()) ParseTopExp(list);
+                    fn += ".lobster";
+                    if (relative) {
+                        // Prefix the directory of the current file. Normalize any \ to /
+                        // (e.g. from a command-line main file) such that files imported
+                        // both relatively and thru a path from the main dir get the
+                        // same name for import deduplication.
+                        auto dir = lex.filename.substr(
+                            0, lex.filename.find_last_of("/\\") + 1);
+                        for (auto &c : dir) if (c == '\\') c = '/';
+                        fn = dir + fn;
+                    }
                 }
+                if (lex.num_errors != errors_before) {
+                    // What a malformed import, or one where none is allowed, names is not
+                    // worth looking for. The rest of its line is left to the statement
+                    // loop, and a placeholder keeps a block that has nothing else from
+                    // being empty.
+                    list->Add(ErrorExp());
+                    break;
+                }
+                if (from) {
+                    AddDataDir(fn);
+                    break;
+                }
+                // The lexer generates no linefeed at the end of a file, so
+                // an import may be the last thing in one.
+                if (!AtEndOfFile()) Expect(T_LINEFEED);
+                // A file already imported elsewhere is not included again,
+                // and thus also has no T_ENDOFINCLUDE to close a scope with.
+                if (lex.Include(fn, true, relative)) st.StartOfInclude();
+                // Parses the first statement of the included file, or, if
+                // there was none, the next statement of the current one.
+                if (!AtEndOfFile()) ParseTopExp(list);
                 break;
             }
             case T_STRUCT:

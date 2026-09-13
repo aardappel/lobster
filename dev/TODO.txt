@@ -37,10 +37,6 @@
     def->vals. (If value aliases turn out to be wanted, drop the duplicate check and the
     spec sentence instead.)
 
-  - `import` ("import"): must be an error anywhere but at file scope; it is now accepted
-    inside a function body or block and splices the file's statements into that block.
-    ParseTopExp T_INCLUDE: check st.scopelevels.size() == 1 like namespace/private do.
-
   - `is T?` ("is, typeof, assert, nil"): `e is T?` must be accepted for every T, meaning
     `e` is nil or `e is T`, so `1.5 is float?` is true and `1 is float?` false; now
     ParseType reports "value types can't be made nilable" for a scalar or struct T. In

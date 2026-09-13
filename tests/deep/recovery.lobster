@@ -194,6 +194,19 @@ def recovery_tests():
     expect_errors("def f(x:", [ "unmatched \'(\' at end of file" ])
     expect_errors("import nonexistent_module\nprint(z)\n",
                   [ "can\'t open file: nonexistent_module.lobster", "unknown identifier `z`" ])
+    // An import anywhere but at file scope is an error, and the file is not imported
+    // (so nothing from it is defined, and the block goes on without it).
+    expect_errors("""
+        def f():
+            import color
+            return color_red
+        print(f())
+        """, [ "import must be used at file scope", "unknown identifier `color_red`" ])
+    expect_errors("""
+        if 1:
+            import from "data"
+        print(z)
+        """, [ "import must be used at file scope", "unknown identifier `z`" ])
     expect_errors("""
         if 1:
             print(1)
