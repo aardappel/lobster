@@ -72,6 +72,31 @@ def enums_tests():
     test_true(not (flags & de_f4))
     test_eq(flags & ~de_f1, 16)
     test_eq(de_f2 ^ de_f2, 0)
+    // Arithmetic, shifts, unary minus and comparisons on enum operands decay to plain
+    // int, also for two values of the same enum or of two different enums.
+    test_eq(de_red + de_green, 7)
+    test_eq("{de_red + de_green}", "7")  // Not the name of an enum value.
+    test_true((de_red + de_green) is int)
+    test_true((de_red * de_green) is int)
+    test_eq(de_red + de_a, 3)
+    test_eq(de_red - de_b, 2)
+    test_true(de_red == de_a + 3)
+    test_true(de_a < de_red)
+    test_true(de_red != de_a)
+    test_eq(-de_red, -3)
+    test_true((-de_red) is int)
+    test_true((de_f1 << 1) is int)
+    test_eq(de_f1 << de_f2, 4)
+    // Bitwise operators on two values of the same enum_flags type keep that type, as does
+    // ~ on one, but not on a plain enum, on an int, or on two different enums.
+    test_true((de_f1 | de_f2) is de_bits)
+    test_true((de_f1 & de_f2) is de_bits)
+    test_true((de_f1 ^ de_f2) is de_bits)
+    test_true((~de_f1) is de_bits)
+    test_true((de_red | de_green) is int)
+    test_true((~de_red) is int)
+    test_true((de_f1 | 8) is int)
+    test_true((de_f1 | de_red) is int)
 
     // Explicit int -> enum conversion; equality with the enum value.
     test_true(de_color(3) == de_red)

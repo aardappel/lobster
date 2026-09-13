@@ -9,16 +9,6 @@
     already tries the namespaced name first. Check that `private` and pre-declarations
     (which compare names) and the LSP queries (FindVar etc.) handle the prefixed names.
 
-  - Enums ("Operators on numbers"): arithmetic, shifts, unary minus and comparisons on enum
-    operands must decay to plain `int`, also for two different enums (now an error for
-    `+ - * / %` and `==`), and also for two values of the same enum (now the result keeps
-    the enum type, so `a + b` of an enum prints as an enum name). Only `& | ^` on two
-    operands of the same `enum_flags` type, and `~` on one, keep that type. In
-    TypeCheckMathOp / TypeCheckComp / TypeCheckBitOp / UnaryMinus::TypeCheck replace an
-    enum result type by type_int unless the flags case applies. `and`/`or` are unchanged
-    (same enum keeps it, an enum mixed with int or another enum forces bool, see
-    TypeCheckAndOr).
-
   - Integer overflow ("Operators on numbers"): `+ - *` and unary `-` on ints are specified
     to wrap (two's complement), but the generated C does them on signed long long (UB on
     overflow, which a C compiler may exploit), and the constant folder in constval.h does

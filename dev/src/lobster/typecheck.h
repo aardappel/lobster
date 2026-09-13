@@ -902,10 +902,19 @@ struct TypeChecker {
         return c;
     }
 
+    // The type the operands of an arithmetic or comparison operator are brought to. Enum
+    // operands take part as plain ints, whatever enums they are, and the result is one.
+    TypeRef MathOperandType(BinOp &n) {
+        auto ltype = n.left->exptype;
+        auto rtype = n.right->exptype;
+        if (ltype->t == V_INT && rtype->t == V_INT) return type_int;
+        return Union(ltype, rtype, "lhs", "rhs", CF_COERCIONS, nullptr);
+    }
+
     Node *TypeCheckMathOp(BinOp &n) {
         if (auto nn = OperatorOverload(n)) return nn;
         TT(n.right, 1, LT_BORROW);
-        n.exptype = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", CF_COERCIONS, nullptr);
+        n.exptype = MathOperandType(n);
         bool unionchecked = false;
         MathError(n.exptype, n, unionchecked, true);
         if (!unionchecked) SubTypeLR(n.exptype, n);
@@ -955,7 +964,7 @@ struct TypeChecker {
         if (auto nn = OperatorOverload(n)) return nn;
         TT(n.right, 1, LT_BORROW);
         n.exptype = &st.default_bool_type->thistype;
-        auto u = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", CF_COERCIONS, nullptr);
+        auto u = MathOperandType(n);
         if (!u->Numeric() && u->t != V_STRING) {
             if (Is<Equal>(&n) || Is<NotEqual>(&n)) {
                 // Comparison with one result, but still by value for structs.
@@ -999,7 +1008,11 @@ struct TypeChecker {
         if (auto nn = OperatorOverload(n)) return nn;
         TT(n.right, 1, LT_BORROW);
         auto u = Union(n.left->exptype, n.right->exptype, "lhs", "rhs", CF_COERCIONS, nullptr);
-        if (u->t != V_INT) u = type_int;
+        // Enum operands take part as ints; only `& | ^` on two values of the same enum_flags
+        // type keep that type.
+        auto is_shift = Is<ShiftLeft>(&n) || Is<ShiftRight>(&n) || Is<ShiftLeftEq>(&n) ||
+                        Is<ShiftRightEq>(&n);
+        if (u->t != V_INT || (u->e && (!u->e->flags || is_shift))) u = type_int;
         SubTypeLR(u, n);
         n.exptype = u;
         DecBorrowers(n.left->lt, n);
@@ -4338,7 +4351,9 @@ Node *Negate::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     if (auto nn = tc.OperatorOverload(*this)) return nn;
     tc.SubType(child, type_int, "negated value", *this);
     tc.DecBorrowers(child->lt, *this);
-    exptype = child->exptype;
+    // Only an enum_flags value keeps its type, any other enum becomes a plain int.
+    auto ctype = child->exptype;
+    exptype = ctype->t == V_INT && ctype->e && !ctype->e->flags ? type_int : ctype;
     lt = LT_ANY;
     return this;
 }
@@ -4399,7 +4414,10 @@ static TypeRef SimpleResolve(UnTypeRef t, SymbolTable &st) {
 }
 
 TypeRef UnaryMinus::SimpleType(SymbolTable &st) {
-    return child->SimpleType(st);
+    auto type = child->SimpleType(st);
+    // An enum negates as a plain int, see UnaryMinus::TypeCheck.
+    if (!type.Null() && type->t == V_INT && type->e) return type_int;
+    return type;
 }
 
 TypeRef BinOp::SimpleType(SymbolTable &st) {
@@ -4460,6 +4478,8 @@ Node *UnaryMinus::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
     if (!exptype->Numeric() &&
         (exptype->t != V_STRUCT_S || !exptype->udt->sametype->Numeric()))
         tc.RequiresError("numeric / numeric struct", exptype, *this);
+    // An enum negates as a plain int.
+    if (exptype->t == V_INT && exptype->e) exptype = type_int;
     tc.DecBorrowers(child->lt, *this);
     lt = LT_KEEP;
     return this;
