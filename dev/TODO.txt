@@ -1,14 +1,3 @@
-- Issues where the implementation doesn't follow the spec (docs/source/language_spec.md).
-  The spec describes the intended semantics as decided on 2026-09-12; each item says what
-  the implementation has to change to catch up, and names the spec section:
-
-  - Integer overflow ("Operators on numbers"): `+ - *` and unary `-` on ints are specified
-    to wrap (two's complement), but the generated C does them on signed long long (UB on
-    overflow, which a C compiler may exploit), and the constant folder in constval.h does
-    the same in C++. Emit them on unsigned long long with casts in CodeGen::BinExpr and
-    Unary (and fold them that way), like the shifts already do; check the integer math
-    builtins (pow, abs, ...) as well.
-
 - Borrow checker improvements (the visible rules are documented in the spec's "Borrowing"
   section and must stay documented there):
 

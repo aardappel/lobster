@@ -715,7 +715,9 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
 BUILTIN_OVERLOAD(pow_int, "pow", "a,b", "II", "I",
     "a raised to the power of b, for integers, using exponentiation by squaring")
 (VM &, iint a, iint b) {
-    return b >= 0 ? ipow<iint>(a, b) : 0;
+    // Computed unsigned, since the result wraps (two's complement) like * does, where
+    // signed overflow would be undefined.
+    return b >= 0 ? (iint)ipow<uint64_t>((uint64_t)a, (uint64_t)b) : 0;
 }
 
 BUILTIN_OVERLOAD(pow_float, "pow", "a,b", "FF", "F",

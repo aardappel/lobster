@@ -1479,6 +1479,39 @@ struct CodeGen  {
         return e;
     }
 
+    // An operand of one of the wrapping integer operations (see BinExpr) that is itself the
+    // result of one (or of a shift, see BitExpr), recognizable as the conversion back to
+    // signed of an expression that starts with the conversion to unsigned: since the
+    // operation converts it to unsigned again, both conversions are dropped, which keeps a
+    // chain of them readable. Returns whether the operand is now that unsigned expression,
+    // whose own operator is at most as loose as a shift.
+    bool UnsignedOperand(Expr &e) {
+        auto back = cat("(", IType(), ")(");
+        if (e.prec != 2 || e.text.compare(0, back.size(), back) != 0) return false;
+        // The conversion to unsigned may sit behind the parentheses of an operand that was
+        // itself one of these.
+        auto p = back.size();
+        while (p < e.text.size() && e.text[p] == '(') p++;
+        auto to_unsigned = cat(UType(), ")");
+        auto negated = cat("0 - (", UType(), ")");
+        if (e.text.compare(p, to_unsigned.size(), to_unsigned) != 0 &&
+            e.text.compare(p, negated.size(), negated) != 0) return false;
+        e.text = e.text.substr(back.size(), e.text.size() - back.size() - 1);
+        e.prec = 5;
+        return true;
+    }
+
+    // The negation of an int, which wraps (the smallest int negates to itself) where C leaves
+    // it undefined: done on the unsigned type and converted back, see BinExpr.
+    Expr WrappingNegate(const Place &v) {
+        auto e = Operand(v, 2);
+        if (UnsignedOperand(e)) Parens(e, 4, true);
+        else e.text = cat("(", UType(), ")", e.text);
+        e.text = cat("(", IType(), ")(0 - ", e.text, ")");
+        e.prec = 2;
+        return e;
+    }
+
     // Writes an expression to a slot, which for an int or float that can be deferred is
     // remembering it, unless it has grown long enough to be worth a line of its own.
     void WriteExpr(const Place &d, const Expr &e) {
@@ -1965,6 +1998,17 @@ struct CodeGen  {
             return e;
         }
         auto prec = precs[op];
+        if (!isfloat && op <= MOP_MUL) {
+            // Integer + - * wrap (two's complement), which C leaves undefined for signed
+            // operands: done on the unsigned type and converted back, which costs nothing on
+            // a two's complement target. The right operand converts to unsigned implicitly.
+            auto x = Operand(a, 2), y = Operand(b, prec, true);
+            if (UnsignedOperand(x)) Parens(x, prec);
+            else x.text = cat("(", UType(), ")", x.text);
+            if (UnsignedOperand(y)) Parens(y, prec, true);
+            return Combine(2, cat("(", IType(), ")(", x.text, " ", cops[op], " ", y.text, ")"),
+                           x, y);
+        }
         auto x = Operand(a, prec), y = Operand(b, prec, true);
         return Combine(prec, cat(x.text, " ", cops[op], " ", y.text), x, y);
     }
@@ -4217,7 +4261,10 @@ struct CodeGen  {
         } else if (op >= LV_IPP) {
             auto c = op == LV_IPP || op == LV_FPP ? " + 1" : " - 1";
             auto v = Lval(0, type);
-            Write(cb, v, Read(v) + c);
+            // An int wraps, see BinExpr.
+            Write(cb, v, op == LV_IPP || op == LV_IMM
+                             ? cat("(", IType(), ")((", UType(), ")", Read(v), c, ")")
+                             : Read(v) + c);
         } else if (op >= LV_BINAND && op <= LV_ASR) {
             auto v = Lval(0, type);
             Write(cb, v, BitExpr(BitOp(op - LV_BINAND), v, Slot(1, VK_INT)).text);
@@ -4930,7 +4977,7 @@ void UnaryMinus::Generate(CodeGen &cg, size_t retval) const {
     cg.TrackUseDef(width, width);
     for (int i = 0; i < width; i++) {
         auto v = cg.Slot(width - i, ctype, i);
-        cg.WriteExpr(v, cg.Unary("-", v));
+        cg.WriteExpr(v, v.k() == CodeGen::VK_INT ? cg.WrappingNegate(v) : cg.Unary("-", v));
     }
 }
 

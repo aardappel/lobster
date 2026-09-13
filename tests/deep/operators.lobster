@@ -73,6 +73,28 @@ def operators_tests():
     test_eq(big * 2, 0)
     test_eq(-big, big)       // Negating int min wraps back to itself.
     test_eq(abs(big), big)
+    // Also when folded at compile time, and in every form the operators come in.
+    test_eq(0x7FFFFFFFFFFFFFFF + 1, 0x8000000000000000)
+    test_eq(0x8000000000000000 - 1, 0x7FFFFFFFFFFFFFFF)
+    test_eq(0x7FFFFFFFFFFFFFFF * 3, 0x7FFFFFFFFFFFFFFD)
+    test_eq(-(-9223372036854775807 - 1), 0x8000000000000000)
+    test_eq(big * big, 0)
+    var maxi = 0x7FFFFFFFFFFFFFFF
+    test_eq(maxi * maxi, 1)
+    maxi++
+    test_eq(maxi, big)
+    maxi--
+    test_eq(maxi, 0x7FFFFFFFFFFFFFFF)
+    maxi += 2
+    test_eq(maxi, 0x8000000000000001)
+    maxi -= 2
+    test_eq(maxi, 0x7FFFFFFFFFFFFFFF)
+    maxi *= 2
+    test_eq(maxi, -2)
+    test_eq(int2 { 0x7FFFFFFFFFFFFFFF, 1 } + int2 { 1, 1 }, int2 { 0x8000000000000000, 2 })
+    test_eq(-int2 { 0x8000000000000000, 1 }, int2 { 0x8000000000000000, -1 })
+    test_eq(pow(2, 63), 0x8000000000000000)
+    test_eq(pow(3, 41), -420491770248316829)
 
     // Bitwise.
     test_eq(1 & 3, 1)

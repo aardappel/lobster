@@ -14,7 +14,9 @@
 
 namespace lobster {
 
-enum { BINOP_DIVMOD = 1, BINOP_CMP = 2, BINOP_INTONLY = 4 };
+// BINOP_WRAP marks an integer operation that wraps (two's complement), which is computed
+// unsigned, signed overflow being undefined in C++ as well.
+enum { BINOP_DIVMOD = 1, BINOP_CMP = 2, BINOP_INTONLY = 4, BINOP_WRAP = 8 };
 
 template<int FL, typename F> ValueType BinOpConst(TypeChecker *tc, VTValue &val, const BinOp *b, F f) {
     VTValue lv;
@@ -27,7 +29,11 @@ template<int FL, typename F> ValueType BinOpConst(TypeChecker *tc, VTValue &val,
         if constexpr ((FL & BINOP_DIVMOD) != 0) {
             if (ri <= 0 && ri >= -1 && (!ri || li == LLONG_MIN)) return V_VOID;
         }
-        val = f(li, ri);
+        if constexpr ((FL & BINOP_WRAP) != 0) {
+            val = VTValue((iint)f((uint64_t)li, (uint64_t)ri));
+        } else {
+            val = f(li, ri);
+        }
         return V_INT;
     }
     if constexpr (!(FL & BINOP_INTONLY)) {
@@ -87,7 +93,8 @@ ValueType Not::ConstVal(TypeChecker *tc, VTValue &val) const {
 ValueType UnaryMinus::ConstVal(TypeChecker *tc, VTValue &val) const {
     auto t = child->ConstVal(tc, val);
     switch (t) {
-        case V_INT: val.i = -val.i; return V_INT;
+        // Wraps (the smallest int negates to itself), so unsigned, see BINOP_WRAP.
+        case V_INT: val.i = (iint)(0 - (uint64_t)val.i); return V_INT;
         case V_FLOAT: val.f = -val.f; return V_FLOAT;
         default: return V_VOID;
     }
@@ -193,15 +200,15 @@ ValueType EnumCoercion::ConstVal(TypeChecker *tc, VTValue &val) const {
 }
 
 ValueType Plus::ConstVal(TypeChecker *tc, VTValue &val) const {
-    return BinOpConst<0>(tc, val, this, [](auto l, auto r) { return l + r; });
+    return BinOpConst<BINOP_WRAP>(tc, val, this, [](auto l, auto r) { return l + r; });
 }
 
 ValueType Minus::ConstVal(TypeChecker *tc, VTValue &val) const {
-    return BinOpConst<0>(tc, val, this, [](auto l, auto r) { return l - r; });
+    return BinOpConst<BINOP_WRAP>(tc, val, this, [](auto l, auto r) { return l - r; });
 }
 
 ValueType Multiply::ConstVal(TypeChecker *tc, VTValue &val) const {
-    return BinOpConst<0>(tc, val, this, [](auto l, auto r) { return l * r; });
+    return BinOpConst<BINOP_WRAP>(tc, val, this, [](auto l, auto r) { return l * r; });
 }
 
 ValueType Divide::ConstVal(TypeChecker *tc, VTValue &val) const {

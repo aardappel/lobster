@@ -183,9 +183,10 @@
     // The absolute value of what a slot holds. Subtracting from zero rather than negating,
     // and taking the zero itself down that path, is what makes this fabs() exactly: a -0.0
     // comes back as a 0.0 the way clearing the sign bit gives, where negating would leave it.
+    // The negation of an int wraps (the smallest int stays itself), see WrappingNegate.
     Expr Abs(const Place &v) {
-        return Cond(Op(6, "<=", Term(v), Zero(v.k())), Op(4, "-", Zero(v.k()), Term(v)),
-                    Term(v));
+        auto neg = v.k() == VK_INT ? WrappingNegate(v) : Op(4, "-", Zero(v.k()), Term(v));
+        return Cond(Op(6, "<=", Term(v), Zero(v.k())), neg, Term(v));
     }
 
     // abs().
