@@ -24,11 +24,6 @@
     operator. Move the T_IS handling out of ParseDeref into a wrapper around ParseUnary
     (the operand production of ParseOpExp); `not x is int` stays `not (x is int)`.
 
-  - Lexer ("Float literals", "Integer literals"): `-inf`, `+inf`, `-infinity` must not lex
-    as one signed float token (`a -inf` is now a syntax error, because infchecks() runs
-    after `+`/`-`); remove those calls, the identifier path already handles inf/infinity/
-    nan. Hex literals must accept `0X` as well as `0x`.
-
   - Operator overloads ("Function declarations"): a `def operator...` that is not at the
     file's top scope is now silently an ordinary function that operator syntax never
     selects (only scopelevel 2 functions go into st.operators). Make it an error in

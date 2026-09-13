@@ -12,6 +12,7 @@ def lexical_tests():
     test_eq(0x10, 16)
     test_eq(0xabadcafe, 2880293630)  // Hex digits may be lower case.
     test_eq(0xABADCAFE, 2880293630)
+    test_eq(0X10, 16)  // The prefix may be upper case as well.
     test_eq(0x7FFFFFFFFFFFFFFF, 9223372036854775807)
     test_eq(0xFFFFFFFFFFFFFFFF, -1)
     test_eq('A', 65)
@@ -50,6 +51,16 @@ def lexical_tests():
     test_eq(1.5E2, 150.0)
     test_eq(2.5E-1, 0.25)
     test_eq(2.5e+2, 250.0)
+    // inf, infinity and nan are float literals. They are unsigned like all number
+    // literals, so `-inf` is unary minus applied to `inf`, and `a -inf` is `a - inf`.
+    test_eq(inf, 1.0 / 0.0)
+    test_eq(infinity, inf)
+    test_eq(-inf, -1.0 / 0.0)
+    test_true(nan != nan)
+    let one = 1.0
+    test_eq(one -inf, -inf)
+    test_eq(one +inf, inf)
+    test_eq(one -infinity, -inf)
     // "1.e2" is NOT a float literal: a "." followed by an alpha character is
     // parsed as a field/method dereference on the int 1 instead.
     // "1..2" is also not a float: the ".." token makes it a range (in switch).

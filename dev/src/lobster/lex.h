@@ -327,22 +327,15 @@ struct Lex : LoadedFile {
 
             #define secondb(s, t, b) if (*p == s) { p++; b; return t; }
             #define second(s, t) secondb(s, t, {})
-            #define infcheck(s, n) \
-                if (strncmp(p, s, n) == 0 && !IsIdentCont(p[n])) { \
-                    p += n; \
-                    sattr = string_view(tokenstart, p - tokenstart); \
-                    return Float(); \
-                }
-            #define infchecks() infcheck("inf", 3) infcheck("infinity", 8)
 
+            // Number literals are unsigned, so `-inf` is the operator applied to the
+            // identifier `inf` (which lexes as a float below), like `-1.0` is.
             case '+':
-                infchecks();
                 second('+', T_INCR);
                 cont = true;
                 second('=', T_PLUSEQ);
                 return T_PLUS;
             case '-':
-                infchecks();
                 second('-', T_DECR);
                 cont = true;
                 second('=', T_MINUSEQ);
@@ -557,7 +550,7 @@ struct Lex : LoadedFile {
                 bool isfloat = c == '.' && *p != '.';
                 if (IsDigit(c) || (isfloat && IsDigit(*p))) {
                     std::errc ec;
-                    if (c == '0' && *p == 'x') {
+                    if (c == '0' && (*p == 'x' || *p == 'X')) {
                         p++;
                         while (IsXDigit(*p)) p++;
                         sattr = string_view(tokenstart, p - tokenstart);
