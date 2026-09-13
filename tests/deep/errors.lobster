@@ -212,6 +212,12 @@ def errors_tests():
     expect_error("def f(b:bool): return b\nreturn f(2)", "error")
     // A void function call cannot be used as a value.
     expect_error("def f() -> void: return\nreturn \"\{f()\}\"", "requires 1")
+    // Nor can an expression that never completes define or assign anything: a call to a
+    // function value whose only return is from the enclosing function, or a return itself.
+    expect_error("def g():\n    let f = fn(): return 1\n    let r = f()\n    return 2\n" +
+                 "return g()", "initializer of `r` never completes")
+    expect_error("def g():\n    var r = 0\n    r = if true: return 1 else: return 2\n" +
+                 "    return r\nreturn g()", "assigned expression never completes")
     // Lifetime analysis: assigning to a variable while an argument borrows it makes the
     // caller keep the value alive, so the argument keeps what it was passed.
     let bret, berr = compile_run_code(

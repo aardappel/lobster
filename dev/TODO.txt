@@ -8,15 +8,6 @@
   Same for a string field default used as a buffer (like FlatBufferBuilder's): all objects
   constructed with that default share it.
 
-- `let r = f()` on a function value whose `return` goes to the enclosing function generates C
-  that doesn't compile ('p0' undeclared) rather than giving a type error:
-    def g():
-        let f = fn(): return 1
-        let r = f()
-        print r
-        return 2
-    print g()
-
 - Borrow checker and flow typing: writes thru a parameter (or `this`) are checked against what
   the callers borrowed or promoted (tests/errors/borrow_param_alias.lobster and friends),
   vector elements are locations of their own, and a write thru a variable that owns what it

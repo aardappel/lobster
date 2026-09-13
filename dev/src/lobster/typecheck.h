@@ -4233,6 +4233,11 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     }
     tc.TT(child, Is<DefaultVal>(child) ? 0 : tsids.size(), may_borrow ? LT_ANY : LT_KEEP,
           parent_bound);
+    // Nothing after it can run, so the variables it would define are never defined (what a
+    // call whose every return is non-local, or a `return`, leaves as its value is padding, see
+    // TT).
+    if (child->Terminal(tc))
+        tc.ErrorAlways(*this, "initializer of ", Q(tsids[0].sid->id->name), " never completes");
     auto speculate = may_borrow && child->lt >= 0 && tc.SpecBorrowable(child->exptype);
     // What it would borrow: only a variable, field or element, since e.g. a builtin returning
     // a borrow (top) borrows the vector, which says nothing about writes to its elements.
@@ -4336,6 +4341,7 @@ Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
             }
         } else {
             tc.TT(c, children.size() - 1, LT_MULTIPLE /*unused*/, {}, & children);
+            if (c->Terminal(tc)) tc.ErrorAlways(*this, "assigned expression never completes");
         }
     }
     auto mr = Is<MultipleReturn>((Node *)tc.SkipCoercions(children.back()));
@@ -4716,6 +4722,7 @@ Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     if (auto idr = Is<IdentRef>(left)) tc.FlipSpeculative(idr->sid);
     tc.DecBorrowers(left->lt, *this);
     tc.TT(right, 1, tc.LvalueLifetime(*left, false));
+    if (right->Terminal(tc)) tc.ErrorAlways(*this, "assigned expression never completes");
     if (auto idr = Is<IdentRef>(left)) tc.RecordOwningAlias(*idr->sid, right, nullptr);
     tc.CheckLval(left, right->exptype);
     FlowItem fi(*left, left->exptype);

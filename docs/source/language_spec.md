@@ -325,7 +325,11 @@ The variable's type is its annotation, to which the initializer must convert
 initializer's type. An initializer of `nil` without annotation gives a
 nilable type whose element type is a type variable bound by later use (an
 error if that use binds it to a type that cannot be nilable). A value of type
-`void` cannot be stored (error).
+`void` cannot be stored (error). An initializer that never completes (a
+`return`, or a call to a function whose every return is a non-local one, on
+every path) is an error ("initializer of x never completes"), as is such an
+expression on the right of an assignment; in a branch of an `if` or `switch`
+that is used as a value it is fine, since the other branches provide the value.
 
 Pre-declaration: at file scope only, `let x:T` or `var x:T` without an
 initializer declares `x` for later definition. The definition is a later

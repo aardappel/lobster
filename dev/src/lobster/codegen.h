@@ -1523,9 +1523,20 @@ struct CodeGen  {
         }
     }
 
+    // A slot needs a variable for each kind of value it holds, see f_slot_kinds.
+    void SlotVarUsed(const Place &p) {
+        if (p.slot < 0) return;
+        if ((int)f_slot_kinds.size() <= p.slot) f_slot_kinds.resize(p.slot + 1, 0);
+        f_slot_kinds[p.slot] |= 1 << p.k();
+    }
+
     // A place, as the C expression of its kind.
     string Read(const Place &p) {
         if (HasPending(p.slot)) return pending[p.slot].expr;
+        // The code after something that never completes (a return in a value position, a call
+        // to a function whose every return is non-local) reads a slot nothing wrote, see
+        // Return::Generate: it can never run, but it still has to compile.
+        SlotVarUsed(p);
         if (p.typed) return p.s;
         if (cpp) return cat(p.s, ".", Accessor(p.k()));
         if (p.k() == VK_FUN) return cat("(fun_base_t)", p.s, ".ival");
@@ -1549,11 +1560,7 @@ struct CodeGen  {
     // Writing an expression of the place's kind to it. The C++ backend goes thru Value's
     // constructor for memory, which sets the tag from the type, the C one writes the field.
     string WriteText(const Place &d, string_view expr) {
-        if (d.slot >= 0) {
-            // Only the slots that get written need a variable.
-            if ((int)f_slot_kinds.size() <= d.slot) f_slot_kinds.resize(d.slot + 1, 0);
-            f_slot_kinds[d.slot] |= 1 << d.k();
-        }
+        SlotVarUsed(d);
         if (d.typed) return cat(d.s, " = ", expr, ";");
         if (cpp) return cat(d.s, " = Value(", expr, ");");
         switch (d.k()) {
