@@ -143,8 +143,9 @@ is an error (it must be written `\'`). The escapes are `\n`, `\t`, `\r`, `\\`,
 `\u` followed by exactly four hex digits (the code point, encoded as UTF-8).
 Any other `\` sequence is an error.
 
-`{` starts an interpolation (below) unless written `{{` or `\{`; `}` outside an
-interpolation is an error unless written `}}` or `\}`.
+`{` starts an interpolation (below) unless it is doubled or written `\{`; `}`
+outside an interpolation is an error unless it is doubled or written `\}`. A
+doubled brace stands for a single brace.
 
 Interpolation: `{` *expr* `}` inside a string embeds an expression, which is
 an operator expression (an expression without assignment, see the expression
