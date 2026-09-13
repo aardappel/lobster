@@ -35,26 +35,22 @@
         return 2
     print g()
 
-- flow typing can be subverted in ways that compile and then crash at runtime:
-  - a write thru an alias the checker doesn't see, here a `var` that gets reassigned (so it owns
-    rather than borrows):
-      class Test:
-          t:Test?
-      let x = Test { Test { nil } }
-      var y = x
-      y = x
-      if x.t:
-          y.t = nil
-          print x.t.t
-  See also "A more conservative mode" below.
-
-- Borrow checker: writes thru a borrowed parameter (or `this`) are now checked against what
-  the callers borrowed or promoted (tests/errors/borrow_param_alias.lobster and friends), and
-  vector elements are locations of their own. When the borrow that conflicts is an argument of
-  a call, the caller keeps the value alive instead of it being an error (KeepArgAlive). What
-  remains unsound is aliasing thru an owning variable that gets reassigned, see the "Detect
-  this case" example under "A more conservative mode" below: with `let c = a` it is caught,
-  with `var c` that is later reassigned it is not.
+- Borrow checker and flow typing: writes thru a parameter (or `this`) are checked against what
+  the callers borrowed or promoted (tests/errors/borrow_param_alias.lobster and friends),
+  vector elements are locations of their own, and a write thru a variable that owns what it
+  was assigned from a variable path (`var y = x`, `y = x.f`, a parameter, a loop element)
+  counts as a write to that path too, for all the paths it was ever assigned from
+  (SpecIdent::owning_aliases, TypeChecker::ExpandAliases). When the borrow that conflicts is
+  an argument of a call, the caller keeps the value alive instead of it being an error
+  (KeepArgAlive). What remains unsound is aliasing the checker cannot see, which can compile
+  and then crash at runtime:
+  - an alias that arrives some other way than from a variable path: a function result, a
+    vector element or field that the object was stored in (`v.push(x)`, `o.f = x`, then a
+    write thru `v[0].t` or `o.f.t`), or a struct copy (`var s = x.pos` shares the objects its
+    reference fields hold);
+  - an alias established later in a loop body than the write thru it, on the next iteration
+    (the same hole flow typing has: `if x: for(3) i: print x.length; x = nil` crashes).
+  See "A more conservative mode" below for what closing these would take.
 
 - "Functions as environments" is now a specified feature (see declcheck.h): a call to a
   name with no lexically visible function resolves to a local function of that name in
@@ -1246,9 +1242,9 @@
   Frankly though, the above is a LOT of complexity, for something that really doesn't ever
   happen.
   Existing examples.
-    - Detect this case (as written the caller keeps `b` alive, since `c` is never reassigned so
-      it borrows `a` and aliases it; add `c = a` after the `if` and `print b` reads a freed
-      object):
+    - This case is detected now (the caller keeps `b` alive, since `c` was assigned from `a`
+      so its fields are `a`'s, whether or not `c` is reassigned later; a `let c` borrows `a`
+      and aliases it the same way):
         class Test:
             t:Test?
         var a:Test? = Test { Test { Test { Test { nil } } } }
@@ -1258,6 +1254,9 @@
             print b
         if a.t and a.t.t:
             f(a.t.t)
+        c = a
+      What is not detected is `c` getting the object some other way, e.g. from a function
+      that returns `a` (see the "aliasing the checker cannot see" list near the top).
       - having final/const fields may help reduce the cases where this is an issue.
     - see also: https://nim-lang.org/docs/manual_experimental.html#view-types
 

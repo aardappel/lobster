@@ -130,6 +130,15 @@ def errors_tests():
     expect_error("class N:\n    v = 1\nvar a:N? = N \{\}\ndef f(): a = nil\n" +
                  "if a: f()\na = N \{\}\nif a:\n    f()\n    return a.v\nreturn 0",
                  "dereferencing nillable")
+    // A write thru a variable that was assigned the object drops the promotion of the
+    // object's field (see tests/errors/flow_var_alias.lobster), also when the variable may
+    // hold something else by then, and when it got the object from a multiple assignment.
+    expect_error("class N:\n    v:N?\nlet x = N \{ N \{ nil \} \}\nvar y = x\n" +
+                 "y = N \{ nil \}\nif rnd(2): y = x\nif x.v:\n    y.v = nil\n" +
+                 "    return x.v.v\nreturn nil", "dereferencing nillable")
+    expect_error("class N:\n    v:N?\nlet x = N \{ N \{ nil \} \}\nvar y = N \{ nil \}\n" +
+                 "var z = x\ny, z = z, y\nif x.v:\n    y.v = nil\n" +
+                 "    return x.v.v\nreturn nil", "dereferencing nillable")
 
     // Flow-sensitivity: dereferencing a possibly-nil value.
     expect_error("def f(s:string?) -> int: return s.length\nreturn f(nil)", "error")

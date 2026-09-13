@@ -124,15 +124,28 @@ struct SpecIdent {
     bool used_as_freevar = false;   // determined in codegen.
     bool withtype = false;
     Node *constprop = nullptr;      // We are going to constant propagate this var, which avoids it being a freevar, and the optimizer will replace it.
-    // For a borrowed parameter: the variable (and field path from it) the current call passed,
-    // which is then where the fields of this parameter really live, see LValContext::Step and
-    // TypeChecker::BindParamAliases. Null when the argument was not a variable or field path.
+    // For a parameter: the variable (and field path from it) the current call passed, which
+    // is then where the fields of this parameter really live (and, for a borrowed parameter,
+    // the parameter itself), see LValContext::Step and TypeChecker::BindParamAliases. Null
+    // when the argument was not a variable or field path. Also for a variable that borrows
+    // what it was initialized with (see speculative below), where it stays even when it
+    // gets to own a reference instead.
     const SpecIdent *alias_sid = nullptr;
     small_vector<SharedField *, 3> alias_derefs;
-    // With the alias: where the argument of the current call sits in the call, so that when
-    // what the parameter names gets written while it is in use, the caller can be made to
-    // keep the value alive instead, see TypeChecker::KeepArgAlive.
+    // With the alias, for a borrowed parameter: where the argument of the current call sits
+    // in the call, so that when what the parameter names gets written while it is in use,
+    // the caller can be made to keep the value alive instead, see TypeChecker::KeepArgAlive.
     Node **arg_slot = nullptr;
+    // For an owning variable: the variable paths it was assigned from (`var y = x`,
+    // `y = x.f`, a for loop element that owns), whose fields its fields may thus be as well.
+    // Accumulated over its definition and every assignment (which of them it holds at a write
+    // thru it depends on the path taken), see TypeChecker::ExpandAliases. A vector since a
+    // small_vector cannot hold elements that are small_vectors themselves.
+    struct AliasPath {
+        const SpecIdent *sid;
+        small_vector<SharedField *, 3> derefs;
+    };
+    vector<AliasPath> owning_aliases;
     // A variable that borrows what it was initialized with rather than owning a reference of
     // its own (a single-assignment variable initialized from a variable, field or element,
     // or a for loop element), as long as nothing writes to what it borrows from while it is
@@ -651,7 +664,7 @@ struct LValContext {
     // For now, only: ident ( . field )*.
     const SpecIdent *sid;
     FieldPath derefs;
-    LValContext(SpecIdent *sid) : sid(sid) {}
+    LValContext(const SpecIdent *sid) : sid(sid) {}
     LValContext(const Node &n);
     bool IsValid() const { return sid; }
     bool HasElem() const {
@@ -670,7 +683,7 @@ struct LValContext {
         if (!IsElemField(a) || !IsElemField(b)) return false;
         return a == &elem_field || b == &elem_field;
     }
-    bool IsPrefix(const LValContext &o) {  // Is o a prefix of this?
+    bool IsPrefix(const LValContext &o) const {  // Is o a prefix of this?
         if (sid != o.sid || derefs.size() < o.derefs.size()) return false;
         for (auto &shf : o.derefs) if (!MayAlias(shf, derefs[&shf - &o.derefs[0]])) return false;
         return true;

@@ -201,6 +201,33 @@ def lifetime_tests():
         if i == 1: freev = "f2"
     test_eq(freev, "f2")
 
+    // A single-assignment variable borrows the field it was initialized with, until a
+    // write thru a variable that was assigned the object (and owns a reference to it,
+    // being assigned again) replaces the field: the borrower then owns a reference of its
+    // own, and keeps what it was initialized with.
+    let aowner = DLDispatchOwner { DLDispatchEntry { "e1" + "" } }
+    let aentry = aowner.entry
+    var aalias = aowner
+    aalias = aowner
+    aalias.entry = DLDispatchEntry { "e2" + "" }
+    test_eq(aentry.name, "e1")
+    test_eq(aowner.entry.name, "e2")
+    // The same thru a local of a callee that was assigned the callee's parameter, for the
+    // first call and for a call that reuses the specialization.
+    def alias_in_callee(o:DLDispatchOwner, name:string):
+        var local = o
+        local = o
+        local.entry = DLDispatchEntry { name }
+    let aowner2 = DLDispatchOwner { DLDispatchEntry { "x" + "" } }
+    let aentry2 = aowner2.entry
+    alias_in_callee(aowner2, "y" + "")
+    test_eq(aentry2.name, "x")
+    test_eq(aowner2.entry.name, "y")
+    let aentry3 = aowner2.entry
+    alias_in_callee(aowner2, "z" + "")
+    test_eq(aentry3.name, "y")
+    test_eq(aowner2.entry.name, "z")
+
     // Only a later dispatch implementation overwrites the field supplying the
     // borrowed argument. The caller must retain it across the whole call.
     let dispatchers = [ DLDispatchBase {}, DLDispatchReader {}, DLDispatchWriter {},

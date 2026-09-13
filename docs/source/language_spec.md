@@ -1422,8 +1422,16 @@ function:
 
 A promotion is dropped by an assignment to the path or to any prefix of it,
 including writes performed by called functions through parameters that alias
-the path (the compiler tracks parameter aliases per call), by `and`/`or`
-operands' assignments, and at the end of the branch that established it. After
+the path (the compiler tracks parameter aliases per call), writes through a
+variable that was assigned the path's object from a variable path (`var y =
+x` or `y = x.f`, a parameter, a `for` loop element: the fields of `y` are then
+also those of `x` for every path `y` was ever assigned from, whether or not it
+still holds that object), by `and`/`or` operands' assignments, and at the end
+of the branch that established it. An alias that arrives any other way (a
+function result, an element or field the object was stored in, the reference
+fields of a copied struct) is not tracked: a write through it does not drop
+the promotion, and neither does a write through an alias assigned later in a
+loop body, on the next iteration. After
 an `if`/`elif`/`else` or `switch`, a promotion survives only if every branch
 that can fall through establishes it (with a common type); a branch that ends
 in `return`/`break`/`continue` or a never-returning call is not one that
@@ -1462,7 +1470,10 @@ initializer of a single-assignment variable, or as a `for` loop element. While
 a borrow is live (until the enclosing expression or statement completes, or
 for the variable's scope), a write to that location (or one that may alias
 it: any element of the same vector counts as one location unless both indices
-are different constants; builtins that remove elements count as writes) is
+are different constants; builtins that remove elements count as writes; a
+write through a variable that was assigned the object from a variable path
+counts as a write to that path, with the same limits as for promotions, see
+Flow typing) is
 detected: if the write happens in a called function, or after the borrowing
 variable was initialized, the compiler instead makes the borrower own a
 reference and the program is accepted; if it happens while the borrowed value

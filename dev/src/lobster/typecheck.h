@@ -1638,12 +1638,15 @@ struct TypeChecker {
             sid->alias_sid = nullptr;
             sid->alias_derefs.clear();
             sid->arg_slot = nullptr;
-            if (!IsBorrow(sid->lt) || c->lt < 0) continue;
+            if (c->lt < 0) continue;
             LValContext lv(*c);
             if (!lv.IsValid() || lv.sid == sid) continue;
             sid->alias_sid = lv.sid;
             sid->alias_derefs = lv.derefs;
-            sid->arg_slot = &call_args.children[i];
+            // An owning parameter is a location of its own (only its fields are those of what
+            // was passed, see LValContext::Step), so nothing needs to keep what it was passed
+            // alive for it.
+            if (IsBorrow(sid->lt)) sid->arg_slot = &call_args.children[i];
         }
     }
 
@@ -2723,17 +2726,15 @@ struct TypeChecker {
         // Early out, numeric types are not nillable, nor do they make any sense for "is"
         auto &type = left.now;
         if (type->Numeric()) return type;
-        // Promotions and the write are compared as the variable that really holds the
-        // location, see CheckLvalBorrowed.
-        LValContext cleft = left;
-        cleft.Canonicalize();
+        // Promotions and the write are compared as every path that may name the location,
+        // see CheckLvalBorrowed.
+        auto written = ExpandAliases(left);
         // A single assignment may invalidate multiple promotions: of the location itself, and
         // of everything reached thru it, which is a different object now.
         for (auto &flow : reverse(flowstack)) {
-            LValContext cflow = flow;
-            cflow.Canonicalize();
-            if (!cflow.IsPrefix(cleft)) continue;
-            if (cflow.derefs.size() != cleft.derefs.size()) {
+            auto deeper = false;
+            if (!WriteHits(ExpandAliases(flow), written, &deeper)) continue;
+            if (deeper) {
                 flow.now = flow.old;
                 continue;
             }
@@ -2896,21 +2897,95 @@ struct TypeChecker {
     // passed, in which case the functions further out know it under the path the call passed:
     // each function on the stack up to the one that holds the variable records it as the path
     // it can see.
+    // Likewise for the paths an owning variable was assigned from (see
+    // SpecIdent::owning_aliases) when the variable is one the function cannot see: a caller
+    // records the write thru a callee's local as one to what the local was assigned from, as
+    // the caller sees that, since at a replay the local's aliases would resolve thru whatever
+    // the last call bound its parameters to.
     void RecordWrite(Node *n, const LValContext &lv, TypeRef overwritetype) {
-        LValContext ev = lv;
-        LValContext root = lv;
-        root.Canonicalize();
-        for (auto &sc : reverse(scopes)) {
-            while (ev.sid->alias_sid && !LexicallyVisible(ev.sid, sc.sf) && ev.Step()) {}
-            // we could uniqueify this vector, but that would entails comparing `n`
-            // structurally (construct a Borrow for each?), which would probably be
-            // slower than the redundant calls to CheckLvalBorrowed this causes later?
-            // Especially since this uniqueifying cost is paid always, even when there
-            // are no actual repeated assigns in a scope, which is not that common.
-            sc.sf->reuse_assign_events.push_back({ n, ev, overwritetype });
-            // Don't go further than where the variable really written is defined.
-            if (sc.sf == root.sid->sf_def) break;
+        // Don't go further than where the outermost variable really written is defined.
+        size_t stop = scopes.size() - 1;
+        for (auto &root : ExpandAliases(lv)) {
+            size_t i = 0;
+            for (auto [j, sc] : enumerate(scopes)) if (sc.sf == root.sid->sf_def) i = j;
+            stop = std::min(stop, i);
         }
+        for (size_t i = scopes.size(); i-- > stop; ) {
+            auto sf = scopes[i].sf;
+            Paths todo, seen;
+            small_vector<const SpecIdent *, 4> expanded;
+            todo.push_back(lv);
+            while (!todo.empty()) {
+                auto ev = todo.back();
+                todo.pop_back();
+                while (ev.sid->alias_sid && !LexicallyVisible(ev.sid, sf) && ev.Step()) {}
+                if (!LexicallyVisible(ev.sid, sf) && !ev.derefs.empty() &&
+                    !ev.sid->owning_aliases.empty() &&
+                    find(expanded.begin(), expanded.end(), ev.sid) == expanded.end()) {
+                    expanded.push_back(ev.sid);
+                    for (auto &a : ev.sid->owning_aliases) todo.push_back(AliasedPath(a, ev));
+                    continue;
+                }
+                auto dup = false;
+                for (auto &s : seen) if (s.sid == ev.sid && s.DerefsEqual(ev)) dup = true;
+                if (dup) continue;
+                seen.push_back(ev);
+                // we could uniqueify this vector, but that would entails comparing `n`
+                // structurally (construct a Borrow for each?), which would probably be
+                // slower than the redundant calls to CheckLvalBorrowed this causes later?
+                // Especially since this uniqueifying cost is paid always, even when there
+                // are no actual repeated assigns in a scope, which is not that common.
+                sf->reuse_assign_events.push_back({ n, ev, overwritetype });
+            }
+        }
+    }
+
+    // The path `a` (a variable and fields) followed by the fields of `p`.
+    static LValContext AliasedPath(const SpecIdent::AliasPath &a, const LValContext &p) {
+        LValContext q(a.sid);
+        for (auto f : a.derefs) q.derefs.push_back(f);
+        for (auto f : p.derefs) q.derefs.push_back(f);
+        return q;
+    }
+
+    // A vector since a small_vector cannot hold elements that are small_vectors themselves.
+    typedef vector<LValContext> Paths;
+
+    // Every path that may name the location `p` names: `p` as the variable that really holds
+    // it (see LValContext::Canonicalize), and when that variable owns what it holds and was
+    // assigned from other paths, those with the same fields (recursively: a variable's aliases
+    // are followed once, so `y = y.next` gives `y.next.f` for `y.f` and stops). A write to any
+    // of these is a write to `p`, and a borrow or promotion of any of them is one of `p`.
+    void ExpandAliases(LValContext p, Paths &out, small_vector<const SpecIdent *, 4> &followed) {
+        p.Canonicalize();
+        for (auto &o : out) if (o.sid == p.sid && o.DerefsEqual(p)) return;
+        out.push_back(p);
+        // Only its fields are shared: the variable itself is a location of its own.
+        if (p.derefs.empty()) return;
+        for (auto s : followed) if (s == p.sid) return;
+        followed.push_back(p.sid);
+        for (auto &a : p.sid->owning_aliases) ExpandAliases(AliasedPath(a, p), out, followed);
+    }
+    Paths ExpandAliases(const LValContext &p) {
+        Paths out;
+        small_vector<const SpecIdent *, 4> followed;
+        ExpandAliases(p, out, followed);
+        return out;
+    }
+
+    // Whether a write to what `written` names (any of its paths) replaces what `held` names
+    // (any of its paths), or something it was reached thru (`deeper`: a write to a prefix),
+    // which then is a different object.
+    bool WriteHits(const Paths &held, const Paths &written, bool *deeper = nullptr) {
+        auto hit = false;
+        for (auto &h : held) {
+            for (auto &w : written) {
+                if (!h.IsPrefix(w)) continue;
+                hit = true;
+                if (deeper && h.derefs.size() != w.derefs.size()) *deeper = true;
+            }
+        }
+        return hit;
     }
 
     // Whether code in `sf` can name `sid`: a variable of its own, or of a function it is
@@ -2932,17 +3007,15 @@ struct TypeChecker {
             // This is not particularly elegant but should be rare.
             ErrorAlways(*n, "cannot assign to borrowed argument ", Q(lv.sid->id->name));
         }
-        // Borrows and the write are compared as the variable that really holds the location:
-        // a function on the stack may have borrowed it thru a parameter that aliases it, and
-        // the write may be thru one as well.
-        LValContext clv = lv;
-        clv.Canonicalize();
+        // Borrows and the write are compared as every path that may name the location: a
+        // function on the stack may have borrowed it thru a parameter that aliases it, the
+        // write may be thru one as well, and either may go thru an owning variable that was
+        // assigned the object, see ExpandAliases.
+        auto written = ExpandAliases(lv);
         // FIXME: make this faster.
         for (auto &b : reverse(borrowstack)) {
             if (!b.refc) continue;          // Lval is not borowed, writing is ok.
-            LValContext cb = b;
-            cb.Canonicalize();
-            if (!cb.IsPrefix(clv)) continue;  // Not overwriting this one.
+            if (!WriteHits(ExpandAliases(b), written)) continue;  // Not overwriting this one.
             if (!b.spec_holders.empty()) {
                 // Variables borrowing this speculatively own a reference instead from here on.
                 auto holders = b.spec_holders;
@@ -2977,9 +3050,11 @@ struct TypeChecker {
                 if (pick) KeepArgAlive(const_cast<SpecIdent *>(pick));
             }
             if (!b.refc) continue;
-            cb = b;
+            if (!WriteHits(ExpandAliases(b), written)) continue;
+            LValContext cb = b;
             cb.Canonicalize();
-            if (!cb.IsPrefix(clv)) continue;
+            LValContext clv = lv;
+            clv.Canonicalize();
             auto same = cb.sid == clv.sid && cb.DerefsEqual(clv);
             Error(*n, "cannot modify ", Q(lv.Name()), " while ",
                       same ? string("it is borrowed") : cat(Q(b.Name()), " borrows it"),
@@ -3014,15 +3089,30 @@ struct TypeChecker {
     bool LoopWroteBefore(const LValContext &path) {
         auto &sc = scopes.back();
         if (sc.loop_flow.empty()) return false;
-        LValContext hold = path;
-        hold.Canonicalize();
+        auto held = ExpandAliases(path);
         auto &evs = sc.sf->reuse_assign_events;
         for (size_t i = sc.loop_events_start; i < evs.size(); i++) {
-            LValContext w = evs[i].lv;
-            w.Canonicalize();
-            if (hold.IsPrefix(w)) return true;
+            if (WriteHits(held, ExpandAliases(evs[i].lv))) return true;
         }
         return false;
+    }
+
+    // `sid`, which owns what it holds, was assigned from `src` (a for loop element for
+    // `fle`), see SpecIdent::owning_aliases.
+    void RecordOwningAlias(SpecIdent &sid, const Node *src, const ForLoopElem *fle) {
+        if (!SpecBorrowable(sid.type)) return;
+        LValContext path(*SkipCoercions(src));
+        if (fle) {
+            path = LValContext(*fle->iter);
+            path.derefs.push_back(&elem_field);
+        }
+        if (!path.IsValid() || (path.sid == &sid && path.derefs.empty())) return;
+        for (auto &a : sid.owning_aliases) {
+            auto ap = AliasedPath(a, LValContext(a.sid));  // The alias as a path.
+            if (ap.sid == path.sid && ap.DerefsEqual(path)) return;
+        }
+        LOG_DEBUG("owning alias: ", sid.id->name, " of ", path.Name());
+        sid.owning_aliases.push_back({ path.sid, path.derefs });
     }
 
     void EnterLoop() {
@@ -4166,6 +4256,8 @@ Node *Define::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
         if (speculate) {
             if (fle) fle->sid = &sid;
             tc.HoldSpeculative(&sid, child->lt, fle ? nullptr : this, hold);
+        } else if (!Is<DefaultVal>(child)) {
+            tc.RecordOwningAlias(sid, child, fle);
         }
     }
     tc.definestack.push_back(this);
@@ -4208,10 +4300,13 @@ Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
             tc.TT(c, children.size() - 1, LT_MULTIPLE /*unused*/, {}, & children);
         }
     }
+    auto mr = Is<MultipleReturn>((Node *)tc.SkipCoercions(children.back()));
     for (size_t i = 0; i < children.size() - 1; i++) {
         auto left = children[i];
         if (!Is<IdentRef>(left) && !Is<Dot>(left)) continue;  // Reported above.
         TypeRef righttype = children.back()->exptype->Get(i);
+        if (auto idr = Is<IdentRef>(left); idr && mr)
+            tc.RecordOwningAlias(*idr->sid, mr->children[i], nullptr);
         tc.CheckLval(left, righttype);
         FlowItem fi(*left, left->exptype);
         assert(fi.IsValid());
@@ -4583,6 +4678,7 @@ Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     if (auto idr = Is<IdentRef>(left)) tc.FlipSpeculative(idr->sid);
     tc.DecBorrowers(left->lt, *this);
     tc.TT(right, 1, tc.LvalueLifetime(*left, false));
+    if (auto idr = Is<IdentRef>(left)) tc.RecordOwningAlias(*idr->sid, right, nullptr);
     tc.CheckLval(left, right->exptype);
     FlowItem fi(*left, left->exptype);
     if (fi.IsValid()) {
