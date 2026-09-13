@@ -5464,9 +5464,10 @@ Node *IsType::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     } else {
         // ConstVal is always const for a struct that is not in an abstract struct family,
         // since only those carry a dynamic type, unless the test is a nil check of a
-        // reference (see the nil_check there).
+        // reference (see the nil_check there), or nothing is known about the value since an
+        // error was reported for it.
         assert(!IsStruct(resolvedtype->t) || resolvedtype->udt->family_root ||
-               (accepts_nil && child->exptype->t == V_NIL));
+               (accepts_nil && child->exptype->t == V_NIL) || child->exptype->IsError());
     }
     return this;
 }
