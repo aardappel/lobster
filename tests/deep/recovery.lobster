@@ -135,6 +135,23 @@ def recovery_tests():
         """, [ "enum value expression must evaluate to an integer constant" ])
     expect_errors("enum E:\nlet x = 1\nprint(x)\n",
                   [ "`indentation` expected, found `linefeed`" ])
+    // A value equal to an earlier value of the same enum, explicitly or implicitly.
+    expect_errors("""
+        enum E:
+            a = 1
+            b = 1
+        enum_flags F:
+            c = 3
+            d = 4
+            e = 3
+        enum G:
+            f = 2
+            g = 1
+            h
+        print(c)
+        """, [ "enum value `b` has the same value as `a`",
+               "enum value `e` has the same value as `c`",
+               "enum value `h` has the same value as `f`" ])
     // A clashing declaration is kept apart from what it clashes with.
     expect_errors("""
         enum bool:

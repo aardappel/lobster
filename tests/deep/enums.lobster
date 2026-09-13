@@ -25,6 +25,17 @@ enum_flags de_bits:
     de_f16 = 16
     de_f32        // 32: continues doubling from the explicit value.
 
+enum_flags de_bits2:
+    de_g0 = 0     // A value that is not a flag.
+    de_g1         // 1: the smallest power of two above the previous value.
+    de_g2         // 2
+    de_g5 = 5     // A combination of flags.
+    de_g8         // 8: the next power of two above it.
+
+enum_flags de_bits3:
+    de_hneg = -1
+    de_hone       // 1, after a value that is not positive.
+
 def enums_tests():
     suite("enums")
 
@@ -42,6 +53,13 @@ def enums_tests():
     test_eq(de_f32, 32)
     test_eq(de_n, -3)
     test_eq(de_m, -2)
+    test_eq(de_g0, 0)
+    test_eq(de_g1, 1)
+    test_eq(de_g2, 2)
+    test_eq(de_g5, 5)
+    test_eq(de_g8, 8)
+    test_eq(de_hneg, -1)
+    test_eq(de_hone, 1)
 
     // Enums are ints in any int context; arithmetic yields int.
     test_eq(de_red + 1, 4)

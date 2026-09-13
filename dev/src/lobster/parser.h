@@ -390,8 +390,23 @@ struct Parser {
                         ev->isprivate = isprivate;
                         ev->val = cur;
                         ev->e = def;
+                        for (auto &prev : def->vals) {
+                            if (prev->val == cur) {
+                                Error("enum value ", Q(evname), " has the same value as ",
+                                      Q(prev->name));
+                                break;
+                            }
+                        }
                         def->vals.emplace_back(ev);
-                        if (incremental) cur++; else cur *= 2;
+                        if (incremental) {
+                            cur++;
+                        } else {
+                            // The smallest power of two above the previous value, or 1 after
+                            // one that is not positive.
+                            uint64_t next = 1;
+                            while (cur > 0 && next <= (uint64_t)cur) next <<= 1;
+                            cur = (int64_t)next;
+                        }
                         if (IsNext(T_COMMA)) continue;
                         EndOfLine(errors_before);
                         if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
