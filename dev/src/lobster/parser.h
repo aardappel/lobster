@@ -994,6 +994,12 @@ struct Parser {
             auto op = lex.token;
             if ((op < T_PLUS || op > T_ASREQ) && op != T_LEFTBRACKET)
                 Error(cat("illegal token for operator overloading: ", TName(op)));
+            // Only functions declared at the file's top scope (which includes the methods
+            // of a class declared there) are found by operator syntax, see
+            // SymbolTable::FunctionDecl, so anywhere else this would be an ordinary
+            // function that nothing can call.
+            if (st.scopelevels.size() != 1)
+                Error("operator overload must be declared at file scope");
             auto idname = cat(TName(T_OPERATOR), TName(op));
             lex.Next();
             if (op == T_LEFTBRACKET) {

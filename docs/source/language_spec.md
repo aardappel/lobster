@@ -425,9 +425,10 @@ declared for `T`, `T { ... }` construction is only allowed inside a
 constructor of `T` (or in anonymous functions called from one); all overloads
 of a name must agree on being constructors.
 
-Operator overloads: `def operator+(a:T, b:U): ...` at the file's top scope;
-one declared anywhere else (inside a function, a class body or a block) is
-an error. The operator may be any of `+ - * / % ++ -- == != < > <= >= & | ^ ~ << >> =` and
+Operator overloads: `def operator+(a:T, b:U): ...` at the file's top scope,
+either as a function or as a method in the body of a class or struct declared
+there; one declared anywhere else (inside a function or a block, including a
+class declared inside one) is an error. The operator may be any of `+ - * / % ++ -- == != < > <= >= & | ^ ~ << >> =` and
 the compound assignments `+= -= *= /= %= &= |= ^= <<= >>=`, or `[]` (written
 `operator[]`). Unary `-`, `~`, `++`, `--` take one parameter, the rest two.
 See Operator overloading for when they apply.

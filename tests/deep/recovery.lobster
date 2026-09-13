@@ -194,6 +194,21 @@ def recovery_tests():
                   [ "inheritance cycle in type `A`", "end of line expected, found `2`" ])
     expect_errors("def f(): return 1 from g\nprint(f())\n",
                   [ "`g` is not a known function" ])
+    // An operator overload anywhere but at file scope, which would never be selected by
+    // operator syntax. A method of a class declared at file scope is at file scope.
+    expect_errors("""
+        struct V:
+            x:int
+            def operator-(o:V): return V { x - o.x }
+        def f():
+            def operator+(a:V, b:V): return V { a.x + b.x }
+            class W:
+                y:int
+                def operator*(o:W): return W { y * o.y }
+            return (V { 1 } - V { 2 }).x
+        print(f())
+        """, [ "operator overload must be declared at file scope",
+               "operator overload must be declared at file scope" ])
 
     // Errors found by the lexer.
     expect_errors("let x = 1)\nprint(z)\n", [ "unmatched \')\'", "unknown identifier `z`" ])
