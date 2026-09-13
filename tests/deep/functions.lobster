@@ -280,6 +280,11 @@ def functions_tests():
     // inlined but still works the same.
     def calls_ft(f:int_to_int_fun): return 1 + f(2)
     test_eq(calls_ft(fn i: i * 10), 21)
+    // A function value that is also called directly, once, before it is passed as a
+    // function type: that direct call must not inline its body away.
+    let fboth = fn(i:int) -> int: i * 100
+    test_eq(fboth(1), 100)
+    test_eq(calls_ft(fboth), 201)
     // call_function_value invokes a function value from native code.
     var cfv_state = 1
     let cfv = fn() -> void:

@@ -238,6 +238,10 @@ Node *Call::Optimize(Optimizer &opt) {
         // else it can be is a return-from, which is another function's, see above.
         AssertIs<Return>(sf->sbody->children.back())->sf == sf &&
         vtable_idx < 0 &&
+        // A function value of a declared function type may be called thru that type from
+        // anywhere, which the calls counted here do not include, so its body has to stay a
+        // function even when this is its only direct call.
+        !sf->isdynamicfunctionvalue &&
         // A terminal void function can be used where a value is expected. Removing its
         // final Return would expose a void expression to the value-producing caller.
         // Several values are fine: the block produces them the way the call did, since
