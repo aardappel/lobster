@@ -121,6 +121,14 @@ def operators_tests():
     test_eq(i2 and stra, true)
     test_eq(i0 and stra, false)
     test_eq(stra or i2, true)
+    // An untyped nil takes the type of the other operand of an `or` (which must be one
+    // that can be nilable, see typecheck_recovery.lobster), also thru a variable, while a
+    // typed nilable against an unrelated type gives a bool like any unrelated types.
+    let untyped_nil = nil
+    test_eq(untyped_nil or "b", "b")
+    let nilstr = nil::string
+    test_eq(nilstr or 1, true)
+    test_eq(nilstr or 2.5, true)
     // Comparisons produce bool.
     test_eq(1 < 2, true)
     test_eq(1 > 2, false)

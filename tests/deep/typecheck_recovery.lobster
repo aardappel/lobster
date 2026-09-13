@@ -541,5 +541,19 @@ def typecheck_recovery_tests():
         """, [ "requires type `float`, got `string`",
                "super must be used on a method that has a superclass implementation",
                "super must be used on a method that has a superclass implementation" ])
+    // The element type of an untyped nil is never bound to a type that cannot be nilable
+    // (no type such as `int?` exists), so an `or` that would do so is an error, whether the
+    // nil is written there or came thru a variable. A typed nilable is simply tested.
+    expect_errors("""
+        let x = nil
+        let a = x or 1
+        let b = nil or 2.5
+        let n = nil::string
+        let d = n or 1
+        let z:float = "s"
+        return a + b + d
+        """, [ "nil cannot take type `int`, which cannot be nilable",
+               "nil cannot take type `float`, which cannot be nilable",
+               "requires type `float`, got `string`" ])
 
 typecheck_recovery_tests()

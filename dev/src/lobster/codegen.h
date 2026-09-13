@@ -525,6 +525,11 @@ struct CodeGen  {
                 tt.push_back((type_elem_t)(type->e ? type->e->idx : -1));
                 break;
             case V_NIL:
+                // The element of a nil may still be an unbound variable (a nil nothing ever
+                // gave a type), but the typechecker never binds one to a type that cannot
+                // be nilable, see TypeChecker::UnifyVar.
+                assert(type->sub->t == V_VAR || type->sub->t == V_UNDEFINED ||
+                       st.IsNillable(type->sub));
                 return GetTypeTableOffset(type->sub, GetTypeTableOffset(type->sub));
             case V_VECTOR:
                 tt.push_back(GetTypeTableOffset(type->sub));

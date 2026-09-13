@@ -437,19 +437,28 @@ struct TypeChecker {
     }
 
     // FIXME: unifying UnTypeRef ideally should be fixed in the callers.
-    void UnifyVar(UnTypeRef type, UnTypeRef hasvar, ValueType var_parent) {
+    // Binds the type variable `hasvar` to `type`. Returns false, binding nothing, when the
+    // variable is the element type of a nil (var_parent == V_NIL) and `type` cannot be
+    // nilable: a type such as `int?` never exists, so the caller reports a mismatch.
+    bool UnifyVar(UnTypeRef type, UnTypeRef hasvar, ValueType var_parent) {
         // Typically Type is const, but this is the one place we overwrite them.
         // Type objects that are V_VAR are seperate heap instances, so overwriting them has no
         // side-effects on non-V_VAR Type instances.
         assert(hasvar->t == V_VAR);
         // The variable may belong to live code, which a skipped dead function must not touch.
-        if (dead_code_skipped) return;
+        if (dead_code_skipped) return true;
+        if (var_parent == V_NIL) {
+            // A nil type binds the element to that nil's element, rather than making a nil
+            // of a nil.
+            if (type->t == V_NIL) type = type->sub;
+            if (type->t != V_VAR && type->t != V_TYPEVAR && !st.IsNillable(type)) return false;
+        }
         if (type->t == V_VAR) {
             // If these two are already part of the same cycle, don't do the swap, which
             // could disconnect the cycle!
             auto v = hasvar;
             do {  // Loop thru all vars in unification cycle.
-                if (&*v == &*type) return;  // Same cycle.
+                if (&*v == &*type) return true;  // Same cycle.
                 v = v->sub;
             } while (&*v != &*hasvar);  // Force TypeRef pointer comparison.
             // Combine two cyclic linked lists.. elegant!
@@ -458,15 +467,14 @@ struct TypeChecker {
             auto v = hasvar;
             do { // Loop thru all vars in unification cycle.
                 auto next = v->sub;
-                assert(var_parent != V_NIL || !type->Numeric());
-                (void)var_parent;
                 *(Type *)&*v = *type;  // Overwrite Type struct!
                 v = next;
             } while (&*v != &*hasvar);  // Force TypeRef pointer comparison.
             // TODO: A fundamental problem with this overwriting is that we have to rely on
-            // the caller to not allow to create non-sensical types, like a nil of nil,
-            // but we can't assert that this isn't happening without knowing the parent of hasvar.
+            // the caller to not allow to create non-sensical types, which is only checked
+            // above for the callers that know the parent of hasvar.
         }
+        return true;
     }
 
     // The try-and-fail entry point for overload filtering ONLY: there, bound
@@ -479,7 +487,7 @@ struct TypeChecker {
                       ValueType type_parent = V_UNDEFINED, ValueType bound_parent = V_UNDEFINED) {
         if (bound->Equal(*type)) return true;
         if (type->t == V_VAR) {
-            if (cf & CF_UNIFICATION) UnifyVar(bound, type, type_parent);
+            if (cf & CF_UNIFICATION) return UnifyVar(bound, type, type_parent);
             return true;
         }
         // The error type converts to and from anything, such that nothing that uses a value
@@ -493,8 +501,7 @@ struct TypeChecker {
             case V_VOID:
                 return cf & CF_COERCIONS;
             case V_VAR:
-                if (cf & CF_UNIFICATION) UnifyVar(type, bound, bound_parent);
-                return cf & CF_UNIFICATION;
+                return (cf & CF_UNIFICATION) && UnifyVar(type, bound, bound_parent);
             case V_FLOAT:
                 return type->t == V_INT && (cf & CF_COERCIONS);
             case V_INT:
@@ -580,7 +587,7 @@ struct TypeChecker {
         if (bt->IsError()) return bt;
         if (ConvertsTo(at, bt, ConvertFlags(coercions | CF_UNIFICATION), a_parent, b_parent))
             return bt;
-        if (ConvertsTo(bt, at, ConvertFlags(coercions | CF_UNIFICATION), a_parent, b_parent))
+        if (ConvertsTo(bt, at, ConvertFlags(coercions | CF_UNIFICATION), b_parent, a_parent))
             return at;
         if (at->t == V_VECTOR && bt->t == V_VECTOR) {
             auto et = Union(at->Element(), bt->Element(), aname, bname, CF_NONE, nullptr, V_VECTOR, V_VECTOR);
@@ -2781,13 +2788,27 @@ struct TypeChecker {
             ao.lt = ao.right->lt;
             DecBorrowers(ao.left->lt, ao);
         } else {
-            ao.exptype = Union(tleft, tright, "lhs", "rhs", CF_NONE, nullptr);
+            // A nil (or a variable initialized from an untyped nil) whose element type is
+            // still unbound arrives here as that element type (see TypeCheckAndOrSub), which
+            // the union binds to the other operand's type.
+            auto lparent = ao.left->exptype->t == V_NIL && tleft->t != V_NIL ? V_NIL : V_UNDEFINED;
+            auto rparent = ao.right->exptype->t == V_NIL && tright->t != V_NIL ? V_NIL : V_UNDEFINED;
+            ao.exptype = Union(tleft, tright, "lhs", "rhs", CF_NONE, nullptr, lparent, rparent);
             // An enum (e.g. bool) mixed with a plain int would result in the int value,
             // which is surprising, so treat it like unrelated types below and force to
             // bool, rather than letting the enum decay to int.
             if (tleft->t == V_INT && tright->t == V_INT && tleft->e != tright->e)
                 ao.exptype = type_undefined;
             if (ao.exptype->t == V_UNDEFINED) {
+                // Unless that type cannot be nilable (see UnifyVar), which leaves the nil
+                // without a type.
+                if (lparent == V_NIL && tleft->t == V_VAR) {
+                    Error(ao, "nil cannot take type ", Q(TypeName(tright)),
+                              ", which cannot be nilable");
+                } else if (rparent == V_NIL && tright->t == V_VAR) {
+                    Error(ao, "nil cannot take type ", Q(TypeName(tleft)),
+                              ", which cannot be nilable");
+                }
                 // Special case: unlike elsewhere, we allow merging scalar and reference types,
                 // since they are just tested and thrown away. To make this work, we force all
                 // values to bools.

@@ -9,17 +9,6 @@
     Unary (and fold them that way), like the shifts already do; check the integer math
     builtins (pow, abs, ...) as well.
 
-  - Untyped nil ("Conversions", "Logical operators and truth"): the element type variable
-    of a `nil` must never be bound to a type that can't be nilable (numeric, struct,
-    function), so that a type like `int?` can't exist. Now `let x = nil` followed by
-    `x or 1` binds it to `int` and the generated C doesn't compile ("pointer expected"),
-    and `nil or 1` only works because the constant folds away. Report an error at the
-    unification site instead of binding (UnConvertsTo / UnifyVar with var_parent == V_NIL,
-    where UnifyVar already has an assert for exactly this), which makes `nil or 1` an
-    error like `nil::int` is (`n or 1` with a typed nilable `n` gives bool and is fine),
-    and make codegen assert that no nilable of a non-nillable type reaches
-    GetTypeTableOffset.
-
   - Struct equality ("Operators on structs"): `==`/`!=` on two structs of the same type
     must be the conjunction of the `==` of every field: strings by contents, class/vector/
     resource references by identity, ints and floats by value, nested structs recursively,
