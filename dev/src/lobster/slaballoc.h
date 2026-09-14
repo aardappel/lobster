@@ -78,23 +78,23 @@ class SlabAlloc {
     // Higher means you may get pages with only few allocs of that unique size (memory wasted).
     // On 32bit, 32 means all allocations <= 256 bytes go into buckets (in increments of 8 bytes
     // each).
-    static const iint MAXBUCKETS = 32;
+    static constexpr iint MAXBUCKETS = 32;
     // Depends on how much you want to take from the OS at once: PAGEATONCE*PAGESIZEF
     // You will waste 1 page to alignment with MAXBUCKETS at 32 on a 32bit system, PAGESIZEF is
     // 2048, so this is 202k.
-    static const iint PAGESATONCE = 101;
+    static constexpr iint PAGESATONCE = 101;
     // "64bit should be enough for everyone". Everything is twice as big on 64bit: alignment,
     // memory blocks, and pages.
-    static const iint PTRBITS = sizeof(void *) == 4 ? 2 : 3;
+    static constexpr iint PTRBITS = sizeof(void *) == 4 ? 2 : 3;
     // Must fit 2 pointers in smallest block for doubly linked list.
-    static const iint ALIGNBITS = PTRBITS + 1;
-    static const iint ALIGN = 1 << ALIGNBITS;
-    static const iint ALIGNMASK = ALIGN - 1;
-    static const iint MAXREUSESIZE = (MAXBUCKETS - 1) * ALIGN;
+    static constexpr iint ALIGNBITS = PTRBITS + 1;
+    static constexpr iint ALIGN = 1 << ALIGNBITS;
+    static constexpr iint ALIGNMASK = ALIGN - 1;
+    static constexpr iint MAXREUSESIZE = (MAXBUCKETS - 1) * ALIGN;
     // The largest block will fit almost 8 times.
-    static const iint PAGESIZEF = MAXBUCKETS * ALIGN * 8;
-    static const iint PAGEMASK = (~(PAGESIZEF - 1));
-    static const iint PAGEBLOCKSIZE = PAGESIZEF * PAGESATONCE;
+    static constexpr iint PAGESIZEF = MAXBUCKETS * ALIGN * 8;
+    static constexpr iint PAGEMASK = (~(PAGESIZEF - 1));
+    static constexpr iint PAGEBLOCKSIZE = PAGESIZEF * PAGESATONCE;
 
     struct PageHeader : DLNodeRaw {
         iint refc;
