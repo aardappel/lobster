@@ -5201,10 +5201,8 @@ void Assert::Generate(CodeGen &cg, size_t retval) const {
         cg.Gen(child, 1);
         cg.TakeTemp(1, false);
         if (cg.runtime_checks >= RUNTIME_ASSERT) {
-            // FIXME: would be better to use the original source code here.
-            auto text = cg.ConstantString(cg.st.StoreName(DumpNode(*child, 0, true)));
-            cg.EmitAssert(!!retval, child->line.line, child->line.fileidx, text,
-                          CodeGen::KindOf(child->exptype));
+            cg.EmitAssert(!!retval, child->line.line, child->line.fileidx,
+                          cg.ConstantString(text), CodeGen::KindOf(child->exptype));
         }
     } else {
         cg.Gen(child, 0);

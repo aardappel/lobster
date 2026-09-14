@@ -77,6 +77,26 @@ def errors_tests():
         "def ignore(x:int): return 7\nvar x = 1\nx = 1\nreturn ignore(assert x)", [])
     test_eq(asserterr, nil)
     test_eq(assertret, "7")
+    // A failed assert reports its condition as written: operators with only the parentheses
+    // their precedence needs, calls, fields, constructors and constants as in the source,
+    // whatever the typechecker and optimizer (inlining, folding) later make of the tree.
+    expect_error("let v = [ 1, 2 ]\nreturn assert v.length == 3 and not (v[0] < 2)",
+                 "assertion failed: v.length == 3 and not v[0] < 2")
+    expect_error("let n = 3\nreturn assert n - (n - 1) == 5 or -(n + 1) == 4",
+                 "assertion failed: n - (n - 1) == 5 or -(n + 1) == 4")
+    expect_error("let n = 3\nreturn assert n == 1 and (n == 2 or n == 3)",
+                 "assertion failed: n == 1 and (n == 2 or n == 3)")
+    expect_error("struct P:\n    x:int\n    y:int\nlet p = P \{ 1, 2 \}\n" +
+                 "return assert P \{ 3, 4 \} == p and p.x + p.y == 5",
+                 "assertion failed: P \{ 3, 4 \} == p and p.x + p.y == 5")
+    expect_error("def sq(x:int): return x * x\nlet n = 3\nlet s = \"ab\"\n" +
+                 "return assert sq(n) == 8 or s.substring(0, 1) == \"b\"",
+                 "assertion failed: sq(n) == 8 or s.substring(0, 1) == \"b\"")
+    expect_error("def approx(a:float, b:float): return abs(a - b) < 0.001\nlet f = 1.5\n" +
+                 "return assert approx(f, 2.0)", "assertion failed: approx(f, 2.0)")
+    expect_error("enum E:\n    A\n    B\nlet e = A\nvar ns:string? = nil\nns = nil\n" +
+                 "return assert ns is string or e == B",
+                 "assertion failed: ns is string or e == B")
     // Division and indexing checks are observable for unused arguments too.
     expect_error("def ignore(x:int): return 7\nvar z = 0\nz = 0\nreturn ignore(1 / z)",
                  "division by zero")

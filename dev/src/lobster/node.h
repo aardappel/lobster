@@ -341,7 +341,14 @@ BINARY_NODE(Range, "range", false, start, end, )
 ZERO_NODE(Break, "break", false, RETURNSMETHOD STATEMENTMETHOD)
 ZERO_NODE(Continue, "continue", false, RETURNSMETHOD STATEMENTMETHOD)
 // A failed assertion terminates execution, even when its value is unused.
-UNARY_NODE(Assert, TName(T_ASSERT), false, RETURNSMETHOD STATEMENTMETHOD CONSTMETHOD TRAPMETHOD)
+struct Assert : Unary {
+    // The condition as written, which is what a failed assert reports (see Assert::Generate):
+    // taken from the tree as parsed, before the typechecker and optimizer rewrite it.
+    string text;
+    Assert(const Line &ln, Node *_a);
+    SHARED_SIGNATURE(Assert, TName(T_ASSERT), false)
+    RETURNSMETHOD STATEMENTMETHOD CONSTMETHOD TRAPMETHOD
+};
 
 struct Nil : Node {
     UnTypeRef giventype;
@@ -775,40 +782,286 @@ struct ToLifetime : Coercion {
     SHARED_SIGNATURE_NO_TT(ToLifetime, "lifetime change", false)
 };
 
-inline string DumpNode(Node &n, int indent, bool single_line) {
+// Writes a tree out as the Lobster it came from, or an approximation of it. What matters is
+// the expression an assert tests, which is what the text of a failed one is (see
+// Assert::Generate): those print as expressions with the parentheses their precedence calls
+// for, and without what the typechecker and optimizer put in the tree (coercions, lifetime
+// changes; an inlined call prints as the call again). Statements and control flow, which an
+// assert rarely holds, get by with a generic name(args) rendering, a statement per line unless
+// single_line, which is all the debug dumps need.
+struct NodePrinter {
     string sd;
-    n.Dump(sd);
-    auto arity = n.Arity();
-    if (!arity) return sd;
-    bool ml = false;
-    auto ch = n.Children();
-    vector<string> sv;
-    size_t total = 0;
-    for (size_t i = 0; i < arity; i++) {
-        auto a = DumpNode(*ch[i], indent + 2, single_line);
-        a += ":";
-        a += TypeName(ch[i]->exptype);
-        if (a[0] == ' ') ml = true;
-        total += a.length();
-        sv.push_back(a);
+    bool single_line;
+    int indent;
+
+    NodePrinter(int indent, bool single_line) : single_line(single_line), indent(indent) {}
+
+    // What an expression prints as binds this tightly, mirroring Parser::ParseOpExp and the
+    // unary, `is` and postfix parsing below it. A child prints in parentheses when it binds
+    // looser than its place requires.
+    enum {
+        P_NONE = -100,  // A place any expression can go, like between brackets.
+        P_STATEMENT = -10,
+        P_ANDOR = 0,
+        P_NOT = 5,
+        P_EQ = 10,
+        P_CMP = 20,
+        P_BIT = 30,
+        P_SHIFT = 40,
+        P_ADD = 50,
+        P_MUL = 60,
+        P_IS = 65,
+        P_UNARY = 70,
+        P_POSTFIX = 80,
+        P_ATOM = 100,
+    };
+
+    // Is<> tests for the exact type, so the bases the operators and coercions share are tested
+    // with a dynamic_cast.
+    static bool IsCoercion(const Node &n) {
+        return dynamic_cast<const Coercion *>(&n) || Is<EnumCoercion>(n);
     }
-    if (total > 60) ml = true;
-    if (ml && !single_line) {
-        sd.insert(0, string(indent, ' ') + "(");
-        sd += "\n";
-        for (size_t i = 0; i < arity; i++) {
-            if (i) sd += "\n";
-            if (sv[i][0] != ' ') sd += string(indent + 2, ' ');
-            sd += sv[i];
+
+    static int Prec(const Node &n) {
+        if (IsCoercion(n)) return Prec(*((const Unary &)n).child);
+        if (Is<And>(n) || Is<Or>(n)) return P_ANDOR;
+        if (Is<Not>(n)) return P_NOT;
+        if (Is<Equal>(n) || Is<NotEqual>(n)) return P_EQ;
+        if (Is<LessThan>(n) || Is<GreaterThan>(n) || Is<LessThanEq>(n) || Is<GreaterThanEq>(n))
+            return P_CMP;
+        if (Is<BitAnd>(n) || Is<BitOr>(n) || Is<Xor>(n)) return P_BIT;
+        if (Is<ShiftLeft>(n) || Is<ShiftRight>(n)) return P_SHIFT;
+        if (Is<Plus>(n) || Is<Minus>(n)) return P_ADD;
+        if (Is<Multiply>(n) || Is<Divide>(n) || Is<Mod>(n)) return P_MUL;
+        if (Is<IsType>(n)) return P_IS;
+        if (Is<UnaryMinus>(n) || Is<Negate>(n) || Is<PreIncr>(n) || Is<PreDecr>(n))
+            return P_UNARY;
+        if (Is<Dot>(n) || Is<Indexing>(n) || Is<PostIncr>(n) || Is<PostDecr>(n))
+            return P_POSTFIX;
+        if (auto gc = Is<GenericCall>(n)) return gc->fromdot ? P_POSTFIX : P_ATOM;
+        if (dynamic_cast<const BinOp *>(&n) || Is<IfElse>(n) || Is<IfThen>(n) || Is<Define>(n) ||
+            Is<Return>(n) ||
+            Is<InlineReturn>(n) || Is<Assert>(n) || Is<AssignList>(n) || Is<MultipleReturn>(n) ||
+            Is<Seq>(n) || Is<TypeOf>(n))
+            return P_STATEMENT;
+        return P_ATOM;
+    }
+
+    // The inlined call an InlineBlock stands for: its first children bind the arguments, see
+    // Call::Optimize.
+    static bool IsInlinedCall(const Node &n) {
+        auto ib = Is<InlineBlock>(n);
+        if (!ib || !ib->sf) return false;
+        auto nargs = ib->sf->args.size();
+        if (ib->children.size() < nargs) return false;
+        for (size_t i = 0; i < nargs; i++) if (!Is<Define>(ib->children[i])) return false;
+        return true;
+    }
+
+    void Args(Node **ch, size_t first, size_t n) {
+        for (size_t i = first; i < first + n; i++) {
+            if (i > first) sd += ", ";
+            Expr(*ch[i], P_NONE);
         }
-        sd += ")";
-    } else {
-        sd.insert(0, "(");
-        for (size_t i = 0; i < arity; i++) append(sd, " ", sv[i]);
+    }
+
+    void Call(string_view name, Node **ch, size_t n) {
+        sd += name;
+        sd += "(";
+        Args(ch, 0, n);
         sd += ")";
     }
-    return sd;
+
+    // A block's statements: in place, separated by `; `, or one per line.
+    void Body(Node **ch, size_t first, size_t n) {
+        if (single_line) {
+            for (size_t i = first; i < first + n; i++) {
+                if (i > first) sd += "; ";
+                Expr(*ch[i], P_NONE);
+            }
+            return;
+        }
+        indent += 4;
+        for (size_t i = first; i < first + n; i++) {
+            sd += "\n";
+            sd.append((size_t)indent, ' ');
+            Expr(*ch[i], P_NONE);
+        }
+        indent -= 4;
+    }
+
+    void Block(Node &n) {
+        auto ch = n.Children();
+        Body(ch, 0, n.Arity());
+    }
+
+    void Expr(Node &n, int min_prec) {
+        if (IsCoercion(n)) {
+            Expr(*((Unary &)n).child, min_prec);
+            return;
+        }
+        auto p = Prec(n);
+        auto parens = p < min_prec;
+        if (parens) sd += "(";
+        auto ch = n.Children();
+        if (auto bo = dynamic_cast<BinOp *>(&n)) {
+            Expr(*bo->left, p);
+            append(sd, " ", n.Name(), " ");
+            Expr(*bo->right, p + 1);
+        } else if (Is<Not>(n)) {
+            sd += "not ";
+            Expr(*ch[0], P_EQ);
+        } else if (p == P_UNARY) {
+            sd += n.Name();
+            Expr(*ch[0], P_UNARY);
+        } else if (Is<PostIncr>(n) || Is<PostDecr>(n)) {
+            Expr(*ch[0], P_POSTFIX);
+            sd += n.Name();
+        } else if (auto dot = Is<Dot>(n)) {
+            Expr(*ch[0], P_POSTFIX);
+            append(sd, ".", dot->fld->name);
+        } else if (Is<Indexing>(n)) {
+            Expr(*ch[0], P_POSTFIX);
+            sd += "[";
+            Expr(*ch[1], P_NONE);
+            sd += "]";
+        } else if (auto is = Is<IsType>(n)) {
+            Expr(*ch[0], P_UNARY);
+            append(sd, " is ", TypeName(is->giventype), is->accepts_nil ? "?" : "");
+        } else if (Is<TypeOf>(n)) {
+            sd += "typeof ";
+            Expr(*ch[0], P_UNARY);
+        } else if (auto call = Is<lobster::Call>(n)) {
+            Call(call->sf->parent->name, ch, n.Arity());
+        } else if (auto nc = Is<NativeCall>(n)) {
+            Call(nc->nf->name, ch, n.Arity());
+        } else if (auto dc = Is<DynCall>(n)) {
+            Call(dc->sid->id->name, ch, n.Arity());
+        } else if (auto gc = Is<GenericCall>(n)) {
+            // As parsed: a call thru a dot has what is before the dot as its first argument.
+            if (gc->super) sd += "super ";
+            if (gc->fromdot && n.Arity()) {
+                Expr(*ch[0], P_POSTFIX);
+                append(sd, ".", gc->name);
+                if (!gc->noparens || n.Arity() > 1) {
+                    sd += "(";
+                    Args(ch, 1, n.Arity() - 1);
+                    sd += ")";
+                }
+            } else {
+                Call(gc->name, ch, n.Arity());
+            }
+        } else if (IsInlinedCall(n)) {
+            auto ib = Is<InlineBlock>(n);
+            sd += ib->sf->parent->name;
+            sd += "(";
+            for (size_t i = 0; i < ib->sf->args.size(); i++) {
+                if (i) sd += ", ";
+                Expr(*((Define *)ch[i])->child, P_NONE);
+            }
+            sd += ")";
+        } else if (Is<VectorConstructor>(n)) {
+            sd += "[";
+            if (n.Arity()) {
+                sd += " ";
+                Args(ch, 0, n.Arity());
+                sd += " ";
+            }
+            sd += "]";
+        } else if (auto oc = Is<ObjectConstructor>(n)) {
+            // The type as written, unless the typechecker has resolved it since.
+            if (oc->exptype->t == V_UNDEFINED) sd += TypeName(oc->giventype);
+            else sd += TypeName(oc->exptype);
+            Constructor(ch, n.Arity());
+        } else if (auto ac = Is<AutoConstructor>(n)) {
+            if (ac->exptype->t != V_UNDEFINED) sd += TypeName(ac->exptype);
+            else if (!ac->giventype.Null()) sd += TypeName(ac->giventype);
+            Constructor(ch, n.Arity());
+        } else if (auto ie = Is<IfElse>(n)) {
+            sd += "if ";
+            Expr(*ie->condition, P_NONE);
+            sd += ": ";
+            Block(*ie->truepart);
+            if (single_line) {
+                sd += " else: ";
+            } else {
+                sd += "\n";
+                sd.append((size_t)indent, ' ');
+                sd += "else:";
+            }
+            Block(*ie->falsepart);
+        } else if (auto it = Is<IfThen>(n)) {
+            sd += "if ";
+            Expr(*it->condition, P_NONE);
+            sd += ":";
+            if (single_line) sd += " ";
+            Block(*it->truepart);
+        } else if (auto def = Is<Define>(n)) {
+            bool single = true;
+            for (auto &tsid : def->tsids) single = single && tsid.sid->id->single_assignment;
+            sd += single ? "let " : "var ";
+            for (auto [i, tsid] : enumerate(def->tsids)) {
+                if (i) sd += ", ";
+                sd += tsid.sid->id->name;
+            }
+            sd += " = ";
+            Expr(*ch[0], P_NONE);
+        } else if (Is<AssignList>(n)) {
+            Args(ch, 0, n.Arity() - 1);
+            sd += " = ";
+            Expr(*ch[n.Arity() - 1], P_NONE);
+        } else if (Is<MultipleReturn>(n)) {
+            Args(ch, 0, n.Arity());
+        } else if (auto ret = Is<Return>(n)) {
+            sd += "return";
+            if (!ret->make_void) {
+                sd += " ";
+                Expr(*ch[0], P_NONE);
+            }
+        } else if (auto ir = Is<InlineReturn>(n)) {
+            sd += "return";
+            if (!ir->make_void) {
+                sd += " ";
+                Expr(*ch[0], P_NONE);
+            }
+        } else if (Is<Assert>(n)) {
+            sd += "assert ";
+            Expr(*ch[0], P_NONE);
+        } else if (Is<Seq>(n)) {
+            Expr(*ch[0], P_NONE);
+            sd += "; ";
+            Expr(*ch[1], P_NONE);
+        } else if (dynamic_cast<lobster::Block *>(&n)) {
+            Block(n);
+        } else if (!n.Arity()) {
+            n.Dump(sd);
+        } else {
+            // Whatever is left prints as its name with its children as arguments.
+            string name;
+            n.Dump(name);
+            Call(name, ch, n.Arity());
+        }
+        if (parens) sd += ")";
+    }
+
+    void Constructor(Node **ch, size_t n) {
+        sd += " {";
+        if (n) {
+            sd += " ";
+            Args(ch, 0, n);
+            sd += " ";
+        }
+        sd += "}";
+    }
+};
+
+inline string DumpNode(Node &n, int indent, bool single_line) {
+    NodePrinter np(indent, single_line);
+    np.Expr(n, NodePrinter::P_NONE);
+    return np.sd;
 }
+
+inline Assert::Assert(const Line &ln, Node *_a) : Unary(ln, _a), text(DumpNode(*_a, 0, true)) {}
 
 bool UnaryMinus::IsConstInit() const { return child->IsConstInit(); }
 
