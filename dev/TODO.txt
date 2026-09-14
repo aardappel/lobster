@@ -1,43 +1,6 @@
-- constant string caching breaks in-place writes: write_int8_le and friends write into the one
-  shared copy of a string constant when it is big enough, so later evaluations of that constant
-  see the writes. This prints A, AB, ABC, ..:
-    for(10) i:
-        var s = "                           "
-        s = write_int8_le(s, i, 'A' + i)
-        print s
-  Same for a string field default used as a buffer (like FlatBufferBuilder's): all objects
-  constructed with that default share it.
-
-- Borrow checker and flow typing: writes thru a parameter (or `this`) are checked against what
-  the callers borrowed or promoted (tests/errors/borrow_param_alias.lobster and friends),
-  vector elements are locations of their own, and a write thru a variable that owns what it
-  was assigned from a variable path (`var y = x`, `y = x.f`, a parameter, a loop element)
-  counts as a write to that path too, for all the paths it was ever assigned from
-  (SpecIdent::owning_aliases, TypeChecker::ExpandAliases). When the borrow that conflicts is
-  an argument of a call, the caller keeps the value alive instead of it being an error
-  (KeepArgAlive). What remains unsound is aliasing the checker cannot see, which can compile
-  and then crash at runtime:
-  - an alias that arrives some other way than from a variable path: a function result, a
-    vector element or field that the object was stored in (`v.push(x)`, `o.f = x`, then a
-    write thru `v[0].t` or `o.f.t`), or a struct copy (`var s = x.pos` shares the objects its
-    reference fields hold);
-  - an alias established later in a loop body than the write thru it, on the next iteration
-    (the same hole flow typing has: `if x: for(3) i: print x.length; x = nil` crashes).
-  See "A more conservative mode" below for what closing these would take.
-
-- "Functions as environments" is now a specified feature (see declcheck.h): a call to a
-  name with no lexically visible function resolves to a local function of that name in
-  another scope, valid only while its enclosing function is active (innermost active scope
-  wins), mirroring how free variables work. Kept for now because matvoxels relies on it
-  (game.lobster's player-update helpers apply_damage/abort_active_item_action/
-  show_out_of_stamina/do_deflect are used from 34 call sites in game_item.lobster and
-  close over enclosing locals). Revisit whether we want to keep this long term, since
-  removing it requires threading those locals as args (or a context object) in such code.
-
-- Dead code checking (TypeCheckDeadCode) covers top level named functions (methods included)
-  whose args all have concrete given types. Could be extended to functions with generic args,
-  such as methods of generic classes that are never instantiated (checked against their given
-  constraints once we have those, see interfaces/traits elsewhere in this file).
+- codegen: migrate the C metadata also to be in code, as the C++ backend already does (see Epilogue),
+  then remove the FB serialization entirely (bytecode.fbs, the Serialize functions in
+  idents.h, the unpacking in RunJIT, the metadata entry in lpak files).
 
 - Improve native compilation pipeline / emscripten support.
   https://github.com/aardappel/lobster/issues/375
@@ -60,6 +23,14 @@
   of a line inside brackets (tried), but a colon there can be legal (a decl split across
   lines), so it can only hint at existing errors, and clearing that state correctly across
   nested brackets makes it fragile for what it adds.
+- A multiline lambda/block currently does not work inside of a function call, since () causes all
+  lf's to be consumed, so this currently causes errors as if the lines were merged.
+  Making this into a clearer error is hard because we can't detect this case exactly because the
+  parser doesn't even see multiple lines.
+  Making it supported is hard because there are no clear delimiters, meaning the parser has to hint
+  at the lexer that we're inside a function body, so we can make it not ignore lfs if we're at
+  the top level of the body. But this in turn makes existing bodies that are on a next line not
+  parse anymore due to new indents/lfs inserted / missing dedents.
 
 - The combination of flow typing upgrades with free variable based specialization often
   causes unexpected issues.
@@ -79,67 +50,9 @@
   - (for expert use): we already dump "most clones" on --verbose, but have a quick way to
     dump all specializations of a function too, so we can see what causes the difference.
 
-
-- Lobster's ability to run other code dynamically:
-  - It can already load entirely new Lobster programs on the fly.
-  - It can run glsl compute shaders.
-  - It can already run C code (great way to run PLs implemented IN Lobster! May need to
-    extend its builtins to give access to Lobster builtins somehow?)
-  - QuickJS would be super easy to add, or Duktape if its too complicated.
-  - Lua also but maybe too much code.
-  - Any new language I invent (Goose?) would be better served embedded in Lobster, since
-    that means we don't need to repeat all the work on bindings etc.. though it does mean
-    adopting at least some Lobster memory management. But if it runs from Lobster, there
-    is already a Lobster VM running so this is easy.
-    But there is no reason to embed it at the C++ level.. with the libtcc
-    interface, and entire language can be just Lobster code.
-
-- Nil chaining (typically x?.a) comes with all sorts of problems exacerbated by it being
-  very terse syntax, if we could make it verbose with the obvious keyword of guard,
-  it could be a good feature?
-  x.guard.a
-  (guard x).a
-  guard(x).a
-
-- "guard" can't be used if there is code following the transformed if-then-else.
-  While it is maybe taking things a bit far, you could imagine a guard-finally:
-
-  guard x:
-      // The else branch.
-  finally:
-      // The ending/cleanup code.
-  // The main code, which is the then branch.
-
-  Which is equivalent to the familiar:
-
-  if x:
-      // The main code.
-  else:
-      // The else branch.
-  // The ending/cleanup code.
-
-  Now this seems like taking things a bit too far, but it could feel logical if the main code
-  is really gigantic and the else/ending code is small.
-  In theory, it would allow you to get rid of if-then-else entirely, recognizing the idea
-  that most code should really be differentiating what is the linear, main line flow from
-  the exceptions, though in real code there are cases where the ending code is of course
-  the longest.
-
-  And you'd also want a version for guard without else:
-
-  guard x finally:
-      // The ending/cleanup code.
-  // The main code.
-
 - A step debugger.
   simply emit code that does a simple int comparison per statement, not too expensive.
   More work is the UI to show all source code, allow to set breakpoints etc.
-
-- Field types derived from default values now go thru SimpleType where possible; the
-  remaining cases (function calls) still use the full-typecheck-then-clone-undo fallback
-  in EnsureUDTChecked (--debug logs both categories). Could be eliminated by requiring
-  explicit types on such fields (matvoxels would need ~235 annotations: mostly untyped
-  nil / [] defaults, which arguably deserve them, and builtin/function call defaults).
 
 - This simple code produces: access of x before being initialized
     foo()
@@ -177,6 +90,105 @@
   This is a new construct, because typechecking a2 though does not result in any new
   freevar flow types, since it is entirely local.
 
+- gl.polygon (and presumably any RenderArraySlow) leaks vbo/vao on Linux/Mesa?
+  https://github.com/aardappel/lobster/issues/366
+
+- in this configuration:
+  def f_not_inlined():
+     ..
+     foo(x, f_inlined())
+     ..
+  A callstack that goes deep into foo show for the call at foo not
+  that it happening inside f_not_inlined, but in f_inlined!
+  a) the calling location of foo is taken from code of its last
+     arg, which if that were to be fixed, fixes this whole situation
+     since f_inlined has already finished executing and is not part
+     of this call stack.
+  b) Alternatively, when a function is inlined, it should maybe have
+     its line info changed to the parent? In the situation where
+     f_not_inlined -> f_inlined -> foo, it currently shows
+     Class.f_not_inlined[file_that_has_f_inlined.lobster:line]
+     Would that be better as file_that_has_f_not_inlined ?
+     The existing way would be better if f_inlined is non-trivial
+     and you want to see the call context.
+     Making it look as the f_not_inlined calling location is better if
+     f_inlined is a trivial wrapper, but now you're on your own knowing
+     that f_inlined code is effectively on the call stack.
+
+- mipmaps are darker than the orginal in both srgb and linear modes? see e.g. puzzlewindow.lobster
+
+- Default ignoring return values is a really bad default, wonder if it is too late to change?
+  Ideally it would warn/error on ignored return values unless the function explicitly marks a return
+  value as ignorable.
+  What would be a syntax for this?
+  Could be a single keyword like "ignore" that is both used to mark return values or types as
+  ignorable in the definition, and to ignore them in the call if they were not ignorable.
+  Only one of these 3 would be necessary:
+    def foo() -> ignore int
+        print "foo"
+        return ignore 1
+    ignore foo()
+  For builtin functions, maybe better to have the opposite default since ignoreing them is so
+  prevalent, and optionally mark them as non-ignorable.
+
+- codegen: have the optimizer remove function values whose function it optimized away, then remove
+  fun_dummy, which FunRef::Generate points those at.
+
+- natgen refactor
+  - move more stuff into the epilogue: the decrefs of owned variables are repeated at every
+    return (FIXME in CodeGen::EmitReturn).
+  - shrink fvars array in VM
+  - reduce use of ElemType: giving up the elements of a vector looks up its element type
+    (LVector::DestructElementRange), where an object has a deleter generated for its type.
+  - calls the generated code makes on hot paths, maybe worth writing out (needs a new profile):
+    - DecDeleteVec/DecDeleteObj/DecDeleteStr, and SlabAlloc::dealloc_small under them
+      (surprisingly a lot slower than alloc.. cache misses?)
+    - RtNewVec, RtNewObject
+    - BackupVar, RestoreBackup, DecOwned: variables used as free variables.
+    - RtSEq etc: string compares other than against a short constant.
+    - RtDynDispatch
+    - PushFunId, PopFunId: only with stack traces on.
+
+- Debug dump improvements:
+  - automatically zip these files, can be 5x smaller.
+  - Turn C++ crashes into Lobster errors so they can be saved with a lot of context.
+  - For cycle objects, instead save object ids so a viewer can still find the original objects?
+
+- "C-style language to Lobster Cheat Sheet" could use improvements, and more about types.
+  Also its function values use `def(a, b):`, which doesn't parse, should be `fn(a, b):`.
+
+- this is out of date and a bit overly negative: https://aardappel.github.io/lobster/philosophy.html
+
+- A document that explains what samples are available and what they demo.
+  - Also move some more of my (Wouter) projects into the main repo as samples.
+
+- Full Tracy (LOBSTER_FRAME_PROFILER 2) is off by default because of these (see stdafx.h):
+  - https://github.com/wolfpld/tracy/issues/419 is fixed in the vendored tracy: try waiting for
+    HasShutdownFinished() in VM::~VM instead of calling ~Profiler() and abort().
+  - https://github.com/wolfpld/tracy/issues/422 is closed, but its likely fix (tracy bfab6d03f)
+    is newer than the vendored tracy 0.12.1: update tracy, then check the crash on exit is gone.
+
+- We should be making extensive use of https://devblogs.microsoft.com/cppblog/introducing-vector-calling-convention/
+  Especially since we're a closed static build we control, meaning we have no worries of
+  ABI/calling convention mismatches.
+  This would give a bunch of "free" performance boosts in places and likely allow the
+  optimizer to do a better job.
+
+- constness.
+  While we have "let" to indicate variables can't be modified, we so far have nothing to indicate constness of
+  reference contents.
+  This would be a non-trivial feature to add as it bifurcates the type system in const and mut (since you want
+  this property to perculate with types of values and call to call), and thus likely has widespread consequences.
+  The other big change is that for non-this arguments, the right default would be const, which means this would
+  be a breaking change and a ton of old code would need mut annotations on args.
+  For locals, mut is the right default, so that at least would be easy.
+  We could adopt this much more easily if we went with default-mut.
+
+- You can't use "break" from a HOF that wraps a "for", since it checks for presence of a surrounding "for"
+  in the typechecker where this is not inlined yet.
+  Move this check to optimizer or codegen?
+  You can always use "return from", but break is neater.
+
 - a tuple-like feature, in particular for the "temp vector with 2 elements" use case.
   It is pretty easy to declare a new struct, but it feel overdone sometimes.
   * we could simply declare a struct pair<A,B> in the modules and be done with it, but
@@ -207,16 +219,6 @@
     Oh and if we're going to implement this syntax, we should also allow one-liner structs the
     same way:
     struct X { foo:string, bar:int }
-
-- gl.polygon (and presumably any RenderArraySlow) leaks vbo/vao on Linux/Mesa?
-  https://github.com/aardappel/lobster/issues/366
-
-- In our largest project to date, the codegen type_table is 134K in size (34K int entries).
-  16% of that is nillable types, since a nillable class type has a full copy of all its
-  fields much like the non-nillable version.
-  If we separetely serialized fields from the class (by referring it over an offset used by both),
-  we'd probably save an estimated 12% of total space.
-  This may be worth it for a tiny speed reduction looking up field types.
 
 - Weak ref feature.
   we use the informal system of having a "destruct" method on classes that contain members
@@ -262,191 +264,7 @@
   Or maybe better yet, make the pointer to objects point directly at the fields, with normal tti/refc at negative offsets.
   This could have additional speed benefits, though makes access to these fields messier.
 
-- in this configuration:
-  def f_not_inlined():
-     ..
-     foo(x, f_inlined())
-     ..
-  A callstack that goes deep into foo show for the call at foo not
-  that it happening inside f_not_inlined, but in f_inlined!
-  a) the calling location of foo is taken from code of its last
-     arg, which if that were to be fixed, fixes this whole situation
-     since f_inlined has already finished executing and is not part
-     of this call stack.
-  b) Alternatively, when a function is inlined, it should maybe have
-     its line info changed to the parent? In the situation where
-     f_not_inlined -> f_inlined -> foo, it currently shows
-     Class.f_not_inlined[file_that_has_f_inlined.lobster:line]
-     Would that be better as file_that_has_f_not_inlined ?
-     The existing way would be better if f_inlined is non-trivial
-     and you want to see the call context.
-     Making it look as the f_not_inlined calling location is better if
-     f_inlined is a trivial wrapper, but now you're on your own knowing
-     that f_inlined code is effectively on the call stack.
-
-- mipmaps are darker than the orginal in both srgb and linear modes? see e.g. puzzlewindow.lobster
-
-- Default ignoring return values is a really bad default, wonder if it is too late to change?
-  Ideally it would warn/error on ignored return values unless the function explicitly marks a return
-  value as ignorable.
-  What would be a syntax for this?
-  Could be a single keyword like "ignore" that is both used to mark return values or types as
-  ignorable in the definition, and to ignore them in the call if they were not ignorable.
-  Only one of these 3 would be necessary:
-    def foo() -> ignore int
-        print "foo"
-        return ignore 1
-    ignore foo()
-  For builtin functions, maybe better to have the opposite default since ignoreing them is so
-  prevalent, and optionally mark them as non-ignorable.
-
-- Codegen refactor:
-  - migrate the C metadata also to be in code, as the C++ backend already does (see Epilogue),
-    then remove the FB serialization entirely (bytecode.fbs, the Serialize functions in
-    idents.h, the unpacking in RunJIT, the metadata entry in lpak files).
-  - have the optimizer remove function values whose function it optimized away, then remove
-    fun_dummy, which FunRef::Generate points those at.
-- Options for speeding up JIT mode.
-  Benchmarking (tests/compare/RESULTS.md) shows C++ mode on par with native C++, but the libtcc JIT
-  about 2x slower than C++ mode overall, and up to 7x on raytrace, since libtcc does no inlining and
-  little optimisation. MIR (--mir) gets within 1.2x of C++ mode overall, but is still up to 3.4x
-  slower on raytrace.
-  To also get C++ support (so it is easier to share VM code) and Clang level optimisation, you'd
-  really need to link all of Clang into Lobster.
-  That would make Lobster builds very slow and complicated.
-  Instead, what if we used an external Clang to build a DLL?
-  More specifically, to not have to deal with the complexity of Clang installs on multiple platforms,
-  what if we used Zig? https://zig.news/kristoff/compile-a-c-c-project-with-zig-368j
-  This could create another mode, where, if zig is present, it used that instead of libtcc or MIR to
-  run during development.
-  It would compile the generated code + a few isolated headers, and hopefully such a build could be
-  fast enough (within a second?) for development? Run with -O1 or whatever if needed?
-  One problem with this path is compatibility with VM code in the main executable.
-  VS and Clang compiler at the very least STL containers differently.
-  Thus, you'd need to pin building both the main exes for various platforms to always be built with
-  a particular version of Clang and the one in the zig exes to the same to have any hope of this
-  just working.
-  Or rather, only main exes with matching Clang versions would make this path available, you could
-  still do VS builds for the better debugging it gives, but they wouldn't have the zig path option.
-  If we do get this working, it be a nice option:
-  - Do development of programs that require more CPU speed, if builds don't take too long.
-  - Could replace the current C++ mode entirely, in that people can just ship main exe + dll,
-    with the advantage that they don't have to deal with doing whole project C++ builds.
-  - Sets us up on the path of eventually ditching libtcc and MIR, thus not having to deal with C.
-    This would really simplify future C++ codegen improvements.
-  There is a risk however zig will drop support for C++ compilation: https://github.com/ziglang/zig/issues/16270
-  If that happens, this path would have to switch to using a system clang install.
-  Frankly, if we implement this path, might as well allow people to choose between zig and a system clang
-  install, assuming versions match.
-  Other Clang JIT options:
-  - https://github.com/hfinkel/llvm-project-cxxjit
-    Still requires a whole specialized clang to be linked into the main exe, and would not work with
-    dynamically generated code.
-  - https://github.com/Kray-G/clang-jit
-    Seems like a nice wrapper around clang::CompilerInstance etc, and can do compile+run entirely
-    in memory, so could be an option to pre-build this into a .dll separately from Lobster to not
-    bloat builds.
-    If this is going to build C++, where is it going to get its STL headers etc from?
-    Can we make the core of what the generated code relies on effectively header-less?
-    Would also improve build speeds.
-    Downside is not having the ability to save a dll or whatever for offline use.
-- natgen refactor
-  - move more stuff into the epilogue: the decrefs of owned variables are repeated at every
-    return (FIXME in CodeGen::EmitReturn).
-  - shrink fvars array in VM
-  - reduce use of ElemType: giving up the elements of a vector looks up its element type
-    (LVector::DestructElementRange), where an object has a deleter generated for its type.
-  - calls the generated code makes on hot paths, maybe worth writing out (needs a new profile):
-    - DecDeleteVec/DecDeleteObj/DecDeleteStr, and SlabAlloc::dealloc_small under them
-      (surprisingly a lot slower than alloc.. cache misses?)
-    - RtNewVec, RtNewObject
-    - BackupVar, RestoreBackup, DecOwned: variables used as free variables.
-    - RtSEq etc: string compares other than against a short constant.
-    - RtDynDispatch
-    - PushFunId, PopFunId: only with stack traces on.
-
-- Free Variables
-  - This is one of the very inefficient parts of the type checker.
-  - Inlining removes the free variable status of the locals of a function, but not of top level
-    variables, which CheckFreeVariable marks used_as_freevar right away: these stay in vm.fvars,
-    with a BackupVar/RestoreBackup, even when every function reading them got inlined.
-
-- constness.
-  While we have "let" to indicate variables can't be modified, we so far have nothing to indicate constness of
-  reference contents.
-  This would be a non-trivial feature to add as it bifurcates the type system in const and mut (since you want
-  this property to perculate with types of values and call to call), and thus likely has widespread consequences.
-  The other big change is that for non-this arguments, the right default would be const, which means this would
-  be a breaking change and a ton of old code would need mut annotations on args.
-  For locals, mut is the right default, so that at least would be easy.
-
-- namespace improvements:
-  - Declaring a variable (or function) that has the same name as a namespace should be an error? (poll so far: yes)
-    Sadly this is not so simple, we have a lot of 2 letter namespaces such as ph, im, fg.. and
-    it becomes very surprising when these lead to errors in existing code. Leaving as-is for now.
-  - obj.foo where foo is a method in a namespace should work if obj already has that namespaced type?
-    That requires moving at least some of the namespacing into the type checker.
-    See: https://github.com/aardappel/lobster/issues/284
-  - any more builtins to namespace?
-  - move namespace parsing to parser!
-  - Should obj.ns.fun() be disallowed (poll so far: no)
-  - Should you be able to "import" namespaces? Most languages have this, but it is kind of an anti-feature since
-    it make things harder to recognize without its namespace in front.
-    Really, don't put things in a namespace if you don't effectively want to make it part of the name.
-
-- defining variables (or functions, or anything else) should fail if it is already a namepace.
-  But frankly there's a ton of these possible interactions, should maybe move to a single symboltable.
-  Another example is trying to use a variable with the same name as an enum.
-
-- Debug dump improvements:
-  - automatically zip these files, can be 5x smaller.
-  - Turn C++ crashes into Lobster errors so they can be saved with a lot of context.
-  - For cycle objects, instead save object ids so a viewer can still find the original objects?
-
-- You can't use "break" from a HOF that wraps a "for", since it checks for presence of a surrounding "for"
-  in the typechecker where this is not inlined yet.
-  Move this check to optimizer or codegen?
-  You can always use "return from", but break is neater.
-
-- auto binding generated C++ headers from a Lobster decl
-
-- this is out of date and a bit overly negative: https://aardappel.github.io/lobster/philosophy.html
-
-- A document that explains what samples are available and what they demo.
-  - Also move some more of my (Wouter) projects into the main repo as samples.
-
-- Full Tracy (LOBSTER_FRAME_PROFILER 2) is off by default because of these (see stdafx.h):
-  - https://github.com/wolfpld/tracy/issues/419 is fixed in the vendored tracy: try waiting for
-    HasShutdownFinished() in VM::~VM instead of calling ~Profiler() and abort().
-  - https://github.com/wolfpld/tracy/issues/422 is closed, but its likely fix (tracy bfab6d03f)
-    is newer than the vendored tracy 0.12.1: update tracy, then check the crash on exit is gone.
-
-- move this TODO.txt to github issues?
-  - That's going to create 100+ issues, and not necessarily easier to overview since github doesn't have a good way to
-    order issues by priority, and search for things.
-    - Actually, the new "projects" can order issues both by a rough priority status, and also within that item by item.
-    - Creating an issue for each bullet point here would be chaos indeed, but
-      first sorting this entire file by language feature or system area, and then creating issues
-      with sub-parts of those indicated by "- [ ]" which creates checkboxes than can show progress.
-      - Pasting the bullets from here mostly creates correctly formatted bullets in github so
-        can be done without too much extra formatting work.
-    - Easier to refer people who want to know what is planned and/or want to help.
-  - Right now, searches for keywords hit both code and this TODO.txt.
-
-- We should be making extensive use of https://devblogs.microsoft.com/cppblog/introducing-vector-calling-convention/
-  Especially since we're a closed static build we control, meaning we have no worries of
-  ABI/calling convention mismatches.
-  This would give a bunch of "free" performance boosts in places and likely allow the
-  optimizer to do a better job.
-
-- .xy is very frequently used.. why don't we have xyz -> xy conversion in the language,
-  implemented as a struct shortening op?
-  warning, if the struct is KEEP and contains refs in the chopped fields, it would need
-  drops.
-
-- maybe add some standard #defines for Lobster GLSL for int3/float3,
-  we'd be a lot closer to universally readable math code (minus
-  the C/Python syntax differences, so still not fully copy-pastable).
+- New co-routines with some of the ideas above or in https://github.com/aardappel/lobster/issues/100
 
 - Get Lobster VSCode plugin/LSP to work well - @ewoudje
   - Implement a --breakpoints that allows inserting of breakpoints as indicated by the plugin?
@@ -524,33 +342,6 @@
     But this would enable traditional step by step debugging.
   - tracepoint: like breakpoint, but automatic continue and the UI stays live.. for debugging values changing over time.
 
-- A possible interesting way to optimize our AST storage:
-  https://www.youtube.com/watch?v=ZI198eFghJk
-  A summary of most of the talk is: do it like the FlexBuffers serializer, build a stack
-  of uniform nodes that are then added to a node array contiguously.
-  A node can be as small as 64-bit: 32-bit index to children, 24-bit index to per node type infos,
-  8-bit type.
-  It doesn't seem like the current compiler is bottlenecked by our inefficient ASTs, but we do do
-  a lot of cloning and a closed world compile, so it could eventually matter for larger codebases.
-  If you assume that these node structs can be overwritten (as part of type checking/optimization),
-  but the per-type arrays do not, then cloning becomes even cheaper, only having to copy the
-  nodes, if we can guarantee the parser delivers contiguous defs for each function, its a single
-  memcpy.
-  per-type infos would never be deleted, but nodes could be deleted and reused if desired.
-  Biggest huge downside would be the loss of typing of nodes, and having to move from methods
-  to a switch.
-  You could retain some of the typing by having a Node<E> where E is the enum type such that you
-  can statically have Node<T_ADD> even though T_ADD is also stored in the struct?
-  Still, will require a lot of casting since there is no automatic upgrade from a generic Node to
-  such a type when doing a switch on a Node type.
-  Furthermore, for strong typing, you'd want the index to per node type infos to also be strongly
-  typed like this, by only allowing indexing with an Index<T_INT> into the array where all integer
-  constants are stored, etc.
-  It can be done, but is likely a bit of a nightmare to retrofit.
-  Better wait for a benchmark of the first huge program that is slow to compile.
-  Voxlands of Feb 2024: TIME 0.382 seconds (lobster compile + tcc + program start)
-  It is clearly an idea that appeals to my inner optimizer more than there's a need.
-
 - Inline structs, further improvements:
   - fields can be stored in fewer bits (`x:int<8>`), but vector elements can't (e.g. a vector of
     int16). Truely supporting that would be easier if all vector ops were code-genned instead of
@@ -574,9 +365,6 @@
   - bundle subsequent decls
   - how to do if frame_event: do_for_N_seconds
   - find more places to use it, samples etc
-
-- "C-style language to Lobster Cheat Sheet" could use improvements, and more about types.
-  Also its function values use `def(a, b):`, which doesn't parse, should be `fn(a, b):`.
 
 - The declchecker (declcheck.h) now sits between parser and typechecker: inheritance
   forest, superclass field copies, call name resolution, non generic V_UUDT collapse, and
@@ -619,29 +407,6 @@
 - There's likely all sorts of uses of SubFunction that would be less buggy if Overload was used instead.
   - To find out, have to audit every use of it.
 
-- We now have official `constructor` functions (to turn args into an object), we should maybe also have
-  official `destructor`, to make official the pattern of having a `destruct` function that clears cycle
-  vars. The only difference would be to call these functions automatically.
-  Implementation wise this is not super easy since they'd need to be called in the middle of possibly
-  recursive VM destruction code.
-  Also, ideally that would mean these functions don't need to call `destruct` on children explicitly,
-  but they do, because the whole point is that you may have to clear cycles before you come across
-  a refc > 0, and the VM destruction code bails out.
-  So it would only help automatically call it on roots? That doesn't sound overly useful.
-  In essence, it is not a per-object feature, but scoped to particular root objects: I am going
-  to throw away this big object called WorldState which means the programmer knows it is not going
-  to need these cycle refs in objects deep down within it.. but the language doesn't know these
-  objects aren't referenced from elsewhere.
-
-- A multiline lambda/block currently does not work inside of a function call, since () causes all
-  lf's to be consumed, so this currently causes errors as if the lines were merged.
-  Making this into a clearer error is hard because we can't detect this case exactly because the
-  parser doesn't even see multiple lines.
-  Making it supported is hard because there are no clear delimiters, meaning the parser has to hint
-  at the lexer that we're inside a function body, so we can make it not ignore lfs if we're at
-  the top level of the body. But this in turn makes existing bodies that are on a next line not
-  parse anymore due to new indents/lfs inserted / missing dedents.
-
 - Profiling uses Tracy (or its builtin emulation, LOBSTER_FRAME_PROFILER), with zones only for
   functions marked `attribute profile`. Instrumenting every compiled function and builtin is a
   compile time switch (LOBSTER_FRAME_PROFILER_FUNCTIONS / _BUILTINS): make that conditional on
@@ -674,55 +439,13 @@
 
 - split builtins into categories for helpfile
 
-- (mortimersnerd) Type system: allow any struct of same set of fields to be converted to any other
-  such struct?
-  Goes a bit agains strong typing?
-
-- instancing
-  https://learnopengl.com/Advanced-OpenGL/Instancing
-  or GL_ARB_multi_draw_indirect even more flexible.
-
-- It may be worth separating out strings from buffers, that way we can do zero-copy-alloc
-  string views onto buffers which is really the ultimate way a language can do strings:
-  https://twitter.com/wvo/status/1535311563992666112
-  Thing is, the ideal view type would be
-  struct string: s:buffer, offset:int, size:int
-  and making all string functions take this struct may be troublesome?
-  Can also make it heap allocated for now since these are still cheap since they're small & fixed size.
-  Or could see if we can pack the view data into a single 64-bit quantity..
-  - too limiting probably, even with a global table of buffers
-  - can do a page-aligned arena of buffers to have the view be a single offset+len into that,
-    but then memory can't move.. and mmap based allocation uses too much address space
-    and page aligned not great for small strings :)
-  If we go this route, should see if those views can be given a type for super ergonomic byte
-  buffer read/write instead of write_int8_le and similar functions.
-  Likely, we'd want buffers to never be able to shrink, since that would possibly make every
-  string access a runtime error if its now out of bounds.
-  buffer type would convert to string automatically, so that mostly it doesn't need to be
-  accepted specifically anywhere.
-  Another issue is the pervasive use of strvnt()/data(), which would now now need an optional copy
-  again. One way to solve that is to allow an implicit string to buffer conversion that
-  copies if the string doesn't address the whole buffer, that way these builtins (like imgui)
-  can demand a buffer for their label? A bit odd to use buffer that way though.
-  Instead, for most functions can do the swap terminator trick on these buffers.
-  The other most frequent op is string concatenation, would be fun if that was optimized?
-  e.g. a + b, if a spans a whole buffer, it should be legal to actually place b into
-  this buffer, making it possibly an alloc-free operation.
-  Problem is, people have to structure their code explicitly around passing in the LHS as an
-  arg to any string producing operations.
-  Could have specialized versions of some string producing ops, i.e. a + 1 could be
-  compiled to generate the int directly in a's buffer.
-  It is somewhat magical, in that if you created a buffer for say serializing a file, then
-  wanted to print the string you just serialized at the end, and if the printing did some
-  concatenation you'd end up with extra data in the buffer, though that is fairly contrived,
-  since you'd have to explictly do buffer.substring to produce that problem.
-
 - we should add constant size arrays.
   they would almost be identical to structs: allocated in-line in parent, copied rather
   than referenced, and help building low cost datatypes.
   We could even make them piggy-back on structs, as essentially a float[4] is just a
   struct with 4 float fields that you can also index over. And we already allow
   indexing on same-type structs?
+  We could even just make it syntactic sugar for now, struct Foo: a:float[16] just unrolls?
 
 - Type aliases, in particular for use with int/float/string, to distinguish them from
   other uses of the same type.
@@ -733,11 +456,6 @@
   Would cause more specializations, since you'd need to perculated the type alias
   to get the full range of type checking from them.
   Would make it more important to merge identical specializations?
-
-- Should we specialize own vs borrow on a per string constant basis?
-
-- Would it be possible to allow overloading of built-ins even with same number of args?
-  https://github.com/aardappel/lobster/issues/145
 
 - `sum` and some other std functions have `let init = 0` to work around the int/float constant warning.
   Can we do something better here?
@@ -754,6 +472,56 @@
   `hof` here may be something you want to nest, and the repeated decl of `X` would be unwelcome.
   See: Kotlin, that made a very cool feature out of this:
   https://kotlinlang.org/docs/lambdas.html#function-types
+
+- .xy is very frequently used.. why don't we have xyz -> xy conversion in the language,
+  implemented as a struct shortening op?
+  warning, if the struct is KEEP and contains refs in the chopped fields, it would need
+  drops.
+
+- auto binding generated C++ headers from a Lobster decl
+
+- Field types derived from default values now go thru SimpleType where possible; the
+  remaining cases (function calls) still use the full-typecheck-then-clone-undo fallback
+  in EnsureUDTChecked (--debug logs both categories). Could be eliminated by requiring
+  explicit types on such fields (matvoxels would need ~235 annotations: mostly untyped
+  nil / [] defaults, which arguably deserve them, and builtin/function call defaults).
+
+- Nil chaining (typically x?.a) comes with all sorts of problems exacerbated by it being
+  very terse syntax, if we could make it verbose with the obvious keyword of guard,
+  it could be a good feature?
+  x.guard.a
+  (guard x).a
+  guard(x).a
+
+- "guard" can't be used if there is code following the transformed if-then-else.
+  While it is maybe taking things a bit far, you could imagine a guard-finally:
+
+  guard x:
+      // The else branch.
+  finally:
+      // The ending/cleanup code.
+  // The main code, which is the then branch.
+
+  Which is equivalent to the familiar:
+
+  if x:
+      // The main code.
+  else:
+      // The else branch.
+  // The ending/cleanup code.
+
+  Now this seems like taking things a bit too far, but it could feel logical if the main code
+  is really gigantic and the else/ending code is small.
+  In theory, it would allow you to get rid of if-then-else entirely, recognizing the idea
+  that most code should really be differentiating what is the linear, main line flow from
+  the exceptions, though in real code there are cases where the ending code is of course
+  the longest.
+
+  And you'd also want a version for guard without else:
+
+  guard x finally:
+      // The ending/cleanup code.
+  // The main code.
 
 - "guard" is a feature to promote early-out programming style, but more deeply it can also
   be seen as analogous to Icon/ProLog sequence of expressions that can fail.
@@ -780,6 +548,97 @@
   "guard" is a special case of this, since you could implement guard as "each _ = boolean_exp"
   I guess additionally "each" doesn't have an optional else block, so the distinction is still
   useful, besides the clear naming.
+
+- Dead code checking (TypeCheckDeadCode) covers top level named functions (methods included)
+  whose args all have concrete given types. Could be extended to functions with generic args,
+  such as methods of generic classes that are never instantiated (checked against their given
+  constraints once we have those, see interfaces/traits elsewhere in this file).
+
+- "Functions as environments" is now a specified feature (see declcheck.h): a call to a
+  name with no lexically visible function resolves to a local function of that name in
+  another scope, valid only while its enclosing function is active (innermost active scope
+  wins), mirroring how free variables work. Kept for now because matvoxels relies on it
+  (game.lobster's player-update helpers apply_damage/abort_active_item_action/
+  show_out_of_stamina/do_deflect are used from 34 call sites in game_item.lobster and
+  close over enclosing locals). Revisit whether we want to keep this long term, since
+  removing it requires threading those locals as args (or a context object) in such code.
+
+- Borrow checker and flow typing: writes thru a parameter (or `this`) are checked against what
+  the callers borrowed or promoted (tests/errors/borrow_param_alias.lobster and friends),
+  vector elements are locations of their own, and a write thru a variable that owns what it
+  was assigned from a variable path (`var y = x`, `y = x.f`, a parameter, a loop element)
+  counts as a write to that path too, for all the paths it was ever assigned from
+  (SpecIdent::owning_aliases, TypeChecker::ExpandAliases). When the borrow that conflicts is
+  an argument of a call, the caller keeps the value alive instead of it being an error
+  (KeepArgAlive). What remains unsound is aliasing the checker cannot see, which can compile
+  and then crash at runtime:
+  - an alias that arrives some other way than from a variable path: a function result, a
+    vector element or field that the object was stored in (`v.push(x)`, `o.f = x`, then a
+    write thru `v[0].t` or `o.f.t`), or a struct copy (`var s = x.pos` shares the objects its
+    reference fields hold);
+  - an alias established later in a loop body than the write thru it, on the next iteration
+    (the same hole flow typing has: `if x: for(3) i: print x.length; x = nil` crashes).
+  See "A more conservative mode" below for what closing these would take.
+
+- Lobster's ability to run other code dynamically:
+  - It can already load entirely new Lobster programs on the fly.
+  - It can run glsl compute shaders.
+  - It can already run C code (great way to run PLs implemented IN Lobster! May need to
+    extend its builtins to give access to Lobster builtins somehow?)
+  - QuickJS would be super easy to add.
+  - Lua also but maybe too much code.
+  - Any new language I invent would be better served embedded in Lobster, since
+    that means we don't need to repeat all the work on bindings etc.. though it does mean
+    adopting at least some Lobster memory management. But if it runs from Lobster, there
+    is already a Lobster VM running so this is easy.
+    But there is no reason to embed it at the C++ level.. with the libtcc
+    interface, and entire language can be just Lobster code.
+
+- In our largest project to date, the codegen type_table is 134K in size (34K int entries).
+  16% of that is nillable types, since a nillable class type has a full copy of all its
+  fields much like the non-nillable version.
+  If we separetely serialized fields from the class (by referring it over an offset used by both),
+  we'd probably save an estimated 12% of total space.
+  This may be worth it for a tiny speed reduction looking up field types.
+
+- Free Variables
+  - This is one of the very inefficient parts of the type checker.
+  - Inlining removes the free variable status of the locals of a function, but not of top level
+    variables, which CheckFreeVariable marks used_as_freevar right away: these stay in vm.fvars,
+    with a BackupVar/RestoreBackup, even when every function reading them got inlined.
+
+- defining variables (or functions, or anything else) should fail if it is already a namepace.
+  But frankly there's a ton of these possible interactions, should maybe move to a single symboltable.
+  Another example is trying to use a variable with the same name as an enum.
+- namespace improvements:
+  - Declaring a variable (or function) that has the same name as a namespace should be an error? (poll so far: yes)
+    Sadly this is not so simple, we have a lot of 2 letter namespaces such as ph, im, fg.. and
+    it becomes very surprising when these lead to errors in existing code. Leaving as-is for now.
+  - obj.foo where foo is a method in a namespace should work if obj already has that namespaced type?
+    That requires moving at least some of the namespacing into the type checker.
+    See: https://github.com/aardappel/lobster/issues/284
+  - any more builtins to namespace?
+  - move namespace parsing to parser!
+  - Should obj.ns.fun() be disallowed (poll so far: no)
+  - Should you be able to "import" namespaces? Most languages have this, but it is kind of an anti-feature since
+    it make things harder to recognize without its namespace in front.
+    Really, don't put things in a namespace if you don't effectively want to make it part of the name.
+
+- move this TODO.txt to github issues?
+  - That's going to create 100+ issues, and not necessarily easier to overview since github doesn't have a good way to
+    order issues by priority, and search for things.
+    - Actually, the new "projects" can order issues both by a rough priority status, and also within that item by item.
+    - Creating an issue for each bullet point here would be chaos indeed, but
+      first sorting this entire file by language feature or system area, and then creating issues
+      with sub-parts of those indicated by "- [ ]" which creates checkboxes than can show progress.
+      - Pasting the bullets from here mostly creates correctly formatted bullets in github so
+        can be done without too much extra formatting work.
+    - Easier to refer people who want to know what is planned and/or want to help.
+  - Right now, searches for keywords hit both code and this TODO.txt.
+
+- maybe add some standard #defines for Lobster GLSL for int3/float3,
+  we'd be a lot closer to universally readable math code (minus
+  the C/Python syntax differences, so still not fully copy-pastable).
 
 - Add to docs:
   - As static as possible memory management: https://www.cl.cam.ac.uk/techreports/UCAM-CL-TR-908.pdf
@@ -871,13 +730,6 @@
   many uses of recursion are problematic in terms of stack use, the user should really be
   explicitly aware of them, and they should be easy to find in a program.
 
-- it be really easy to bring full "any" back for builtin functions, and mixed type varargs
-  at the same time by prefixing each value on the stack by a ti value, and possibly a length.
-  what is this useful for?
-  - more efficient print and to string?
-  - formatted printing?
-  - serialization?
-
 - jpp: remove can't use named function as value restriction.
 
 - jpp: would be good to be able to overload print/string for own types.
@@ -911,22 +763,6 @@
   - call on function value must be single var, not member
   - cannot derive function value from named function.
 
-- General order of typechecking is:
-  * child TT
-  * child LT adjust
-  * subtype coercion
-  This can be problematic in some cases, what really needs to happen is:
-  * child TT
-  * child LT adjust for coercion
-  * subtype coercion
-  * child LT adjust for recipient
-  This is already done manually in a few places, but would be good to do more consistently.
-  Also, maybe have the case where LT adjust does nothing (e.g. for integer) then subtype coercion
-  to e.g. string suddenly needs a different LT than the initial TT.
-
-- Builtin overload resolution could be simplified:
-  https://github.com/aardappel/lobster/issues/89
-
 - Explicit genericity for functions.
   - overload resolution still doesn't use givenargs.
   - if we had T() as a cast, we could fix the enum type problem in multiselect in gui.lobster.
@@ -943,22 +779,6 @@
 
 - docs: explain about unbound variables, and what causes:
   type `unknown` does not have field `size`
-
-- Add a "run as DLL" mode for --cpp.
-  This would, if Lobster can find an installed C++ compiler, compile the compiled code to a DLL
-  to be loaded straight into the running program, as a faster alternative to TCC.
-  Can do this by exporting the VM ops as function pointers to the DLL, but that would likely not
-  be much faster than TCC mode.
-  Instead, it would have to compile also the VM ops + vmdata.h/.cpp etc into the DLL.
-  That could be somewhat slow at -O2 for larger programs, but worth it in many cases.
-  This would give the same speed as natively compiled mode in -O2, and the user could even choose
-  to ship this DLL!
-  Also can alternatively run with -O1 / -Os for different tradeoffs in startup & running speed.
-  Alternatively, if we want to avoid the linker and use it with the actual LLVM JIT, we
-  could have clang generate bitcode and feed that to the JIT:
-  https://weliveindetail.github.io/blog/post/2017/07/25/compile-with-clang-at-runtime-simple.html
-  Though having to provide C++-mangled externs for the JIT for everything the compiled code
-  touches likely not fun.
 
 - Since the JIT, stack overflows now just blow the native stack, since function calling uses
   the native stack. This will be hard to fix since we don't know the size of the native stack.
@@ -1011,8 +831,6 @@
     consuming values from previous such calls?
     this way you could make the recursive quicksort non-recursive, by returning 2 quicksort calls
     and 1 append_it_all call. though of course this still uses unbounded stack memory, just less so.
-
-- New co-routines with some of the ideas above or in https://github.com/aardappel/lobster/issues/100
 
 - jcorbin: a basis_spline equivalent of cardinal_spline
 
@@ -1124,26 +942,53 @@
   - Just leave it as is. Prefer not to write HOFs that modify state, and if they do, well,
     the user needs to be aware changes don't get undone with non-local returns.
 
+- A possible interesting way to optimize our AST storage:
+  https://www.youtube.com/watch?v=ZI198eFghJk
+  A summary of most of the talk is: do it like the FlexBuffers serializer, build a stack
+  of uniform nodes that are then added to a node array contiguously.
+  A node can be as small as 64-bit: 32-bit index to children, 24-bit index to per node type infos,
+  8-bit type.
+  It doesn't seem like the current compiler is bottlenecked by our inefficient ASTs, but we do do
+  a lot of cloning and a closed world compile, so it could eventually matter for larger codebases.
+  If you assume that these node structs can be overwritten (as part of type checking/optimization),
+  but the per-type arrays do not, then cloning becomes even cheaper, only having to copy the
+  nodes, if we can guarantee the parser delivers contiguous defs for each function, its a single
+  memcpy.
+  per-type infos would never be deleted, but nodes could be deleted and reused if desired.
+  Biggest huge downside would be the loss of typing of nodes, and having to move from methods
+  to a switch.
+  You could retain some of the typing by having a Node<E> where E is the enum type such that you
+  can statically have Node<T_ADD> even though T_ADD is also stored in the struct?
+  Still, will require a lot of casting since there is no automatic upgrade from a generic Node to
+  such a type when doing a switch on a Node type.
+  Furthermore, for strong typing, you'd want the index to per node type infos to also be strongly
+  typed like this, by only allowing indexing with an Index<T_INT> into the array where all integer
+  constants are stored, etc.
+  It can be done, but is likely a bit of a nightmare to retrofit.
+  Better wait for a benchmark of the first huge program that is slow to compile.
+  Voxlands of Feb 2024: TIME 0.382 seconds (lobster compile + tcc + program start)
+  It is clearly an idea that appeals to my inner optimizer more than there's a need.
+
+- We now have official `constructor` functions (to turn args into an object), we should maybe also have
+  official `destructor`, to make official the pattern of having a `destruct` function that clears cycle
+  vars. The only difference would be to call these functions automatically.
+  Implementation wise this is not super easy since they'd need to be called in the middle of possibly
+  recursive VM destruction code.
+  Also, ideally that would mean these functions don't need to call `destruct` on children explicitly,
+  but they do, because the whole point is that you may have to clear cycles before you come across
+  a refc > 0, and the VM destruction code bails out.
+  So it would only help automatically call it on roots? That doesn't sound overly useful.
+  In essence, it is not a per-object feature, but scoped to particular root objects: I am going
+  to throw away this big object called WorldState which means the programmer knows it is not going
+  to need these cycle refs in objects deep down within it.. but the language doesn't know these
+  objects aren't referenced from elsewhere.
+  Or simpler: a Node with a parent point has a root with refc==2, so destruction doesn't
+  even start.
+
 - FlatBuffers implementation:
   - make accessor handles (`class handle` in flatbuffers.lobster) into structs, now that structs
     can mix scalars and refs.
   - Make builder offset struct into specialized structs for the type? Maybe not necessary?
-
-- It often crashes in creating the stack trace when values are corrupt.
-  If this results in another error, it perculates up the exception, but no such help for asserts.
-  - Would be good to print to stack trace incrementally rather than accumulating in a string first,
-    with some kind of callback? so output can happen before the crash.
-  - Make reading values more robust.
-    - If VM is in an "error" state, ignore any bad values and just return empty defaults.
-      - this has to sadly be done at every callsite since Error is not expected to return.
-
-- if/while/for have dedicated parsing, think about what features could be removed from function
-  calling that are unnecessary.
-  - maybe _ args?
-  - can consider also making higher order functions introduce the lambda with a keyword to
-    make it all more parsable.
-    map xs do x: body
-    map x in xs: body  // Python-esque, sadly in an odd order.
 
 - increase abilities of "break"
   - break out of multiple loops.
@@ -1152,19 +997,6 @@
     - the problem is the semantics: you transfer control to the end of the loop inside the
       HOF, and you don't necessarily know what that does. Though in many cases it will work,
       e.g. break inside a "map" will just return a shorter list.
-
-- Now that the language is always 64-bit:
-  - can further improve type simplicity by:
-    - Would be nice to move everything to using 64-bit, but this is hampered by the STL on
-      32-bit platforms wanting size_t everywhere, which means most values still needing to
-      be at least ssize_t not require casts, which still requires casts between it and any
-      always-64-bit values, limiting the amount of cleanup you can do.
-      There is some of this (see iint and ssize_t in tools.h), but converting more code
-      only makes sense once we can drop 32-bit platforms entirely (Emscripten/wasm32 is the
-      last one we build).
-  - Can think of features that would allow use of smaller sizes as opt-in.
-    - Should definitely add support for 8/16/32-bit int arrays (struct fields can already be
-      `int<N>`).
 
 - remove or bound LT_ANY, it makes checks for keep/borrow fragile and can perculate.
   - check for any == LT_KEEP etc, since != LT_BORROW (and vice versa) is safer
@@ -1287,13 +1119,6 @@
   - File Selector:
     https://github.com/dfranx/ImFileDialog
 
-- GenConcatOp generates a sequence of string concats as one call, but could also detect the
-  ToString nodes in it and do I2S etc. inline, with even fewer allocations.
-- Also, does sit make sense to allow += to modify strings in place?
-  This is different semantics from += generally, but would be very nice to have.
-  And combined with the above feature s += a + b can also be alloc-less.
-  And then same for vectors?
-
 - LIFETIME related TODO. Initial version exists, what is needed to make it better?
   - This is actually rather similar to what we currently do:
     https://smallcultfollowing.com/babysteps/blog/2024/03/04/borrow-checking-without-lifetimes/
@@ -1377,7 +1202,6 @@
   that these definitions are needed to parse a file, though you'd be ok to start
   parsing a file and defs becoming available half-way.
   Would also need to be stored in an lpak (--rpak) in that case.
-
 - Something like Python C-types: ability to call any DLL/so function without explicit
   bindings.
 
@@ -1387,20 +1211,12 @@
 
 - For fun: follow along https://github.com/kanaka/mal/blob/master/process/guide.md
 
-- Should refactor for size of files.. typechech.h is getting unwieldy.
-  Can maybe pull out some lifetime stuff?
-
 - should add a debug feature like https://blog.rust-lang.org/2019/01/17/Rust-1.32.0.html
   - and make it so it only gets compiled in when you run it in a "debug" mode so the
     code can be let in, with optional tags etc.
 
-- should have slaballoc use indices so allocation granularity can always be smaller?
-  especially when using 32-bit emulation.
-
 - if/while conditions on a non-nil reference type warn that they always succeed, but are not
   optimized accordingly: both branches still get generated.
-
-- make type_table (and the other int tables) more readable in generated C++.
 
 - add support for pure functions.
   introduce functions with e.g. "fun" instead of "def" to indicate they are pure (much like
@@ -1417,8 +1233,6 @@
   - codegen: remove special purpose use of rettypes, replace by regular types.
   - codegen: remove dropping in codegen to just follow typechecker?
     - though codegen dropping is recursive, e.g. it drops 1+2, though not sure how useful that is
-
-- tagged arguments in Lobster for function calls.
 
 - Improve threads.
   - Consider spawning the workers from their own source code?
@@ -1598,11 +1412,6 @@
 
 - Can't call o.f() where f is anonymous function value, need to first assign to temp var.
 
-- assert prints the failed expression as a node dump (see FIXME in Assert::Generate, would be
-  better as source; after inlining + constant folding it can print just `0`). Could also make it
-  understand equality operators directly, i.e. any "assert A == B" can actually output the values
-  of A and B.
-
 - typeof gives static type, needs to be dynamic when used with ref objects.
 
 - In this kind of code, without the type annotation, the list specializes it to subclass
@@ -1779,10 +1588,6 @@
 - consider baking Z up into functions.
 
 - use RangeCheck in more places.
-
-- == on structs compares string fields by reference (U { "a" } == U { "a" } is false, unlike
-  == on strings), and isn't allowed on structs mixing int and float fields. equal only takes
-  reference types, so neither kind can be compared structurally.
 
 - excellent candidate for a 3D physics engine to integrate: https://github.com/RandyGaul/qu3e
   Or: https://github.com/jrouwe/JoltPhysics see https://twitter.com/erwincoumans/status/1496513233146068992
