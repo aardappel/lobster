@@ -60,6 +60,19 @@ is desired.
     #define COLLECT_STATS
 #endif
 
+// How many bytes a block from malloc can hold, which is at least what was asked for and often
+// more, so a string that grows can use the room before asking for a bigger block.
+#ifdef _MSC_VER
+    #include <malloc.h>
+    inline size_t MallocUsableSize(void *p) { return _msize(p); }
+#elif defined(__APPLE__)
+    #include <malloc/malloc.h>
+    inline size_t MallocUsableSize(void *p) { return malloc_size(p); }
+#else
+    #include <malloc.h>
+    inline size_t MallocUsableSize(void *p) { return malloc_usable_size(p); }
+#endif
+
 class SlabAlloc {
     // Must be ^2. lower means more blocks have to go thru the traditional allocator (slower).
     // Higher means you may get pages with only few allocs of that unique size (memory wasted).
@@ -178,6 +191,25 @@ class SlabAlloc {
             blocks = (void **)next;
         }
         while (!largeallocs.Empty()) free(largeallocs.Get());
+    }
+
+    // For an allocation that is expected to grow: a large one gets twice the room, which
+    // size_of_allocation reports, so appending to it can go on in place. A small one is what it
+    // is, since its bucket is decided by its size. Freed like any other allocation of its size.
+    void *alloc_with_slack(iint size) {
+        return size > MAXREUSESIZE ? alloc_large(size * 2) : alloc_small(size);
+    }
+
+    // The room an allocation of `size` bytes actually has.
+    iint size_of_allocation(void *p, iint size) {
+        if (size <= MAXREUSESIZE) {
+            #ifdef PASSTHRUALLOC
+                return size;
+            #else
+                return size_of_small_allocation(p);
+            #endif
+        }
+        return (iint)MallocUsableSize((DLNodeRaw *)p - 1) - (iint)sizeof(DLNodeRaw);
     }
 
     // These are the most basic allocation functions, only useable if you know for sure

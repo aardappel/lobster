@@ -15,6 +15,7 @@ import .test_helpers
 import .lexical
 import .operators
 import .strings
+import .append
 import .math
 import .vectors
 import .structs

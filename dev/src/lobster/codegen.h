@@ -81,6 +81,16 @@ struct CodeGen  {
         bool jumped;
     };
     vector<InlineBlockState> inline_blocks;
+    // The pieces a string append is about to add, evaluated onto the temp stack in this order,
+    // for the modifier that writes them, see GenStringAppendOps: a string, or a value that
+    // converts to one as it is appended, with the type it is read as and the type index of what
+    // it converts as.
+    struct AppendOp {
+        bool tostring;
+        TypeRef type;
+        int ti;
+    };
+    vector<AppendOp> f_sappend;
     // The loop and the stack depth and target its break/continue sites need, kept together
     // so entering or leaving a loop changes a single stack.
     struct LoopState {
@@ -1215,6 +1225,15 @@ struct CodeGen  {
                 "void RtEnumRangeErr(VMRef);\n"
                 "Value *RtLvalIndexClass(VMRef, LObject *, long long, int);\n"
                 "void RtLvSAdd(VMRef, Value *, LString *);\n"
+                "LString *RtSAppend(VMRef, LString *, LString *);\n"
+                "LString *RtSAppendInt(VMRef, LString *, long long, type_elem_t);\n"
+                "LString *RtSAppendFloat(VMRef, LString *, double, type_elem_t);\n"
+                "LString *RtSAppendFun(VMRef, LString *, fun_base_t, type_elem_t);\n"
+                "LString *RtSAppendRef(VMRef, LString *, RefObj *, type_elem_t);\n"
+                "void RtLvSAddInt(VMRef, Value *, long long, type_elem_t);\n"
+                "void RtLvSAddFloat(VMRef, Value *, double, type_elem_t);\n"
+                "void RtLvSAddFun(VMRef, Value *, fun_base_t, type_elem_t);\n"
+                "void RtLvSAddRef(VMRef, Value *, RefObj *, type_elem_t);\n"
                 "int RtStaticSetThisFrame(VMRef, int);\n"
                 "int RtMemberSetThisFrame(VMRef, LObject *, int);\n"
                 ;
@@ -4284,7 +4303,8 @@ struct CodeGen  {
     // same deal as GenScalarBinOp.
     void GenLvalModifier(LvalOp op, TypeRef type) {
         auto width = ValWidth(type);
-        TrackUseDef(LvalModifierUses(op, width), 0);
+        // A string append takes the pieces GenStringAppendOps evaluated.
+        TrackUseDef(op == LV_SADD ? (int)f_sappend.size() : LvalModifierUses(op, width), 0);
         if (f_lval_packed) {
             GenLvalModifierPacked(op, type);
             return;
@@ -4310,26 +4330,39 @@ struct CodeGen  {
             for (int i = 0; i < width; i++)
                 CopyConsumed(cb, Lval(i, type), Slot(width - i, type, i));
         } else if (op == LV_SADD) {
-            auto rhs = Read(Slot(1, VK_STRING));
+            // The pieces GenStringAppendOps evaluated, bottom of the stack first, each appended
+            // by the helper for what it is: a string, or a value converted as it goes on, with
+            // the type index it converts as. Each append takes over the reference to the string
+            // so far, which it may grow in place, see RtSAppend.
+            auto n = (int)f_sappend.size();
+            auto kind = [&](int i) {
+                auto &ao = f_sappend[i];
+                return ao.tostring ? string(KindName(Slot(n - i, ao.type).k())) : string();
+            };
+            auto args = [&](int i) {
+                auto &ao = f_sappend[i];
+                if (!ao.tostring) return Read(Slot(n - i, VK_STRING));
+                return cat(ReadTyped(Slot(n - i, ao.type)), ", (type_elem_t)", ao.ti);
+            };
             if (f_lval_kind == LVK_LOCAL || f_lval_kind == LVK_FIELD ||
                 f_lval_kind == LVK_ELEM) {
-                // The old string is an operand, so it loses its reference only once the new
-                // one exists.
                 // The place may hold the string as another kind of reference (a field of a
                 // struct in an abstract struct family, see SlotTypeOf), which is a cast
                 // both ways.
                 auto v = Lval(0, type);
-                append(cb, "    {\n    LString *_s = RtSAdd(vm, ", ReadAs(v, VK_STRING), ", ", rhs,
-                       ");\n");
-                rc_tag = "overwrite:sadd";
-                GenDecRef(cb, v);
-                rc_tag.clear();
+                append(cb, "    {\n    LString *_s = ", ReadAs(v, VK_STRING), ";\n");
+                for (int i = 0; i < n; i++) {
+                    append(cb, "    _s = RtSAppend", kind(i), "(vm, _s, ", args(i), ");\n");
+                }
                 Write(cb, v, v.k() == VK_STRING ? string("_s") : cat("(", CType(v.k()), ")_s"));
                 cb += "    }\n";
             } else {
                 // Appending to a string in memory can free the old one, so it stays a call.
-                append(cb, "    RtLvSAdd(vm, ", LvalPtr(), ", ", rhs, ");\n");
+                for (int i = 0; i < n; i++) {
+                    append(cb, "    RtLvSAdd", kind(i), "(vm, ", LvalPtr(), ", ", args(i), ");\n");
+                }
             }
+            f_sappend.clear();
         } else if (op >= LV_IPP) {
             auto c = op == LV_IPP || op == LV_FPP ? " + 1" : " - 1";
             auto v = Lval(0, type);
@@ -4479,8 +4512,12 @@ struct CodeGen  {
         }
     }
 
+    // `sappend` is the pieces a string append adds, see GenStringAppendOps, which the modifier
+    // gets only once the lvalue is generated, since generating that may append to a string of
+    // its own.
     void GenAssign(const Node *lval, LvalOp lvalop, size_t retval,
-                   const Node *rhs, int take_temp, bool post) {
+                   const Node *rhs, int take_temp, bool post,
+                   const vector<AppendOp> *sappend = nullptr) {
         assert(node_context.back()->exptype->NumValues() >= retval);
         auto type = lval->exptype;
         if (lvalop >= LV_IADD && lvalop <= LV_IMOD) {
@@ -4506,6 +4543,7 @@ struct CodeGen  {
         }
         if (rhs) Gen(rhs, 1);
         GenAssignLvalRec(lval, 0, take_temp, type);
+        if (sappend) f_sappend = *sappend;
         if (!post) {
             GenLvalModifier(lvalop, type);
         }
@@ -4523,6 +4561,62 @@ struct CodeGen  {
         if (post) {
             GenLvalModifier(lvalop, type);
         }
+    }
+
+    // The node a value comes from, past the lifetime conversion that gives it up rather than
+    // takes it, which a value that is not made into one of its own has no use for.
+    static const Node *SkipDecrefWrapper(const Node *n) {
+        if (auto lt = Is<ToLifetime>(n); lt && lt->decref && !lt->incref) return lt->child;
+        return n;
+    }
+
+    // The operands of a chain of string concatenations, in order: what GenConcatOp allocates
+    // one string for, and GenStringAppendOps appends one by one.
+    static void FlattenConcat(const Node *n, node_small_vector &strs) {
+        strs.push_back((Node *)n);
+        for (;;) {
+            auto c = SkipDecrefWrapper(strs[0]);
+            auto p = Is<Plus>(c);
+            if (p && p->left->exptype->t == V_STRING && p->right->exptype->t == V_STRING) {
+                strs.erase(0);
+                strs.insert(0, p->right);
+                strs.insert(0, p->left);
+            } else {
+                break;
+            }
+        }
+    }
+
+    // `lval += rhs` on a string: the pieces of the right hand side go onto the string one by
+    // one (see RtSAppend), rather than into a string of their own first. A concatenation
+    // contributes its operands, and a conversion the value it converts, which is written out
+    // onto the string as it is appended. Every operand is evaluated before anything is
+    // appended, so a side effect on the string being appended to lands before the append, as
+    // it did when the right hand side was a value of its own.
+    void GenStringAppend(const Node *lval, const Node *rhs, size_t retval) {
+        node_small_vector ops;
+        FlattenConcat(rhs, ops);
+        GenStringAppendOps(lval, ops, retval);
+    }
+
+    // The pieces stay on the temp stack for the assignment to take, the way a right hand side
+    // it generated itself would, so the list of them is only handed over once they are all
+    // there: generating one may append to a string of its own.
+    void GenStringAppendOps(const Node *lval, const node_small_vector &ops, size_t retval) {
+        vector<AppendOp> pieces;
+        for (auto op : ops) {
+            auto ts = Is<ToString>(SkipDecrefWrapper(op));
+            // A struct converts thru a string of its own, since it is more than one slot.
+            if (ts && !IsStruct(ts->child->exptype->t)) {
+                Gen(ts->child, 1);
+                pieces.push_back({ true, ts->child->exptype,
+                                   (int)GetTypeTableOffset(ts->child->exptype->ElementIfNil()) });
+            } else {
+                Gen(op, 1);
+                pieces.push_back({ false, type_string, 0 });
+            }
+        }
+        GenAssign(lval, LV_IADD, retval, nullptr, (int)pieces.size(), false, &pieces);
     }
 
     void GenConcatOp(const BinOp *n, size_t retval) {
@@ -4980,10 +5074,27 @@ void Define::Generate(CodeGen &cg, size_t retval) const {
 }
 
 void Assign::Generate(CodeGen &cg, size_t retval) const {
+    // `s = s + ..` is `s += ..`, which appends in place, see GenStringAppend.
+    if (left->exptype->t == V_STRING) {
+        if (auto idr = Is<IdentRef>(left)) {
+            node_small_vector ops;
+            CodeGen::FlattenConcat(right, ops);
+            auto first = Is<IdentRef>(ops[0]);
+            if (ops.size() > 1 && first && first->sid == idr->sid) {
+                ops.erase(0);
+                cg.GenStringAppendOps(left, ops, retval);
+                return;
+            }
+        }
+    }
     cg.GenAssign(left, cg.AssignBaseOp({ *right, 0 }), retval, right, 1, false);
 }
 
 void PlusEq::Generate(CodeGen &cg, size_t retval) const {
+    if (left->exptype->t == V_STRING) {
+        cg.GenStringAppend(left, right, retval);
+        return;
+    }
     cg.GenAssign(left, LV_IADD, retval, right, 1, false);
 }
 void MinusEq::Generate(CodeGen &cg, size_t retval) const {

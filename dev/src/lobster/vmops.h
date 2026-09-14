@@ -263,11 +263,49 @@ VM_INLINE Value *RtLvalIndexClass(VM &vm, LObject *o, iint i, int offset) {
     return (Value *)o->FieldSlots() + i + offset;
 }
 
-// Appending to a string in place, which can free the old one.
+// `a += b` on a string: the result, which is `a` itself grown in place when nothing else holds
+// it and there is room, see VM::AppendString. Takes over the reference to `a`.
+VM_INLINE LString *RtSAppend(VM &vm, LString *a, LString *b) {
+    return vm.AppendString(a, b->strv());
+}
+
+// The same for a string in memory.
 VM_INLINE void RtLvSAdd(VM &vm, Value *lv, LString *b) {
-    auto res = vm.NewString(lv->sval()->strv(), b->strv());
-    lv->LTDECRTNIL(vm);
-    *lv = Value(res);
+    *lv = Value(vm.AppendString(lv->sval(), b->strv()));
+}
+
+// `a += x` for a value that is not a string, whose text goes onto `a` without a string of its
+// own, see VM::AppendToString. Split by kind like the Rt..ToString helpers are.
+VM_INLINE LString *RtSAppendInt(VM &vm, LString *a, iint x, type_elem_t ti) {
+    return vm.AppendToString(a, Value(x), vm.GetTypeInfo(ti));
+}
+
+VM_INLINE LString *RtSAppendFloat(VM &vm, LString *a, double x, type_elem_t ti) {
+    return vm.AppendToString(a, Value(x), vm.GetTypeInfo(ti));
+}
+
+VM_INLINE LString *RtSAppendFun(VM &vm, LString *a, fun_base_t x, type_elem_t ti) {
+    return vm.AppendToString(a, Value(x), vm.GetTypeInfo(ti));
+}
+
+VM_INLINE LString *RtSAppendRef(VM &vm, LString *a, RefObj *x, type_elem_t ti) {
+    return vm.AppendToString(a, Value(x), vm.GetTypeInfo(ti));
+}
+
+VM_INLINE void RtLvSAddInt(VM &vm, Value *lv, iint x, type_elem_t ti) {
+    *lv = Value(vm.AppendToString(lv->sval(), Value(x), vm.GetTypeInfo(ti)));
+}
+
+VM_INLINE void RtLvSAddFloat(VM &vm, Value *lv, double x, type_elem_t ti) {
+    *lv = Value(vm.AppendToString(lv->sval(), Value(x), vm.GetTypeInfo(ti)));
+}
+
+VM_INLINE void RtLvSAddFun(VM &vm, Value *lv, fun_base_t x, type_elem_t ti) {
+    *lv = Value(vm.AppendToString(lv->sval(), Value(x), vm.GetTypeInfo(ti)));
+}
+
+VM_INLINE void RtLvSAddRef(VM &vm, Value *lv, RefObj *x, type_elem_t ti) {
+    *lv = Value(vm.AppendToString(lv->sval(), Value(x), vm.GetTypeInfo(ti)));
 }
 
 }  // namespace lobster

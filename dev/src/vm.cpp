@@ -314,6 +314,12 @@ LString *VM::NewString(iint l) {
     return s;
 }
 
+// A string that is expected to be appended to, see AppendString.
+LString *VM::NewStringSlack(iint l) {
+    auto s = new (pool.alloc_with_slack(ssizeof<LString>() + l + 1)) LString(l);
+    return s;
+}
+
 #if defined(_MSC_VER) && !defined(NDEBUG)
     #define new DEBUG_NEW
 #endif
@@ -353,6 +359,41 @@ LString *VM::Writable(LString *s) {
     auto ns = NewString(s->strv());
     s->Dec(*this);
     return ns;
+}
+
+// `s + b` where `s` is given up: when nothing else holds `s`, it is a dynamic string, and its
+// allocation has the room, the bytes go in place and `s` is the result, which makes
+// `s += x` in a loop cost what it appends rather than what it has (a large string that had to
+// grow got room to spare, see SlabAlloc::alloc_with_slack). Otherwise a new string, and `s`
+// loses its reference. A constant and a shared string are never grown, since they are what
+// other evaluations or references see.
+LString *VM::AppendString(LString *s, string_view b) {
+    auto newlen = s->len + (iint)b.size();
+    auto newsize = ssizeof<LString>() + newlen + 1;
+    // A small allocation never has room past the largest small size, so what fits stays in
+    // the bucket its size says it is in.
+    if (s->tti == TYPE_ELEM_STRING && s->refc == 1 &&
+        newsize <= pool.size_of_allocation(s, ssizeof<LString>() + s->len + 1)) {
+        auto dest = (char *)s->data();
+        memcpy(dest + s->len, b.data(), b.size());
+        s->len = newlen;
+        dest[newlen] = 0;
+        return s;
+    }
+    auto ns = NewStringSlack(newlen);
+    auto dest = (char *)ns->data();
+    memcpy(dest, s->data(), (size_t)s->len);
+    memcpy(dest + s->len, b.data(), b.size());
+    s->Dec(*this);
+    return ns;
+}
+
+// `s += v` for a value that is not a string: what it converts to goes onto `s` without a
+// string of its own, see AppendString.
+LString *VM::AppendToString(LString *s, Value v, const TypeInfo &ti) {
+    s_reuse.clear();
+    v.ToString(*this, s_reuse, ti, programprintprefs);
+    return AppendString(s, s_reuse);
 }
 
 // A string constant never dies: the count it is emitted with is the generated code's own, which
@@ -1138,6 +1179,15 @@ fun_base_t CRtDynDispatchStruct(VM *vm, iint entry) { return RtDynDispatchStruct
 void CRtEnumRangeErr(VM *vm) { RtEnumRangeErr(*vm); }
 Value *CRtLvalIndexClass(VM *vm, LObject *obj, iint i, int offset) { return RtLvalIndexClass(*vm, obj, i, offset); }
 void CRtLvSAdd(VM *vm, Value *lv, LString *b) { RtLvSAdd(*vm, lv, b); }
+LString *CRtSAppend(VM *vm, LString *a, LString *b) { return RtSAppend(*vm, a, b); }
+LString *CRtSAppendInt(VM *vm, LString *a, iint x, type_elem_t ti) { return RtSAppendInt(*vm, a, x, ti); }
+LString *CRtSAppendFloat(VM *vm, LString *a, double x, type_elem_t ti) { return RtSAppendFloat(*vm, a, x, ti); }
+LString *CRtSAppendFun(VM *vm, LString *a, fun_base_t x, type_elem_t ti) { return RtSAppendFun(*vm, a, x, ti); }
+LString *CRtSAppendRef(VM *vm, LString *a, RefObj *x, type_elem_t ti) { return RtSAppendRef(*vm, a, x, ti); }
+void CRtLvSAddInt(VM *vm, Value *lv, iint x, type_elem_t ti) { RtLvSAddInt(*vm, lv, x, ti); }
+void CRtLvSAddFloat(VM *vm, Value *lv, double x, type_elem_t ti) { RtLvSAddFloat(*vm, lv, x, ti); }
+void CRtLvSAddFun(VM *vm, Value *lv, fun_base_t x, type_elem_t ti) { RtLvSAddFun(*vm, lv, x, ti); }
+void CRtLvSAddRef(VM *vm, Value *lv, RefObj *x, type_elem_t ti) { RtLvSAddRef(*vm, lv, x, ti); }
 int CRtStaticSetThisFrame(VM *vm, int vidx) { return RtStaticSetThisFrame(*vm, vidx); }
 int CRtMemberSetThisFrame(VM *vm, LObject *self, int slot) { return RtMemberSetThisFrame(*vm, self, slot); }
 void CRtIDXErrS(VM *vm, iint i, iint n) { vm->IDXErrS(i, n); }
@@ -1193,6 +1243,15 @@ const void *vm_ops_jit_table[] = {
     "RtEnumRangeErr", (void *)&CRtEnumRangeErr,
     "RtLvalIndexClass", (void *)&CRtLvalIndexClass,
     "RtLvSAdd", (void *)&CRtLvSAdd,
+    "RtSAppend", (void *)&CRtSAppend,
+    "RtSAppendInt", (void *)&CRtSAppendInt,
+    "RtSAppendFloat", (void *)&CRtSAppendFloat,
+    "RtSAppendFun", (void *)&CRtSAppendFun,
+    "RtSAppendRef", (void *)&CRtSAppendRef,
+    "RtLvSAddInt", (void *)&CRtLvSAddInt,
+    "RtLvSAddFloat", (void *)&CRtLvSAddFloat,
+    "RtLvSAddFun", (void *)&CRtLvSAddFun,
+    "RtLvSAddRef", (void *)&CRtLvSAddRef,
     "RtStaticSetThisFrame", (void *)&CRtStaticSetThisFrame,
     "RtMemberSetThisFrame", (void *)&CRtMemberSetThisFrame,
     "Entry", (void *)CRtEntry,
