@@ -9,6 +9,13 @@ struct DBMix:
     i:int
     f:float
 
+// A class whose buffer starts out as a string constant, like a builder's.
+class DBBuf:
+    buf = "\x00\x00\x00\x00"
+
+def is_string(s:string?) -> bool:
+    return s is string
+
 def binary_tests():
     suite("binary")
 
@@ -134,5 +141,29 @@ def binary_tests():
     let vbm = vector_to_buffer([ DBMix { 7, 1.5 } ], 4)
     test_eq(vbm.read_int32_le(0), 7)
     test_eq(vbm.read_float32_le(4), 1.5)
+
+    // A string constant is copied before it is written into, so every evaluation of the
+    // literal starts out pristine, as does every object made with a literal field default.
+    var cw = ""
+    for(3) i:
+        var cs = "    "
+        cs = cs.write_int8_le(i, 'A' + i)
+        cw = cs
+    test_eq(cw, "  C ")
+    let db1 = DBBuf {}
+    let db2 = DBBuf {}
+    db1.buf = db1.buf.write_int8_le(0, 1)
+    test_eq(db1.buf.read_int8_le(0), 1)
+    test_eq(db2.buf.read_int8_le(0), 0)
+    // Once dynamic, a string is written in place: the write is seen thru every reference.
+    let ds = "".ensure_size(4, 'x')
+    let dsa = ds
+    let dsw = ds.write_int8_le(0, 'y')
+    test_eq(dsa, "yxxx")
+    test_eq(dsw, ds)
+    // A constant is a string like any other to a type test and to structural equality.
+    test_true(is_string("const"))
+    test_true(equal("const", copy("const")))
+    test_true(equal([ "const" ], [ copy("const") ]))
 
 binary_tests()

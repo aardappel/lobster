@@ -71,11 +71,6 @@ VM::VM(VMArgs &&vmargs)
     : vma(std::move(vmargs)) {
 
     typetable = vma.meta->type_table.data();
-    // Allocated up front rather than on first use, so that pushing one is a load rather than a
-    // load and a branch. They are owned by the VM for its entire lifetime, see EndEval.
-    constant_strings.reserve(vma.meta->stringtable.size());
-    for (auto s : vma.meta->stringtable) constant_strings.push_back(Value(NewString(s)));
-    constant_strings_ptr = constant_strings.data();
     fvars_ptr = fvars;
     assert(vma.native_vtables);
 
@@ -191,9 +186,6 @@ void VM::DumpLeaks() {
                     ro->CycleStr(sd);
                     sd += " = ";
                     RefToString(*this, sd, ro, leakpp);
-                    #if DELETE_DELAY
-                        append(sd, " ", (size_t)ro);
-                    #endif
                     sd += "\n";
                     break;
                 }
@@ -303,33 +295,22 @@ string VM::MemoryUsage(size_t show_max) {
     return sd;
 }
 
-void VM::OnAlloc(RefObj *ro) {
-    #if DELETE_DELAY
-        LOG_DEBUG("alloc: ", (size_t)ro, " - ", ro->refc);
-    #else
-        (void)ro;
-    #endif
-}
-
 #undef new
 
 LVector *VM::NewVec(iint initial, iint max, type_elem_t tti) {
     assert(GetTypeInfo(tti).t == RTT_VECTOR);
     auto v = new (pool.alloc_small(sizeof(LVector))) LVector(*this, initial, max, tti);
-    OnAlloc(v);
     return v;
 }
 
 LObject *VM::NewObject(iint max, type_elem_t tti) {
     assert(RTIsUDT(GetTypeInfo(tti).t));
     auto s = new (pool.alloc(ssizeof<LObject>() + ssizeof<Value>() * max)) LObject(tti);
-    OnAlloc(s);
     return s;
 }
 
 LString *VM::NewString(iint l) {
     auto s = new (pool.alloc(ssizeof<LString>() + l + 1)) LString(l);
-    OnAlloc(s);
     return s;
 }
 
@@ -341,9 +322,6 @@ LString *VM::NewString(string_view s) {
     auto r = NewString(s.size());
     auto dest = (char *)r->data();
     memcpy(dest, s.data(), s.size());
-    #if DELETE_DELAY
-        LOG_DEBUG("string: \"", s, "\" - ", (size_t)r);
-    #endif
     return r;
 }
 
@@ -366,6 +344,58 @@ LString *VM::ResizeString(LString *s, iint size, int c, bool back) {
     memset(cdest, c, (size_t)remain);
     s->Dec(*this);
     return ns;
+}
+
+// The string a builtin may write into in place. A constant is shared by every evaluation of its
+// literal, so a writer takes a private copy of one first. Takes and returns an owned reference.
+LString *VM::Writable(LString *s) {
+    if (s->tti == TYPE_ELEM_STRING) return s;
+    auto ns = NewString(s->strv());
+    s->Dec(*this);
+    return ns;
+}
+
+// A string constant never dies: the count it is emitted with is the generated code's own, which
+// is never given up, see CodeGen::EmitConstantStrings. So a decrement that brings the count to
+// zero is one too many, and where the count is exact that is a compiler bug, which a Debug
+// build reports. It is not exact once worker threads have run: they share the objects with the
+// VM that started them and count on them without atomics, so incs and decs get lost, and the
+// count can then read anything. Nothing reads the count of a constant but the decrement that
+// tests whether it reached zero or below, on the value that decrement itself produced, so every
+// decrement to zero or below lands here and puts the count back; the worst a stale store can do
+// is leave a zero behind, until the next decrement does the same. So with workers the count is
+// meaningless but harmless, and the report is off for good (workers_started never resets), on
+// the worker VMs as well as the one that started them. That leaves the report to single
+// threaded programs, which is nearly every test, and where any imbalance is a real bug.
+void VM::StringConstantDropped(LString *s) {
+    s->refc = 1;
+    #ifndef NDEBUG
+        if (!is_worker && !workers_started) {
+            string sd;
+            EscapeAndQuote(s->strv().substr(0, 50), sd, false);
+            SeriousError(cat("reference count of string constant ", sd, " dropped to zero"));
+        }
+    #endif
+}
+
+// Every reference the program took on a string constant has been given up by the time the
+// program ends, so anything but the count each is emitted with is a reference that leaked or
+// was dropped twice, and a bug in the compiler. Not with worker threads, see
+// StringConstantDropped.
+void VM::CheckStringConstants() {
+    if (!vma.dump_leaks || is_worker || workers_started || !vma.constant_strings) return;
+    string sd;
+    for (auto sp = vma.constant_strings; *sp; sp++) {
+        auto s = *sp;
+        if (s->refc == 1) continue;
+        append(sd, "  ", s->refc - 1, " extra references: ");
+        EscapeAndQuote(s->strv().substr(0, 50), sd, false);
+        sd += "\n";
+    }
+    if (!sd.empty()) {
+        LOG_ERROR("STRING CONSTANT REFERENCE COUNTS OFF AT EXIT (this indicates a bug in"
+                  " Lobster):\n", sd);
+    }
 }
 
 void VM::ErrorBase(const string &err) {
@@ -609,13 +639,8 @@ void VM::EndEval(Value ret, const TypeInfo &ti) {
     TerminateWorkers();
     ret.ToString(*this, evalret.first, ti, programprintprefs);
     ret.LTDECTYPE(*this, ti.t);
-    for (auto s : constant_strings) s.LTDECRT(*this);
-    while (!delete_delay.empty()) {
-        auto ro = delete_delay.back();
-        delete_delay.pop_back();
-        ro->DECDELETENOW(*this);
-    }
     if (engine_shutdown) engine_shutdown();
+    CheckStringConstants();
     DumpLeaks();
 }
 
@@ -852,6 +877,7 @@ void VM::StartWorkers(iint numthreads) {
     // Stop bad values from locking up the machine :)
     // FIXME: if the caller assumes more threads were started, some patterns won't work.
     numthreads = std::min(numthreads, 1024_L64);
+    workers_started = true;
     tuple_space = new TupleSpace(vma.meta->udts.size());
     for (iint i = 0; i < numthreads; i++) {
         // Create a new VM that should own all its own memory and be completely independent
@@ -1005,12 +1031,8 @@ void ProfDB::Advance() {
 // goes to that kind's deleter directly rather than thru the type lookup and switch of DECDELETE,
 // see the three DecDelete wrappers below.
 template<typename T> void CRtDecDeleteKind(lobster::VM *vm, T *r) {
-    #if DELETE_DELAY
-        r->DECDELETE(*vm);
-    #else
-        if (r->refc) vm->SeriousError("double delete");
-        r->DeleteSelf(*vm);
-    #endif
+    if (r->refc) vm->SeriousError("double delete");
+    r->DeleteSelf(*vm);
 }
 
 // Make VM ops available as C functions for linking purposes:
@@ -1049,7 +1071,13 @@ void CRtRcStat(VM *, int site) { g_rcstat_counts[site]++; }
 void CRtDecDelete(VM *vm, RefObj *ro) { ro->DECDELETE(*vm); }
 void CRtDecDeleteVec(VM *vm, LVector *v) { CRtDecDeleteKind(vm, v); }
 void CRtDecDeleteObj(VM *vm, LObject *o) { CRtDecDeleteKind(vm, o); }
-void CRtDecDeleteStr(VM *vm, LString *s) { CRtDecDeleteKind(vm, s); }
+void CRtDecDeleteStr(VM *vm, LString *s) {
+    if (s->tti == TYPE_ELEM_STRING_CONST) {
+        vm->StringConstantDropped(s);
+        return;
+    }
+    CRtDecDeleteKind(vm, s);
+}
 void CRtAssertFailed(VM *vm, int line, int fileidx, int stringidx) {
     vm->AssertFailed(line, fileidx, stringidx);
 }
@@ -1066,7 +1094,6 @@ void CRtEndProfile(___tracy_c_zone_context ctx) {
 }
 #endif
 
-LString *CRtPushStr(VM *vm, int i) { return RtPushStr(*vm, i); }
 #if LOBSTER_NATIVE_PROFILE
 ___tracy_c_zone_context CRtNativeProfileStart(VM *vm, int nfi) { return RtNativeProfileStart(*vm, nfi); }
 void CRtNativeProfileEnd(___tracy_c_zone_context ctx) { RtNativeProfileEnd(ctx); }
@@ -1122,7 +1149,6 @@ extern "C" iint GLFrame(VM &vm);
 #endif
 
 const void *vm_ops_jit_table[] = {
-    "RtPushStr", (void *)&CRtPushStr,
     #if LOBSTER_NATIVE_PROFILE
     "RtNativeProfileStart", (void *)&CRtNativeProfileStart,
     "RtNativeProfileEnd", (void *)&CRtNativeProfileEnd,

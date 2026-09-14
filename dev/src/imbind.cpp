@@ -449,6 +449,8 @@ bool LoadFont(string_view name, float size, string_view lang_name) {
 }
 
 pair<LString *, bool> LStringInputText(VM &vm, const char *label, LString *str, int num_lines = 1, int extra_flags = 0) {
+    // The widget edits the string's bytes in place.
+    str = vm.Writable(str);
     struct InputTextCallbackData {
         LString *str;
         VM &vm;

@@ -14,18 +14,6 @@ namespace lobster {
 // ones that work on a run of values, like a constructor, which take a pointer to those, and
 // the calls to functions and natives that leave more than one value, which work on a stack.
 
-// Only still called when the constants are kept rather than borrowed; otherwise the code
-// generator emits the copy out of the VM itself, see EmitPushStr.
-// FIXME: have a way that constant strings can stay in the bytecode, so this doesn't need the
-// indirection thru the VM at all.
-VM_INLINE LString *RtPushStr(VM &vm, int i) {
-    auto s = vm.constant_strings[i];
-    #if STRING_CONSTANTS_KEEP
-        s.LTINCRT();
-    #endif
-    return s.sval();
-}
-
 // The function a dynamic dispatch on the class of `self` lands in, which the generated code
 // then calls with the signature it knows the dispatch has.
 VM_INLINE fun_base_t RtDynDispatch(VM &vm, LObject *self, int vtable_idx) {

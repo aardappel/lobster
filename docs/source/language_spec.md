@@ -587,7 +587,8 @@ function `any`).
 
 - `int`: 64-bit two's complement integer. Enum types are distinct int types.
 - `float`: 64-bit IEEE 754 binary float.
-- `string`: immutable byte sequence, reference type, compared by value.
+- `string`: byte sequence, reference type, compared by value; immutable except
+  thru the byte-writing builtins (see Operators on strings).
 - `[T]`: vector, a resizable sequence of `T`, reference type.
 - class types: reference types with named fields, single inheritance,
   identity comparison.
@@ -858,6 +859,13 @@ conversion) and the result is the concatenation. `s += x` converts `x`. `+` is
 the only arithmetic operator on strings. Comparisons `< > <= >=` order strings
 lexicographically by unsigned byte, a prefix ordering before the longer string;
 `==` compares bytes. Strings are immutable: indexed assignment is an error.
+The one exception is the byte-writing builtins (`ensure_size`, the `write_*_le`
+family, `write_substring` and the imgui text inputs), which write into the
+string they are given in place when it is large enough, visible thru every
+reference to that string, and return it; when it is too small they return a
+larger copy. A string constant (a literal, or a field default that is one) is
+never written: such a builtin copies it first and returns the copy, so every
+evaluation of the literal yields its original bytes.
 
 ### Operators on structs
 
@@ -1458,7 +1466,8 @@ Values, ownership and borrowing
 and passing copy them (a struct copy copies all its fields, including
 reference fields, which are then shared). Strings, vectors, class instances
 and resources are references: assignment and passing share the object;
-`copy` and `deepcopy` (builtins) duplicate. Strings are immutable. Memory is
+`copy` and `deepcopy` (builtins) duplicate. Strings are immutable, except thru
+the byte-writing builtins (see Operators on strings). Memory is
 reclaimed by reference counting when the last reference disappears;
 reference cycles are not reclaimed (they are reported as leaks when the program
 ends).

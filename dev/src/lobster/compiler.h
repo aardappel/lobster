@@ -96,6 +96,7 @@ extern FileLoader EnginePreInit(NativeRegistry &nfr);
 extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const VMMetaData *vmmeta,
                                    const lobster::fun_base_t *vtables,
                                    const lobster::object_dec_t *object_decs,
+                                   lobster::LString **const_strings,
                                    void *custom_pre_init, const char *aux_src_path);
 
 // The builtin function reference, see builtindoc.cpp.

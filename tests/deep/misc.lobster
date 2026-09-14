@@ -163,6 +163,24 @@ def misc_tests():
     test_true(hw >= 1 and cores >= 1 and hw >= cores)
     test_eq(is_worker_thread(), false)
     test_eq(workers_alive(), false)
+    // String constants are shared between worker threads, which count references on them
+    // without atomics, so those counts mean nothing once workers ran; the program still has
+    // to run clean. compile_run_code needs a compiler, which a --cpp build doesn't have.
+    if not vm_compiled_mode():
+        let ret, err = compile_run_code("""
+            var s = ""
+            var n = 0
+            def churn():
+                for(20000):
+                    s = "shared"
+                    if s == "shared": n++
+                    s = ""
+            if not is_worker_thread(): start_worker_threads(4)
+            churn()
+            return n
+            """, [])
+        test_true(not err)
+        test_eq(ret, "20000")
 
     // pass does nothing, usable as an empty body.
     if program_name() == "":

@@ -202,41 +202,40 @@ LResource *VM::NewResource(const ResourceType *type, Resource *res) {
     #if defined(_MSC_VER) && !defined(NDEBUG)
         #define new DEBUG_NEW
     #endif
-    OnAlloc(r);
     return r;
 }
 
-void RefObj::DECDELETENOW(VM &vm) {
-    switch (ti(vm).t) {
-        case RTT_STRING:     ((LString *)this)->DeleteSelf(vm); break;
-        case RTT_VECTOR:     ((LVector *)this)->DeleteSelf(vm); break;
-        case RTT_CLASS:      ((LObject *)this)->DeleteSelf(vm); break;
-        case RTT_RESOURCE:   ((LResource *)this)->DeleteSelf(vm); break;
-        default:           assert(false);
-    }
-}
-
 void RefObj::DECDELETE(VM &vm) {
-    if (refc) {
-        //vm.DumpVal(this, "double delete");
-        vm.SeriousError("double delete");
+    auto del = [&](auto *r) {
+        if (refc) vm.SeriousError("double delete");
+        r->DeleteSelf(vm);
+    };
+    switch (ti(vm).t) {
+        case RTT_STRING:
+            // A constant is told apart before anything looks at the count, since that can read
+            // anything after worker threads ran, see StringConstantDropped.
+            if (tti == TYPE_ELEM_STRING_CONST) vm.StringConstantDropped((LString *)this);
+            else del((LString *)this);
+            break;
+        case RTT_VECTOR:     del((LVector *)this); break;
+        case RTT_CLASS:      del((LObject *)this); break;
+        case RTT_RESOURCE:   del((LResource *)this); break;
+        default:             assert(false);
     }
-    #if DELETE_DELAY
-        vm.DumpVal(this, "delay delete");
-        vm.delete_delay.push_back(this);
-    #else
-        DECDELETENOW(vm);
-    #endif
 }
 
 bool RefEqual(VM &vm, const RefObj *a, const RefObj *b, bool structural) {
     if (a == b) return true;
     if (!a || !b) return false;
-    if (a->tti != b->tti) return false;
     switch (a->ti(vm).t) {
-        case RTT_STRING:      return *((LString *)a) == *((LString *)b);
-        case RTT_VECTOR:      return structural && ((LVector *)a)->Equal(vm, *(LVector *)b);
-        case RTT_CLASS:       return structural && ((LObject *)a)->Equal(vm, *(LObject *)b);
+        // By kind, since a string constant has a type index of its own, see
+        // TYPE_ELEM_STRING_CONST.
+        case RTT_STRING:
+            return b->ti(vm).t == RTT_STRING && *((LString *)a) == *((LString *)b);
+        case RTT_VECTOR:
+            return a->tti == b->tti && structural && ((LVector *)a)->Equal(vm, *(LVector *)b);
+        case RTT_CLASS:
+            return a->tti == b->tti && structural && ((LObject *)a)->Equal(vm, *(LObject *)b);
         case RTT_RESOURCE:    return false;
         default:            assert(0); return false;
     }

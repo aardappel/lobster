@@ -268,7 +268,7 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metad
                           const CompileOptions &copts, const RunOptions &ropts, string &error) {
     #if VM_JIT_MODE
         const char *export_names[] = { "compiled_entry_point", "vtables", "object_decs",
-                                       nullptr };
+                                       "const_strings", nullptr };
         assert(!nfr.jit_imports.empty());
         auto &jit_options = copts.jit_options;
         auto start_time = SecondsSinceStart();
@@ -373,7 +373,7 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metad
                     nfr, string(fn), &vmmeta,
                     std::move(program_args),
                     (fun_base_t *)exports[1], (object_dec_t *)exports[2],
-                    (fun_base_t)exports[0], ropts.dump_leaks,
+                    (LString **)exports[3], (fun_base_t)exports[0], ropts.dump_leaks,
                     copts.runtime_checks, ropts.stack_trace_python_ordering, jit_options
                 };
                 lobster::VMAllocator vma(std::move(vmargs));
@@ -615,6 +615,7 @@ FileLoader EnginePreInit(NativeRegistry &nfr) {
 extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const VMMetaData *vmmeta,
                                    const lobster::fun_base_t *vtables,
                                    const lobster::object_dec_t *object_decs,
+                                   lobster::LString **const_strings,
                                    void *custom_pre_init, const char *aux_src_path) {
     #ifdef _MSC_VER
         _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -644,6 +645,7 @@ extern "C" int RunCompiledCodeMain(int argc, const char *const *argv, const VMMe
             {},
             vtables,
             object_decs,
+            const_strings,
             nullptr,
             false,
             RUNTIME_ASSERT

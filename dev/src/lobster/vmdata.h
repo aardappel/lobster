@@ -23,10 +23,7 @@ namespace metadata {
 
 namespace lobster {
 
-#define STRING_CONSTANTS_KEEP 0
-
 // For debugging hairier issues.
-#define DELETE_DELAY 0
 #define VM_EXTRA_CHECKING 0
 
 #ifdef NDEBUG
@@ -106,6 +103,12 @@ enum type_elem_t : int {  // Strongly typed element of typetable.
     TYPE_ELEM_VECTOR_OF_RESOURCE = 28,
     TYPE_ELEM_VECTOR_OF_FLOAT4 = 103,
     TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT4 = 106,
+    // A second entry for string, identical to TYPE_ELEM_STRING, that only the string constants
+    // the generated code carries are of, so that a builtin about to write into a string can tell
+    // one from a dynamically allocated string by its type index alone, see VM::Writable. Code
+    // that compares type indices rather than kinds must treat the two as the same type, see
+    // RefEqual and CodeGen::EmitIsType.
+    TYPE_ELEM_STRING_CONST = 109,
 };
 
 struct VM;
@@ -244,27 +247,14 @@ struct RefObj : DynAlloc {
     RefObj(type_elem_t _tti) : DynAlloc(_tti) {}
 
     void Inc() {
-        #ifndef NDEBUG
-            if (refc <= 0) {  // Should never be "re-vived".
-                #if DELETE_DELAY
-                    LOG_DEBUG("revive: ", (size_t)this, " - ", refc);
-                #endif
-                assert(false);
-            }
-        #endif
+        assert(refc > 0);  // Should never be "re-vived".
         refc++;
         if (g_rcstats_enabled) g_rcstat_vm_inc++;
-        #if DELETE_DELAY
-            LOG_DEBUG("inc: ", (size_t)this, " - ", refc);
-        #endif
     }
 
     void Dec(VM &vm) {
         refc--;
         if (g_rcstats_enabled) g_rcstat_vm_dec++;
-        #if DELETE_DELAY
-            LOG_DEBUG("dec: ", (size_t)this, " - ", refc);
-        #endif
         if (refc <= 0) {
             DECDELETE(vm);
         }
@@ -281,7 +271,6 @@ struct RefObj : DynAlloc {
     }
 
     void DECDELETE(VM &vm);
-    void DECDELETENOW(VM &vm);
 
     uint64_t Hash(VM &vm);
 
@@ -1105,6 +1094,8 @@ struct VMArgs {
     vector<string> program_args;
     const fun_base_t *native_vtables = nullptr;
     const object_dec_t *object_decs = nullptr;
+    // The string constants of the generated code, null terminated, see CodeGen::Epilogue.
+    LString **constant_strings = nullptr;
     fun_base_t jit_entry = nullptr;
     bool dump_leaks = true;
     int runtime_checks = RUNTIME_ASSERT;
@@ -1132,11 +1123,10 @@ struct VMBase {
     // The function a non-local return in flight returns from, or -1 when there is none, and
     // the values it passes to that function's caller, see CodeGen::GenUnwind.
     int ret_unwind_to = -1;
-    // The generated code reads globals and string constants thru these rather than thru a call,
-    // so they live here where its mirror of this type can see them, see CodeGen::Prologue. Both
-    // are set up once by the VM constructor and never move after.
+    // The generated code reads globals thru this rather than thru a call, so it lives here where
+    // its mirror of this type can see it, see CodeGen::Prologue. Set up once by the VM
+    // constructor and never moves after.
     Value *fvars_ptr = nullptr;
-    Value *constant_strings_ptr = nullptr;
     // A union so that it need not be constructed, Value having no default constructor.
     union RetBuf {
         RetBuf() {}
@@ -1144,16 +1134,14 @@ struct VMBase {
     } ret_buf;
 };
 
-// The C we generate declares its own version of VMBase and reads globals, string constants and
-// return values out of it directly, see CodeGen::Prologue. This is that declaration in C++, so
-// that the checks below pin every field to where the generated code expects it, on 32 and 64-bit
-// targets alike.
+// The C we generate declares its own version of VMBase and reads globals and return values out
+// of it directly, see CodeGen::Prologue. This is that declaration in C++, so that the checks
+// below pin every field to where the generated code expects it, on 32 and 64-bit targets alike.
 struct VMBaseMirror {
     int last_line;
     int last_fileidx;
     int ret_unwind_to;
     Value *fvars_ptr;
-    Value *constant_strings_ptr;
     Value ret_buf[MAX_RETURN_SLOTS];
 };
 
@@ -1165,8 +1153,6 @@ struct VMBaseMirror {
     #pragma GCC diagnostic ignored "-Winvalid-offsetof"
 #endif
 static_assert(offsetof(VMBase, fvars_ptr) == offsetof(VMBaseMirror, fvars_ptr));
-static_assert(offsetof(VMBase, constant_strings_ptr) ==
-              offsetof(VMBaseMirror, constant_strings_ptr));
 static_assert(offsetof(VMBase, ret_buf) == offsetof(VMBaseMirror, ret_buf));
 #if defined(__GNUC__) || defined(__clang__)
     #pragma GCC diagnostic pop
@@ -1187,14 +1173,12 @@ struct VM : VMBase {
 
     string s_reuse;
 
-    vector<RefObj *> delete_delay;
-
-    // Kept as Values so pushing one is a plain copy, which the generated code can do itself.
-    vector<Value> constant_strings;
-
     iint frame_count = -1;
 
     bool is_worker = false;
+    // Whether this VM ever started workers, which share the string constants with it and count
+    // on them without atomics, so their counts say nothing after that.
+    bool workers_started = false;
     vector<thread> workers;
     TupleSpace *tuple_space = nullptr;
 
@@ -1352,13 +1336,15 @@ public:
 
     string MemoryUsage(size_t show_max);
 
-    void OnAlloc(RefObj *ro);
     LVector *NewVec(iint initial, iint max, type_elem_t tti);
     LObject *NewObject(iint max, type_elem_t tti);
     LString *NewString(iint l);
     LString *NewString(string_view s);
     LString *NewString(string_view s1, string_view s2);
     LString *ResizeString(LString *s, iint size, int c, bool back);
+    LString *Writable(LString *s);
+    void StringConstantDropped(LString *s);
+    void CheckStringConstants();
     LResource *NewResource(const ResourceType *type, Resource *res);
 
     // These end the program by unwinding the stack. The ones that say so let the generated
@@ -1559,6 +1545,7 @@ LResourceRefCPointer<T> NewResLRes(VM &vm, lobster::ResourceType &resource_type,
 template<bool back> LString *WriteMem(VM &vm, LString *s, iint i, const void *data, iint size) {
     auto minsize = i + size;
     if (s->len < minsize) s = vm.ResizeString(s, minsize * 2, 0, back);
+    else s = vm.Writable(s);
     memcpy((void *)(s->data() + (back ? s->len - i - size : i)), data, (size_t)size);
     return s;
 }

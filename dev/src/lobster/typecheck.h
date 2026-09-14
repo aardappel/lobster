@@ -4378,11 +4378,10 @@ Node *FloatConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef 
 
 Node *StringConstant::TypeCheck(TypeChecker & /*tc*/, size_t /*reqret*/, TypeRef /*parent_bound*/) {
     exptype = type_string;
-    // The VM keeps all the constant strings for the length of the program,
-    // so these can be borrow, avoiding a ton of keepvars when used in + and
-    // builtin functions etc (at the cost of some increfs when stored in vars
-    // and data structures).
-    lt = STRING_CONSTANTS_KEEP ? LT_KEEP : LT_BORROW;
+    // A constant is an object of the generated code, which holds a reference to it for the
+    // length of the program, so it can be borrowed: no keepvars when used in + and builtin
+    // calls, at the cost of an incref when stored in a variable or a data structure.
+    lt = LT_BORROW;
     return this;
 }
 

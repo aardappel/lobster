@@ -91,6 +91,10 @@ struct CodeGen  {
     vector<LoopState> loops;
     vector<int> breaks;
     vector<string_view> stringtable;  // sized strings.
+    // The string constants the code carries as objects, see EmitConstantStrings, and the index
+    // of the one for each distinct string, so a literal that occurs more than once has one.
+    vector<string_view> constant_strings;
+    map<string_view, int> constant_string_index;
     vector<const Node *> node_context;
     int runtime_checks;
     // See --rcstats: what the inc/dec being emitted is for (rc_tag groups sites, rc_extra
@@ -694,6 +698,11 @@ struct CodeGen  {
         o = GetTypeTableOffset(type_vector_float4);        assert(o == TYPE_ELEM_VECTOR_OF_FLOAT4);
         o = GetTypeTableOffset(type_vector_vector_float4); assert(o == TYPE_ELEM_VECTOR_OF_VECTOR_OF_FLOAT4);
         (void)o;
+        // The entry the string constants are of, see TYPE_ELEM_STRING_CONST: string's again,
+        // added behind the lookup's back so that nothing that asks for string ever gets it.
+        assert((int)type_table.size() == TYPE_ELEM_STRING_CONST);
+        type_table.push_back((type_elem_t)RTT_STRING);
+        type_table.push_back((type_elem_t)0);
 
         for (auto f : st.functiontable) {
             if (!f->istype) {
@@ -868,7 +877,31 @@ struct CodeGen  {
             }
             append(decls, "} ", UDTName(*udt), ";  // ", udt->name, "\n");
         }
+        EmitConstantStrings(decls);
         if (!decls.empty()) c_codegen.insert(natives_decl_offset, decls + "\n");
+    }
+
+    // The string constants, as objects laid out the way the C++ LString is (see the mirror in
+    // Prologue), so that a literal is the address of one, see EmitPushStr. Each is emitted with
+    // the reference the generated code holds on it, which it never gives up, so they live as
+    // long as the program; see VM::StringConstantDropped for what happens if the program drops
+    // it anyway.
+    void EmitConstantStrings(string &sd) {
+        for (auto [i, s] : enumerate(constant_strings)) {
+            append(sd, "static struct { int typeinfo; int refc; long long len; unsigned char data[",
+                   s.size() + 1, "]; } str", i, " = { ", (int)TYPE_ELEM_STRING_CONST, ", 1, ",
+                   s.size(), ", ");
+            // A C++ compiler may cap the length of a literal (MSVC at 16K), so a long one is
+            // written out as its bytes.
+            if (s.size() <= 2048) {
+                EscapeAndQuote(s, sd, true);
+            } else {
+                sd += "{ ";
+                for (auto c : s) append(sd, (int)(uint8_t)c, ", ");
+                sd += "0 }";
+            }
+            sd += " };\n";
+        }
     }
 
     void GenStatDebug(const Node *c) {
@@ -1078,7 +1111,6 @@ struct CodeGen  {
                 "    int last_fileidx;\n"
                 "    int ret_unwind_to;\n"
                 "    Value *fvars_ptr;\n"
-                "    Value *constant_strings_ptr;\n"
                 "    Value ret_buf[", MAX_RETURN_SLOTS, "];\n"
                 "} VMBase;\n");
             // The numeric struct a builtin takes an argument of that type as, which mirrors the
@@ -1141,7 +1173,6 @@ struct CodeGen  {
             // C++ side takes any reference, it is void here, since the generated code holds
             // them as the type they are.
             sd +=
-                "LString *RtPushStr(VMRef, int);\n"
                 #if LOBSTER_NATIVE_PROFILE
                 "struct ___tracy_c_zone_context RtNativeProfileStart(VMRef, int);\n"
                 "void RtNativeProfileEnd(struct ___tracy_c_zone_context);\n"
@@ -1795,7 +1826,7 @@ struct CodeGen  {
             "epilogue", "main", "argc", "argv", "vmmeta", "Value", "VMRef", "StackPtr",
             "RefObj", "LVector", "LString", "LObject", "VMBase", "fun_base_t", "type_elem_t",
             "object_dec_t", "vec",
-            "vtables", "object_decs", "funinfo_table", "compiled_entry_point",
+            "vtables", "object_decs", "const_strings", "funinfo_table", "compiled_entry_point",
             "type_table", "stringtable",
             "file_names", "function_names", "udts", "specidents", "enums", "ser_ids",
             "subfunctions_to_function", "iint", "int2float64", "lobster", "std", "string_view",
@@ -1815,7 +1846,7 @@ struct CodeGen  {
         return numbered("i") || numbered("f") || numbered("p") || numbered("fn") ||
                numbered("s") || numbered("v") || numbered("o") || numbered("keep") ||
                numbered("block") || numbered("ivec") || numbered("fvec") ||
-               numbered("mkivec") || numbered("mkfvec");
+               numbered("mkivec") || numbered("mkfvec") || numbered("str");
     }
 
     // A C name unique within its namespace: the name it has in the program,
@@ -2590,21 +2621,24 @@ struct CodeGen  {
         }
     }
 
-    void EmitPushStr(int stringtableindex) {
-        auto sv = stringtable[stringtableindex];
-        sv = sv.substr(0, 50);
+    // The index of the object for a string constant, see EmitConstantStrings.
+    int ConstantString(string_view s) {
+        auto it = constant_string_index.find(s);
+        if (it != constant_string_index.end()) return it->second;
+        auto idx = (int)constant_strings.size();
+        constant_strings.push_back(s);
+        constant_string_index[s] = idx;
+        return idx;
+    }
+
+    // A string constant is borrowed from the object the code carries for it, so pushing one is
+    // taking its address.
+    void EmitPushStr(int idx) {
         string q;
-        EscapeAndQuote(sv, q, true);
+        EscapeAndQuote(constant_strings[idx].substr(0, 50), q, true);
         TrackUseDef(0, 1);
-        auto d = SlotVar(regso, RTT_STRING);
-        if (STRING_CONSTANTS_KEEP) {
-            // Still has a reference to take, so leave it to the helper.
-            Write(cb, d, cat("RtPushStr(vm, ", stringtableindex, ")"), "");
-        } else {
-            // Borrowed, so all that is left is the copy out of the VM's table of them.
-            CopyValue(cb, d, Mem(cat(vmref(), "constant_strings_ptr[", stringtableindex, "]"),
-                                 RTT_STRING), "");
-        }
+        CopyValue(cb, SlotVar(regso, RTT_STRING), Direct(cat("(LString *)&str", idx), RTT_STRING),
+                  "");
         comment(q);
     }
 
@@ -3100,13 +3134,17 @@ struct CodeGen  {
     }
 
     // The optimizer guarantees what is tested is never a scalar, so it is a reference or nil,
-    // and whether nil matches was decided statically.
+    // and whether nil matches was decided statically. A string constant has a type index of its
+    // own, so a test for string accepts both, see TYPE_ELEM_STRING_CONST.
     void EmitIsType(int type_idx, int nilres, TypeRef type, TypeRef vtype) {
         TrackUseDef(1, 1);
         auto v = Read(Slot(1, vtype));
-        Write(cb, Slot(1, VK_INT),
-              cat(v, " ? ", v, cpp ? "->tti == (type_elem_t)" : "->typeinfo == ", type_idx,
-                  " : ", nilres), "");
+        auto ti = cat(v, cpp ? "->tti == (type_elem_t)" : "->typeinfo == ");
+        auto test = cat(ti, type_idx);
+        if (type_idx == TYPE_ELEM_STRING) {
+            test = cat("(", test, " || ", ti, (int)TYPE_ELEM_STRING_CONST, ")");
+        }
+        Write(cb, Slot(1, VK_INT), cat(v, " ? ", test, " : ", nilres), "");
         TypeComment(type);
     }
 
@@ -3617,6 +3655,16 @@ struct CodeGen  {
         }
         sd += "    0\n};\n\n";  // Make sure table is never empty.
 
+        // The string constants by index, for the VM, see VM::CheckStringConstants. Terminated by
+        // a null, which also keeps it from ever being empty.
+        if (cpp) sd += "static";
+        else if (!mir) sd += "extern";
+        sd += " LString *const_strings[] = {\n";
+        for (size_t i = 0; i < constant_strings.size(); i++) {
+            append(sd, "    (LString *)&str", i, ",\n");
+        }
+        sd += "    0\n};\n\n";
+
         if (runtime_checks >= RUNTIME_STACK_TRACE) {
             append(sd, "const int funinfo_table[] = {\n    ");
             for (auto [i, d] : enumerate(funstarttables)) {
@@ -3774,7 +3822,8 @@ struct CodeGen  {
             sd += "        span(subfunctions_to_function),\n";
             sd += "    };\n";
             sd += "    return RunCompiledCodeMain(argc, argv, ";
-            append(sd, "&vmmeta, vtables, object_decs, ", custom_pre_init_name, ", \"\");\n}\n");
+            append(sd, "&vmmeta, vtables, object_decs, const_strings, ", custom_pre_init_name,
+                   ", \"\");\n}\n");
         }
     }
 
@@ -4837,8 +4886,7 @@ void FloatConstant::Generate(CodeGen &cg, size_t retval) const {
 
 void StringConstant::Generate(CodeGen &cg, size_t retval) const {
     if (!retval) return;
-    cg.stringtable.push_back(str);
-    cg.EmitPushStr((int)cg.stringtable.size() - 1);
+    cg.EmitPushStr(cg.ConstantString(str));
 }
 
 void DefaultVal::Generate(CodeGen &cg, size_t retval) const {

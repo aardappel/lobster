@@ -341,7 +341,10 @@ BUILTIN(ensure_size, "string,size,char,extra", "SkIII?", "S",
     " string, otherwise returns a new string of that size (with optionally extra bytes"
     " added), with any new characters set to"
     " char. You can specify a negative size to mean relative to the end, i.e. new"
-    " characters will be added at the start. ")
+    " characters will be added at the start. Together with the write_ functions this lets a"
+    " string be used as a byte buffer: those write into the string in place (visible thru"
+    " every reference to it), except that a string constant is copied first, so a literal"
+    " never changes.")
 (VM &vm, LString *str, iint size, iint c, iint extra) {
     auto asize = std::abs(size);
     return str->len >= asize
@@ -351,8 +354,8 @@ BUILTIN(ensure_size, "string,size,char,extra", "SkIII?", "S",
 
 static const char *write_val_desc1 =
     "writes a value as little endian to a string at location i. Uses ensure_size to"
-    " make the string twice as long (with extra 0 bytes) if no space. Returns"
-    " new string if resized,"
+    " make the string twice as long (with extra 0 bytes) if no space. Returns the string,"
+    " which is a new one if it was resized or was a string constant (see ensure_size),"
     " and the index of the location right after where the value was written. The"
     " _back version writes relative to the end (and writes before the index)";
 static const char *write_val_desc2 = "(see write_int64_le)";

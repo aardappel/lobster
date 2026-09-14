@@ -354,16 +354,18 @@ is cool with any kind of ownership.
 * `for` borrows what it iterates over and doesn't care about its body.
   Its element variable borrows the elements of the vector (see above), unless
   the body writes to them, in which case it owns each element in turn.
-* String constants conceptually result in an owned value (they are a heap
-  object), but currently they actually result in a borrow. This is
-  because strings are most frequently passed to contexts that would prefer
-  to borrow (like `+` or many builtin functions) and thus produce a lot
-  of reference count churn. To avoid this, the VM allocates strings on
-  first use, but never lets the reference count drop to 0, meaning they
-  can safely be borrowed, and reduce total reference counting.
-  Or more simply: it's as if there exists an anonymous global variable
-  for each string constant that's actually used, and which you borrow
-  from.
+* String constants result in a borrow. This is because strings are most
+  frequently passed to contexts that would prefer to borrow (like `+` or
+  many builtin functions) and thus would produce a lot of reference count
+  churn if they were owned. Each distinct string constant is an object in
+  the generated code itself (static data, not the heap), emitted holding a
+  reference of its own that is never given up, so its count never drops to
+  0 and it can safely be borrowed from. Or more simply: it's as if there
+  exists an anonymous global variable for each string constant that's
+  actually used, and which you borrow from. Such an object is marked by a
+  type table entry of its own, so the builtins that write into a string in
+  place (`write_int8_le` and friends) can copy it first rather than change
+  the constant.
 * `+` on strings wants to borrow, and returns owned. This is the same
   in principle for all binary operators, but thanks to "inline structs"
   this doesn't matter for most of them anymore.
