@@ -95,9 +95,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\TODO.txt" />
-    <None Include="..\src\bytecode.fbs">
-      <Filter>common</Filter>
-    </None>
     <None Include="..\..\.editorconfig" />
   </ItemGroup>
   <ItemGroup>
@@ -160,9 +157,6 @@
     </ClInclude>
     <ClInclude Include="..\src\lobster\typecheck.h">
       <Filter>compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\lobster\bytecode_generated.h">
-      <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="..\src\lobster\il.h">
       <Filter>common</Filter>

@@ -55,11 +55,11 @@ struct CompileOptions {
 };
 
 // Compiles the source in `stringsource`, or the file `fn` when that is empty, into the
-// metadata and the generated C or C++, plus a parse tree dump and a pakfile when asked for.
+// generated C or C++ (including metadata), plus a parse tree dump and a pakfile when asked for.
 // Returns the errors (see Lex::Report) when there were any, or the answer to opts.query,
 // which ends compilation the same way; empty when it succeeded. Doesn't throw.
 extern string Compile(NativeRegistry &natreg, string_view fn, string_view stringsource,
-                      const CompileOptions &opts, string &metadata_buffer, string &c_codegen,
+                      const CompileOptions &opts, string &c_codegen,
                       string *parsedump = nullptr, string *pakfile = nullptr);
 
 // How to run what the JIT compiled; main.cpp sets these from its command line.
@@ -74,7 +74,7 @@ struct RunOptions {
 // Compiles the generated C with the JIT and runs it, under the runtime checks and JIT settings
 // the code was compiled with. Returns what the program returned as a string, and its exit
 // code.
-extern pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metadata_buffer,
+extern pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn,
                                  const string &c_codegen, vector<string> &&program_args,
                                  const CompileOptions &copts, const RunOptions &ropts,
                                  string &error);
@@ -82,12 +82,12 @@ extern pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_vie
 // The name of a type as the language writes it, see idents.h.
 extern string TypeName(UnTypeRef type, bool tuple_brackets = true, int depth = 0);
 
-// The pakfile: the metadata, the generated code and every file the program asked for in one
+// The pakfile: the generated code and every file the program asked for in one
 // file, see pakfile.cpp.
-extern string BuildPakFile(string &pakfile, string &metadata_buffer, set<string> &files,
+extern string BuildPakFile(string &pakfile, set<string> &files,
                            uint64_t src_hash, const string &c_codegen);
 extern bool LoadPakDir(const char *lpak, uint64_t &src_hash_dest);
-extern bool LoadMetaDataAndCode(string &metadata, string &c_codegen);
+extern bool LoadCode(string &c_codegen);
 extern void RegisterBuiltin(NativeRegistry &natreg, const char *ns, const char *name,
                             const BuiltinGroup &group);
 extern void RegisterCoreLanguageBuiltins(NativeRegistry &natreg);

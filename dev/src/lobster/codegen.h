@@ -14,9 +14,6 @@
 
 namespace lobster {
 
-#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
-#include "lobster/bytecode_generated.h"
-
 enum {
     CODEGEN_SPECIAL_FUNCTION_ID_START = 10000000,
     CODEGEN_SPECIAL_FUNCTION_ID_DUMMY = CODEGEN_SPECIAL_FUNCTION_ID_START + 1,
@@ -56,7 +53,13 @@ enum LvalOp {
 enum ReturnKind { RET_LOCAL, RET_NONLOCAL, RET_ANY };
 
 struct CodeGen  {
-    vector<metadata::SpecIdent> sids;
+    struct SpecIdentInfo {
+        int ididx;
+        int typeidx;
+        bool used_as_freevar;
+        int idx;
+    };
+    vector<SpecIdentInfo> sids;
     Parser &parser;
     SymbolTable &st;
     vector<type_elem_t> type_table;
@@ -744,7 +747,7 @@ struct CodeGen  {
                 auto ns = ValWidth(sid->type);
                 sidx += ns;
                 for (int i = 0; i < ns; i++) {
-                    sids.push_back(metadata::SpecIdent(sid->id->idx, tti, sid->used_as_freevar, sid->idx));
+                    sids.push_back(SpecIdentInfo{ sid->id->idx, tti, sid->used_as_freevar, sid->idx });
                     var_types.push_back(SlotType(sid->type, i));
                 }
             }
@@ -988,7 +991,7 @@ struct CodeGen  {
                         ownedvars.push_back(arg.sid->Idx() + i);
                     }
                     auto vtype = var_types[varidx];
-                    if (!sids[varidx].used_as_freevar()) {
+                    if (!sids[varidx].used_as_freevar) {
                         var_to_local[varidx] = (int)local_places.size();
                         local_places.push_back(Var(LocalName(*arg.sid, i), RtTypeOf(vtype)));
                         if (&f_ad == &f_args) f_arg_places.push_back(local_places.back());
@@ -1048,6 +1051,13 @@ struct CodeGen  {
                 "typedef lobster::LVector LVector;\n"
                 "typedef lobster::LString LString;\n"
                 "typedef lobster::LResource LResource;\n"
+                "typedef lobster::VMString VMString;\n"
+                "typedef lobster::VMField VMField;\n"
+                "typedef lobster::VMUDT VMUDT;\n"
+                "typedef lobster::VMSpecIdent VMSpecIdent;\n"
+                "typedef lobster::VMEnumVal VMEnumVal;\n"
+                "typedef lobster::VMEnum VMEnum;\n"
+                "typedef lobster::VMMetaData VMMetaData;\n"
                 "\n"
                 // A program is free to assign a variable it never reads, or to compare a
                 // variable with itself.
@@ -1154,6 +1164,34 @@ struct CodeGen  {
                 "typedef void (*object_dec_t)(VMRef, LObject *);\n"
                 // An offset into the type table, which is what the helpers take one as.
                 "typedef int type_elem_t;\n"
+                // Explicit mirrors of the metadata in vmdata.h. No standard library types cross
+                // the JIT boundary, and the initializers are the same in C and C++.
+                "#define VMSpan(T) struct { const T *elems; "
+                + string(sizeof(size_t) == 8 ? "unsigned long long" : "unsigned int") + " len; }\n"
+                "typedef const char *VMString;\n"
+                "typedef struct { VMString name; long long val; } VMEnumVal;\n"
+                "typedef struct { VMString name; VMSpan(VMEnumVal) vals; unsigned char flags; } VMEnum;\n"
+                "typedef struct {\n"
+                "    VMString name; int idx; int typeidx;\n"
+                "    unsigned char used_as_freevar, readonly, global;\n"
+                "} VMSpecIdent;\n"
+                "typedef struct { VMString name; int offset, bitoff, bits; } VMField;\n"
+                "typedef struct {\n"
+                "    VMString name; int idx, size, super_idx, typeidx; VMSpan(VMField) fields;\n"
+                "} VMUDT;\n"
+                "typedef struct {\n"
+                "    int code_version;\n"
+                "    VMSpan(type_elem_t) type_table;\n"
+                "    VMSpan(VMString) file_names, function_names;\n"
+                "    VMSpan(VMUDT) udts;\n"
+                "    VMSpan(VMSpecIdent) specidents;\n"
+                "    VMSpan(VMEnum) enums;\n"
+                "    VMSpan(int) ser_ids;\n"
+                "    VMString build_info;\n"
+                "    unsigned long long src_hash;\n"
+                "    VMSpan(int) subfunctions_to_function;\n"
+                "} VMMetaData;\n"
+                "#undef VMSpan\n"
                 "struct ___tracy_source_location_data {\n"
                 "    const char *name;\n"
                 "    const char *function;\n"
@@ -1167,6 +1205,19 @@ struct CodeGen  {
                 "};\n"
                 "\n"
                 ;
+
+            // Check the C compiler's layouts before the host reads any exported metadata.
+            int layout_index = 0;
+            for (auto [name, size] : {
+                     pair{ "VMField", sizeof(VMField) },
+                     pair{ "VMUDT", sizeof(VMUDT) },
+                     pair{ "VMSpecIdent", sizeof(VMSpecIdent) },
+                     pair{ "VMEnumVal", sizeof(VMEnumVal) },
+                     pair{ "VMEnum", sizeof(VMEnum) },
+                     pair{ "VMMetaData", sizeof(VMMetaData) } }) {
+                append(sd, "typedef char _metadata_layout", layout_index++, "[sizeof(", name,
+                       ") == ", size, " ? 1 : -1];\n");
+            }
 
             // A value of a type only known at runtime, which is all a handful of builtins take
             // and one returns, made from what the slot it comes from holds. A helper rather than
@@ -1796,12 +1847,12 @@ struct CodeGen  {
 
     // The name of variable slot `i`, which for a slot of a struct says which one it is.
     string IdName(int i, TypeRef type) {
-        auto ididx = sids[i].ididx();
-        auto idx = sids[i].idx();
+        auto ididx = sids[i].ididx;
+        auto idx = sids[i].idx;
         auto &basename = st.identtable[ididx]->name;
         if (!IsStruct(type->t)) return basename;
         int j = i;
-        while (j && sids[j - 1].idx() == idx) j--;
+        while (j && sids[j - 1].idx == idx) j--;
         return cat(basename, "+", i - j);
     }
 
@@ -1855,7 +1906,8 @@ struct CodeGen  {
             "vm", "lv", "lo", "lvec", "lidx", "locals", "ctx", "tsld", "top", "rs", "ret",
             "epilogue", "main", "argc", "argv", "vmmeta", "Value", "VMRef", "StackPtr",
             "RefObj", "LVector", "LString", "LObject", "VMBase", "fun_base_t", "type_elem_t",
-            "object_dec_t", "vec",
+            "object_dec_t", "vec", "VMSpan", "VMString", "VMField", "VMUDT", "VMSpecIdent",
+            "VMEnumVal", "VMEnum", "VMMetaData",
             "vtables", "object_decs", "const_strings", "funinfo_table", "compiled_entry_point",
             "type_table",
             "file_names", "function_names", "udts", "specidents", "enums", "ser_ids",
@@ -3059,7 +3111,7 @@ struct CodeGen  {
             auto is_arg = find(f_args.begin(), f_args.end(), varidx) != f_args.end();
             rc_tag = is_arg ? "scope-exit:arg" : "scope-exit:local";
             rc_extra = IdName(varidx, var_types[varidx]);
-            if (sids[varidx].used_as_freevar()) {
+            if (sids[varidx].used_as_freevar) {
                 if (auto rs = RcStatCall(false); !rs.empty())
                     append(cb, "    if (", Read(Global(varidx)), ") ", rs, "\n");
                 append(cb, "    DecOwned(vm, ", varidx, ");\n");
@@ -3491,7 +3543,7 @@ struct CodeGen  {
         for (int i = 0; i < (int)f_keeps.size(); i++) keeps.push_back(KeepVar(i));
         // The arguments are the parameters, so only the locals after them are declared here.
         int nargs_local = 0;
-        for (auto varidx : f_args) if (!sids[varidx].used_as_freevar()) nargs_local++;
+        for (auto varidx : f_args) if (!sids[varidx].used_as_freevar) nargs_local++;
         for (int i = nargs_local; i < (int)local_places.size(); i++) locals.push_back(Local(i));
         GenPlaceDecls(sd, slots);
         for (auto k : { VK_INT, VK_FLOAT }) {
@@ -3514,7 +3566,7 @@ struct CodeGen  {
         for (int i = 0; i < (int)f_args.size(); i++) {
             auto varidx = f_args[i];
             auto &p = f_arg_places[i];
-            if (sids[varidx].used_as_freevar()) {
+            if (sids[varidx].used_as_freevar) {
                 // The argument is the global for the duration of the call, whose old value the
                 // parameter holds meanwhile, to go back at the end. That old value is only
                 // ever put back, so it is read past the tag, which on the first call still
@@ -3537,7 +3589,7 @@ struct CodeGen  {
                 for (int i = 0; i < ValWidth(arg.sid->type); i++) {
                     auto varidx = arg.sid->Idx() + i;
                     if (!IsRefNil(var_types[varidx]->t)) continue;
-                    GenIncRef(sd, sids[varidx].used_as_freevar()
+                    GenIncRef(sd, sids[varidx].used_as_freevar
                                       ? Global(varidx)
                                       : Local(var_to_local[varidx]));
                 }
@@ -3548,7 +3600,7 @@ struct CodeGen  {
             // for most locals, this just saves an nil, only in recursive cases it has an
             // actual value.
             auto varidx = f_defs[i];
-            if (sids[varidx].used_as_freevar()) {
+            if (sids[varidx].used_as_freevar) {
                 append(sd, "    BackupVar(vm, ", varidx, ");\n");
             } else {
                 // A reference starts out nil, since a return before its definition has run
@@ -3591,7 +3643,7 @@ struct CodeGen  {
         // The locals that live in a global get their old value back, see BackupVar above.
         for (int i = (int)f_defs.size() - 1; i >= 0; i--) {
             auto varidx = f_defs[i];
-            if (sids[varidx].used_as_freevar()) {
+            if (sids[varidx].used_as_freevar) {
                 append(sd, "    RestoreBackup(vm, ", varidx, ");\n");
             }
         }
@@ -3603,7 +3655,7 @@ struct CodeGen  {
         rc_suppress = false;
         for (int i = 0; i < (int)f_args.size(); i++) {
             auto varidx = f_args[i];
-            if (sids[varidx].used_as_freevar()) CopyValue(sd, Global(varidx), f_arg_places[i]);
+            if (sids[varidx].used_as_freevar) CopyValue(sd, Global(varidx), f_arg_places[i]);
         }
         if (runtime_checks >= RUNTIME_STACK_TRACE && f_function_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
             append(sd, "    PopFunId(vm);\n");
@@ -3705,103 +3757,135 @@ struct CodeGen  {
             append(sd, "    0\n};\n\n");
         }
 
-        // Output the metadata.
+        // Output the same metadata initializers in C and C++. Empty arrays get a dummy
+        // element, since C requires one, but the views below keep their actual lengths.
         auto gen_string = [&](string_view s) {
-            sd += "string_view(";
             EscapeAndQuote(s, sd, true);
-            append(sd, ", ", s.size(), ")");
         };
-        if (cpp) {
-            sd += "static const int type_table[] = {";
-            for (auto [i, x] : enumerate(type_table)) {
-                if ((i & 0xF) == 0) sd += "\n ";
-                append(sd, " ", x, ",");
-            }
-            sd += "\n};\n\n";
-            sd += "static const string_view file_names[] = {\n";
-            for (auto [s, _] : parser.lex.filenames) {
-                sd += "    ";
-                gen_string(s);
-                sd += ",\n";
-            }
-            sd += "};\n\n";
-            sd += "static const string_view function_names[] = {\n";
-            for (auto f : st.functiontable) {
-                sd += "    ";
-                gen_string(f->name);
-                sd += ",\n";
-            }
-            sd += "};\n\n";
-            auto fieldsname = [](UDT *udt) {
-                auto n = cat(udt->name, "_fields", udt->idx);
-                std::replace(n.begin(), n.end(), '.', '_');
-                return n;
-            };
-            for (auto udt : st.udttable) {
-                if (udt->sfields.empty()) continue;
-                append(sd, "static const lobster::VMField ", fieldsname(udt), "[] = {\n");
-                for (auto [i, sfield] : enumerate(udt->sfields)) {
-                    sd += "    { ";
-                    gen_string(udt->g.fields[i].id->name);
-                    append(sd, ", ", sfield.slot, ", ", sfield.bitoff, ", ", sfield.bits, " },\n");
-                }
-                sd += "};\n\n";
-            }
-            sd += "static const lobster::VMUDT udts[] = {\n";
-            for (auto udt : st.udttable) {
-                sd += "    { ";
-                gen_string(udt->name);
-                auto fspan = udt->sfields.empty() ? "{}" : cat("span(", fieldsname(udt), ")");
-                append(sd, ", ", udt->idx, ", ", udt->numslots, ", ",
-                           (udt->ssuperclass ? udt->ssuperclass->idx : -1), ", ", udt_type_offsets[udt->idx], ", ",
-                           fspan, " },\n");
-            }
-            sd += "};\n\n";
-            sd += "static const lobster::VMSpecIdent specidents[] = {\n";
-            for (auto &sid : sids) {
-                auto id = st.identtable[sid.ididx()];
-                sd += "    { ";
-                gen_string(id->name);
-                append(sd, ", ", sid.idx(), ", ", sid.typeidx(), ", ", sid.used_as_freevar(), ", ",
-                       id->constant, ", ", id->scopelevel == 1, " },\n");
-            }
-            sd += "};\n\n";
-            auto enumvalsname = [](Enum *e) {
-                auto n = cat(e->name, "_vals", e->idx);
-                std::replace(n.begin(), n.end(), '.', '_');
-                return n;
-            };
-            for (auto e : st.enumtable) {
-                if (e->vals.empty()) continue;
-                append(sd, "static const lobster::VMEnumVal ", enumvalsname(e), "[] = {\n");
-                for (auto [i, ev] : enumerate(e->vals)) {
-                    sd += "    { ";
-                    gen_string(ev->name);
-                    append(sd, ", ", ev->val, " },\n");
-                }
-                sd += "};\n\n";
-            }
-            sd += "static const lobster::VMEnum enums[] = {\n";
-            for (auto e : st.enumtable) {
-                sd += "    { ";
-                gen_string(e->name);
-                auto fspan = e->vals.empty() ? "{}" : cat("span(", enumvalsname(e), ")");
-                append(sd, ", ", fspan, ", ", e->flags, " },\n");
-            }
-            sd += "};\n\n";
-            sd += "static const int ser_ids[] = {";
-            for (auto [i, x] : enumerate(ser_ids)) {
-                if ((i & 0xF) == 0) sd += "\n ";
-                append(sd, " ", x, ",");
-            }
-            sd += "\n};\n\n";
-            sd += "static const int subfunctions_to_function[] = {";
-            for (auto [i, sf] : enumerate(st.subfunctiontable)) {
-                if ((i & 0xF) == 0) sd += "\n ";
-                append(sd, " ", sf->parent->idx, ",");
-            }
-            sd += "\n};\n\n";
+        sd += "static const int type_table[] = {";
+        for (auto [i, x] : enumerate(type_table)) {
+            if ((i & 0xF) == 0) sd += "\n ";
+            append(sd, " ", x, ",");
         }
+        sd += "\n};\n\n";
+        sd += "static const VMString file_names[] = {\n";
+        for (auto [s, _] : parser.lex.filenames) {
+            sd += "    ";
+            gen_string(s);
+            sd += ",\n";
+        }
+        if (parser.lex.filenames.empty()) sd += "    0\n";
+        sd += "};\n\n";
+        sd += "static const VMString function_names[] = {\n";
+        for (auto f : st.functiontable) {
+            sd += "    ";
+            gen_string(f->name);
+            sd += ",\n";
+        }
+        if (st.functiontable.empty()) sd += "    0\n";
+        sd += "};\n\n";
+        auto fieldsname = [](UDT *udt) {
+            auto n = cat(udt->name, "_fields", udt->idx);
+            std::replace(n.begin(), n.end(), '.', '_');
+            return n;
+        };
+        for (auto udt : st.udttable) {
+            if (udt->sfields.empty()) continue;
+            append(sd, "static const VMField ", fieldsname(udt), "[] = {\n");
+            for (auto [i, sfield] : enumerate(udt->sfields)) {
+                sd += "    { ";
+                gen_string(udt->g.fields[i].id->name);
+                append(sd, ", ", sfield.slot, ", ", sfield.bitoff, ", ", sfield.bits, " },\n");
+            }
+            sd += "};\n\n";
+        }
+        sd += "static const VMUDT udts[] = {\n";
+        for (auto udt : st.udttable) {
+            sd += "    { ";
+            gen_string(udt->name);
+            auto fspan = cat("{ ", udt->sfields.empty() ? "0" : fieldsname(udt),
+                             ", ", udt->sfields.size(), " }");
+            append(sd, ", ", udt->idx, ", ", udt->numslots, ", ",
+                       (udt->ssuperclass ? udt->ssuperclass->idx : -1), ", ", udt_type_offsets[udt->idx], ", ",
+                       fspan, " },\n");
+        }
+        if (st.udttable.empty()) sd += "    { 0, 0, 0, 0, 0, { 0, 0 } }\n";
+        sd += "};\n\n";
+        sd += "static const VMSpecIdent specidents[] = {\n";
+        for (auto &sid : sids) {
+            auto id = st.identtable[sid.ididx];
+            sd += "    { ";
+            gen_string(id->name);
+            append(sd, ", ", sid.idx, ", ", sid.typeidx, ", ", sid.used_as_freevar, ", ",
+                   id->constant, ", ", id->scopelevel == 1, " },\n");
+        }
+        if (sids.empty()) sd += "    { 0, 0, 0, 0, 0, 0 }\n";
+        sd += "};\n\n";
+        auto enumvalsname = [](Enum *e) {
+            auto n = cat(e->name, "_vals", e->idx);
+            std::replace(n.begin(), n.end(), '.', '_');
+            return n;
+        };
+        for (auto e : st.enumtable) {
+            if (e->vals.empty()) continue;
+            append(sd, "static const VMEnumVal ", enumvalsname(e), "[] = {\n");
+            for (auto [i, ev] : enumerate(e->vals)) {
+                sd += "    { ";
+                gen_string(ev->name);
+                append(sd, ", ", IntLiteral(ev->val), " },\n");
+            }
+            sd += "};\n\n";
+        }
+        sd += "static const VMEnum enums[] = {\n";
+        for (auto e : st.enumtable) {
+            sd += "    { ";
+            gen_string(e->name);
+            auto fspan = cat("{ ", e->vals.empty() ? "0" : enumvalsname(e),
+                             ", ", e->vals.size(), " }");
+            append(sd, ", ", fspan, ", ", e->flags, " },\n");
+        }
+        if (st.enumtable.empty()) sd += "    { 0, { 0, 0 }, 0 }\n";
+        sd += "};\n\n";
+        sd += "static const int ser_ids[] = {";
+        for (auto [i, x] : enumerate(ser_ids)) {
+            if ((i & 0xF) == 0) sd += "\n ";
+            append(sd, " ", x, ",");
+        }
+        if (ser_ids.empty()) sd += " 0";
+        sd += "\n};\n\n";
+        sd += "static const int subfunctions_to_function[] = {";
+        for (auto [i, sf] : enumerate(st.subfunctiontable)) {
+            if ((i & 0xF) == 0) sd += "\n ";
+            append(sd, " ", sf->parent->idx, ",");
+        }
+        if (st.subfunctiontable.empty()) sd += " 0";
+        sd += "\n};\n\n";
+        string build_info;
+        auto time = std::time(nullptr);
+        if (time) {
+            auto tm = std::localtime(&time);
+            if (tm) {
+                auto ts = std::asctime(tm);
+                build_info = string(ts, 24);
+            }
+        }
+        if (cpp) sd += "static ";
+        else if (!mir) sd += "extern ";
+        sd += "const VMMetaData vmmeta = {\n";
+        append(sd, "    ", LOBSTER_CODE_FORMAT_VERSION, ",\n");
+        append(sd, "    { (const type_elem_t *)type_table, ", type_table.size(), " },\n");
+        append(sd, "    { file_names, ", parser.lex.filenames.size(), " },\n");
+        append(sd, "    { function_names, ", st.functiontable.size(), " },\n");
+        append(sd, "    { udts, ", st.udttable.size(), " },\n");
+        append(sd, "    { specidents, ", sids.size(), " },\n");
+        append(sd, "    { enums, ", st.enumtable.size(), " },\n");
+        append(sd, "    { ser_ids, ", ser_ids.size(), " },\n    ");
+        gen_string(build_info);
+        sd += ",\n    ";
+        to_string_hex(sd, src_hash);
+        sd += "ULL,\n";
+        append(sd, "    { subfunctions_to_function, ", st.subfunctiontable.size(), " },\n");
+        sd += "};\n\n";
         if (cpp) sd += "extern \"C\" ";
         sd += "void compiled_entry_point(VMRef vm) {\n";
         if (cpp) {
@@ -3815,35 +3899,9 @@ struct CodeGen  {
         }
         append(sd, "    ", FunName(CODEGEN_SPECIAL_FUNCTION_ID_ENTRY), "(vm);\n}\n\n");
         if (cpp) {
-            string build_info;
-            auto time = std::time(nullptr);
-            if (time) {
-                auto tm = std::localtime(&time);
-                if (tm) {
-                    auto ts = std::asctime(tm);
-                    build_info = string(ts, 24);
-                }
-            }
             sd += "int main(int argc, char *argv[]) {\n";
             sd += "    // This is hard-coded to call compiled_entry_point()\n";
             if (custom_pre_init_name != "nullptr") append(sd, "    void ", custom_pre_init_name, "(lobster::NativeRegistry &);\n");
-            sd += "    lobster::VMMetaData vmmeta = {\n";
-            sd += "        " + to_string(LOBSTER_METADATA_FORMAT_VERSION) + ",\n";
-            sd += "        span((const lobster::type_elem_t *)&type_table, sizeof(type_table) / sizeof(int)),\n";
-            sd += "        span(file_names),\n";
-            sd += "        span(function_names),\n";
-            sd += "        span(udts),\n";
-            sd += "        span(specidents),\n";
-            sd += "        span(enums),\n";
-            sd += "        span(ser_ids),\n";
-            sd += "        ";
-            gen_string(build_info);
-            sd += ",\n";
-            sd += "        ";
-            to_string_hex(sd, src_hash);
-            sd += ",\n";
-            sd += "        span(subfunctions_to_function),\n";
-            sd += "    };\n";
             sd += "    return RunCompiledCodeMain(argc, argv, ";
             append(sd, "&vmmeta, vtables, object_decs, const_strings, ", custom_pre_init_name,
                    ", \"\");\n}\n");

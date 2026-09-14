@@ -263,19 +263,16 @@ int main(int argc, char* argv[]) {
         for (auto &import : imports) AddDataDir(import);
         if (!fn.empty()) fn = StripDirPart(fn);
 
-        string metadata_buffer;
         string c_codegen;
         if (fn.empty()) {
-            uint64_t src_hash = 0;  // Don't care, from same file as bytecode.
+            uint64_t src_hash = 0;  // Don't care, from the same file as the code.
             if (!LoadPakDir(default_lpak, src_hash))
                 THROW_OR_ABORT(
                     "Lobster programming language compiler/runtime (version "
                     GIT_COMMIT_INFOSTR ")\nno arguments given - cannot load " +
                     string(default_lpak) + "\n" + helptext);
             // This will now come from the pakfile.
-            if (!LoadMetaDataAndCode(metadata_buffer, c_codegen))
-                THROW_OR_ABORT("Cannot load metadata from pakfile!");
-            if (opts.jit_mode && c_codegen.empty())
+            if (!LoadCode(c_codegen))
                 THROW_OR_ABORT("Cannot load compiled C from pakfile to run it!");
         } else {
             LOG_INFO("compiling...");
@@ -286,9 +283,8 @@ int main(int argc, char* argv[]) {
             pakfile.clear();
             opts.query = !query.kind.empty() ? &query : nullptr;
             for (;;) {
-                metadata_buffer.clear();
                 c_codegen.clear();
-                auto err = Compile(nfr, fn, {}, opts, metadata_buffer, c_codegen,
+                auto err = Compile(nfr, fn, {}, opts, c_codegen,
                                    parsedump ? &dump : nullptr, lpak ? &pakfile : nullptr);
                 if (!err.empty()) return fail(err);
                 if (mainfile.empty()) break;
@@ -319,7 +315,7 @@ int main(int argc, char* argv[]) {
         }
         if (opts.jit_mode) {
             string error;
-            auto ret = RunJIT(nfr, fn, metadata_buffer, c_codegen, std::move(program_args), opts,
+            auto ret = RunJIT(nfr, fn, c_codegen, std::move(program_args), opts,
                               ropts, error);
             if (!error.empty())
                 THROW_OR_ABORT(error);

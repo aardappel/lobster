@@ -21,9 +21,6 @@
 
 #include "lobster/natreg.h"
 
-#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
-#include "lobster/bytecode_generated.h"
-
 #include "lobster/lobsterreader.h"
 
 #include "lobster/sdlincludes.h"
@@ -595,7 +592,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
                 vector<const char *> items(vals.size());
                 int i = 0;
                 for (auto &ev : vals) {
-                    items[i] = ev.name.data();
+                    items[i] = ev.name;
                     if (val == ev.val) sel = i;
                     i++;
                 }
@@ -663,7 +660,7 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
                     }
                     break;
                 } else if (ti->elemtypes[0].type == TYPE_ELEM_FLOAT) {
-                    if (st.name == "color") {
+                    if (string_view(st.name) == "color") {
                         auto c = ValueToFLT<4>(v, ti->len);
                         if (ImGui::ColorEdit4(l, (float *)c.data())) {
                             ToValue(v, ti->len, c);
@@ -683,8 +680,8 @@ void ValToGUI(VM &vm, Value *v, const TypeInfo *ti, string_view_nt label, bool e
                 }
             }
             generic:
-            if (ImGui::TreeNodeEx(*l ? l : st.name.data(), flags)) {
-                if (BeginTable(st.name.data())) {
+            if (ImGui::TreeNodeEx(*l ? l : st.name, flags)) {
+                if (BeginTable(st.name)) {
                     int fi = 0;
                     vm.ForEachField(*ti, [&](const FieldInfo &f) {
                         auto &sti = vm.GetTypeInfo(f.type);
@@ -758,7 +755,7 @@ void VarsToGUI(VM &vm) {
             for (uint32_t i = 0; i < vm.vma.meta->specidents.size(); i++) {
                 auto &val = vm.fvars[i];
                 auto &sid = vm.vma.meta->specidents[i];
-                if (!sid.global || sid.readonly != constants) continue;
+                if (!sid.global || bool(sid.readonly) != constants) continue;
                 auto name = string_view_nt(sid.name);
                 auto &ti = vm.GetVarTypeInfo(i);
                 ValToGUI(vm, &val, &ti, name, false);

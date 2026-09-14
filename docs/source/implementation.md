@@ -157,9 +157,11 @@ distribute a Lobster program to others, you will need to distribution files.
 These must be (including correct paths):
 
 -   `default.lpak`. This is the Lobster pakfile file you obtain from compiling
-    your program with the `--pak` option, it includes:
+    your program with `--rpak` for JIT execution, or `--pak` for an AOT build.
+    It includes:
 
-    -   The bytecode.
+    -   With `--rpak`, the generated C code, including the VM metadata tables.
+        AOT builds embed the code and metadata in the executable instead.
 
     -   `data/shaders/default.materials` (these are the minimum shader definitions
         needed for to render anything, and is implicitly loaded by `gl.window`).

@@ -167,6 +167,11 @@ def misc_tests():
     // without atomics, so those counts mean nothing once workers ran; the program still has
     // to run clean. compile_run_code needs a compiler, which a --cpp build doesn't have.
     if not vm_compiled_mode():
+        // No imports, functions, variables or user types: metadata views must remain empty
+        // even though C needs a dummy element for their backing arrays.
+        let empty_ret, empty_err = compile_run_code("return 7", [])
+        test_eq(empty_err, nil)
+        test_eq(empty_ret, "7")
         let ret, err = compile_run_code("""
             var s = ""
             var n = 0

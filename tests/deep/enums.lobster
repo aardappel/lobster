@@ -18,6 +18,10 @@ enum de_neg:
     de_n = -3
     de_m          // Auto-increment continues from negative values: -2.
 
+enum de_wide:
+    de_min = -9223372036854775807 - 1
+    de_max = 9223372036854775807
+
 enum_flags de_bits:
     de_f1         // 1
     de_f2         // 2
@@ -60,6 +64,14 @@ def enums_tests():
     test_eq(de_g8, 8)
     test_eq(de_hneg, -1)
     test_eq(de_hone, 1)
+
+    // These names and values come from the generated metadata, including the minimum
+    // signed integer, whose magnitude cannot be written as a signed C literal.
+    test_eq(type_enum_value_name(typeof de_wide, de_min), "de_min")
+    test_eq(type_enum_value_name(typeof de_wide, de_max), "de_max")
+    let wide, wide_err = parse_data(typeof [de_wide], "[de_min, de_max]")
+    test_eq(wide_err, nil)
+    test_seq(assert wide, [ de_min, de_max ])
 
     // Enums are ints in any int context; arithmetic yields int.
     test_eq(de_red + 1, 4)

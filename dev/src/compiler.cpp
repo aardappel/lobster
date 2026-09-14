@@ -204,7 +204,7 @@ string PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
 }
 
 string Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
-               const CompileOptions &opts, string &metadata_buffer, string &c_codegen,
+               const CompileOptions &opts, string &c_codegen,
                string *parsedump, string *pakfile) {
     #ifdef NDEBUG
         SlabAlloc slaballoc;
@@ -253,22 +253,20 @@ string Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
     auto src_hash = lex.HashAll();
     CodeGen cg(parser, st, opts, src_hash, c_codegen);
     if (lex.num_errors) return lex.errors;
-    st.Serialize(cg.type_table, cg.sids, metadata_buffer, filenames, cg.ser_ids,
-                 cg.udt_type_offsets, src_hash);
     if (pakfile) {
-        auto err = BuildPakFile(*pakfile, metadata_buffer, parser.pakfiles, src_hash,
+        auto err = BuildPakFile(*pakfile, parser.pakfiles, src_hash,
                                 opts.code_pak ? c_codegen : string());
         if (!err.empty()) return err;
     }
     return {};
 }
 
-pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metadata_buffer,
+pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn,
                           const string &c_codegen, vector<string> &&program_args,
                           const CompileOptions &copts, const RunOptions &ropts, string &error) {
     #if VM_JIT_MODE
         const char *export_names[] = { "compiled_entry_point", "vtables", "object_decs",
-                                       "const_strings", nullptr };
+                                       "const_strings", "vmmeta", nullptr };
         assert(!nfr.jit_imports.empty());
         auto &jit_options = copts.jit_options;
         auto start_time = SecondsSinceStart();
@@ -280,92 +278,11 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metad
                 LOG_INFO("time to ", jit_options.mir ? "mir" : "tcc",
                          " (seconds): ", SecondsSinceStart() - start_time);
                 if (ropts.compile_only) return true;
-                // Verify the bytecode.
-                flatbuffers::Verifier verifier((uint8_t *)metadata_buffer.data(), metadata_buffer.size());
-                auto ok = metadata::VerifyMetadataFileBuffer(verifier);
-                if (!ok) THROW_OR_ABORT("metadata file failed to verify");
-                auto bcf = metadata::GetMetadataFile(metadata_buffer.data());
-                if (bcf->metadata_version() != LOBSTER_METADATA_FORMAT_VERSION)
-                    THROW_OR_ABORT("metadata is from a different version of Lobster");
-                vector<type_elem_t> type_table;
-                for (flatbuffers::uoffset_t i = 0; i < bcf->typetable()->size(); i++) {
-                    type_table.push_back((type_elem_t)bcf->typetable()->Get(i));
-                }
-                vector<string_view> file_names;
-                for (flatbuffers::uoffset_t i = 0; i < bcf->filenames()->size(); i++) {
-                    file_names.push_back(bcf->filenames()->Get(i)->string_view());
-                }
-                vector<string_view> function_names;
-                for (flatbuffers::uoffset_t i = 0; i < bcf->functions()->size(); i++) {
-                    function_names.push_back(bcf->functions()->Get(i)->name()->string_view());
-                }
-                vector<VMUDT> udts;
-                vector<VMField> fields;
-                for (flatbuffers::uoffset_t i = 0; i < bcf->udts()->size(); i++) {
-                    auto udt = bcf->udts()->Get(i);
-                    for (flatbuffers::uoffset_t j = 0; j < udt->fields()->size(); j++) {
-                        auto field = udt->fields()->Get(j);
-                        fields.push_back(VMField{ field->name()->string_view(), field->offset(),
-                                                  field->bitoff(), field->bits() });
-                    }
-                }
-                size_t off = 0;
-                for (flatbuffers::uoffset_t i = 0; i < bcf->udts()->size(); i++) {
-                    auto udt = bcf->udts()->Get(i);
-                    auto fspan = span(fields.data() + off, fields.data() + off + udt->fields()->size());
-                    udts.push_back(VMUDT{ udt->name()->string_view(), udt->idx(), udt->size(),
-                                          udt->super_idx(), udt->typeidx(), fspan });
-                    off += udt->fields()->size();
-                }
-                vector<VMSpecIdent> specidents;
-                for (flatbuffers::uoffset_t i = 0; i < bcf->specidents()->size(); i++) {
-                    auto sid = bcf->specidents()->Get(i);
-                    auto id = bcf->idents()->Get(sid->ididx());
-                    specidents.push_back(VMSpecIdent {
-                        id->name()->string_view(), sid->idx(), sid->typeidx(),
-                        sid->used_as_freevar(), id->readonly(), id->global() });
-                }
-                vector<VMEnum> enums;
-                vector<VMEnumVal> enumvals;
-                for (flatbuffers::uoffset_t i = 0; i < bcf->enums()->size(); i++) {
-                    auto e = bcf->enums()->Get(i);
-                    for (flatbuffers::uoffset_t j = 0; j < e->vals()->size(); j++) {
-                        auto ev = e->vals()->Get(j);
-                        enumvals.push_back(VMEnumVal{ ev->name()->string_view(), ev->val() });
-                    }
-                }
-                off = 0;
-                for (flatbuffers::uoffset_t i = 0; i < bcf->enums()->size(); i++) {
-                    auto e = bcf->enums()->Get(i);
-                    auto fspan = span(enumvals.data() + off,
-                                           enumvals.data() + off + e->vals()->size());
-                    enums.push_back(VMEnum{ e->name()->string_view(), fspan, e->flags() });
-                    off += e->vals()->size();
-                }
-                vector<int> ser_ids;
-                for (flatbuffers::uoffset_t i = 0; i < bcf->ser_ids()->size(); i++) {
-                    ser_ids.push_back(bcf->ser_ids()->Get(i));
-                }
-                vector<int> subfunctions_to_function;
-                for (flatbuffers::uoffset_t i = 0; i < bcf->subfunctions_to_function()->size();
-                     i++) {
-                    subfunctions_to_function.push_back(bcf->subfunctions_to_function()->Get(i));
-                }               
-                VMMetaData vmmeta = {
-                    bcf->metadata_version(),
-                    span(type_table),
-                    span(file_names),
-                    span(function_names),
-                    span(udts),
-                    span(specidents),
-                    span(enums),
-                    span(ser_ids),
-                    bcf->build_info()->string_view(),
-                    bcf->src_hash(),
-                    span(subfunctions_to_function),
-                };
+                auto vmmeta = (const VMMetaData *)exports[4];
+                if (!vmmeta || vmmeta->code_version != LOBSTER_CODE_FORMAT_VERSION)
+                    THROW_OR_ABORT("code is from a different version of Lobster");
                 auto vmargs = VMArgs {
-                    nfr, string(fn), &vmmeta,
+                    nfr, string(fn), vmmeta,
                     std::move(program_args),
                     (fun_base_t *)exports[1], (object_dec_t *)exports[2],
                     (LString **)exports[3], (fun_base_t)exports[0], ropts.dump_leaks,
@@ -390,7 +307,6 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metad
     #else
         (void)nfr;
         (void)fn;
-        (void)metadata_buffer;
         (void)c_codegen;
         (void)program_args;
         (void)copts;
@@ -412,11 +328,10 @@ LString *CompileRun(VM &parent_vm, LString **result, Value source, bool stringis
     opts.max_errors = std::max(1, max_errors);
     // FIXME: let the caller decide on the runtime checks?
     opts.jit_options = parent_vm.vma.jit_options;
-    string metadata_buffer;
     string c_codegen;
     auto err = Compile(parent_vm.vma.nfr, fn,
                        stringiscode ? source.sval()->strv() : string_view(), opts,
-                       metadata_buffer, c_codegen);
+                       c_codegen);
     if (!err.empty()) return fail(err);
     // Running it may still throw: a runtime error in the sandboxed program.
     #ifdef USE_EXCEPTION_HANDLING
@@ -424,7 +339,7 @@ LString *CompileRun(VM &parent_vm, LString **result, Value source, bool stringis
     #endif
     {
         string error;
-        auto ret = RunJIT(parent_vm.vma.nfr, fn, metadata_buffer, c_codegen, std::move(args), opts,
+        auto ret = RunJIT(parent_vm.vma.nfr, fn, c_codegen, std::move(args), opts,
                           RunOptions(), error);
         if (!error.empty()) return fail(error);
         *result = parent_vm.NewString(ret.first);

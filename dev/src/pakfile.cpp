@@ -17,28 +17,24 @@
 
 #include "lobster/compiler.h"
 
-#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
-#include "lobster/bytecode_generated.h"
-
 namespace lobster {
 
 bool IsCompressed(string_view filename) {
     auto dot = filename.find_last_of('.');
     if (dot == string_view::npos) return false;
     auto ext = filename.substr(dot);
-    return ext == ".c" || ext == ".lbc" || ext == ".lobster" || ext == ".materials" || ext == ".glsl";
+    return ext == ".c" || ext == ".lobster" || ext == ".materials" || ext == ".glsl";
 }
 
 static const uint8_t *magic = (uint8_t *)"LPAK";
 static const size_t magic_size = 4;
 static const size_t header_size = magic_size + sizeof(int64_t) * 4;
-static const char *mdname = "metadata.lbc";
 static const char *ccname = "c_codegen.c";
 static const int64_t current_version = 2;
 
 template <typename T> int64_t LE(T x) { return flatbuffers::EndianScalar((int64_t)x); }
 
-string BuildPakFile(string &pakfile, string &metadata_buffer, set<string> &files, uint64_t src_hash,
+string BuildPakFile(string &pakfile, set<string> &files, uint64_t src_hash,
                     const string &c_codegen) {
     // All offsets in 64bit, just in-case we ever want pakfiles > 4GB :)
     // Since we're building this in memory, they can only be created by a 64bit build.
@@ -62,8 +58,6 @@ string BuildPakFile(string &pakfile, string &metadata_buffer, set<string> &files
     };
     // Start with a magic id, just for the hell of it.
     pakfile.insert(pakfile.end(), magic, magic + magic_size);
-    // Metadata always first entry.
-    add_file(metadata_buffer, mdname);
     if (!c_codegen.empty()) {
         add_file(c_codegen, ccname);
     }
@@ -171,13 +165,8 @@ bool LoadPakDir(const char *lpak, uint64_t &src_hash_dest) {
     return true;
 }
 
-bool LoadMetaDataAndCode(string &metadata, string &c_codegen) {
-    if (LoadFile(mdname, &metadata) < 0) return false;
-    LoadFile(ccname, &c_codegen);
-    flatbuffers::Verifier verifier((const uint8_t *)metadata.c_str(), metadata.length());
-    auto ok = metadata::VerifyMetadataFileBuffer(verifier);
-    assert(ok);
-    return ok;
+bool LoadCode(string &c_codegen) {
+    return LoadFile(ccname, &c_codegen) > 0;
 }
 
 }  // namespace lobster

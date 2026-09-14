@@ -78,7 +78,7 @@ VM::VM(VMArgs &&vmargs)
         auto &funs = vma.meta->function_names;
         for (auto f : funs) {
             pre_allocated_function_locations.push_back(
-                ___tracy_source_location_data{ f.data(), f.data(), "", 0, 0x008888 });
+                ___tracy_source_location_data{ f, f, "", 0, 0x008888 });
         }
     #endif
 }
@@ -878,7 +878,7 @@ string_view VM::LookupField(int stidx, iint fieldn) const {
 string_view VM::LookupFieldByOffset(int stidx, int offset) const {
     auto &st = vma.meta->udts[stidx];
     auto fieldn = st.fields.size() - 1;
-    for (flatbuffers::uoffset_t i = 1; i < st.fields.size(); i++) {
+    for (size_t i = 1; i < st.fields.size(); i++) {
         auto foffset = st.fields[i].offset;
         if (foffset < 0) {
             // Generic type that does not have field offsets.
@@ -894,7 +894,7 @@ string_view VM::LookupFieldByOffset(int stidx, int offset) const {
 
 int VM::LookupFieldByName(int stidx, string_view fname) const {
     auto &st = vma.meta->udts[stidx];
-    for (flatbuffers::uoffset_t i = 0; i < st.fields.size(); i++) {
+    for (size_t i = 0; i < st.fields.size(); i++) {
         auto &f = st.fields[i];
         if (f.name == fname) {
             return f.offset;

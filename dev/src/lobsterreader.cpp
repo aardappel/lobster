@@ -20,9 +20,6 @@
 
 #include "flatbuffers/idl.h"
 
-#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
-#include "lobster/bytecode_generated.h"
-
 #include "lobster/lobsterreader.h"
 
 namespace lobster {

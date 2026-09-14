@@ -17,14 +17,7 @@
 
 #include "lobster/natreg.h"
 
-#define FLATBUFFERS_DEBUG_VERIFICATION_FAILURE
-#include "lobster/bytecode_generated.h"
-
 namespace lobster {
-
-// FlatBuffers takes care of backwards compatibility of all metadata, but not of the C the
-// compiler emits, so this needs to be bumped each time we change the format.
-const int LOBSTER_METADATA_FORMAT_VERSION = 29;
 
 struct NativeFun;
 struct SymbolTable;
@@ -104,11 +97,6 @@ struct Ident : Named {
     Ident *Read() {
         read = true;
         return this;
-    }
-
-    flatbuffers::Offset<metadata::Ident> Serialize(flatbuffers::FlatBufferBuilder &fbb,
-                                                   bool is_top_level) const {
-        return metadata::CreateIdent(fbb, fbb.CreateString(name), constant, is_top_level);
     }
 };
 
@@ -201,14 +189,6 @@ struct Enum : Named {
         for (auto &v : vals)
             if (v.get()->val == q) return v.get();
         return nullptr;
-    }
-
-    flatbuffers::Offset<metadata::Enum> Serialize(flatbuffers::FlatBufferBuilder &fbb) {
-        vector<flatbuffers::Offset<metadata::EnumVal>> valoffsets;
-        for (auto &v : vals)
-            valoffsets.push_back(metadata::CreateEnumVal(fbb, fbb.CreateString(v->name), v->val));
-        return metadata::CreateEnum(fbb, fbb.CreateString(name), fbb.CreateVector(valoffsets),
-                                    flags);
     }
 };
 
@@ -451,17 +431,6 @@ struct UDT : Named {
     // abstract struct family is the family's layout, see SymbolTable::LayoutFamily. Returns
     // false for a struct that (transitively) contains itself.
     bool ComputeSizes(SymbolTable &st, int depth = 0);
-
-    flatbuffers::Offset<metadata::UDT> Serialize(flatbuffers::FlatBufferBuilder &fbb,
-                                               type_elem_t type_offset) {
-        vector<flatbuffers::Offset<metadata::Field>> fieldoffsets;
-        for (auto [i, sfield] : enumerate(sfields))
-            fieldoffsets.push_back(
-                metadata::CreateField(fbb, fbb.CreateString(g.fields[i].id->name), sfield.slot,
-                                      sfield.bitoff, sfield.bits));
-        return metadata::CreateUDT(fbb, fbb.CreateString(name), idx, fbb.CreateVector(fieldoffsets),
-                                   numslots, ssuperclass ? ssuperclass->idx : -1, type_offset);
-    }
 };
 
 bool SpecUDT::IsGeneric() const {
@@ -929,10 +898,6 @@ struct Function : Named {
             }
         }
         return false;
-    }
-
-    flatbuffers::Offset<metadata::Function> Serialize(flatbuffers::FlatBufferBuilder &fbb) const {
-        return metadata::CreateFunction(fbb, fbb.CreateString(name));
     }
 };
 
@@ -2136,54 +2101,6 @@ struct SymbolTable {
             // needs to be present as a dispatch root.
             if (udt->g.is_abstract) break;
         }
-    }
-
-    void Serialize(vector<type_elem_t> &typetable,
-                   vector<metadata::SpecIdent> &sids,
-                   string &bytecode,
-                   vector<pair<string, string>> &filenames,
-                   vector<type_elem_t> &ser_ids,
-                   span<const type_elem_t> udt_type_offsets,
-                   uint64_t src_hash) {
-        flatbuffers::FlatBufferBuilder fbb;
-        vector<flatbuffers::Offset<flatbuffers::String>> fns;
-        for (auto &f : filenames) fns.push_back(fbb.CreateString(f.first));
-        vector<flatbuffers::Offset<metadata::Function>> functionoffsets;
-        for (auto f : functiontable) functionoffsets.push_back(f->Serialize(fbb));
-        vector<flatbuffers::Offset<metadata::UDT>> udtoffsets;
-        assert(udt_type_offsets.size() == udttable.size());
-        for (auto u : udttable)
-            udtoffsets.push_back(u->Serialize(fbb, udt_type_offsets[u->idx]));
-        vector<flatbuffers::Offset<metadata::Ident>> identoffsets;
-        for (auto i : identtable) identoffsets.push_back(i->Serialize(fbb, i->scopelevel == 1));
-        vector<flatbuffers::Offset<metadata::Enum>> enumoffsets;
-        for (auto e : enumtable) enumoffsets.push_back(e->Serialize(fbb));
-        vector<int> subfunctions_to_function;
-        for (auto sf : subfunctiontable) subfunctions_to_function.push_back(sf->parent->idx);
-        string build_info;
-        auto time = std::time(nullptr);
-        if (time) {
-            auto tm = std::localtime(&time);
-            if (tm) {
-                auto ts = std::asctime(tm);
-                build_info = string(ts, 24);
-            }
-        }
-        auto bcf = metadata::CreateMetadataFile(fbb,
-            LOBSTER_METADATA_FORMAT_VERSION,
-            fbb.CreateVector((vector<int> &)typetable),
-            fbb.CreateVector(fns),
-            fbb.CreateVector(functionoffsets),
-            fbb.CreateVector(udtoffsets),
-            fbb.CreateVector(identoffsets),
-            fbb.CreateVectorOfStructs(sids),
-            fbb.CreateVector(enumoffsets),
-            fbb.CreateVector((vector<int> &)ser_ids),
-            fbb.CreateString(build_info.c_str(), build_info.size()),
-            src_hash,
-            fbb.CreateVector(subfunctions_to_function));
-        metadata::FinishMetadataFileBuffer(fbb, bcf);
-        bytecode.assign(fbb.GetBufferPointer(), fbb.GetBufferPointer() + fbb.GetSize());
     }
 };
 

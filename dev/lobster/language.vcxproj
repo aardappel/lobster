@@ -395,7 +395,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\.editorconfig" />
-    <None Include="..\src\bytecode.fbs" />
     <None Include="..\TODO.txt" />
   </ItemGroup>
   <ItemGroup>
@@ -419,7 +418,6 @@
     <ClInclude Include="..\include\flatbuffers\stl_emulation.h" />
     <ClInclude Include="..\include\flatbuffers\util.h" />
     <ClInclude Include="..\src\lobster\accumulator.h" />
-    <ClInclude Include="..\src\lobster\bytecode_generated.h" />
     <ClInclude Include="..\src\lobster\codegen.h" />
     <ClInclude Include="..\src\lobster\codegen_builtin.h" />
     <ClInclude Include="..\src\lobster\compiler.h" />

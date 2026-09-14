@@ -47,7 +47,6 @@ if(LOBSTER_ENGINE)
 else()
   # FIXME: move into separate dirs so these can be globbed.
   set(LOBSTER_SRCS
-    src/lobster/bytecode_generated.h
     src/lobster/codegen.h
     src/lobster/codegen_builtin.h
     src/lobster/compiler.h

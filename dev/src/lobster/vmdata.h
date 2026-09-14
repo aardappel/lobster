@@ -15,12 +15,6 @@
 #ifndef LOBSTER_VMDATA
 #define LOBSTER_VMDATA
 
-// FIXME
-namespace metadata {
-    struct MetadataFile;
-    struct UDT;
-}
-
 namespace lobster {
 
 // For debugging hairier issues.
@@ -1021,28 +1015,48 @@ enum {
     RUNTIME_DEBUGGER_DUMP  // --runtime-debugger-dump: saves dump, the debugger afterwards on errors.
 };
 
+// Generated C and C++ both provide these tables directly. Unlike std::span, this has an
+// explicit layout that the C declarations in CodeGen::Prologue can mirror.
+template<typename T> struct VMSpan {
+    const T *elems;
+    size_t len;
+
+    const T *data() const { return elems; }
+    size_t size() const { return len; }
+    bool empty() const { return !len; }
+    const T &operator[](size_t i) const { assert(i < len); return elems[i]; }
+    const T *begin() const { return elems; }
+    const T *end() const { return len ? elems + len : elems; }
+};
+
+// Metadata strings are names and build information, all emitted as nul-terminated literals.
+using VMString = const char *;
+
+// Bump when the generated C or the metadata layout changes incompatibly.
+const int LOBSTER_CODE_FORMAT_VERSION = 30;
+
 struct VMEnumVal {
-    string_view name;
+    VMString name;
     iint val;
 };
 
 struct VMEnum {
-    string_view name;
-    span<const VMEnumVal> vals;
-    bool flags;
+    VMString name;
+    VMSpan<VMEnumVal> vals;
+    uint8_t flags;
 };
 
 struct VMSpecIdent {
-    string_view name;
+    VMString name;
     int idx;
     int typeidx;
-    bool used_as_freevar;
-    bool readonly;
-    bool global;
+    uint8_t used_as_freevar;
+    uint8_t readonly;
+    uint8_t global;
 };
 
 struct VMField {
-    string_view name;
+    VMString name;
     int offset;  // The slot.
     // For a field stored in part of its slot: the bits it has there, 0 for a whole slot, see
     // FieldInfo.
@@ -1051,26 +1065,26 @@ struct VMField {
 };
 
 struct VMUDT {
-    string_view name;
+    VMString name;
     int idx;
     int size;
     int super_idx;
     int typeidx;
-    span<const VMField> fields;
+    VMSpan<VMField> fields;
 };
 
 struct VMMetaData {
-    int metadata_version = 0;
-    span<const type_elem_t> type_table;
-    span<const string_view> file_names;
-    span<const string_view> function_names;
-    span<const VMUDT> udts;
-    span<const VMSpecIdent> specidents;
-    span<const VMEnum> enums;
-    span<const int> ser_ids;
-    string_view build_info;
+    int code_version;
+    VMSpan<type_elem_t> type_table;
+    VMSpan<VMString> file_names;
+    VMSpan<VMString> function_names;
+    VMSpan<VMUDT> udts;
+    VMSpan<VMSpecIdent> specidents;
+    VMSpan<VMEnum> enums;
+    VMSpan<int> ser_ids;
+    VMString build_info;
     uint64_t src_hash;
-    span<const int> subfunctions_to_function;
+    VMSpan<int> subfunctions_to_function;
 };
 
 // How to turn the C we generate into machine code. Selected on the command line, and passed on

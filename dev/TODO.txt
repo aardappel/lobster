@@ -1,7 +1,3 @@
-- codegen: migrate the C metadata also to be in code, as the C++ backend already does (see Epilogue),
-  then remove the FB serialization entirely (bytecode.fbs, the Serialize functions in
-  idents.h, the unpacking in RunJIT, the metadata entry in lpak files).
-
 - Improve native compilation pipeline / emscripten support.
   https://github.com/aardappel/lobster/issues/375
 
@@ -2093,7 +2089,6 @@ lex.h
 idents.h
     [node.h]
     natreg.h
-    bytecode_generated.h
 
 natreg.h
     type.h
