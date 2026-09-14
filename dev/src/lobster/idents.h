@@ -697,7 +697,7 @@ struct LValContext {
         for (auto &shf : o.derefs) if (!MayAlias(shf, derefs[&shf - &o.derefs[0]])) return false;
         return true;
     }
-    string Name() {
+    string Name() const {
         auto s = sid ? sid->id->name : "<invalid>";
         for (auto &shf : derefs) {
             if (!IsElemField(shf)) s += ".";
@@ -730,8 +730,24 @@ struct LValContext {
     }
 };
 
+// A write that undid a flow promotion, for the errors that follow from the promotion being gone,
+// which may be far from the write, see TypeChecker::DemotionNote.
+struct Demotion {
+    Line line;
+    LValContext written;
+    // The paths the write and the promotion were compared as when they turned out to name the
+    // same location (or the write a prefix of it), see TypeChecker::ExpandAliases.
+    LValContext written_as, promoted_as;
+    TypeRef promoted;
+    // When the write happened inside a call made by the code the promotion is in: that call.
+    const SubFunction *call_sf;
+    Line call_line;
+};
+
 struct FlowItem : LValContext {
     TypeRef old, now;
+    // Set while `now` is `old` again because of a write.
+    const Demotion *demoted_by = nullptr;
     FlowItem(const Node &n, TypeRef type);
     FlowItem(SpecIdent *sid, TypeRef old, TypeRef now) : LValContext(sid), old(old), now(now) {}
     FlowItem(const LValContext &lv, TypeRef type) : LValContext(lv), old(type), now(type) {}

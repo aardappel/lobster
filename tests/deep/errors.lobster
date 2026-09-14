@@ -159,6 +159,38 @@ def errors_tests():
     expect_error("class N:\n    v:N?\nlet x = N \{ N \{ nil \} \}\nvar y = N \{ nil \}\n" +
                  "var z = x\ny, z = z, y\nif x.v:\n    y.v = nil\n" +
                  "    return x.v.v\nreturn nil", "dereferencing nillable")
+    // An error that the promotion would have avoided says which write dropped it, and how that
+    // reached the promoted path.
+    expect_error("class N:\n    r:N? = nil\n    a = 1\nvar y = N \{\}\nlet x = y\nx.r = x\n" +
+                 "y = N \{\}\nreturn x.r.a",
+                 "\n  `x.r` is no longer known to be non-nil after the assignment to `y` at " +
+                 "string(7) (`x` may be an alias of `y`)")
+    expect_error("class N:\n    v:N?\nlet x = N \{ N \{ nil \} \}\nvar y = x\n" +
+                 "y = N \{ nil \}\nif rnd(2): y = x\nif x.v:\n    y.v = nil\n" +
+                 "    return x.v.v\nreturn nil",
+                 "`x.v` is no longer known to be non-nil after the assignment to `y.v` at " +
+                 "string(8) (`y` may be an alias of `x`)")
+    expect_error("class N:\n    r:N? = nil\n    a = 1\nvar g = N \{\}\ndef f():\n" +
+                 "    if rnd(2): g = N \{\}\ng.r = N \{\}\nf()\nreturn g.r.a",
+                 "`g.r` is no longer known to be non-nil after the assignment to `g` at " +
+                 "string(6), in the call to `f` at string(8)")
+    expect_error("class N:\n    v = 1\nvar a:N? = N \{\}\ndef f(): a = nil\n" +
+                 "if a: f()\na = N \{\}\nif a:\n    f()\n    return a.v\nreturn 0",
+                 "`a` is no longer known to be non-nil after the assignment to `a` at " +
+                 "string(4), in the call to `f` at string(8)")
+    expect_error("class N:\n    v = 1\nvar a:N? = N \{\}\nif a:\n    while rnd(2):\n" +
+                 "        if rnd(2):\n            a = nil\n            break\n" +
+                 "    return a.v\nreturn 0",
+                 "`a` is no longer known to be non-nil after the assignment to `a` at string(7)")
+    expect_error("class N:\n    r:N? = nil\ndef f(n:N): return n\nvar y = N \{\}\nlet x = y\n" +
+                 "x.r = x\ny = N \{\}\nreturn f(x.r)",
+                 "`f` (1st argument) requires type `N`, got `N?`\n  `x.r` is no longer known")
+    expect_error("class A:\n    x = 1\nclass B : A\n    y = 2\nvar v:A = B \{\}\nif v is B:\n" +
+                 "    v = A \{\}\n    return v.y\nreturn 0",
+                 "`v` is no longer known to be `B` after the assignment to `v` at string(7)")
+    let _, nerr = compile_run_code("class N:\n    v = 1\nvar a:N? = nil\n" +
+                                   "if rnd(2):\n    a = N \{\}\nreturn a.v", [])
+    test_true(nerr and nerr.find_string("no longer known") < 0)
 
     // Flow-sensitivity: dereferencing a possibly-nil value.
     expect_error("def f(s:string?) -> int: return s.length\nreturn f(nil)", "error")

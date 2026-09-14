@@ -38,9 +38,11 @@ enum ConvertFlags {
 struct TypeChecker {
     Parser &parser;
     SymbolTable &st;
+    // A promotion from further out (an index into flowstack) that a branch or loop undid.
+    typedef pair<size_t, const Demotion *> FlowDemotion;
     struct LoopFlow {
         vector<TypeRef> entry;
-        vector<size_t> demoted;
+        vector<FlowDemotion> demoted;
     };
     struct Scope {
         SubFunction *sf = nullptr;
@@ -54,6 +56,8 @@ struct TypeChecker {
     };
     vector<Scope> scopes;
     vector<FlowItem> flowstack;
+    // What FlowItem::demoted_by points to.
+    vector<unique_ptr<Demotion>> demotions;
     vector<Borrow> borrowstack;
     // The argument lists (of calls, and of returns of several values) whose elements are being
     // typechecked, innermost last: what the elements done so far borrow, a later element may
@@ -371,11 +375,13 @@ struct TypeChecker {
         parser.lex.Warn(err, &n.line);
     }
 
+    // `value` is what has type `got`, when that is not `n` itself.
     void RequiresError(string_view required, TypeRef got, const Node &n, string_view argname = "",
-                       string_view context = "") {
+                       string_view context = "", const Node *value = nullptr) {
         Error(n, Q(context.size() ? context : NiceName(n)), " ",
                  (argname.size() ? "(" + argname + " argument) " : ""),
-                 "requires type ", Q(required), ", got ", Q(TypeName(got)));
+                 "requires type ", Q(required), ", got ", Q(TypeName(got)),
+                 DemotionNote(value ? *value : n));
     }
 
     void NoStruct(const Node &n, string_view context) {
@@ -864,9 +870,9 @@ struct TypeChecker {
         if (err) {
             // Blame the side that can't take part in this operation at all, if there is one.
             if (MathCheck(n.left->exptype, n, unionchecked, typechangeallowed)) {
-                RequiresError(err, n.left->exptype, n, "left");
+                RequiresError(err, n.left->exptype, n, "left", "", n.left);
             } else if (MathCheck(n.right->exptype, n, unionchecked, typechangeallowed)) {
-                RequiresError(err, n.right->exptype, n, "right");
+                RequiresError(err, n.right->exptype, n, "right", "", n.right);
             } else {
                 Error(n, "can\'t use ", Q(NiceName(n)), " on ", Q(TypeName(n.left->exptype)),
                          " and ", Q(TypeName(n.right->exptype)));
@@ -1737,7 +1743,7 @@ struct TypeChecker {
         if (reused) {
             auto active = false;
             for (auto &sc : scopes) if (sc.sf == sf) { active = true; break; }
-            if (!active) ReplayAssigns(sf);
+            if (!active) ReplayAssigns(sf, call_args);
         }
         // Finally check all args. We do this after checking the function
         // definition, since SubType below can cause specializations of the current function
@@ -2115,7 +2121,7 @@ struct TypeChecker {
                         // The root gets these from TypeCheckMatchingCall below.
                         if (sf != disp->sf) {
                             BindParamAliases(sf, call_args);
-                            ReplayAssigns(sf);
+                            ReplayAssigns(sf, call_args);
                         }
                     }
                 }
@@ -2604,8 +2610,8 @@ struct TypeChecker {
     // it can be undone for its sibling branches (which it can't have run
     // before) and combined for the code after them (which either may reach).
     struct FlowBranch {
-        vector<FlowItem> promoted;  // What it established, still live at its end.
-        vector<size_t> demoted;     // Promotions from further out that it dropped.
+        vector<FlowItem> promoted;     // What it established, still live at its end.
+        vector<FlowDemotion> demoted;  // Promotions from further out that it dropped.
     };
     // Switch cases are typechecked thru the generic TT(), so Case::TypeCheck
     // leaves theirs here for Switch::TypeCheck to pick up.
@@ -2643,11 +2649,13 @@ struct TypeChecker {
     // Promotions from outside the branch that it invalidated (by assigning to
     // the variable), which are restored so a sibling branch, which the
     // assignment can't have run before, still sees them.
-    void CollectFlowDemotions(const vector<TypeRef> &backup, vector<size_t> &dest) {
+    void CollectFlowDemotions(const vector<TypeRef> &backup, vector<FlowDemotion> &dest) {
         for (auto [i, was] : enumerate(backup)) {
-            if (!flowstack[i].now->Equal(*was)) {
-                dest.push_back(i);
-                flowstack[i].now = was;
+            auto &fi = flowstack[i];
+            if (!fi.now->Equal(*was)) {
+                dest.push_back({ i, fi.demoted_by });
+                fi.now = was;
+                fi.demoted_by = nullptr;
             }
         }
     }
@@ -2677,8 +2685,15 @@ struct TypeChecker {
     // behind. Demotions apply if any such branch made them, promotions only if
     // they survived merging with every one of them.
     void ApplyFlow(const FlowBranch &fb) {
-        for (auto i : fb.demoted) flowstack[i].now = flowstack[i].old;
+        for (auto d : fb.demoted) ApplyDemotion(d);
         for (auto &fi : fb.promoted) flowstack.push_back(fi);
+    }
+
+    void ApplyDemotion(FlowDemotion d) {
+        auto &fi = flowstack[d.first];
+        // Several branches may have undone it, any of their writes explains that.
+        if (!fi.demoted_by) fi.demoted_by = d.second;
+        fi.now = fi.old;
     }
 
     void CheckFlowTypeIdOrDot(const Node &n, TypeRef type) {
@@ -2747,7 +2762,10 @@ struct TypeChecker {
     // FIXME: this can in theory find the wrong node, if the same function nests, and the outer
     // one was specialized to a nilable and the inner one was not.
     // This would be very rare though, and benign.
-    TypeRef AssignFlowDemote(FlowItem &left, TypeRef overwritetype, ConvertFlags coercions) {
+    // `write` is the node doing the write, and `call` the call whose callee's writes are being
+    // replayed, if that is what this is, see Demotion.
+    TypeRef AssignFlowDemote(FlowItem &left, TypeRef overwritetype, ConvertFlags coercions,
+                             const Node &write, const Node *call = nullptr) {
         // Early out, numeric types are not nillable, nor do they make any sense for "is"
         auto &type = left.now;
         if (type->Numeric()) return type;
@@ -2758,15 +2776,16 @@ struct TypeChecker {
         // of everything reached thru it, which is a different object now.
         for (auto &flow : reverse(flowstack)) {
             auto deeper = false;
-            if (!WriteHits(ExpandAliases(flow), written, &deeper)) continue;
+            auto held = ExpandAliases(flow);
+            if (!WriteHits(held, written, &deeper)) continue;
             if (deeper) {
-                flow.now = flow.old;
+                Demote(flow, held, left, written, write, call);
                 continue;
             }
             type = flow.old;
             if (!ConvertsTo(overwritetype, flow.now, coercions)) {
                 // FLow based promotion is invalidated.
-                flow.now = flow.old;
+                Demote(flow, held, left, written, write, call);
                 // TODO: It be cool to instead overwrite with whatever type is currently being
                 // assigned. That currently doesn't work, since our flow analysis is a
                 // conservative approximation, so if this assignment happens conditionally it
@@ -2788,6 +2807,60 @@ struct TypeChecker {
     }
     TypeRef UseFlow(const FlowItem &left) {
         return UseFlow(left, flowstack.size());
+    }
+
+    // For an error about `n` that a promotion of it would have avoided, had a write not undone
+    // it: a line saying which write, since that may be far from the error, in another function
+    // even, and be to a path that only aliases this one. Without `field`, the error is about
+    // `n` being nilable, with, about its type not having that field.
+    string DemotionNote(const Node &n, SharedField *field = nullptr) {
+        if (n.exptype.Null()) return {};
+        LValContext lv(*SkipCoercions(&n));
+        if (!lv.IsValid() || lv.HasElem()) return {};
+        for (auto &flow : reverse(flowstack)) {
+            if (flow.sid != lv.sid || !flow.DerefsEqual(lv)) continue;
+            auto d = flow.demoted_by;
+            if (!d) return {};
+            auto promoted = d->promoted;
+            if (field ? !IsUDT(promoted->t) || promoted->udt->g.Has(field) < 0
+                      : n.exptype->t != V_NIL || promoted->t == V_NIL) return {};
+            auto note = cat("\n  ", Q(flow.Name()), " is no longer known to be ",
+                            flow.old->t == V_NIL && promoted->Equal(*flow.old->Element())
+                                ? "non-nil"
+                                : Q(TypeName(promoted)),
+                            " after the assignment to ", Q(d->written.Name()), " at ",
+                            parser.lex.Location(d->line));
+            if (d->call_sf) {
+                note += cat(", in the call to ", Q(d->call_sf->parent->name), " at ",
+                            parser.lex.Location(d->call_line));
+            }
+            // How the write names the location, unless that is apparent from the paths.
+            if (!flow.IsPrefix(d->written)) {
+                auto promoted_alias = AliasNote(flow, d->promoted_as);
+                auto written_alias = AliasNote(d->written, d->written_as);
+                if (written_alias == promoted_alias) written_alias.clear();
+                if (!promoted_alias.empty() || !written_alias.empty()) {
+                    note += cat(" (", promoted_alias,
+                                promoted_alias.empty() || written_alias.empty() ? "" : ", ",
+                                written_alias, ")");
+                }
+            }
+            return note;
+        }
+        return {};
+    }
+
+    // `as` is `path` after following aliases (see ExpandAliases), which keeps the fields of
+    // `path` at its end: the alias this followed, if any.
+    string AliasNote(const LValContext &path, const LValContext &as) {
+        LValContext alias(as.sid);
+        for (size_t i = 0; i + path.derefs.size() < as.derefs.size(); i++) {
+            alias.derefs.push_back(as.derefs[i]);
+        }
+        auto name = LValContext(path.sid).Name();
+        auto alias_name = alias.Name();
+        if (name == alias_name) return {};
+        return cat(Q(name), " may be an alias of ", Q(alias_name));
     }
 
     void CleanUpFlow(size_t start) {
@@ -3013,6 +3086,40 @@ struct TypeChecker {
         return hit;
     }
 
+    // A write to `left` (compared as the paths `written`) undoes the promotion `flow` (compared
+    // as the paths `held`), `write` and `call` are as for AssignFlowDemote.
+    void Demote(FlowItem &flow, const Paths &held, const LValContext &left, const Paths &written,
+                const Node &write, const Node *call) {
+        if (!flow.now->Equal(*flow.old)) {
+            const LValContext *held_as = nullptr, *written_as = nullptr;
+            for (auto &h : held) {
+                for (auto &w : written) {
+                    if (!held_as && h.IsPrefix(w)) {
+                        held_as = &h;
+                        written_as = &w;
+                    }
+                }
+            }
+            assert(held_as);
+            // The call made by the code the promotion is in: to the first function entered
+            // after the promotion, or else the one whose writes are being replayed.
+            auto idx = size_t(&flow - flowstack.data());
+            const SubFunction *call_sf = call ? replaying : nullptr;
+            auto call_line = call ? call->line : write.line;
+            for (auto &sc : scopes) {
+                if (sc.flowstack_size > idx) {
+                    call_sf = sc.sf;
+                    call_line = sc.call_context->line;
+                    break;
+                }
+            }
+            demotions.push_back(make_unique<Demotion>(Demotion {
+                write.line, left, *written_as, *held_as, flow.now, call_sf, call_line }));
+            flow.demoted_by = demotions.back().get();
+        }
+        flow.now = flow.old;
+    }
+
     // Whether code in `sf` can name `sid`: a variable of its own, or of a function it is
     // lexically inside of.
     bool LexicallyVisible(const SpecIdent *sid, SubFunction *sf) {
@@ -3165,7 +3272,8 @@ struct TypeChecker {
     void RecordLoopFlowExit() {
         auto &loop = scopes.back().loop_flow.back();
         for (auto [i, was] : enumerate(loop.entry)) {
-            if (!flowstack[i].now->Equal(*was)) loop.demoted.push_back(i);
+            auto &fi = flowstack[i];
+            if (!fi.now->Equal(*was)) loop.demoted.push_back({ i, fi.demoted_by });
         }
     }
 
@@ -3174,7 +3282,7 @@ struct TypeChecker {
         auto &loop = sc.loop_flow.back();
         // The loop may not run, so none of its new promotions survive it.
         CleanUpFlow(loop.entry.size());
-        for (auto i : loop.demoted) flowstack[i].now = flowstack[i].old;
+        for (auto d : loop.demoted) ApplyDemotion(d);
         sc.loop_flow.pop_back();
     }
 
@@ -3212,7 +3320,7 @@ struct TypeChecker {
     // context, see ReplayAssigns.
     SubFunction *replaying = nullptr;
 
-    void ReplayAssigns(SubFunction *sf) {
+    void ReplayAssigns(SubFunction *sf, const Node &call) {
         auto outer = replaying;
         replaying = sf;
         for (auto &ev : sf->reuse_assign_events) {
@@ -3221,7 +3329,7 @@ struct TypeChecker {
             // The write also stands for any promotion this context has of what it overwrites.
             if (!ev.overwritetype.Null() && !ev.lv.HasElem()) {
                 FlowItem fi(ev.lv, ev.n->exptype);
-                AssignFlowDemote(fi, ev.overwritetype, CF_COERCIONS);
+                AssignFlowDemote(fi, ev.overwritetype, CF_COERCIONS, *ev.n, &call);
             }
         }
         replaying = outer;
@@ -3891,7 +3999,7 @@ Node *For::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bound*
         itertype = itertype->Element();
     else {
         tc.Error(*this, Q("for"), " can only iterate over int / string / vector, not ",
-                        Q(TypeName(itertype)));
+                        Q(TypeName(itertype)), tc.DemotionNote(*iter));
         itertype = type_error;
     }
     tc.st.BlockScopeStart();
@@ -4354,7 +4462,7 @@ Node *AssignList::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
         tc.CheckLval(left, righttype);
         FlowItem fi(*left, left->exptype);
         assert(fi.IsValid());
-        tc.AssignFlowDemote(fi, righttype, CF_NONE);
+        tc.AssignFlowDemote(fi, righttype, CF_NONE, *this);
         tc.SubTypeT(righttype, left->exptype, *this, "right");
         tc.StorageType(left->exptype, *left);
         // TODO: should call tc.AssignFlowPromote(*left, vartype) here?
@@ -4726,7 +4834,7 @@ Node *Assign::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_bou
     tc.CheckLval(left, right->exptype);
     FlowItem fi(*left, left->exptype);
     if (fi.IsValid()) {
-        left->exptype = tc.AssignFlowDemote(fi, right->exptype, CF_COERCIONS);
+        left->exptype = tc.AssignFlowDemote(fi, right->exptype, CF_COERCIONS, *this);
     }
     tc.SubType(right, left->exptype, "right", *this);
     if (fi.IsValid()) tc.AssignFlowPromote(*left, right->exptype);
@@ -4879,7 +4987,8 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
         dot.release();
     } else if (likely_field_access && niludt && niludt->g.Has(fld) >= 0) {
         // Specialized error for nil deref, since if we don't, it will try and interpret this as a function call with a nil arg.
-        tc.Error(*this, "dereferencing nillable type: ", Q(TypeName(type)));
+        tc.Error(*this, "dereferencing nillable type: ", Q(TypeName(type)),
+                 tc.DemotionNote(*children[0]));
         return give_up();
     } else {
         // A function or builtin call. Selection is on receiver type first,
@@ -5052,7 +5161,8 @@ Node *GenericCall::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bo
             return give_up();
         } else {
             if (fld && fromdot && noparens) {
-                tc.Error(*this, "type ", Q(TypeName(type)), " does not have field ", Q(fld->name));
+                tc.Error(*this, "type ", Q(TypeName(type)), " does not have field ", Q(fld->name),
+                         tc.DemotionNote(*children[0], fld));
             } else if (tc.checking_dead_code && cand_nonlexical) {
                 // An env-function call: only valid with an active caller.
                 tc.ReleaseChildren(*this);
@@ -5132,7 +5242,9 @@ Node *NativeCall::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent
             nomatch:;
         }
         if (!cnf) {
-            tc.Error(*this, tc.NatCallMsg("arguments match no overloads of ", nf, *this));
+            auto err = tc.NatCallMsg("arguments match no overloads of ", nf, *this);
+            for (auto c : children) err += tc.DemotionNote(*c);
+            tc.Error(*this, err);
             return give_up();
         }
     }
@@ -5815,7 +5927,7 @@ Node *Indexing::TypeCheck(TypeChecker &tc, size_t /*reqret*/, TypeRef /*parent_b
     if (vtype->t != V_VECTOR &&
         vtype->t != V_STRING &&
         (!IsStruct(vtype->t) || !vtype->udt->sametype->Numeric())) {
-        tc.RequiresError("vector/string/numeric struct", vtype, *this, "container");
+        tc.RequiresError("vector/string/numeric struct", vtype, *this, "container", "", object);
         exptype = type_error;
     } else switch (itype->t) {
         case V_INT:
