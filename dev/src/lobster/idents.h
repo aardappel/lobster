@@ -24,7 +24,7 @@ namespace lobster {
 
 // FlatBuffers takes care of backwards compatibility of all metadata, but not of the C the
 // compiler emits, so this needs to be bumped each time we change the format.
-const int LOBSTER_METADATA_FORMAT_VERSION = 28;
+const int LOBSTER_METADATA_FORMAT_VERSION = 29;
 
 struct NativeFun;
 struct SymbolTable;
@@ -2124,7 +2124,6 @@ struct SymbolTable {
 
     void Serialize(vector<type_elem_t> &typetable,
                    vector<metadata::SpecIdent> &sids,
-                   vector<string_view> &stringtable,
                    string &bytecode,
                    vector<pair<string, string>> &filenames,
                    vector<type_elem_t> &ser_ids,
@@ -2157,11 +2156,6 @@ struct SymbolTable {
         auto bcf = metadata::CreateMetadataFile(fbb,
             LOBSTER_METADATA_FORMAT_VERSION,
             fbb.CreateVector((vector<int> &)typetable),
-            fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(stringtable.size(),
-                [&](size_t i) {
-                    return fbb.CreateString(stringtable[i].data(), stringtable[i].size());
-                }
-            ),
             fbb.CreateVector(fns),
             fbb.CreateVector(functionoffsets),
             fbb.CreateVector(udtoffsets),

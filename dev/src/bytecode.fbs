@@ -68,8 +68,6 @@ table MetadataFile {
     metadata_version:int;  // The format of typetable may change.
     typetable:[int];
 
-    stringtable:[string];
-
     filenames:[string];
 
     functions:[Function];

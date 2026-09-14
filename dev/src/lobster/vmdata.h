@@ -1062,7 +1062,6 @@ struct VMUDT {
 struct VMMetaData {
     int metadata_version = 0;
     span<const type_elem_t> type_table;
-    span<const string_view> stringtable;
     span<const string_view> file_names;
     span<const string_view> function_names;
     span<const VMUDT> udts;
@@ -1378,7 +1377,7 @@ public:
 
     [[noreturn]] void DivErr(iint divisor) { Error(divisor ? "integer overflow" : "division by zero"); }
     void DivErr(double) { assert(false); }
-    void AssertFailed(int line, int fileidx, int stringidx);
+    void AssertFailed(int line, int fileidx, LString *text);
     // These all end in Error(), which is [[noreturn]]. Saying so lets the generated code
     // keep a vector's length and element pointer in registers across a range check instead
     // of reloading them on the assumption the check could fall through.

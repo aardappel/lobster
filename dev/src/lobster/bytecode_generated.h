@@ -580,26 +580,22 @@ struct MetadataFile FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_METADATA_VERSION = 4,
     VT_TYPETABLE = 6,
-    VT_STRINGTABLE = 8,
-    VT_FILENAMES = 10,
-    VT_FUNCTIONS = 12,
-    VT_UDTS = 14,
-    VT_IDENTS = 16,
-    VT_SPECIDENTS = 18,
-    VT_ENUMS = 20,
-    VT_SER_IDS = 22,
-    VT_BUILD_INFO = 24,
-    VT_SRC_HASH = 26,
-    VT_SUBFUNCTIONS_TO_FUNCTION = 28
+    VT_FILENAMES = 8,
+    VT_FUNCTIONS = 10,
+    VT_UDTS = 12,
+    VT_IDENTS = 14,
+    VT_SPECIDENTS = 16,
+    VT_ENUMS = 18,
+    VT_SER_IDS = 20,
+    VT_BUILD_INFO = 22,
+    VT_SRC_HASH = 24,
+    VT_SUBFUNCTIONS_TO_FUNCTION = 26
   };
   int32_t metadata_version() const {
     return GetField<int32_t>(VT_METADATA_VERSION, 0);
   }
   const ::flatbuffers::Vector<int32_t> *typetable() const {
     return GetPointer<const ::flatbuffers::Vector<int32_t> *>(VT_TYPETABLE);
-  }
-  const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *stringtable() const {
-    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *>(VT_STRINGTABLE);
   }
   const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *filenames() const {
     return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>> *>(VT_FILENAMES);
@@ -636,9 +632,6 @@ struct MetadataFile FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_METADATA_VERSION, 4) &&
            VerifyOffset(verifier, VT_TYPETABLE) &&
            verifier.VerifyVector(typetable()) &&
-           VerifyOffset(verifier, VT_STRINGTABLE) &&
-           verifier.VerifyVector(stringtable()) &&
-           verifier.VerifyVectorOfStrings(stringtable()) &&
            VerifyOffset(verifier, VT_FILENAMES) &&
            verifier.VerifyVector(filenames()) &&
            verifier.VerifyVectorOfStrings(filenames()) &&
@@ -676,9 +669,6 @@ struct MetadataFileBuilder {
   }
   void add_typetable(::flatbuffers::Offset<::flatbuffers::Vector<int32_t>> typetable) {
     fbb_.AddOffset(MetadataFile::VT_TYPETABLE, typetable);
-  }
-  void add_stringtable(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> stringtable) {
-    fbb_.AddOffset(MetadataFile::VT_STRINGTABLE, stringtable);
   }
   void add_filenames(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> filenames) {
     fbb_.AddOffset(MetadataFile::VT_FILENAMES, filenames);
@@ -725,7 +715,6 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFile(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     int32_t metadata_version = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<int32_t>> typetable = 0,
-    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> stringtable = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<::flatbuffers::String>>> filenames = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<metadata::Function>>> functions = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<metadata::UDT>>> udts = 0,
@@ -747,7 +736,6 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFile(
   builder_.add_udts(udts);
   builder_.add_functions(functions);
   builder_.add_filenames(filenames);
-  builder_.add_stringtable(stringtable);
   builder_.add_typetable(typetable);
   builder_.add_metadata_version(metadata_version);
   return builder_.Finish();
@@ -757,7 +745,6 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFileDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     int32_t metadata_version = 0,
     const std::vector<int32_t> *typetable = nullptr,
-    const std::vector<::flatbuffers::Offset<::flatbuffers::String>> *stringtable = nullptr,
     const std::vector<::flatbuffers::Offset<::flatbuffers::String>> *filenames = nullptr,
     const std::vector<::flatbuffers::Offset<metadata::Function>> *functions = nullptr,
     const std::vector<::flatbuffers::Offset<metadata::UDT>> *udts = nullptr,
@@ -769,7 +756,6 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFileDirect(
     uint64_t src_hash = 0,
     const std::vector<int32_t> *subfunctions_to_function = nullptr) {
   auto typetable__ = typetable ? _fbb.CreateVector<int32_t>(*typetable) : 0;
-  auto stringtable__ = stringtable ? _fbb.CreateVector<::flatbuffers::Offset<::flatbuffers::String>>(*stringtable) : 0;
   auto filenames__ = filenames ? _fbb.CreateVector<::flatbuffers::Offset<::flatbuffers::String>>(*filenames) : 0;
   auto functions__ = functions ? _fbb.CreateVector<::flatbuffers::Offset<metadata::Function>>(*functions) : 0;
   auto udts__ = udts ? _fbb.CreateVector<::flatbuffers::Offset<metadata::UDT>>(*udts) : 0;
@@ -783,7 +769,6 @@ inline ::flatbuffers::Offset<MetadataFile> CreateMetadataFileDirect(
       _fbb,
       metadata_version,
       typetable__,
-      stringtable__,
       filenames__,
       functions__,
       udts__,

@@ -253,7 +253,7 @@ string Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
     auto src_hash = lex.HashAll();
     CodeGen cg(parser, st, opts, src_hash, c_codegen);
     if (lex.num_errors) return lex.errors;
-    st.Serialize(cg.type_table, cg.sids, cg.stringtable, metadata_buffer, filenames, cg.ser_ids,
+    st.Serialize(cg.type_table, cg.sids, metadata_buffer, filenames, cg.ser_ids,
                  cg.udt_type_offsets, src_hash);
     if (pakfile) {
         auto err = BuildPakFile(*pakfile, metadata_buffer, parser.pakfiles, src_hash,
@@ -290,10 +290,6 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metad
                 vector<type_elem_t> type_table;
                 for (flatbuffers::uoffset_t i = 0; i < bcf->typetable()->size(); i++) {
                     type_table.push_back((type_elem_t)bcf->typetable()->Get(i));
-                }
-                vector<string_view> stringtable;
-                for (flatbuffers::uoffset_t i = 0; i < bcf->stringtable()->size(); i++) {
-                    stringtable.push_back(bcf->stringtable()->Get(i)->string_view());
                 }
                 vector<string_view> file_names;
                 for (flatbuffers::uoffset_t i = 0; i < bcf->filenames()->size(); i++) {
@@ -358,7 +354,6 @@ pair<string, iint> RunJIT(NativeRegistry &nfr, string_view fn, string_view metad
                 VMMetaData vmmeta = {
                     bcf->metadata_version(),
                     span(type_table),
-                    span(stringtable),
                     span(file_names),
                     span(function_names),
                     span(udts),

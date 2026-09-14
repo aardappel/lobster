@@ -90,7 +90,6 @@ struct CodeGen  {
     };
     vector<LoopState> loops;
     vector<int> breaks;
-    vector<string_view> stringtable;  // sized strings.
     // The string constants the code carries as objects, see EmitConstantStrings, and the index
     // of the one for each distinct string, so a literal that occurs more than once has one.
     vector<string_view> constant_strings;
@@ -996,8 +995,7 @@ struct CodeGen  {
                     append(str, "(", TypeName(sf.args[0].spec_type), (sf.args.size() > 1 ? ", .." : ""), ")");
                 }
             }
-            stringtable.push_back(st.StoreName(str));
-            EmitProfile((int)stringtable.size() - 1);
+            EmitProfile(str);
         }
 
         for (auto c : sf.sbody->children) {
@@ -1232,7 +1230,7 @@ struct CodeGen  {
                   "extern void DecDeleteVec(VMRef, LVector *);\n"
                   "extern void DecDeleteObj(VMRef, LObject *);\n"
                   "extern void DecDeleteStr(VMRef, LString *);\n"
-                  "extern void AssertFailed(VMRef, int, int, int);\n"
+                  "extern void AssertFailed(VMRef, int, int, LString *);\n"
                   "extern void RestoreBackup(VMRef, int);\n"
                   "extern int GetTypeSwitchID(VMRef, LObject *, int);\n"
                   "extern void PushFunId(VMRef, const int *, StackPtr);\n"
@@ -1827,7 +1825,7 @@ struct CodeGen  {
             "RefObj", "LVector", "LString", "LObject", "VMBase", "fun_base_t", "type_elem_t",
             "object_dec_t", "vec",
             "vtables", "object_decs", "const_strings", "funinfo_table", "compiled_entry_point",
-            "type_table", "stringtable",
+            "type_table",
             "file_names", "function_names", "udts", "specidents", "enums", "ser_ids",
             "subfunctions_to_function", "iint", "int2float64", "lobster", "std", "string_view",
             "span", "uint64_t", "int64_t", "memcpy", "memmove", "GLFrame", "Entry", "IDXErr",
@@ -3119,10 +3117,10 @@ struct CodeGen  {
         EmitCallTo(ptr, args, rets, (int)args.size());
     }
 
-    void EmitProfile(int stringtable_idx) {
+    void EmitProfile(string_view profile_name) {
         TrackUseDef(0, 0);
         string name;
-        EscapeAndQuote(stringtable[stringtable_idx], name, true);
+        EscapeAndQuote(profile_name, name, true);
         append(cb, "    static struct ___tracy_source_location_data tsld = { ", name, ", ", name,
                ", \"\", 0, 0x888800 }; struct ___tracy_c_zone_context ctx = ",
                cpp ? "lobster::" : "", "StartProfile(&tsld);\n");
@@ -3427,13 +3425,14 @@ struct CodeGen  {
         WriteExpr(Slot(1, VK_FLOAT), e);
     }
 
-    // All that is left of an assert in the common case is the test; the reporting is a call.
-    void EmitAssert(int defslots, int line, int fileidx, int stringidx, VKind k) {
+    // All that is left of an assert in the common case is the test; the reporting is a call,
+    // given the text of the condition as one of the string constants, see EmitConstantStrings.
+    void EmitAssert(int defslots, int line, int fileidx, int text, VKind k) {
         TrackUseDef(1, defslots);
         auto test = TruthOperand(Slot(1, k), 2).text;
         append(cb, "    if (!", test, ") ",
                cpp ? "vm.AssertFailed(" : "AssertFailed(vm, ",
-               line, ", ", fileidx, ", ", stringidx, ");\n");
+               line, ", ", fileidx, ", (LString *)&str", text, ");\n");
     }
 
     void DefineFunction(string &sd, bool label) {
@@ -3687,13 +3686,6 @@ struct CodeGen  {
                 append(sd, " ", x, ",");
             }
             sd += "\n};\n\n";
-            sd += "static const string_view stringtable[] = {\n";
-            for (auto s : stringtable) {
-                sd += "    ";
-                gen_string(s);
-                sd += ",\n";
-            }
-            sd += "};\n\n";
             sd += "static const string_view file_names[] = {\n";
             for (auto [s, _] : parser.lex.filenames) {
                 sd += "    ";
@@ -3806,7 +3798,6 @@ struct CodeGen  {
             sd += "    lobster::VMMetaData vmmeta = {\n";
             sd += "        " + to_string(LOBSTER_METADATA_FORMAT_VERSION) + ",\n";
             sd += "        span((const lobster::type_elem_t *)&type_table, sizeof(type_table) / sizeof(int)),\n";
-            sd += "        span(stringtable),\n";
             sd += "        span(file_names),\n";
             sd += "        span(function_names),\n";
             sd += "        span(udts),\n";
@@ -5210,10 +5201,10 @@ void Assert::Generate(CodeGen &cg, size_t retval) const {
         cg.Gen(child, 1);
         cg.TakeTemp(1, false);
         if (cg.runtime_checks >= RUNTIME_ASSERT) {
-            cg.EmitAssert(!!retval, child->line.line, child->line.fileidx,
-                          (int)cg.stringtable.size(), CodeGen::KindOf(child->exptype));
             // FIXME: would be better to use the original source code here.
-            cg.stringtable.push_back(cg.st.StoreName(DumpNode(*child, 0, true)));
+            auto text = cg.ConstantString(cg.st.StoreName(DumpNode(*child, 0, true)));
+            cg.EmitAssert(!!retval, child->line.line, child->line.fileidx, text,
+                          CodeGen::KindOf(child->exptype));
         }
     } else {
         cg.Gen(child, 0);

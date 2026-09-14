@@ -745,10 +745,10 @@ string VM::ProperTypeName(const TypeInfo &ti) {
     return ti.is_nil ? r + "?" : r;
 }
 
-void VM::AssertFailed(int line, int fileidx, int stringidx) {
+void VM::AssertFailed(int line, int fileidx, LString *text) {
     last.line = line;
     last.fileidx = fileidx;
-    Error(cat("assertion failed: ", vma.meta->stringtable[stringidx]));
+    Error(cat("assertion failed: ", text->strv()));
 }
 
 void VM::IDXErr(iint i, iint n, const RefObj *v) {
@@ -1078,8 +1078,8 @@ void CRtDecDeleteStr(VM *vm, LString *s) {
     }
     CRtDecDeleteKind(vm, s);
 }
-void CRtAssertFailed(VM *vm, int line, int fileidx, int stringidx) {
-    vm->AssertFailed(line, fileidx, stringidx);
+void CRtAssertFailed(VM *vm, int line, int fileidx, LString *text) {
+    vm->AssertFailed(line, fileidx, text);
 }
 void CRtRestoreBackup(VM *vm, int i) { RestoreBackup(*vm, i); }
 int CRtGetTypeSwitchID(VM *vm, LObject *self, int vtable_idx) { return GetTypeSwitchID(*vm, self, vtable_idx); }
