@@ -109,10 +109,28 @@
 <tr class="a" valign=top><td class="a"><tt><b>any</b>(xs<font color="#666666">: intN</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether any elements of the numeric struct are true values</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>any</b>(xs<font color="#666666">: int2</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether any elements of the numeric struct are true values</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>any</b>(xs<font color="#666666">: int3</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether any elements of the numeric struct are true values</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>any</b>(xs<font color="#666666">: int4</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether any elements of the numeric struct are true values</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>all</b>(xs<font color="#666666">: [any]</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether all elements of the vector are true values</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>all</b>(xs<font color="#666666">: intN</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether all elements of the numeric struct are true values</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>all</b>(xs<font color="#666666">: int2</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether all elements of the numeric struct are true values</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>all</b>(xs<font color="#666666">: int3</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether all elements of the numeric struct are true values</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>all</b>(xs<font color="#666666">: int4</font>) -> <font color="#666666">int</font></tt></td><td class="a">returns whether all elements of the numeric struct are true values</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>substring</b>(s<font color="#666666">: string</font>, start<font color="#666666">: int</font>, size<font color="#666666">: int</font>) -> <font color="#666666">string</font></tt></td><td class="a">returns a substring of size characters from index start. size can be negative to indicate the rest of the string.</td>
@@ -166,13 +184,22 @@
 <tr class="a" valign=top><td class="a"><tt><b>repeat_string</b>(s<font color="#666666">: string</font>, n<font color="#666666">: int</font>) -> <font color="#666666">string</font></tt></td><td class="a">returns a string consisting of n copies of the input string.</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>string_with_capacity</b>(capacity<font color="#666666">: int</font>) -> <font color="#666666">string</font></tt></td><td class="a">an empty string with room to grow to capacity bytes without moving, for use as a byte buffer (see write_int64_le) or to build up with +=. A string that fits in a small allocation gets at most the room such an allocation has (a few hundred bytes).</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>pow</b>(a<font color="#666666">: int</font>, b<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">a raised to the power of b, for integers, using exponentiation by squaring</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>pow</b>(a<font color="#666666">: float</font>, b<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">a raised to the power of b</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>pow</b>(a<font color="#666666">: floatN</font>, b<font color="#666666">: float</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">struct elements raised to the power of b</td>
+<tr class="a" valign=top><td class="a"><tt><b>pow</b>(a<font color="#666666">: float2</font>, b<font color="#666666">: float</font>) -> <font color="#666666">float2</font></tt></td><td class="a">struct elements raised to the power of b</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>pow</b>(a<font color="#666666">: float3</font>, b<font color="#666666">: float</font>) -> <font color="#666666">float3</font></tt></td><td class="a">struct elements raised to the power of b</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>pow</b>(a<font color="#666666">: float4</font>, b<font color="#666666">: float</font>) -> <font color="#666666">float4</font></tt></td><td class="a">struct elements raised to the power of b</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>log</b>(a<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">natural logaritm of a</td>
@@ -190,10 +217,28 @@
 <tr class="a" valign=top><td class="a"><tt><b>ceiling</b>(v<font color="#666666">: floatN</font>) -> <font color="#666666">intN</font></tt></td><td class="a">the nearest ints &gt;= each component of v</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>ceiling</b>(v<font color="#666666">: float2</font>) -> <font color="#666666">int2</font></tt></td><td class="a">the nearest ints &gt;= each component of v</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>ceiling</b>(v<font color="#666666">: float3</font>) -> <font color="#666666">int3</font></tt></td><td class="a">the nearest ints &gt;= each component of v</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>ceiling</b>(v<font color="#666666">: float4</font>) -> <font color="#666666">int4</font></tt></td><td class="a">the nearest ints &gt;= each component of v</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>floor</b>(f<font color="#666666">: float</font>) -> <font color="#666666">int</font></tt></td><td class="a">the nearest int &lt;= f</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>floor</b>(v<font color="#666666">: floatN</font>) -> <font color="#666666">intN</font></tt></td><td class="a">the nearest ints &lt;= each component of v</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>floor</b>(v<font color="#666666">: float2</font>) -> <font color="#666666">int2</font></tt></td><td class="a">the nearest ints &lt;= each component of v</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>floor</b>(v<font color="#666666">: float3</font>) -> <font color="#666666">int3</font></tt></td><td class="a">the nearest ints &lt;= each component of v</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>floor</b>(v<font color="#666666">: float4</font>) -> <font color="#666666">int4</font></tt></td><td class="a">the nearest ints &lt;= each component of v</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>int</b>(f<font color="#666666">: float</font>) -> <font color="#666666">int</font></tt></td><td class="a">converts a float to an int by dropping the fraction</td>
@@ -202,10 +247,28 @@
 <tr class="a" valign=top><td class="a"><tt><b>int</b>(v<font color="#666666">: floatN</font>) -> <font color="#666666">intN</font></tt></td><td class="a">converts a struct of floats to ints by dropping the fraction</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>int</b>(v<font color="#666666">: float2</font>) -> <font color="#666666">int2</font></tt></td><td class="a">converts a struct of floats to ints by dropping the fraction</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>int</b>(v<font color="#666666">: float3</font>) -> <font color="#666666">int3</font></tt></td><td class="a">converts a struct of floats to ints by dropping the fraction</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>int</b>(v<font color="#666666">: float4</font>) -> <font color="#666666">int4</font></tt></td><td class="a">converts a struct of floats to ints by dropping the fraction</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>round</b>(f<font color="#666666">: float</font>) -> <font color="#666666">int</font></tt></td><td class="a">converts a float to the closest int</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>round</b>(v<font color="#666666">: floatN</font>) -> <font color="#666666">intN</font></tt></td><td class="a">converts a struct of floats to the closest ints</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>round</b>(v<font color="#666666">: float2</font>) -> <font color="#666666">int2</font></tt></td><td class="a">converts a struct of floats to the closest ints</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>round</b>(v<font color="#666666">: float3</font>) -> <font color="#666666">int3</font></tt></td><td class="a">converts a struct of floats to the closest ints</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>round</b>(v<font color="#666666">: float4</font>) -> <font color="#666666">int4</font></tt></td><td class="a">converts a struct of floats to the closest ints</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>fraction</b>(f<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns the fractional part of a float: short for f - floor(f)</td>
@@ -214,10 +277,28 @@
 <tr class="a" valign=top><td class="a"><tt><b>fraction</b>(v<font color="#666666">: floatN</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">returns the fractional part of a struct of floats</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>fraction</b>(v<font color="#666666">: float2</font>) -> <font color="#666666">float2</font></tt></td><td class="a">returns the fractional part of a struct of floats</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>fraction</b>(v<font color="#666666">: float3</font>) -> <font color="#666666">float3</font></tt></td><td class="a">returns the fractional part of a struct of floats</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>fraction</b>(v<font color="#666666">: float4</font>) -> <font color="#666666">float4</font></tt></td><td class="a">returns the fractional part of a struct of floats</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>float</b>(i<font color="#666666">: int</font>) -> <font color="#666666">float</font></tt></td><td class="a">converts an int to float</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>float</b>(v<font color="#666666">: intN</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">converts a struct of ints to floats</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>float</b>(v<font color="#666666">: int2</font>) -> <font color="#666666">float2</font></tt></td><td class="a">converts a struct of ints to floats</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>float</b>(v<font color="#666666">: int3</font>) -> <font color="#666666">float3</font></tt></td><td class="a">converts a struct of ints to floats</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>float</b>(v<font color="#666666">: int4</font>) -> <font color="#666666">float4</font></tt></td><td class="a">converts a struct of ints to floats</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>sin</b>(angle<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">the y coordinate of the normalized vector indicated by angle (in degrees)</td>
@@ -226,16 +307,43 @@
 <tr class="a" valign=top><td class="a"><tt><b>sin</b>(angle<font color="#666666">: floatN</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">the y coordinates of the normalized vector indicated by the angles (in degrees)</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>sin</b>(angle<font color="#666666">: float2</font>) -> <font color="#666666">float2</font></tt></td><td class="a">the y coordinates of the normalized vector indicated by the angles (in degrees)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>sin</b>(angle<font color="#666666">: float3</font>) -> <font color="#666666">float3</font></tt></td><td class="a">the y coordinates of the normalized vector indicated by the angles (in degrees)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>sin</b>(angle<font color="#666666">: float4</font>) -> <font color="#666666">float4</font></tt></td><td class="a">the y coordinates of the normalized vector indicated by the angles (in degrees)</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>cos</b>(angle<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">the x coordinate of the normalized vector indicated by angle (in degrees)</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>cos</b>(angle<font color="#666666">: floatN</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">the x coordinates of the normalized vector indicated by the angles (in degrees)</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>cos</b>(angle<font color="#666666">: float2</font>) -> <font color="#666666">float2</font></tt></td><td class="a">the x coordinates of the normalized vector indicated by the angles (in degrees)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>cos</b>(angle<font color="#666666">: float3</font>) -> <font color="#666666">float3</font></tt></td><td class="a">the x coordinates of the normalized vector indicated by the angles (in degrees)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>cos</b>(angle<font color="#666666">: float4</font>) -> <font color="#666666">float4</font></tt></td><td class="a">the x coordinates of the normalized vector indicated by the angles (in degrees)</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>tan</b>(angle<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">the tangent of an angle (in degrees)</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>tan</b>(angle<font color="#666666">: floatN</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">the tangents of the angles (in degrees)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>tan</b>(angle<font color="#666666">: float2</font>) -> <font color="#666666">float2</font></tt></td><td class="a">the tangents of the angles (in degrees)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>tan</b>(angle<font color="#666666">: float3</font>) -> <font color="#666666">float3</font></tt></td><td class="a">the tangents of the angles (in degrees)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>tan</b>(angle<font color="#666666">: float4</font>) -> <font color="#666666">float4</font></tt></td><td class="a">the tangents of the angles (in degrees)</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>sincos</b>(angle<font color="#666666">: float</font>) -> <font color="#666666">float2</font></tt></td><td class="a">the normalized vector indicated by angle (in degrees), same as float2 { cos(angle), sin(angle) }</td>
@@ -259,28 +367,76 @@
 <tr class="a" valign=top><td class="a"><tt><b>atan2</b>(vec<font color="#666666">: float2</font>) -> <font color="#666666">float</font></tt></td><td class="a">the angle (in degrees) corresponding to a normalized 2D vector</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>radians</b>(angle<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">converts an angle in degrees to radians</td>
-
-</tr>
-<tr class="a" valign=top><td class="a"><tt><b>degrees</b>(angle<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">converts an angle in radians to degrees</td>
-
-</tr>
 <tr class="a" valign=top><td class="a"><tt><b>normalize</b>(vec<font color="#666666">: floatN</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">returns a vector of unit length</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>normalize</b>(vec<font color="#666666">: float2</font>) -> <font color="#666666">float2</font></tt></td><td class="a">returns a vector of unit length</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>normalize</b>(vec<font color="#666666">: float3</font>) -> <font color="#666666">float3</font></tt></td><td class="a">returns a vector of unit length</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>normalize</b>(vec<font color="#666666">: float4</font>) -> <font color="#666666">float4</font></tt></td><td class="a">returns a vector of unit length</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>dot</b>(a<font color="#666666">: floatN</font>, b<font color="#666666">: floatN</font>) -> <font color="#666666">float</font></tt></td><td class="a">the length of vector a when projected onto b (or vice versa)</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>dot</b>(a<font color="#666666">: float2</font>, b<font color="#666666">: float2</font>) -> <font color="#666666">float</font></tt></td><td class="a">the length of vector a when projected onto b (or vice versa)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>dot</b>(a<font color="#666666">: float3</font>, b<font color="#666666">: float3</font>) -> <font color="#666666">float</font></tt></td><td class="a">the length of vector a when projected onto b (or vice versa)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>dot</b>(a<font color="#666666">: float4</font>, b<font color="#666666">: float4</font>) -> <font color="#666666">float</font></tt></td><td class="a">the length of vector a when projected onto b (or vice versa)</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>magnitude</b>(v<font color="#666666">: floatN</font>) -> <font color="#666666">float</font></tt></td><td class="a">the geometric length of a vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>magnitude</b>(v<font color="#666666">: float2</font>) -> <font color="#666666">float</font></tt></td><td class="a">the geometric length of a vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>magnitude</b>(v<font color="#666666">: float3</font>) -> <font color="#666666">float</font></tt></td><td class="a">the geometric length of a vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>magnitude</b>(v<font color="#666666">: float4</font>) -> <font color="#666666">float</font></tt></td><td class="a">the geometric length of a vector</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>magnitude_squared</b>(v<font color="#666666">: floatN</font>) -> <font color="#666666">float</font></tt></td><td class="a">the geometric length of a vector squared</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>magnitude_squared</b>(v<font color="#666666">: float2</font>) -> <font color="#666666">float</font></tt></td><td class="a">the geometric length of a vector squared</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>magnitude_squared</b>(v<font color="#666666">: float3</font>) -> <font color="#666666">float</font></tt></td><td class="a">the geometric length of a vector squared</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>magnitude_squared</b>(v<font color="#666666">: float4</font>) -> <font color="#666666">float</font></tt></td><td class="a">the geometric length of a vector squared</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>magnitude_squared</b>(v<font color="#666666">: intN</font>) -> <font color="#666666">int</font></tt></td><td class="a">the geometric length of a vector squared</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>magnitude_squared</b>(v<font color="#666666">: int2</font>) -> <font color="#666666">int</font></tt></td><td class="a">the geometric length of a vector squared</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>magnitude_squared</b>(v<font color="#666666">: int3</font>) -> <font color="#666666">int</font></tt></td><td class="a">the geometric length of a vector squared</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>magnitude_squared</b>(v<font color="#666666">: int4</font>) -> <font color="#666666">int</font></tt></td><td class="a">the geometric length of a vector squared</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>manhattan</b>(v<font color="#666666">: intN</font>) -> <font color="#666666">int</font></tt></td><td class="a">the manhattan distance of a vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>manhattan</b>(v<font color="#666666">: int2</font>) -> <font color="#666666">int</font></tt></td><td class="a">the manhattan distance of a vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>manhattan</b>(v<font color="#666666">: int3</font>) -> <font color="#666666">int</font></tt></td><td class="a">the manhattan distance of a vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>manhattan</b>(v<font color="#666666">: int4</font>) -> <font color="#666666">int</font></tt></td><td class="a">the manhattan distance of a vector</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>cross</b>(a<font color="#666666">: float3</font>, b<font color="#666666">: float3</font>) -> <font color="#666666">float3</font></tt></td><td class="a">a perpendicular vector to the 2D plane defined by a and b (swap a and b for its inverse)</td>
@@ -289,13 +445,40 @@
 <tr class="a" valign=top><td class="a"><tt><b>volume</b>(v<font color="#666666">: floatN</font>) -> <font color="#666666">float</font></tt></td><td class="a">the volume of the area spanned by the vector</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>volume</b>(v<font color="#666666">: float2</font>) -> <font color="#666666">float</font></tt></td><td class="a">the volume of the area spanned by the vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>volume</b>(v<font color="#666666">: float3</font>) -> <font color="#666666">float</font></tt></td><td class="a">the volume of the area spanned by the vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>volume</b>(v<font color="#666666">: float4</font>) -> <font color="#666666">float</font></tt></td><td class="a">the volume of the area spanned by the vector</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>volume</b>(v<font color="#666666">: intN</font>) -> <font color="#666666">int</font></tt></td><td class="a">the volume of the area spanned by the vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>volume</b>(v<font color="#666666">: int2</font>) -> <font color="#666666">int</font></tt></td><td class="a">the volume of the area spanned by the vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>volume</b>(v<font color="#666666">: int3</font>) -> <font color="#666666">int</font></tt></td><td class="a">the volume of the area spanned by the vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>volume</b>(v<font color="#666666">: int4</font>) -> <font color="#666666">int</font></tt></td><td class="a">the volume of the area spanned by the vector</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>rnd</b>(max<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">a random value [0..max).</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>rnd</b>(max<font color="#666666">: intN</font>) -> <font color="#666666">intN</font></tt></td><td class="a">a random struct within the range of an input struct.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>rnd</b>(max<font color="#666666">: int2</font>) -> <font color="#666666">int2</font></tt></td><td class="a">a random struct within the range of an input struct.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>rnd</b>(max<font color="#666666">: int3</font>) -> <font color="#666666">int3</font></tt></td><td class="a">a random struct within the range of an input struct.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>rnd</b>(max<font color="#666666">: int4</font>) -> <font color="#666666">int4</font></tt></td><td class="a">a random struct within the range of an input struct.</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>rnd_float</b>() -> <font color="#666666">float</font></tt></td><td class="a">a random float [0..1)</td>
@@ -328,7 +511,25 @@
 <tr class="a" valign=top><td class="a"><tt><b>clamp</b>(x<font color="#666666">: intN</font>, min<font color="#666666">: intN</font>, max<font color="#666666">: intN</font>) -> <font color="#666666">intN</font></tt></td><td class="a">forces an integer struct to be in the range between min and max (inclusive)</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>clamp</b>(x<font color="#666666">: int2</font>, min<font color="#666666">: int2</font>, max<font color="#666666">: int2</font>) -> <font color="#666666">int2</font></tt></td><td class="a">forces an integer struct to be in the range between min and max (inclusive)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>clamp</b>(x<font color="#666666">: int3</font>, min<font color="#666666">: int3</font>, max<font color="#666666">: int3</font>) -> <font color="#666666">int3</font></tt></td><td class="a">forces an integer struct to be in the range between min and max (inclusive)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>clamp</b>(x<font color="#666666">: int4</font>, min<font color="#666666">: int4</font>, max<font color="#666666">: int4</font>) -> <font color="#666666">int4</font></tt></td><td class="a">forces an integer struct to be in the range between min and max (inclusive)</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>clamp</b>(x<font color="#666666">: floatN</font>, min<font color="#666666">: floatN</font>, max<font color="#666666">: floatN</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">forces a float struct to be in the range between min and max (inclusive)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>clamp</b>(x<font color="#666666">: float2</font>, min<font color="#666666">: float2</font>, max<font color="#666666">: float2</font>) -> <font color="#666666">float2</font></tt></td><td class="a">forces a float struct to be in the range between min and max (inclusive)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>clamp</b>(x<font color="#666666">: float3</font>, min<font color="#666666">: float3</font>, max<font color="#666666">: float3</font>) -> <font color="#666666">float3</font></tt></td><td class="a">forces a float struct to be in the range between min and max (inclusive)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>clamp</b>(x<font color="#666666">: float4</font>, min<font color="#666666">: float4</font>, max<font color="#666666">: float4</font>) -> <font color="#666666">float4</font></tt></td><td class="a">forces a float struct to be in the range between min and max (inclusive)</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>in_range</b>(x<font color="#666666">: int</font>, range<font color="#666666">: int</font>, bias<font color="#666666">: int</font> = 0) -> <font color="#666666">int</font></tt></td><td class="a">checks if an integer is &gt;= bias and &lt; bias + range. Bias defaults to 0.</td>
@@ -346,7 +547,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>in_range</b>(x<font color="#666666">: float2</font>, range<font color="#666666">: float2</font>, bias<font color="#666666">: float2</font> = nil) -> <font color="#666666">int</font></tt></td><td class="a">checks if a 2d float vector is &gt;= bias and &lt; bias + range. Bias defaults to 0.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>in_range</b>(x<font color="#666666">: float3</font>, range<font color="#666666">: float3</font>, bias<font color="#666666">: float3</font> = nil) -> <font color="#666666">int</font></tt></td><td class="a">checks if a 2d float vector is &gt;= bias and &lt; bias + range. Bias defaults to 0.</td>
+<tr class="a" valign=top><td class="a"><tt><b>in_range</b>(x<font color="#666666">: float3</font>, range<font color="#666666">: float3</font>, bias<font color="#666666">: float3</font> = nil) -> <font color="#666666">int</font></tt></td><td class="a">checks if a 3d float vector is &gt;= bias and &lt; bias + range. Bias defaults to 0.</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>abs</b>(x<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">absolute value of an integer</td>
@@ -358,7 +559,25 @@
 <tr class="a" valign=top><td class="a"><tt><b>abs</b>(x<font color="#666666">: intN</font>) -> <font color="#666666">intN</font></tt></td><td class="a">absolute value of an int vector</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>abs</b>(x<font color="#666666">: int2</font>) -> <font color="#666666">int2</font></tt></td><td class="a">absolute value of an int vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>abs</b>(x<font color="#666666">: int3</font>) -> <font color="#666666">int3</font></tt></td><td class="a">absolute value of an int vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>abs</b>(x<font color="#666666">: int4</font>) -> <font color="#666666">int4</font></tt></td><td class="a">absolute value of an int vector</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>abs</b>(x<font color="#666666">: floatN</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">absolute value of a float vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>abs</b>(x<font color="#666666">: float2</font>) -> <font color="#666666">float2</font></tt></td><td class="a">absolute value of a float vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>abs</b>(x<font color="#666666">: float3</font>) -> <font color="#666666">float3</font></tt></td><td class="a">absolute value of a float vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>abs</b>(x<font color="#666666">: float4</font>) -> <font color="#666666">float4</font></tt></td><td class="a">absolute value of a float vector</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>sign</b>(x<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">sign (-1, 0, 1) of an integer</td>
@@ -370,7 +589,25 @@
 <tr class="a" valign=top><td class="a"><tt><b>sign</b>(x<font color="#666666">: intN</font>) -> <font color="#666666">intN</font></tt></td><td class="a">signs of an int vector</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>sign</b>(x<font color="#666666">: int2</font>) -> <font color="#666666">int2</font></tt></td><td class="a">signs of an int vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>sign</b>(x<font color="#666666">: int3</font>) -> <font color="#666666">int3</font></tt></td><td class="a">signs of an int vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>sign</b>(x<font color="#666666">: int4</font>) -> <font color="#666666">int4</font></tt></td><td class="a">signs of an int vector</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>sign</b>(x<font color="#666666">: floatN</font>) -> <font color="#666666">intN</font></tt></td><td class="a">signs of a float vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>sign</b>(x<font color="#666666">: float2</font>) -> <font color="#666666">int2</font></tt></td><td class="a">signs of a float vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>sign</b>(x<font color="#666666">: float3</font>) -> <font color="#666666">int3</font></tt></td><td class="a">signs of a float vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>sign</b>(x<font color="#666666">: float4</font>) -> <font color="#666666">int4</font></tt></td><td class="a">signs of a float vector</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>min</b>(x<font color="#666666">: int</font>, y<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">smallest of 2 integers.</td>
@@ -382,13 +619,49 @@
 <tr class="a" valign=top><td class="a"><tt><b>min</b>(x<font color="#666666">: intN</font>, y<font color="#666666">: intN</font>) -> <font color="#666666">intN</font></tt></td><td class="a">smallest components of 2 int vectors</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>min</b>(x<font color="#666666">: int2</font>, y<font color="#666666">: int2</font>) -> <font color="#666666">int2</font></tt></td><td class="a">smallest components of 2 int vectors</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>min</b>(x<font color="#666666">: int3</font>, y<font color="#666666">: int3</font>) -> <font color="#666666">int3</font></tt></td><td class="a">smallest components of 2 int vectors</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>min</b>(x<font color="#666666">: int4</font>, y<font color="#666666">: int4</font>) -> <font color="#666666">int4</font></tt></td><td class="a">smallest components of 2 int vectors</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>min</b>(x<font color="#666666">: floatN</font>, y<font color="#666666">: floatN</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">smallest components of 2 float vectors</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>min</b>(x<font color="#666666">: float2</font>, y<font color="#666666">: float2</font>) -> <font color="#666666">float2</font></tt></td><td class="a">smallest components of 2 float vectors</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>min</b>(x<font color="#666666">: float3</font>, y<font color="#666666">: float3</font>) -> <font color="#666666">float3</font></tt></td><td class="a">smallest components of 2 float vectors</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>min</b>(x<font color="#666666">: float4</font>, y<font color="#666666">: float4</font>) -> <font color="#666666">float4</font></tt></td><td class="a">smallest components of 2 float vectors</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>min</b>(v<font color="#666666">: intN</font>) -> <font color="#666666">int</font></tt></td><td class="a">smallest component of a int vector.</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>min</b>(v<font color="#666666">: int2</font>) -> <font color="#666666">int</font></tt></td><td class="a">smallest component of a int vector.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>min</b>(v<font color="#666666">: int3</font>) -> <font color="#666666">int</font></tt></td><td class="a">smallest component of a int vector.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>min</b>(v<font color="#666666">: int4</font>) -> <font color="#666666">int</font></tt></td><td class="a">smallest component of a int vector.</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>min</b>(v<font color="#666666">: floatN</font>) -> <font color="#666666">float</font></tt></td><td class="a">smallest component of a float vector.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>min</b>(v<font color="#666666">: float2</font>) -> <font color="#666666">float</font></tt></td><td class="a">smallest component of a float vector.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>min</b>(v<font color="#666666">: float3</font>) -> <font color="#666666">float</font></tt></td><td class="a">smallest component of a float vector.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>min</b>(v<font color="#666666">: float4</font>) -> <font color="#666666">float</font></tt></td><td class="a">smallest component of a float vector.</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>min</b>(v<font color="#666666">: [int]</font>) -> <font color="#666666">int</font></tt></td><td class="a">smallest component of a int vector, or INT64_MAX if length 0.</td>
@@ -406,13 +679,49 @@
 <tr class="a" valign=top><td class="a"><tt><b>max</b>(x<font color="#666666">: intN</font>, y<font color="#666666">: intN</font>) -> <font color="#666666">intN</font></tt></td><td class="a">largest components of 2 int vectors</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>max</b>(x<font color="#666666">: int2</font>, y<font color="#666666">: int2</font>) -> <font color="#666666">int2</font></tt></td><td class="a">largest components of 2 int vectors</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>max</b>(x<font color="#666666">: int3</font>, y<font color="#666666">: int3</font>) -> <font color="#666666">int3</font></tt></td><td class="a">largest components of 2 int vectors</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>max</b>(x<font color="#666666">: int4</font>, y<font color="#666666">: int4</font>) -> <font color="#666666">int4</font></tt></td><td class="a">largest components of 2 int vectors</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>max</b>(x<font color="#666666">: floatN</font>, y<font color="#666666">: floatN</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">largest components of 2 float vectors</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>max</b>(x<font color="#666666">: float2</font>, y<font color="#666666">: float2</font>) -> <font color="#666666">float2</font></tt></td><td class="a">largest components of 2 float vectors</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>max</b>(x<font color="#666666">: float3</font>, y<font color="#666666">: float3</font>) -> <font color="#666666">float3</font></tt></td><td class="a">largest components of 2 float vectors</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>max</b>(x<font color="#666666">: float4</font>, y<font color="#666666">: float4</font>) -> <font color="#666666">float4</font></tt></td><td class="a">largest components of 2 float vectors</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>max</b>(v<font color="#666666">: intN</font>) -> <font color="#666666">int</font></tt></td><td class="a">largest component of a int vector.</td>
 
 </tr>
+<tr class="a" valign=top><td class="a"><tt><b>max</b>(v<font color="#666666">: int2</font>) -> <font color="#666666">int</font></tt></td><td class="a">largest component of a int vector.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>max</b>(v<font color="#666666">: int3</font>) -> <font color="#666666">int</font></tt></td><td class="a">largest component of a int vector.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>max</b>(v<font color="#666666">: int4</font>) -> <font color="#666666">int</font></tt></td><td class="a">largest component of a int vector.</td>
+
+</tr>
 <tr class="a" valign=top><td class="a"><tt><b>max</b>(v<font color="#666666">: floatN</font>) -> <font color="#666666">float</font></tt></td><td class="a">largest component of a float vector.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>max</b>(v<font color="#666666">: float2</font>) -> <font color="#666666">float</font></tt></td><td class="a">largest component of a float vector.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>max</b>(v<font color="#666666">: float3</font>) -> <font color="#666666">float</font></tt></td><td class="a">largest component of a float vector.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>max</b>(v<font color="#666666">: float4</font>) -> <font color="#666666">float</font></tt></td><td class="a">largest component of a float vector.</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>max</b>(v<font color="#666666">: [int]</font>) -> <font color="#666666">int</font></tt></td><td class="a">largest component of a int vector, or INT64_MIN if length 0.</td>
@@ -427,7 +736,13 @@
 <tr class="a" valign=top><td class="a"><tt><b>lerp</b>(x<font color="#666666">: float</font>, y<font color="#666666">: float</font>, f<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">linearly interpolates between x and y with factor f [0..1]</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>lerp</b>(a<font color="#666666">: floatN</font>, b<font color="#666666">: floatN</font>, f<font color="#666666">: float</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">linearly interpolates between a and b vectors with factor f [0..1]</td>
+<tr class="a" valign=top><td class="a"><tt><b>lerp</b>(a<font color="#666666">: float2</font>, b<font color="#666666">: float2</font>, f<font color="#666666">: float</font>) -> <font color="#666666">float2</font></tt></td><td class="a">linearly interpolates between a and b vectors with factor f [0..1]</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>lerp</b>(a<font color="#666666">: float3</font>, b<font color="#666666">: float3</font>, f<font color="#666666">: float</font>) -> <font color="#666666">float3</font></tt></td><td class="a">linearly interpolates between a and b vectors with factor f [0..1]</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>lerp</b>(a<font color="#666666">: float4</font>, b<font color="#666666">: float4</font>, f<font color="#666666">: float</font>) -> <font color="#666666">float4</font></tt></td><td class="a">linearly interpolates between a and b vectors with factor f [0..1]</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>spherical_lerp</b>(a<font color="#666666">: float4</font>, b<font color="#666666">: float4</font>, f<font color="#666666">: float</font>) -> <font color="#666666">float4</font></tt></td><td class="a">spherically interpolates between a and b quaternions with factor f [0..1]</td>
@@ -445,7 +760,10 @@
 <tr class="a" valign=top><td class="a"><tt><b>smootherstep</b>(x<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">input must be in range 0..1, https://en.wikipedia.org/wiki/Smoothstep</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>cardinal_spline</b>(z<font color="#666666">: floatN</font>, a<font color="#666666">: floatN</font>, b<font color="#666666">: floatN</font>, c<font color="#666666">: floatN</font>, f<font color="#666666">: float</font>, tension<font color="#666666">: float</font>) -> <font color="#666666">floatN</font></tt></td><td class="a">computes the position between a and b with factor f [0..1], using z (before a) and c (after b) to form a cardinal spline (tension at 0.5 is a good default)</td>
+<tr class="a" valign=top><td class="a"><tt><b>cardinal_spline</b>(z<font color="#666666">: float2</font>, a<font color="#666666">: float2</font>, b<font color="#666666">: float2</font>, c<font color="#666666">: float2</font>, f<font color="#666666">: float</font>, tension<font color="#666666">: float</font>) -> <font color="#666666">float2</font></tt></td><td class="a">computes the position between a and b with factor f [0..1], using z (before a) and c (after b) to form a cardinal spline (tension at 0.5 is a good default)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>cardinal_spline</b>(z<font color="#666666">: float3</font>, a<font color="#666666">: float3</font>, b<font color="#666666">: float3</font>, c<font color="#666666">: float3</font>, f<font color="#666666">: float</font>, tension<font color="#666666">: float</font>) -> <font color="#666666">float3</font></tt></td><td class="a">computes the position between a and b with factor f [0..1], using z (before a) and c (after b) to form a cardinal spline (tension at 0.5 is a good default)</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>line_intersect</b>(line1a<font color="#666666">: float2</font>, line1b<font color="#666666">: float2</font>, line2a<font color="#666666">: float2</font>, line2b<font color="#666666">: float2</font>) -> <font color="#666666">int</font>, <font color="#666666">float2</font></tt></td><td class="a">computes if there is an intersection point between 2 line segments, with the point as second return value</td>
@@ -469,10 +787,22 @@
 <tr class="a" valign=top><td class="a"><tt><b>hash</b>(x<font color="#666666">: float</font>) -> <font color="#666666">int</font></tt></td><td class="a">hashes a float value into a positive int</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>hash</b>(v<font color="#666666">: intN</font>) -> <font color="#666666">int</font></tt></td><td class="a">hashes a int struct into a positive int</td>
+<tr class="a" valign=top><td class="a"><tt><b>hash</b>(v<font color="#666666">: int2</font>) -> <font color="#666666">int</font></tt></td><td class="a">hashes a numeric struct into a positive int</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>hash</b>(v<font color="#666666">: floatN</font>) -> <font color="#666666">int</font></tt></td><td class="a">hashes a float struct into a positive int</td>
+<tr class="a" valign=top><td class="a"><tt><b>hash</b>(v<font color="#666666">: int3</font>) -> <font color="#666666">int</font></tt></td><td class="a">hashes a numeric struct into a positive int</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>hash</b>(v<font color="#666666">: int4</font>) -> <font color="#666666">int</font></tt></td><td class="a">hashes a numeric struct into a positive int</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>hash</b>(v<font color="#666666">: float2</font>) -> <font color="#666666">int</font></tt></td><td class="a">hashes a numeric struct into a positive int</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>hash</b>(v<font color="#666666">: float3</font>) -> <font color="#666666">int</font></tt></td><td class="a">hashes a numeric struct into a positive int</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>hash</b>(v<font color="#666666">: float4</font>) -> <font color="#666666">int</font></tt></td><td class="a">hashes a numeric struct into a positive int</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>call_function_value</b>(x<font color="#666666">: function</font>)</tt></td><td class="a">calls a void / no args function value.. you shouldn't need to use this, it is a demonstration of how native code can call back into Lobster</td>
@@ -591,7 +921,7 @@
 </tr>
 </table></td></tr>
 <tr class="a" valign=top><td><h3>compiler</h3></td></tr>
-<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>compile_run_code</b>(code<font color="#666666">: string</font>, args<font color="#666666">: [string]</font>) -> <font color="#666666">string</font>, <font color="#666666">string?</font></tt></td><td class="a">compiles and runs lobster source, sandboxed from the current program (in its own VM). the argument is a string of code. returns the return value of the program as a string, with an error string as second return value, or nil if none. using parse_data(), two program can communicate more complex data structures even if they don't have the same version of struct definitions.</td>
+<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>compile_run_code</b>(code<font color="#666666">: string</font>, args<font color="#666666">: [string]</font>, max_errors<font color="#666666">: int</font> = 1) -> <font color="#666666">string</font>, <font color="#666666">string?</font></tt></td><td class="a">compiles and runs lobster source, sandboxed from the current program (in its own VM). the argument is a string of code. returns the return value of the program as a string, with an error string as second return value, or nil if none. using parse_data(), two program can communicate more complex data structures even if they don't have the same version of struct definitions. max_errors is how many errors are collected (in the error string, one per line) before giving up, default 1.</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>compile_run_file</b>(filename<font color="#666666">: string</font>, args<font color="#666666">: [string]</font>) -> <font color="#666666">string</font>, <font color="#666666">string?</font></tt></td><td class="a">same as compile_run_code(), only now you pass a filename.</td>
@@ -629,10 +959,10 @@
 <tr class="a" valign=top><td class="a"><tt><b>vector_to_buffer</b>(vec<font color="#666666">: [any]</font>, width<font color="#666666">: int</font> = 4, offset<font color="#666666">: int</font> = 0, len<font color="#666666">: int</font> = 0) -> <font color="#666666">string</font></tt></td><td class="a">converts a vector of ints/floats (or structs of them) to a buffer, where each scalar is written with "width" bytes (1/2/4/8, default 4). Returns nil if the type couldn't be converted. Uses native endianness. Offset and len can specify a slice of the input, but if not specified default to all.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>ensure_size</b>(string<font color="#666666">: string</font>, size<font color="#666666">: int</font>, char<font color="#666666">: int</font>, extra<font color="#666666">: int</font> = 0) -> <font color="#666666">string</font></tt></td><td class="a">ensures a string is at least size characters. if it is, just returns the existing string, otherwise returns a new string of that size (with optionally extra bytes added), with any new characters set to char. You can specify a negative size to mean relative to the end, i.e. new characters will be added at the start. </td>
+<tr class="a" valign=top><td class="a"><tt><b>ensure_size</b>(string<font color="#666666">: string</font>, size<font color="#666666">: int</font>, char<font color="#666666">: int</font>, extra<font color="#666666">: int</font> = 0) -> <font color="#666666">string</font></tt></td><td class="a">ensures a string is at least size characters. if it is, just returns the existing string, otherwise returns it grown to that size (with optionally extra bytes added), with any new characters set to char: grown in place when the string has the room (see string_with_capacity), else as a new string of exactly that size. You can specify a negative size to mean relative to the end, i.e. new characters will be added at the start. Together with the write_ functions this lets a string be used as a byte buffer: those write into the string in place (visible thru every reference to it), except that a string constant is copied first, so a literal never changes.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>write_int64_le</b>(string<font color="#666666">: string</font>, i<font color="#666666">: int</font>, val<font color="#666666">: int</font>) -> <font color="#666666">string</font>, <font color="#666666">int</font></tt></td><td class="a">writes a value as little endian to a string at location i. Uses ensure_size to make the string twice as long (with extra 0 bytes) if no space. Returns new string if resized, and the index of the location right after where the value was written. The _back version writes relative to the end (and writes before the index)</td>
+<tr class="a" valign=top><td class="a"><tt><b>write_int64_le</b>(string<font color="#666666">: string</font>, i<font color="#666666">: int</font>, val<font color="#666666">: int</font>) -> <font color="#666666">string</font>, <font color="#666666">int</font></tt></td><td class="a">writes a value as little endian to a string at location i, in place, so the write is visible thru every reference to the string. A write past the end grows the string to end right after the value (bytes skipped over are 0): in place as well when the string has the room (see string_with_capacity), else as a new string with room to grow as much again, which is what a string that had to grow that way gets. Returns the string, which is the new one if it had to move or was a string constant (see ensure_size), and the index of the location right after where the value was written. The _back version writes relative to the end (and writes before the index), and grows the string to twice what it needs, with 0 bytes at the front, so what it wrote keeps its place from the end</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>write_int32_le</b>(string<font color="#666666">: string</font>, i<font color="#666666">: int</font>, val<font color="#666666">: int</font>) -> <font color="#666666">string</font>, <font color="#666666">int</font></tt></td><td class="a">(see write_int64_le)</td>
@@ -841,13 +1171,22 @@
 </tr>
 </table></td></tr>
 <tr class="a" valign=top><td><h3>noise</h3></td></tr>
-<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>simplex</b>(pos<font color="#666666">: floatN</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). This function is the same as calling fast_noise with simplex/fbm flags.</td>
+<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>simplex</b>(pos<font color="#666666">: float2</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). This function is the same as calling fast_noise with simplex/fbm flags.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>simplex_raw</b>(pos<font color="#666666">: floatN</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location</td>
+<tr class="a" valign=top><td class="a"><tt><b>simplex</b>(pos<font color="#666666">: float3</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). This function is the same as calling fast_noise with simplex/fbm flags.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>fast_noise</b>(pos<font color="#666666">: floatN</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>, noise_type<font color="#666666">: int</font>, fractal_type<font color="#666666">: int</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a noise value [-1..1] given a 2D/3Dlocation, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). see noise.lobster for constants for the type params.</td>
+<tr class="a" valign=top><td class="a"><tt><b>simplex_raw</b>(pos<font color="#666666">: float2</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>simplex_raw</b>(pos<font color="#666666">: float3</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a simplex noise value [-1..1] given a 2D/3D location</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>fast_noise</b>(pos<font color="#666666">: float2</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>, noise_type<font color="#666666">: int</font>, fractal_type<font color="#666666">: int</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a noise value [-1..1] given a 2D/3Dlocation, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). see noise.lobster for constants for the type params.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>fast_noise</b>(pos<font color="#666666">: float3</font>, octaves<font color="#666666">: int</font>, scale<font color="#666666">: float</font>, persistence<font color="#666666">: float</font>, noise_type<font color="#666666">: int</font>, fractal_type<font color="#666666">: int</font>) -> <font color="#666666">float</font></tt></td><td class="a">returns a noise value [-1..1] given a 2D/3Dlocation, the number of octaves (try 6), a scale (try 0.01), and persistence from one octave to the next (try 0.5). see noise.lobster for constants for the type params.</td>
 
 </tr>
 </table></td></tr>
@@ -996,16 +1335,25 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.rotate_z</b>(angle<font color="#666666">: float2</font>)</tt></td><td class="a">rotates the xy plane around the z axis (used in 2D), using a 2D vector normalized vector as angle</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>gl.translate</b>(vec<font color="#666666">: floatN</font>)</tt></td><td class="a">translates the current coordinate system along a vector</td>
+<tr class="a" valign=top><td class="a"><tt><b>gl.translate</b>(vec<font color="#666666">: float2</font>)</tt></td><td class="a">translates the current coordinate system along a vector</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>gl.translate</b>(vec<font color="#666666">: intN</font>)</tt></td><td class="a">translates the current coordinate system along a vector</td>
+<tr class="a" valign=top><td class="a"><tt><b>gl.translate</b>(vec<font color="#666666">: float3</font>)</tt></td><td class="a">translates the current coordinate system along a vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.translate</b>(vec<font color="#666666">: int2</font>)</tt></td><td class="a">translates the current coordinate system along a vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.translate</b>(vec<font color="#666666">: int3</font>)</tt></td><td class="a">translates the current coordinate system along a vector</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.scale</b>(factor<font color="#666666">: float</font>)</tt></td><td class="a">scales the current coordinate system using a numerical factor</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>gl.scale</b>(factor<font color="#666666">: floatN</font>)</tt></td><td class="a">scales the current coordinate system using a vector</td>
+<tr class="a" valign=top><td class="a"><tt><b>gl.scale</b>(factor<font color="#666666">: float2</font>)</tt></td><td class="a">scales the current coordinate system using a vector</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.scale</b>(factor<font color="#666666">: float3</font>)</tt></td><td class="a">scales the current coordinate system using a vector</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.origin</b>() -> <font color="#666666">float2</font></tt></td><td class="a">returns a vector representing the current transform origin in pixels. only makes sense in 2D mode (no gl.perspective called).</td>
@@ -1038,7 +1386,10 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.cull_front</b>(on<font color="#666666">: bool</font>) -> <font color="#666666">int</font></tt></td><td class="a">set culling front (true) or back (false), returns previous value.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>gl.hit</b>(vec<font color="#666666">: floatN</font>, i<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">whether the mouse/finger is inside of the rectangle specified in terms of the current transform (for touch screens only if the corresponding gl.isdown is true). Only true if the last rectangle for which gl.hit was true last frame is of the same size as this one (allows you to safely test in most cases of overlapping rendering)</td>
+<tr class="a" valign=top><td class="a"><tt><b>gl.hit</b>(vec<font color="#666666">: float2</font>, i<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">whether the mouse/finger is inside of the rectangle specified in terms of the current transform (for touch screens only if the corresponding gl.isdown is true). Only true if the last rectangle for which gl.hit was true last frame is of the same size as this one (allows you to safely test in most cases of overlapping rendering)</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.hit</b>(vec<font color="#666666">: float3</font>, i<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">whether the mouse/finger is inside of the rectangle specified in terms of the current transform (for touch screens only if the corresponding gl.isdown is true). Only true if the last rectangle for which gl.hit was true last frame is of the same size as this one (allows you to safely test in most cases of overlapping rendering)</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.rect</b>(size<font color="#666666">: float2</font>, centered<font color="#666666">: int</font> = 0)</tt></td><td class="a">renders a rectangle (0,0)..(1,1) (or (-1,-1)..(1,1) when centered), scaled by the given size.</td>
@@ -1050,7 +1401,10 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.unit_square</b>(centered<font color="#666666">: int</font> = 0)</tt></td><td class="a">renders a square (0,0)..(1,1) (or (-1,-1)..(1,1) when centered)</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>gl.line</b>(start<font color="#666666">: floatN</font>, end<font color="#666666">: floatN</font>, thickness<font color="#666666">: float</font>)</tt></td><td class="a">renders a line with the given thickness</td>
+<tr class="a" valign=top><td class="a"><tt><b>gl.line</b>(start<font color="#666666">: float2</font>, end<font color="#666666">: float2</font>, thickness<font color="#666666">: float</font>)</tt></td><td class="a">renders a line with the given thickness</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.line</b>(start<font color="#666666">: float3</font>, end<font color="#666666">: float3</font>, thickness<font color="#666666">: float</font>)</tt></td><td class="a">renders a line with the given thickness</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.perspective</b>(fovy<font color="#666666">: float</font>, znear<font color="#666666">: float</font>, zfar<font color="#666666">: float</font>, frame_buffer_size<font color="#666666">: int2</font> = nil, frame_buffer_offset<font color="#666666">: int2</font> = nil, nodepth<font color="#666666">: int</font> = 0)</tt></td><td class="a">changes from 2D mode (default) to 3D right handed perspective mode with vertical fov (try 60), far plane (furthest you want to be able to render, try 1000) and near plane (try 1). Optionally specify a framebuffer size to override the current gl.framebuffer_size</td>
@@ -1110,13 +1464,25 @@
 <tr class="a" valign=top><td class="a"><tt><b>gl.get_shader</b>(shader<font color="#666666">: string</font>) -> <font color="#666666">resource&lt;shader&gt;</font></tt></td><td class="a">gets a shader by name, for use with gl.set_shader</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>gl.set_uniform</b>(name<font color="#666666">: string</font>, value<font color="#666666">: floatN</font>) -> <font color="#666666">int</font></tt></td><td class="a">set a uniform on the current shader. size of float vector must match size of uniform in the shader. returns false on error.</td>
+<tr class="a" valign=top><td class="a"><tt><b>gl.set_uniform</b>(name<font color="#666666">: string</font>, value<font color="#666666">: float2</font>) -> <font color="#666666">int</font></tt></td><td class="a">set a uniform on the current shader. size of the vector must match the size of the uniform in the shader. returns false on error.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.set_uniform</b>(name<font color="#666666">: string</font>, value<font color="#666666">: float3</font>) -> <font color="#666666">int</font></tt></td><td class="a">set a uniform on the current shader. size of the vector must match the size of the uniform in the shader. returns false on error.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.set_uniform</b>(name<font color="#666666">: string</font>, value<font color="#666666">: float4</font>) -> <font color="#666666">int</font></tt></td><td class="a">set a uniform on the current shader. size of the vector must match the size of the uniform in the shader. returns false on error.</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.set_uniform</b>(name<font color="#666666">: string</font>, value<font color="#666666">: float</font>) -> <font color="#666666">int</font></tt></td><td class="a">set a uniform on the current shader. uniform in the shader must be a single float. returns false on error.</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>gl.set_uniform</b>(name<font color="#666666">: string</font>, value<font color="#666666">: intN</font>) -> <font color="#666666">int</font></tt></td><td class="a">set a uniform on the current shader. size of int vector must match size of uniform in the shader. returns false on error.</td>
+<tr class="a" valign=top><td class="a"><tt><b>gl.set_uniform</b>(name<font color="#666666">: string</font>, value<font color="#666666">: int2</font>) -> <font color="#666666">int</font></tt></td><td class="a">set a uniform on the current shader. size of the vector must match the size of the uniform in the shader. returns false on error.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.set_uniform</b>(name<font color="#666666">: string</font>, value<font color="#666666">: int3</font>) -> <font color="#666666">int</font></tt></td><td class="a">set a uniform on the current shader. size of the vector must match the size of the uniform in the shader. returns false on error.</td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>gl.set_uniform</b>(name<font color="#666666">: string</font>, value<font color="#666666">: int4</font>) -> <font color="#666666">int</font></tt></td><td class="a">set a uniform on the current shader. size of the vector must match the size of the uniform in the shader. returns false on error.</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>gl.set_uniform</b>(name<font color="#666666">: string</font>, value<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">set a uniform on the current shader. uniform in the shader must be a single int. returns false on error.</td>
@@ -2101,7 +2467,10 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.sliderfloat4</b>(label<font color="#666666">: string</font>, F4<font color="#666666">: float4</font>, min<font color="#666666">: float</font>, max<font color="#666666">: float</font>) -> <font color="#666666">float4</font></tt></td><td class="a"></td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>im.coloredit</b>(label<font color="#666666">: string</font>, color<font color="#666666">: floatN</font>) -> <font color="#666666">any</font></tt></td><td class="a"></td>
+<tr class="a" valign=top><td class="a"><tt><b>im.coloredit</b>(label<font color="#666666">: string</font>, color<font color="#666666">: float3</font>) -> <font color="#666666">any</font></tt></td><td class="a"></td>
+
+</tr>
+<tr class="a" valign=top><td class="a"><tt><b>im.coloredit</b>(label<font color="#666666">: string</font>, color<font color="#666666">: float4</font>) -> <font color="#666666">any</font></tt></td><td class="a"></td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.image</b>(tex<font color="#666666">: resource&lt;texture&gt;</font>, size<font color="#666666">: float2</font>, flip<font color="#666666">: bool</font> = false)</tt></td><td class="a"></td>
@@ -2212,7 +2581,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>im.button_repeat_end</b>()</tt></td><td class="a"></td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>im.dummy</b>(size<font color="#666666">: float2</font>)</tt></td><td class="a"></td>
+<tr class="a" valign=top><td class="a"><tt><b>im.dummy</b>(size<font color="#666666">: float2</font>)</tt></td><td class="a">add a dummy item of a given size</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>im.drag_drop_source_start</b>(flags<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">(use im.drag_drop_source instead)</td>

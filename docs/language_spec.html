@@ -160,10 +160,10 @@ content. A raw <code>'</code> is an error (it must be written
 two hex digits (one byte), and <code>\u</code> followed by exactly four
 hex digits (the code point, encoded as UTF-8). Any other <code>\</code>
 sequence is an error.</p>
-<p><code>{</code> starts an interpolation (below) unless written
-<code>{{</code> or <code>\{</code>; <code>}</code> outside an
-interpolation is an error unless written <code>}}</code> or
-<code>\}</code>.</p>
+<p><code>{</code> starts an interpolation (below) unless it is doubled
+or written <code>\{</code>; <code>}</code> outside an interpolation is
+an error unless it is doubled or written <code>\}</code>. A doubled
+brace stands for a single brace.</p>
 <p>Interpolation: <code>{</code> <em>expr</em> <code>}</code> inside a
 string embeds an expression, which is an operator expression (an
 expression without assignment, see the expression grammar). It may
@@ -351,8 +351,13 @@ convert (with coercions, see Conversions); without an annotation it is
 the initializer's type. An initializer of <code>nil</code> without
 annotation gives a nilable type whose element type is a type variable
 bound by later use (an error if that use binds it to a type that cannot
-be nilable). A value of type <code>void</code> cannot be stored
-(error).</p>
+be nilable). A value of type <code>void</code> cannot be stored (error).
+An initializer that never completes (a <code>return</code>, or a call to
+a function whose every return is a non-local one, on every path) is an
+error ("initializer of x never completes"), as is such an expression on
+the right of an assignment; in a branch of an <code>if</code> or
+<code>switch</code> that is used as a value it is fine, since the other
+branches provide the value.</p>
 <p>Pre-declaration: at file scope only, <code>let x:T</code> or
 <code>var x:T</code> without an initializer declares <code>x</code> for
 later definition. The definition is a later
@@ -447,8 +452,10 @@ function for the type <code>T</code>: it must return a value of type
 inside a constructor of <code>T</code> (or in anonymous functions called
 from one); all overloads of a name must agree on being constructors.</p>
 <p>Operator overloads: <code>def operator+(a:T, b:U): ...</code> at the
-file's top scope; one declared anywhere else (inside a function, a class
-body or a block) is an error. The operator may be any of
+file's top scope, either as a function or as a method in the body of a
+class or struct declared there; one declared anywhere else (inside a
+function or a block, including a class declared inside one) is an error.
+The operator may be any of
 <code>+ - * / % ++ -- == != &lt; &gt; &lt;= &gt;= &amp; | ^ ~ &lt;&lt; &gt;&gt; =</code>
 and the compound assignments
 <code>+= -= *= /= %= &amp;= |= ^= &lt;&lt;= &gt;&gt;=</code>, or
@@ -603,8 +610,9 @@ resource, function types are not, structs are not) and type variables.
 <li><code>int</code>: 64-bit two's complement integer. Enum types are
 distinct int types.</li>
 <li><code>float</code>: 64-bit IEEE 754 binary float.</li>
-<li><code>string</code>: immutable byte sequence, reference type,
-compared by value.</li>
+<li><code>string</code>: byte sequence, reference type, compared by
+value; immutable except thru the byte-writing builtins (see Operators on
+strings).</li>
 <li><code>[T]</code>: vector, a resizable sequence of <code>T</code>,
 reference type.</li>
 <li>class types: reference types with named fields, single inheritance,
@@ -900,7 +908,22 @@ concatenation. <code>s += x</code> converts <code>x</code>.
 <code>&lt; &gt; &lt;= &gt;=</code> order strings lexicographically by
 unsigned byte, a prefix ordering before the longer string;
 <code>==</code> compares bytes. Strings are immutable: indexed
-assignment is an error.</p>
+assignment is an error. The one exception is the byte-writing builtins
+(<code>ensure_size</code>, the <code>write_*_le</code> family,
+<code>write_substring</code> and the imgui text inputs), which write
+into the string they are given in place, visible thru every reference to
+that string, and return it. A write past the end grows the string to end
+right after what was written (bytes skipped over are 0): in place as
+well when the string's allocation has room to spare
+(<code>string_with_capacity</code> makes an empty string with room, and
+a write that had to move a string leaves it with as much room again),
+otherwise into a larger copy, and other references keep the string as it
+was. The <code>_back</code> variants, which write relative to the end,
+instead grow the string to twice the length they need, with 0 bytes at
+the front, so what was written keeps its place from the end. A string
+constant (a literal, or a field default that is one) is never written:
+such a builtin copies it first and returns the copy, so every evaluation
+of the literal yields its original bytes.</p>
 <h3 id="operators-on-structs">Operators on structs</h3>
 <p>For a numeric struct <code>S</code> with element type <code>N</code>:
 <code>S op S</code> for <code>+ - * / %</code> applies the operator
@@ -920,8 +943,10 @@ the corresponding field of <code>b</code> under the <code>==</code> of
 that field's type (<code>int</code> and <code>float</code> by value,
 strings by contents, class, vector and resource references by identity,
 function values by identity, nested structs by this same rule), and, for
-family structs, the dynamic types are equal; <code>a != b</code> is
-<code>not (a == b)</code>. Indexing <code>s[i]</code> reads element
+family structs, the dynamic types are equal and the fields the static
+type does not declare (those of the dynamic type) are equal slot by
+slot, numbers by value and references by identity; <code>a != b</code>
+is <code>not (a == b)</code>. Indexing <code>s[i]</code> reads element
 <code>i</code> (0-based, field order flattened) of a numeric struct; out
 of range is a runtime error; <code>s[i] = v</code> assigns it. Compound
 assignments <code>s += x</code> etc. apply the corresponding operator.
@@ -1086,13 +1111,13 @@ convert to another, so a vector of distinct lambdas needs
 <code>::ft</code>. Calling a variable of function type passes exactly
 the parameters; extra arguments to a function value whose function takes
 fewer are dropped without being evaluated, fewer is an error. A function
-value passed as a declared function type may not assign to its
-parameters (error "cannot assign to borrowed argument").
-<code>x()</code> calls the function value held by <code>x</code> only
-when <code>x</code> is a variable (and no function or builtin takes
-precedence, see Call resolution); calling any other expression
-(<code>f()()</code>, <code>v[0]()</code>) is an error. Named functions
-are not values ("can't use named function as value").</p>
+value may assign to its parameters like any function, also when it is
+called thru a declared function type (see Borrowing). <code>x()</code>
+calls the function value held by <code>x</code> only when <code>x</code>
+is a variable (and no function or builtin takes precedence, see Call
+resolution); calling any other expression (<code>f()()</code>,
+<code>v[0]()</code>) is an error. Named functions are not values ("can't
+use named function as value").</p>
 <p>Functions as environments: a named function declared inside a
 function <code>g</code> may also be called by name from code outside
 <code>g</code> while an activation of <code>g</code> is on the call
@@ -1488,9 +1513,18 @@ promoted.</li>
 </ul>
 <p>A promotion is dropped by an assignment to the path or to any prefix
 of it, including writes performed by called functions through parameters
-that alias the path (the compiler tracks parameter aliases per call), by
+that alias the path (the compiler tracks parameter aliases per call),
+writes through a variable that was assigned the path's object from a
+variable path (<code>var y = x</code> or <code>y = x.f</code>, a
+parameter, a <code>for</code> loop element: the fields of <code>y</code>
+are then also those of <code>x</code> for every path <code>y</code> was
+ever assigned from, whether or not it still holds that object), by
 <code>and</code>/<code>or</code> operands' assignments, and at the end
-of the branch that established it. After an
+of the branch that established it. An alias that arrives any other way
+(a function result, an element or field the object was stored in, the
+reference fields of a copied struct) is not tracked: a write through it
+does not drop the promotion, and neither does a write through an alias
+assigned later in a loop body, on the next iteration. After an
 <code>if</code>/<code>elif</code>/<code>else</code> or
 <code>switch</code>, a promotion survives only if every branch that can
 fall through establishes it (with a common type); a branch that ends in
@@ -1514,10 +1548,11 @@ structs are values: assignment and passing copy them (a struct copy
 copies all its fields, including reference fields, which are then
 shared). Strings, vectors, class instances and resources are references:
 assignment and passing share the object; <code>copy</code> and
-<code>deepcopy</code> (builtins) duplicate. Strings are immutable.
-Memory is reclaimed by reference counting when the last reference
-disappears; reference cycles are not reclaimed (they are reported as
-leaks when the program ends).</p>
+<code>deepcopy</code> (builtins) duplicate. Strings are immutable,
+except thru the byte-writing builtins (see Operators on strings). Memory
+is reclaimed by reference counting when the last reference disappears;
+reference cycles are not reclaimed (they are reported as leaks when the
+program ends).</p>
 <h3 id="borrowing">Borrowing</h3>
 <p>The compiler decides per parameter, variable and temporary whether it
 owns a reference or borrows one, which is not observable except for one
@@ -1530,15 +1565,22 @@ in the initializer of a single-assignment variable, or as a
 enclosing expression or statement completes, or for the variable's
 scope), a write to that location (or one that may alias it: any element
 of the same vector counts as one location unless both indices are
-different constants; builtins that remove elements count as writes) is
-detected: if the write happens in a called function, or after the
-borrowing variable was initialized, the compiler instead makes the
-borrower own a reference and the program is accepted; if it happens
-while the borrowed value is still being prepared as an argument of the
-same call (e.g. <code>f(v[0], v.pop())</code>), it is an error ("cannot
-modify <code>v[..]</code> while <code>v[0]</code> borrows it"). A
-parameter that the function assigns to always owns its own reference;
-the caller's variable is unaffected.</p>
+different constants; builtins that remove elements count as writes; a
+write through a variable that was assigned the object from a variable
+path counts as a write to that path, with the same limits as for
+promotions, see Flow typing) is detected: if the write happens in a
+called function, after the borrowing variable was initialized, or in a
+later argument of the same call (or a later value of the same
+<code>return</code> list), e.g. <code>f(v[0], v.pop())</code>, the
+compiler instead makes the borrower own a reference and the program is
+accepted; a write elsewhere in the expression holding the borrow (e.g.
+<code>v[0] + v.pop()</code>, where an operand borrows) is an error
+("cannot modify <code>v[..]</code> while <code>v[0]</code> borrows it").
+A parameter that the function assigns to always owns its own reference;
+the caller's variable is unaffected. This includes the parameters of an
+anonymous function, whichever way it is called: a call thru a declared
+function type passes every argument borrowed, and such a parameter
+copies it on entry.</p>
 <h2 id="runtime-semantics">Runtime semantics</h2>
 <h3 id="program-execution-and-termination">Program execution and
 termination</h3>

@@ -364,16 +364,39 @@ body.</li>
 about its body. Its element variable borrows the elements of the vector
 (see above), unless the body writes to them, in which case it owns each
 element in turn.</li>
-<li>String constants conceptually result in an owned value (they are a
-heap object), but currently they actually result in a borrow. This is
-because strings are most frequently passed to contexts that would prefer
-to borrow (like <code>+</code> or many builtin functions) and thus
-produce a lot of reference count churn. To avoid this, the VM allocates
-strings on first use, but never lets the reference count drop to 0,
-meaning they can safely be borrowed, and reduce total reference
-counting. Or more simply: it's as if there exists an anonymous global
-variable for each string constant that's actually used, and which you
-borrow from.</li>
+<li>String constants result in a borrow. This is because strings are
+most frequently passed to contexts that would prefer to borrow (like
+<code>+</code> or many builtin functions) and thus would produce a lot
+of reference count churn if they were owned. Each distinct string
+constant is an object in the generated code itself (static data, not the
+heap), emitted holding a reference of its own that is never given up, so
+its count never drops to 0 and it can safely be borrowed from. Or more
+simply: it's as if there exists an anonymous global variable for each
+string constant that's actually used, and which you borrow from. Such an
+object is marked by a type table entry of its own, so the builtins that
+write into a string in place (<code>write_int8_le</code> and friends)
+can copy it first rather than change the constant.</li>
+<li><code>s += x</code> (and <code>s = s + x</code>) appends in place
+when <code>s</code> is the only reference to a dynamic string and its
+allocation has the room (a string that had to grow got as much room
+again as it took), so building a string up in a loop costs what is
+appended rather than what has been built. A shared or constant string is
+copied instead, as it always was: the append never changes what another
+reference sees. The right hand side is appended piece by piece rather
+than made into a string first: the operands of a concatenation, an int,
+float or struct of scalars written out as it goes on (a call the
+optimizer inlined down to its value counts as that value, and so does an
+explicit <code>string(x)</code>), and the text <code>substring</code> or
+<code>number_to_string</code> would have made. All operands are
+evaluated before any of them is appended, and a piece that is the string
+itself (<code>s += "x" + s</code>, or a substring of it) is read as it
+was: for the appends the string then keeps a reference of its own, so it
+is copied rather than grown in place. The byte-writing builtins
+(<code>write_int8_le</code> and friends, <code>ensure_size</code>) grow
+a string into the same room, but in place whether it is shared or not,
+since a string used as a byte buffer is written in place by design;
+<code>string_with_capacity</code> makes an empty string with room to
+grow.</li>
 <li><code>+</code> on strings wants to borrow, and returns owned. This
 is the same in principle for all binary operators, but thanks to "inline
 structs" this doesn't matter for most of them anymore.</li>
