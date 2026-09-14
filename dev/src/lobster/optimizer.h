@@ -390,9 +390,19 @@ Node *Call::Optimize(Optimizer &opt) {
                 if (!list->children[i]) list->children.erase(i);
         }
     }
-    auto r = opt.Typed(exptype, LT_KEEP, list);
+    Node *r = opt.Typed(exptype, LT_KEEP, list);
     children.clear();
     r = r->Optimize(opt);
+    // A body that came down to its value alone, with no binding left and no return that jumps to
+    // its end, is that value, which everything that looks at what a call produced then sees:
+    // an operand, a piece of a string append, a constant to fold.
+    if (auto ib = Is<InlineBlock>(r); ib && ib->children.size() == 1 && !jumps &&
+        exptype->NumValues() == 1 && !Is<InlineReturn>(ib->children[0]) &&
+        ib->children[0]->exptype->NumValues() == 1) {
+        r = ib->children[0];
+        ib->children.clear();
+        delete ib;
+    }
     delete this;  // Do this after, since Optimize may touch this same call.
     opt.Changed();
     return r;
