@@ -338,26 +338,33 @@ BUILTIN(vector_to_buffer, "vec,width,offset,len", "A]*I?:4I?I?", "S",
 
 BUILTIN(ensure_size, "string,size,char,extra", "SkIII?", "S",
     "ensures a string is at least size characters. if it is, just returns the existing"
-    " string, otherwise returns a new string of that size (with optionally extra bytes"
-    " added), with any new characters set to"
-    " char. You can specify a negative size to mean relative to the end, i.e. new"
-    " characters will be added at the start. Together with the write_ functions this lets a"
-    " string be used as a byte buffer: those write into the string in place (visible thru"
-    " every reference to it), except that a string constant is copied first, so a literal"
-    " never changes.")
+    " string, otherwise returns it grown to that size (with optionally extra bytes added),"
+    " with any new characters set to char: grown in place when the string has the room (see"
+    " string_with_capacity), else as a new string of exactly that size. You can specify a"
+    " negative size to mean relative to the end, i.e. new characters will be added at the"
+    " start. Together with the write_ functions this lets a string be used as a byte buffer:"
+    " those write into the string in place (visible thru every reference to it), except that"
+    " a string constant is copied first, so a literal never changes.")
 (VM &vm, LString *str, iint size, iint c, iint extra) {
     auto asize = std::abs(size);
-    return str->len >= asize
-        ? str
-        : vm.ResizeString(str, asize + extra, (int)c, size < 0);
+    auto len = str->len;
+    if (len >= asize) return str;
+    auto back = size < 0;
+    str = vm.GrowString(str, asize + extra, back, 0);
+    memset((void *)(str->data() + (back ? 0 : len)), (int)c, (size_t)(str->len - len));
+    return str;
 }
 
 static const char *write_val_desc1 =
-    "writes a value as little endian to a string at location i. Uses ensure_size to"
-    " make the string twice as long (with extra 0 bytes) if no space. Returns the string,"
-    " which is a new one if it was resized or was a string constant (see ensure_size),"
-    " and the index of the location right after where the value was written. The"
-    " _back version writes relative to the end (and writes before the index)";
+    "writes a value as little endian to a string at location i, in place, so the write is"
+    " visible thru every reference to the string. A write past the end grows the string to"
+    " end right after the value (bytes skipped over are 0): in place as well when the string"
+    " has the room (see string_with_capacity), else as a new string with room to grow as much"
+    " again, which is what a string that had to grow that way gets. Returns the string, which"
+    " is the new one if it had to move or was a string constant (see ensure_size), and the"
+    " index of the location right after where the value was written. The _back version writes"
+    " relative to the end (and writes before the index), and grows the string to twice what it"
+    " needs, with 0 bytes at the front, so what it wrote keeps its place from the end";
 static const char *write_val_desc2 = "(see write_int64_le)";
 #define WRITEOP(N, T, B, D, S, VT) \
     BUILTIN(N, "string,i,val", "SkI" S, "SI", D) \

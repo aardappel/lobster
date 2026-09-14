@@ -26,15 +26,20 @@ def binary_tests():
     test_eq(ensure_size("", 3, 'x'), "xxx")
     test_eq(ensure_size("ab", 4, 'x', 2), "abxxxx")  // Extra bytes on top.
 
-    // write_int*_le: little endian, auto-growing, returns (string, next index).
+    // write_int*_le: little endian, growing the string to end right after the value,
+    // returns (string, next index).
     var ws, wi = "".write_int16_le(0, 1027)
-    test_eq(ws, "\x03\x04\x00\x00")  // Doubled in size while growing.
+    test_eq(ws, "\x03\x04")
     test_eq(wi, 2)
     test_eq(ws.read_int16_le(0), 1027)
-    test_eq(ws.read_int32_le(0), 1027)
     ws, wi = ws.write_int16_le(wi, 513)
     test_eq(wi, 4)
+    test_eq(ws.length, 4)
     test_eq(ws.read_int16_le(2), 513)
+    // A write past the end leaves the bytes it skips as 0.
+    ws, wi = ws.write_int8_le(6, 9)
+    test_eq(ws, "\x03\x04\x01\x02\x00\x00\x09")
+    test_eq(wi, 7)
     // 8/32/64 bit, negative values, unsigned reads.
     ws, wi = "".write_int8_le(0, -1)
     test_eq(ws.read_int8_le(0), -1)
@@ -61,10 +66,19 @@ def binary_tests():
     test_eq(wi, 2)
     test_eq(ws.read_uint32_le(0), 0x04037701)
 
-    // _back variants: relative to the end, writing before the index.
+    // _back variants: relative to the end, writing before the index. A write past the end
+    // doubles the string with 0 bytes at the front, so what was written keeps its place from
+    // the end and a backwards writer grows its buffer a logarithmic number of times.
     ws, wi = "".write_int16_le_back(0, 2050)
     test_eq(ws, "\x00\x00\x02\x08")
     test_eq(wi, 2)
+    test_eq(ws.read_int16_le_back(0), 2050)
+    ws, wi = ws.write_int8_le_back(wi, 7)  // Fits in the room at the front.
+    test_eq(ws, "\x00\x07\x02\x08")
+    test_eq(wi, 3)
+    ws, wi = ws.write_int8_le_back(5, 9)  // Needs 6, so doubled to 12.
+    test_eq(ws, "\x00\x00\x00\x00\x00\x00\x09\x00\x00\x07\x02\x08")
+    test_eq(wi, 6)
     test_eq(ws.read_int16_le_back(0), 2050)
     ws, wi = "".write_int8_le_back(0, -1)
     test_eq(ws.read_int8_le_back(0), -1)
@@ -106,8 +120,10 @@ def binary_tests():
     // write_substring_back writes ending at the given index from the end.
     ws, wi = "".write_substring_back(0, "ab", false)
     test_eq(wi, 2)
-    test_eq(ws.length, 4)  // Doubled in size while growing.
-    test_eq(ws.substring(2, 2), "ab")
+    test_eq(ws, "\x00\x00ab")  // Doubled while growing.
+    ws, wi = ws.write_substring_back(wi, "xy", true)
+    test_eq(wi, 5)
+    test_eq(ws, "\x00\x00\x00\x00\x00xy\x00ab")
 
     // compare_substring: 0 equal, -1/1 for less/greater.
     test_eq(compare_substring("xabcx", 1, "abc", 0, 3), 0)
@@ -161,6 +177,35 @@ def binary_tests():
     let dsw = ds.write_int8_le(0, 'y')
     test_eq(dsa, "yxxx")
     test_eq(dsw, ds)
+    // string_with_capacity: an empty string with room to grow in place, so a write past the
+    // end is seen thru every reference too, until the room runs out and the write has to
+    // move the string, which other references then keep as it was.
+    let cs1 = string_with_capacity(64)
+    test_eq(cs1, "")
+    let cs1a = cs1
+    let cs1w, cs1i = cs1.write_int32_le(0, 7)
+    test_eq(cs1i, 4)
+    test_eq(cs1a.length, 4)
+    test_eq(cs1a.read_int32_le(0), 7)
+    test_eq(cs1w, cs1a)
+    let cs2 = string_with_capacity(8)
+    let cs2a = cs2
+    let cs2w, cs2i = cs2.write_int8_le(1000, 1)  // Past any room a small string can have.
+    test_eq(cs2i, 1001)
+    test_eq(cs2a.length, 0)
+    test_eq(cs2w.length, 1001)
+    test_eq(cs2w.read_int8_le(999), 0)
+    test_eq(cs2w.read_int8_le(1000), 1)
+    // ensure_size grows in place as well when there is room, at the front for a negative size.
+    let cs3 = string_with_capacity(16)
+    let cs3a = cs3
+    let cs3w = cs3.ensure_size(-4, 'q')
+    test_eq(cs3w, "qqqq")
+    test_eq(cs3a, "qqqq")
+    // And += builds up in the room too.
+    var cs4 = string_with_capacity(32)
+    for(10) i: cs4 += i
+    test_eq(cs4, "0123456789")
     // A constant is a string like any other to a type test and to structural equality.
     test_true(is_string("const"))
     test_true(equal("const", copy("const")))

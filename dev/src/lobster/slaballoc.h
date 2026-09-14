@@ -206,13 +206,9 @@ class SlabAlloc {
 
     // The room an allocation of `size` bytes actually has.
     iint size_of_allocation(void *p, iint size) {
-        if (size <= MAXREUSESIZE) {
-            #ifdef PASSTHRUALLOC
-                return size;
-            #else
-                return size_of_small_allocation(p);
-            #endif
-        }
+        #ifndef PASSTHRUALLOC
+            if (size <= MAXREUSESIZE) return size_of_small_allocation(p);
+        #endif
         return (iint)MallocUsableSize((DLNodeRaw *)p - 1) - (iint)sizeof(DLNodeRaw);
     }
 

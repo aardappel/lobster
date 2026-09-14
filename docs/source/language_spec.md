@@ -861,11 +861,18 @@ lexicographically by unsigned byte, a prefix ordering before the longer string;
 `==` compares bytes. Strings are immutable: indexed assignment is an error.
 The one exception is the byte-writing builtins (`ensure_size`, the `write_*_le`
 family, `write_substring` and the imgui text inputs), which write into the
-string they are given in place when it is large enough, visible thru every
-reference to that string, and return it; when it is too small they return a
-larger copy. A string constant (a literal, or a field default that is one) is
-never written: such a builtin copies it first and returns the copy, so every
-evaluation of the literal yields its original bytes.
+string they are given in place, visible thru every reference to that string,
+and return it. A write past the end grows the string to end right after what
+was written (bytes skipped over are 0): in place as well when the string's
+allocation has room to spare (`string_with_capacity` makes an empty string
+with room, and a write that had to move a string leaves it with as much room
+again), otherwise into a larger copy, and other references keep the string as
+it was. The `_back` variants, which write relative to the end, instead grow
+the string to twice the length they need, with 0 bytes at the front, so what
+was written keeps its place from the end. A string constant (a literal, or a
+field default that is one) is never written: such a builtin copies it first
+and returns the copy, so every evaluation of the literal yields its original
+bytes.
 
 ### Operators on structs
 

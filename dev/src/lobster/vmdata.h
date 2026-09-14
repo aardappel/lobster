@@ -1340,9 +1340,10 @@ public:
     LString *NewString(iint l);
     LString *NewString(string_view s);
     LString *NewString(string_view s1, string_view s2);
-    LString *ResizeString(LString *s, iint size, int c, bool back);
-    LString *Writable(LString *s);
     LString *NewStringSlack(iint l, iint slack);
+    iint StringRoom(LString *s);
+    LString *Writable(LString *s);
+    LString *GrowString(LString *s, iint newlen, bool back, iint slack);
     LString *AppendString(LString *s, string_view b);
     LString *AppendToString(LString *s, Value v, const TypeInfo &ti);
     void StringConstantDropped(LString *s);
@@ -1544,10 +1545,29 @@ LResourceRefCPointer<T> NewResLRes(VM &vm, lobster::ResourceType &resource_type,
     return LResourceRefCPointer<T>(resource, vm);
 }
 
+// Writes `size` bytes at `i` into `s`, or at `i` from the end for `back`, in place. A write that
+// reaches past the end grows `s` to end right after it (see VM::GrowString), with room to grow
+// as much again, 32 bytes at the least, for the writes to follow. A backwards writer (a
+// FlatBuffers builder) keeps its content at the end, so its room has to be at the front, and part
+// of the string: it grows to twice the length it needs, the new bytes 0, so what it wrote keeps
+// its place from the end.
 template<bool back> LString *WriteMem(VM &vm, LString *s, iint i, const void *data, iint size) {
-    auto minsize = i + size;
-    if (s->len < minsize) s = vm.ResizeString(s, minsize * 2, 0, back);
-    else s = vm.Writable(s);
+    auto len = s->len;
+    auto newlen = i + size;
+    if (len < newlen) {
+        if (back) {
+            newlen *= 2;
+            s = vm.GrowString(s, newlen, true, 0);
+            memset((void *)s->data(), 0, (size_t)(newlen - len));
+        } else {
+            s = vm.GrowString(s, newlen, false,
+                              std::max(ssizeof<LString>() + newlen + 1, iint(32)));
+            // The bytes a write past the end skips over are 0.
+            if (i > len) memset((void *)(s->data() + len), 0, (size_t)(i - len));
+        }
+    } else {
+        s = vm.Writable(s);
+    }
     memcpy((void *)(s->data() + (back ? s->len - i - size : i)), data, (size_t)size);
     return s;
 }

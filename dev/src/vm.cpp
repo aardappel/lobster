@@ -340,17 +340,11 @@ LString *VM::NewString(string_view s1, string_view s2) {
     return s;
 }
 
-LString *VM::ResizeString(LString *s, iint size, int c, bool back) {
-    auto ns = NewString(size);
-    auto sdest = (char *)ns->data();
-    auto cdest = sdest;
-    auto remain = size - s->len;
-    if (back) sdest += remain;
-    else cdest += s->len;
-    memcpy(sdest, s->data(), (size_t)s->len);
-    memset(cdest, c, (size_t)remain);
-    s->Dec(*this);
-    return ns;
+// The bytes of content the allocation of `s` has room for, at least its length. The room of a
+// small allocation stops at the largest small size, so what fits in it is still a small
+// allocation, which is what its size then says at deallocation.
+iint VM::StringRoom(LString *s) {
+    return pool.size_of_allocation(s, ssizeof<LString>() + s->len + 1) - ssizeof<LString>() - 1;
 }
 
 // The string a builtin may write into in place. A constant is shared by every evaluation of its
@@ -362,6 +356,32 @@ LString *VM::Writable(LString *s) {
     return ns;
 }
 
+// `s` at length `newlen`, its bytes kept at the start, or at the end for `back`, and the new
+// bytes left for the caller to fill. In place when `s` is a dynamic string with the room, so a
+// string used as a byte buffer stays the one string every reference to it sees change. Else a
+// new string of that length with `slack` bytes of room to grow further, and `s` loses this
+// reference: a constant is never written, and other references to a string that had to move
+// keep it as it was. Takes and returns an owned reference.
+LString *VM::GrowString(LString *s, iint newlen, bool back, iint slack) {
+    auto len = s->len;
+    auto grow = newlen - len;
+    assert(grow > 0);
+    auto dest = (char *)s->data();
+    if (s->tti == TYPE_ELEM_STRING && newlen <= StringRoom(s)) {
+        if (back) memmove(dest + grow, dest, (size_t)len);
+    } else {
+        auto ns = NewStringSlack(newlen, slack);
+        auto ndest = (char *)ns->data();
+        memcpy(ndest + (back ? grow : 0), dest, (size_t)len);
+        s->Dec(*this);
+        s = ns;
+        dest = ndest;
+    }
+    s->len = newlen;
+    dest[newlen] = 0;
+    return s;
+}
+
 // `s + b` where `s` is given up: when nothing else holds `s`, it is a dynamic string, and its
 // allocation has the room, the bytes go in place and `s` is the result, which makes
 // `s += x` in a loop cost what it appends rather than what it has: a string that had to grow
@@ -370,18 +390,14 @@ LString *VM::Writable(LString *s) {
 // what other evaluations or references see.
 LString *VM::AppendString(LString *s, string_view b) {
     auto newlen = s->len + (iint)b.size();
-    auto newsize = ssizeof<LString>() + newlen + 1;
-    // The room of a small allocation stops at the largest small size, so what fits in it is
-    // still a small allocation, which is what its size then says at deallocation.
-    if (s->tti == TYPE_ELEM_STRING && s->refc == 1 &&
-        newsize <= pool.size_of_allocation(s, ssizeof<LString>() + s->len + 1)) {
+    if (s->tti == TYPE_ELEM_STRING && s->refc == 1 && newlen <= StringRoom(s)) {
         auto dest = (char *)s->data();
         memcpy(dest + s->len, b.data(), b.size());
         s->len = newlen;
         dest[newlen] = 0;
         return s;
     }
-    auto ns = NewStringSlack(newlen, newsize);
+    auto ns = NewStringSlack(newlen, ssizeof<LString>() + newlen + 1);
     auto dest = (char *)ns->data();
     memcpy(dest, s->data(), (size_t)s->len);
     memcpy(dest + s->len, b.data(), b.size());

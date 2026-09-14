@@ -375,7 +375,11 @@ is cool with any kind of ownership.
   by piece rather than made into a string first: the operands of a
   concatenation, and an int or float written out as it goes on (a call the
   optimizer inlined down to its value counts as that value). All operands
-  are evaluated before any of them is appended.
+  are evaluated before any of them is appended. The byte-writing builtins
+  (`write_int8_le` and friends, `ensure_size`) grow a string into the same
+  room, but in place whether it is shared or not, since a string used as a
+  byte buffer is written in place by design; `string_with_capacity` makes an
+  empty string with room to grow.
 * `+` on strings wants to borrow, and returns owned. This is the same
   in principle for all binary operators, but thanks to "inline structs"
   this doesn't matter for most of them anymore.

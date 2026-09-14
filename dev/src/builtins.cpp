@@ -636,6 +636,14 @@ BUILTIN(repeat_string, "s,n", "SI", "S",
     return ns;
 }
 
+BUILTIN(string_with_capacity, "capacity", "I", "S",
+    "an empty string with room to grow to capacity bytes without moving, for use as a byte"
+    " buffer (see write_int64_le) or to build up with +=. A string that fits in a small"
+    " allocation gets at most the room such an allocation has (a few hundred bytes).")
+(VM &vm, iint capacity) {
+    return vm.NewStringSlack(0, std::max(iint(0), capacity));
+}
+
 
 // An elementwise operation on a numeric struct `v`: `op` computes from the element in `f` the
 // one it becomes, of element type RCT. See VECBOOL1234 above for the widths.
