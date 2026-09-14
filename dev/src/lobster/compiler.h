@@ -38,7 +38,7 @@ struct CompileOptions {
     bool return_value = false;
     int runtime_checks = RUNTIME_ASSERT;
     // How many errors the parser recovers from and reports before it gives up.
-    int max_errors = 1;
+    int max_errors = 10;
     // Full compile time stack traces in errors, and in warnings.
     bool full_error = false;
     // C for the JIT, rather than C++ for a build with the compiled_lobster project.

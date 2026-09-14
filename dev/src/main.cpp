@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
             "--no-crash-dialog       Exit silently on a crash rather than popping up a dialog.\n"
             "--wait                  Wait for input before exiting.\n"
             "--query QUERY_ARGS      Queries about definitions in the program being compiled.\n"
-            "--errors N              Output up to N errors (default 1).\n";
+            "--errors N              Output up to N errors (default 10).\n";
             int arg = 1;
         for (; arg < argc; arg++) {
             if (argv[arg][0] == '-') {

@@ -306,7 +306,7 @@ struct TypeChecker {
     template<typename... Ts> void ErrorAlways(const Node &n, const Ts &...args) {
         if (dead_code_skipped) return;
         auto err = cat(args...);
-        AddStackTrace(err);
+        if (full_error || parser.lex.num_errors == 0) AddStackTrace(err);
         parser.lex.Report(err, &n.line);
     }
 

@@ -555,7 +555,7 @@ BUILTIN(compile_run_code, "code,args,max_errors", "SS]I?:1", "SS?",
     " the argument is a string of code. returns the return value of the program as a string,"
     " with an error string as second return value, or nil if none. using parse_data(),"
     " two program can communicate more complex data structures even if they don't have the same"
-    " version of struct definitions. max_errors is how many parse errors are collected (in the"
+    " version of struct definitions. max_errors is how many errors are collected (in the"
     " error string, one per line) before giving up, default 1.")
 (VM &vm, LString **result, LString *filename, LVector *args, iint max_errors) {
     return CompileRun(vm, result, filename, true, ValueToVectorOfStrings(args),

@@ -76,7 +76,7 @@ struct Lex : LoadedFile {
 
     bool do_string_interpolation = true;
     bool allow_shift_right = true;
-    int max_errors = 1;
+    int max_errors = 0;
     int num_errors = 0;
     // The errors reported so far, see Report(), one per line (plus context lines).
     string errors;
@@ -88,7 +88,7 @@ struct Lex : LoadedFile {
     size_t last_error_token = (size_t)-1;
 
     Lex(string_view fn, vector<pair<string, string>> &fns, const vector<string_view> &extra_namespaces,
-        string_view _ss = {}, int max_errors = 1)
+        string_view _ss, int max_errors)
         : LoadedFile(fn, fns, _ss), filenames(fns), max_errors(max_errors) {
         for (auto s : extra_namespaces) namespaces.insert(s);
         allsources.push_back(source);
@@ -822,6 +822,7 @@ struct Lex : LoadedFile {
         last_error_token = token_count;
         auto err = FormatError(msg, ln);
         if (!reported_errors.insert(err.substr(0, err.find('\n'))).second) return;
+        if (num_errors == max_errors) errors += cat("\n(max errors reached, --error to see more) ");
         if (++num_errors > max_errors) return;
         if (!errors.empty()) errors += "\n";
         errors += err;
