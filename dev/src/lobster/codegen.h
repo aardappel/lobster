@@ -82,13 +82,20 @@ struct CodeGen  {
     };
     vector<InlineBlockState> inline_blocks;
     // The pieces a string append is about to add, evaluated onto the temp stack in this order,
-    // for the modifier that writes them, see GenStringAppendOps: a string, or a value that
-    // converts to one as it is appended, with the type it is read as and the type index of what
-    // it converts as.
+    // for the modifier that writes them, see GenStringAppendOps.
     struct AppendOp {
-        bool tostring;
-        TypeRef type;
-        int ti;
+        enum Kind {
+            AK_STRING,     // A string.
+            AK_VALUE,      // A value that converts to a string as it is appended.
+            AK_STRUCT,     // A struct of scalars that does, its slots staged for the helper.
+            AK_SUBSTRING,  // A string, a start and a size: the range of it that goes on.
+            AK_NUMBER,     // An int, a base and a number of digits, see number_to_string.
+        } kind;
+        TypeRef type;   // What a value is read as.
+        int ti;         // The type index it converts as.
+        int width;      // The slots the piece takes.
+        bool borrowed;  // A string (or the string of a range) that is a borrow, which may be
+                        // the string being appended to, see GenLvalModifier.
     };
     vector<AppendOp> f_sappend;
     // The loop and the stack depth and target its break/continue sites need, kept together
@@ -1234,6 +1241,12 @@ struct CodeGen  {
                 "void RtLvSAddFloat(VMRef, Value *, double, type_elem_t);\n"
                 "void RtLvSAddFun(VMRef, Value *, fun_base_t, type_elem_t);\n"
                 "void RtLvSAddRef(VMRef, Value *, RefObj *, type_elem_t);\n"
+                "LString *RtSAppendStruct(VMRef, LString *, Value *, type_elem_t);\n"
+                "LString *RtSAppendSubstring(VMRef, LString *, LString *, long long, long long);\n"
+                "LString *RtSAppendNumber(VMRef, LString *, long long, long long, long long);\n"
+                "void RtLvSAddStruct(VMRef, Value *, Value *, type_elem_t);\n"
+                "void RtLvSAddSubstring(VMRef, Value *, LString *, long long, long long);\n"
+                "void RtLvSAddNumber(VMRef, Value *, long long, long long, long long);\n"
                 "int RtStaticSetThisFrame(VMRef, int);\n"
                 "int RtMemberSetThisFrame(VMRef, LObject *, int);\n"
                 ;
@@ -4304,7 +4317,9 @@ struct CodeGen  {
     void GenLvalModifier(LvalOp op, TypeRef type) {
         auto width = ValWidth(type);
         // A string append takes the pieces GenStringAppendOps evaluated.
-        TrackUseDef(op == LV_SADD ? (int)f_sappend.size() : LvalModifierUses(op, width), 0);
+        int sappend_slots = 0;
+        for (auto &ao : f_sappend) sappend_slots += ao.width;
+        TrackUseDef(op == LV_SADD ? sappend_slots : LvalModifierUses(op, width), 0);
         if (f_lval_packed) {
             GenLvalModifierPacked(op, type);
             return;
@@ -4331,18 +4346,94 @@ struct CodeGen  {
                 CopyConsumed(cb, Lval(i, type), Slot(width - i, type, i));
         } else if (op == LV_SADD) {
             // The pieces GenStringAppendOps evaluated, bottom of the stack first, each appended
-            // by the helper for what it is: a string, or a value converted as it goes on, with
-            // the type index it converts as. Each append takes over the reference to the string
-            // so far, which it may grow in place, see RtSAppend.
+            // by the helper for what it is, see AppendOp. Each append takes over the reference
+            // to the string so far, which it may grow in place, see RtSAppend.
             auto n = (int)f_sappend.size();
-            auto kind = [&](int i) {
+            // Where each piece starts, as an offset from the top of the stack, see Slot.
+            vector<int> start;
+            for (int i = 0, pos = 0; i < n; i++) {
+                start.push_back(sappend_slots - pos);
+                pos += f_sappend[i].width;
+            }
+            auto slot = [&](int i, int j, VKind k) { return Slot(start[i] - j, k); };
+            auto helper = [&](int i) -> string {
                 auto &ao = f_sappend[i];
-                return ao.tostring ? string(KindName(Slot(n - i, ao.type).k())) : string();
+                switch (ao.kind) {
+                    case AppendOp::AK_STRING: return "";
+                    case AppendOp::AK_VALUE: return KindName(Slot(start[i], ao.type).k());
+                    case AppendOp::AK_STRUCT: return "Struct";
+                    case AppendOp::AK_SUBSTRING: return "Substring";
+                    case AppendOp::AK_NUMBER: return "Number";
+                }
+                return "";
             };
-            auto args = [&](int i) {
+            auto args = [&](int i) -> string {
                 auto &ao = f_sappend[i];
-                if (!ao.tostring) return Read(Slot(n - i, VK_STRING));
-                return cat(ReadTyped(Slot(n - i, ao.type)), ", (type_elem_t)", ao.ti);
+                switch (ao.kind) {
+                    case AppendOp::AK_STRING:
+                        return Read(slot(i, 0, VK_STRING));
+                    case AppendOp::AK_VALUE:
+                        return cat(ReadTyped(Slot(start[i], ao.type)), ", (type_elem_t)", ao.ti);
+                    case AppendOp::AK_STRUCT:
+                        return cat("_ss, (type_elem_t)", ao.ti);
+                    case AppendOp::AK_SUBSTRING:
+                        return cat(Read(slot(i, 0, VK_STRING)), ", ", Read(slot(i, 1, VK_INT)),
+                                   ", ", Read(slot(i, 2, VK_INT)));
+                    case AppendOp::AK_NUMBER:
+                        return cat(Read(slot(i, 0, VK_INT)), ", ", Read(slot(i, 1, VK_INT)),
+                                   ", ", Read(slot(i, 2, VK_INT)));
+                }
+                return "";
+            };
+            // A struct goes to its helper as the Values the slots of everything else in memory
+            // hold, see EmitStructToString.
+            auto stage = [&](int i) {
+                auto &ao = f_sappend[i];
+                if (ao.kind != AppendOp::AK_STRUCT) return;
+                auto ts = TypesOf(ao.type, 1);
+                append(cb, "    {\n    Value _ss[", ts.size(), "];\n");
+                for (auto [j, t] : enumerate(ts)) {
+                    CopyValue(cb, Mem(cat("_ss[", j, "]"), t), Slot(start[i] - (int)j, t));
+                }
+            };
+            auto unstage = [&](int i) {
+                if (f_sappend[i].kind == AppendOp::AK_STRUCT) cb += "    }\n";
+            };
+            // A borrowed piece that is the string being appended to would be read as the appends
+            // change or free it, so for their duration such a string keeps a reference of its
+            // own: it is then neither grown in place nor freed, and the pieces read it as it was.
+            // A field or element holds the only reference to its string, and a piece that
+            // converts a vector or object can reach it, so there the string keeps the reference
+            // whenever there is such a piece, and its place holds it as it was until the end.
+            string self;
+            for (int i = 0; i < n; i++) {
+                auto &ao = f_sappend[i];
+                if (!ao.borrowed) continue;
+                if (!self.empty()) self += " || ";
+                append(self, ReadAs(Slot(start[i], ao.type), VK_STRING), " == _s");
+            }
+            if (f_lval_kind == LVK_FIELD || f_lval_kind == LVK_ELEM) {
+                for (auto &ao : f_sappend) {
+                    auto vt = ao.type->ElementIfNil()->t;
+                    if (ao.kind == AppendOp::AK_VALUE && (vt == V_VECTOR || vt == V_CLASS)) {
+                        self = "1";
+                        break;
+                    }
+                }
+            }
+            auto hold = [&](string_view target) {
+                if (self.empty()) return;
+                if (self == "1") append(cb, "    LString *_sa = ", target, ";\n");
+                else append(cb, "    LString *_sa = (", self, ") ? ", target, " : 0;\n");
+                rc_tag = "sappend:self";
+                GenIncRef(cb, Var("_sa", RTT_STRING));
+                rc_tag.clear();
+            };
+            auto release = [&]() {
+                if (self.empty()) return;
+                rc_tag = "sappend:self";
+                GenDecRef(cb, Var("_sa", RTT_STRING));
+                rc_tag.clear();
             };
             if (f_lval_kind == LVK_LOCAL || f_lval_kind == LVK_FIELD ||
                 f_lval_kind == LVK_ELEM) {
@@ -4351,16 +4442,30 @@ struct CodeGen  {
                 // both ways.
                 auto v = Lval(0, type);
                 append(cb, "    {\n    LString *_s = ", ReadAs(v, VK_STRING), ";\n");
+                hold("_s");
                 for (int i = 0; i < n; i++) {
-                    append(cb, "    _s = RtSAppend", kind(i), "(vm, _s, ", args(i), ");\n");
+                    stage(i);
+                    append(cb, "    _s = RtSAppend", helper(i), "(vm, _s, ", args(i), ");\n");
+                    unstage(i);
                 }
                 Write(cb, v, v.k() == VK_STRING ? string("_s") : cat("(", CType(v.k()), ")_s"));
+                release();
                 cb += "    }\n";
             } else {
                 // Appending to a string in memory can free the old one, so it stays a call.
-                for (int i = 0; i < n; i++) {
-                    append(cb, "    RtLvSAdd", kind(i), "(vm, ", LvalPtr(), ", ", args(i), ");\n");
+                cb += "    {\n";
+                if (!self.empty()) {
+                    append(cb, "    LString *_s = ", ReadAs(Lval(0, type), VK_STRING), ";\n");
                 }
+                hold("_s");
+                for (int i = 0; i < n; i++) {
+                    stage(i);
+                    append(cb, "    RtLvSAdd", helper(i), "(vm, ", LvalPtr(), ", ", args(i),
+                           ");\n");
+                    unstage(i);
+                }
+                release();
+                cb += "    }\n";
             }
             f_sappend.clear();
         } else if (op >= LV_IPP) {
@@ -4604,19 +4709,58 @@ struct CodeGen  {
     // there: generating one may append to a string of its own.
     void GenStringAppendOps(const Node *lval, const node_small_vector &ops, size_t retval) {
         vector<AppendOp> pieces;
+        int values = 0;
+        // A string on the stack the appends may find to be the one they append to: a borrow,
+        // since an owned one holds a reference of its own, and a constant is never grown.
+        auto borrowed = [](const Node *n) {
+            n = SkipDecrefWrapper(n);
+            return IsBorrow(n->lt) && !Is<StringConstant>(n);
+        };
+        auto tindex = [&](TypeRef t) { return (int)GetTypeTableOffset(t); };
         for (auto op : ops) {
-            auto ts = Is<ToString>(SkipDecrefWrapper(op));
-            // A struct converts thru a string of its own, since it is more than one slot.
-            if (ts && !IsStruct(ts->child->exptype->t)) {
-                Gen(ts->child, 1);
-                pieces.push_back({ true, ts->child->exptype,
-                                   (int)GetTypeTableOffset(ts->child->exptype->ElementIfNil()) });
+            auto n = SkipDecrefWrapper(op);
+            // An explicit `string(x)` is the conversion the typechecker put in for its argument
+            // (see BCG_STRING), so it is the value that converts.
+            if (auto nc = Is<NativeCall>(n);
+                nc && nc->nf->def.codegen == BCG_STRING && Is<ToString>(nc->children[0])) {
+                n = nc->children[0];
+            }
+            auto nc = Is<NativeCall>(n);
+            if (auto ts = Is<ToString>(n)) {
+                auto ct = ts->child->exptype;
+                if (ct->t == V_STRUCT_S) {
+                    Gen(ts->child, 1);
+                    pieces.push_back({ AppendOp::AK_STRUCT, ct, tindex(ct), ValWidth(ct), false });
+                } else if (ct->t == V_STRUCT_R) {
+                    // A struct with references converts thru a string of its own: staged, its
+                    // slots would be borrowed references, one of which may be the string
+                    // appended to.
+                    Gen(op, 1);
+                    pieces.push_back({ AppendOp::AK_STRING, type_string, 0, 1, false });
+                } else {
+                    Gen(ts->child, 1);
+                    auto nilstr = ct->t == V_NIL && ct->Element()->t == V_STRING;
+                    pieces.push_back({ AppendOp::AK_VALUE, ct, tindex(ct->ElementIfNil()), 1,
+                                       nilstr && borrowed(ts->child) });
+                }
+            } else if (nc && nc->nf->name == "substring") {
+                assert(nc->children.size() == 3);
+                for (auto c : nc->children) Gen(c, 1);
+                pieces.push_back({ AppendOp::AK_SUBSTRING, type_string, 0, 3,
+                                   borrowed(nc->children[0]) });
+                values += 2;
+            } else if (nc && nc->nf->name == "number_to_string") {
+                assert(nc->children.size() == 3);
+                for (auto c : nc->children) Gen(c, 1);
+                pieces.push_back({ AppendOp::AK_NUMBER, type_int, 0, 3, false });
+                values += 2;
             } else {
                 Gen(op, 1);
-                pieces.push_back({ false, type_string, 0 });
+                pieces.push_back({ AppendOp::AK_STRING, type_string, 0, 1, borrowed(n) });
             }
+            values++;
         }
-        GenAssign(lval, LV_IADD, retval, nullptr, (int)pieces.size(), false, &pieces);
+        GenAssign(lval, LV_IADD, retval, nullptr, values, false, &pieces);
     }
 
     void GenConcatOp(const BinOp *n, size_t retval) {

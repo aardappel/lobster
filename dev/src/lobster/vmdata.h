@@ -1346,6 +1346,10 @@ public:
     LString *GrowString(LString *s, iint newlen, bool back, iint slack);
     LString *AppendString(LString *s, string_view b);
     LString *AppendToString(LString *s, Value v, const TypeInfo &ti);
+    LString *AppendStructToString(LString *s, const Value *elems, const TypeInfo &ti);
+    string_view SubstringRange(LString *l, iint start, iint size);
+    void NumberToString(string &sd, iint n, iint b, iint mc);
+    LString *AppendNumberToString(LString *s, iint n, iint b, iint mc);
     void StringConstantDropped(LString *s);
     void CheckStringConstants();
     LResource *NewResource(const ResourceType *type, Resource *res);
@@ -1547,10 +1551,10 @@ LResourceRefCPointer<T> NewResLRes(VM &vm, lobster::ResourceType &resource_type,
 
 // Writes `size` bytes at `i` into `s`, or at `i` from the end for `back`, in place. A write that
 // reaches past the end grows `s` to end right after it (see VM::GrowString), with room to grow
-// as much again, 32 bytes at the least, for the writes to follow. A backwards writer (a
-// FlatBuffers builder) keeps its content at the end, so its room has to be at the front, and part
-// of the string: it grows to twice the length it needs, the new bytes 0, so what it wrote keeps
-// its place from the end.
+// as much again, 32 bytes at the least, for the writes to follow, and any bytes it skips over 0.
+// A backwards writer (a FlatBuffers builder) keeps its content at the end, so its room has to be
+// at the front, and part of the string: it grows to twice the length it needs, the new bytes 0,
+// so what it wrote keeps its place from the end.
 template<bool back> LString *WriteMem(VM &vm, LString *s, iint i, const void *data, iint size) {
     auto len = s->len;
     auto newlen = i + size;
@@ -1562,7 +1566,6 @@ template<bool back> LString *WriteMem(VM &vm, LString *s, iint i, const void *da
         } else {
             s = vm.GrowString(s, newlen, false,
                               std::max(ssizeof<LString>() + newlen + 1, iint(32)));
-            // The bytes a write past the end skips over are 0.
             if (i > len) memset((void *)(s->data() + len), 0, (size_t)(i - len));
         }
     } else {

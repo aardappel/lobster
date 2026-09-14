@@ -373,9 +373,14 @@ is cool with any kind of ownership.
   constant string is copied instead, as it always was: the append never
   changes what another reference sees. The right hand side is appended piece
   by piece rather than made into a string first: the operands of a
-  concatenation, and an int or float written out as it goes on (a call the
-  optimizer inlined down to its value counts as that value). All operands
-  are evaluated before any of them is appended. The byte-writing builtins
+  concatenation, an int, float or struct of scalars written out as it goes on
+  (a call the optimizer inlined down to its value counts as that value, and
+  so does an explicit `string(x)`), and the text `substring` or
+  `number_to_string` would have made. All operands are evaluated before any
+  of them is appended, and a piece that is the string itself (`s += "x" +
+  s`, or a substring of it) is read as it was: for the appends the string
+  then keeps a reference of its own, so it is copied rather than grown in
+  place. The byte-writing builtins
   (`write_int8_le` and friends, `ensure_size`) grow a string into the same
   room, but in place whether it is shared or not, since a string used as a
   byte buffer is written in place by design; `string_with_capacity` makes an

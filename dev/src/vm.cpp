@@ -413,6 +413,46 @@ LString *VM::AppendToString(LString *s, Value v, const TypeInfo &ti) {
     return AppendString(s, s_reuse);
 }
 
+// The same for a struct of scalars, whose slots the generated code staged.
+LString *VM::AppendStructToString(LString *s, const Value *elems, const TypeInfo &ti) {
+    s_reuse.clear();
+    StructToString(s_reuse, programprintprefs, ti, elems);
+    return AppendString(s, s_reuse);
+}
+
+// The bytes `substring` takes: a negative size means the rest of the string, and the range has
+// to lie within it.
+string_view VM::SubstringRange(LString *l, iint start, iint size) {
+    if (start < 0) Error(cat("substring: start cannot be negative: ", start));
+    if (size < 0) size = std::max((iint)0, l->len - start);
+    if (start + size > l->len)
+        Error(cat("substring: range extends beyond the end: ", start + size, " > ", l->len));
+    return string_view(l->data() + start, (size_t)size);
+}
+
+// The digits of `n` as an unsigned number in base `b`, at least `mc` of them (padded with 0),
+// see number_to_string.
+void VM::NumberToString(string &sd, iint n, iint b, iint mc) {
+    if (b < 2 || b > 36 || mc > 32) Error("number_to_string: values out of range");
+    // Base 2 takes 64 digits, and the padding is at most 32.
+    char buf[64];
+    auto end = buf + sizeof(buf);
+    auto p = end;
+    auto i = (uint64_t)n;
+    while (i || end - p < mc) {
+        *--p = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i % b];
+        i /= b;
+    }
+    sd.append(p, (size_t)(end - p));
+}
+
+// `s += number_to_string(..)`: the digits go onto `s` without a string of their own.
+LString *VM::AppendNumberToString(LString *s, iint n, iint b, iint mc) {
+    s_reuse.clear();
+    NumberToString(s_reuse, n, b, mc);
+    return AppendString(s, s_reuse);
+}
+
 // A string constant never dies: the count it is emitted with is the generated code's own, which
 // is never given up, see CodeGen::EmitConstantStrings. So a decrement that brings the count to
 // zero is one too many, and where the count is exact that is a compiler bug, which a Debug
@@ -1205,6 +1245,12 @@ void CRtLvSAddInt(VM *vm, Value *lv, iint x, type_elem_t ti) { RtLvSAddInt(*vm, 
 void CRtLvSAddFloat(VM *vm, Value *lv, double x, type_elem_t ti) { RtLvSAddFloat(*vm, lv, x, ti); }
 void CRtLvSAddFun(VM *vm, Value *lv, fun_base_t x, type_elem_t ti) { RtLvSAddFun(*vm, lv, x, ti); }
 void CRtLvSAddRef(VM *vm, Value *lv, RefObj *x, type_elem_t ti) { RtLvSAddRef(*vm, lv, x, ti); }
+LString *CRtSAppendStruct(VM *vm, LString *a, Value *vals, type_elem_t ti) { return RtSAppendStruct(*vm, a, vals, ti); }
+LString *CRtSAppendSubstring(VM *vm, LString *a, LString *b, iint start, iint size) { return RtSAppendSubstring(*vm, a, b, start, size); }
+LString *CRtSAppendNumber(VM *vm, LString *a, iint n, iint b, iint mc) { return RtSAppendNumber(*vm, a, n, b, mc); }
+void CRtLvSAddStruct(VM *vm, Value *lv, Value *vals, type_elem_t ti) { RtLvSAddStruct(*vm, lv, vals, ti); }
+void CRtLvSAddSubstring(VM *vm, Value *lv, LString *b, iint start, iint size) { RtLvSAddSubstring(*vm, lv, b, start, size); }
+void CRtLvSAddNumber(VM *vm, Value *lv, iint n, iint b, iint mc) { RtLvSAddNumber(*vm, lv, n, b, mc); }
 int CRtStaticSetThisFrame(VM *vm, int vidx) { return RtStaticSetThisFrame(*vm, vidx); }
 int CRtMemberSetThisFrame(VM *vm, LObject *self, int slot) { return RtMemberSetThisFrame(*vm, self, slot); }
 void CRtIDXErrS(VM *vm, iint i, iint n) { vm->IDXErrS(i, n); }
@@ -1269,6 +1315,12 @@ const void *vm_ops_jit_table[] = {
     "RtLvSAddFloat", (void *)&CRtLvSAddFloat,
     "RtLvSAddFun", (void *)&CRtLvSAddFun,
     "RtLvSAddRef", (void *)&CRtLvSAddRef,
+    "RtSAppendStruct", (void *)&CRtSAppendStruct,
+    "RtSAppendSubstring", (void *)&CRtSAppendSubstring,
+    "RtSAppendNumber", (void *)&CRtSAppendNumber,
+    "RtLvSAddStruct", (void *)&CRtLvSAddStruct,
+    "RtLvSAddSubstring", (void *)&CRtLvSAddSubstring,
+    "RtLvSAddNumber", (void *)&CRtLvSAddNumber,
     "RtStaticSetThisFrame", (void *)&CRtStaticSetThisFrame,
     "RtMemberSetThisFrame", (void *)&CRtMemberSetThisFrame,
     "Entry", (void *)CRtEntry,

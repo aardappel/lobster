@@ -308,4 +308,31 @@ VM_INLINE void RtLvSAddRef(VM &vm, Value *lv, RefObj *x, type_elem_t ti) {
     *lv = Value(vm.AppendToString(lv->sval(), Value(x), vm.GetTypeInfo(ti)));
 }
 
+// `a += v` for a struct of scalars (its slots staged in `vals`), `a += substring(b, start,
+// size)` and `a += number_to_string(n, b, mc)`: the text of each goes onto `a` without a string
+// of its own.
+VM_INLINE LString *RtSAppendStruct(VM &vm, LString *a, Value *vals, type_elem_t ti) {
+    return vm.AppendStructToString(a, vals, vm.GetTypeInfo(ti));
+}
+
+VM_INLINE LString *RtSAppendSubstring(VM &vm, LString *a, LString *b, iint start, iint size) {
+    return vm.AppendString(a, vm.SubstringRange(b, start, size));
+}
+
+VM_INLINE LString *RtSAppendNumber(VM &vm, LString *a, iint n, iint b, iint mc) {
+    return vm.AppendNumberToString(a, n, b, mc);
+}
+
+VM_INLINE void RtLvSAddStruct(VM &vm, Value *lv, Value *vals, type_elem_t ti) {
+    *lv = Value(vm.AppendStructToString(lv->sval(), vals, vm.GetTypeInfo(ti)));
+}
+
+VM_INLINE void RtLvSAddSubstring(VM &vm, Value *lv, LString *b, iint start, iint size) {
+    *lv = Value(vm.AppendString(lv->sval(), vm.SubstringRange(b, start, size)));
+}
+
+VM_INLINE void RtLvSAddNumber(VM &vm, Value *lv, iint n, iint b, iint mc) {
+    *lv = Value(vm.AppendNumberToString(lv->sval(), n, b, mc));
+}
+
 }  // namespace lobster

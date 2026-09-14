@@ -3,8 +3,9 @@ import vec
 
 // `+=` on strings: the pieces of the right hand side go onto the string one by one, growing it
 // in place when nothing else refers to it, see VM::AppendString and CodeGen::GenStringAppend.
-// What is appended: concatenation operands and values converted as they go on, thru a call
-// the optimizer inlined down to its value as well.
+// What is appended: concatenation operands and values converted as they go on (thru a call
+// the optimizer inlined down to its value and an explicit string() as well), and the text
+// substring and number_to_string would make.
 
 class AppendHolder:
     s:string
@@ -98,6 +99,59 @@ def append_tests():
     for(20) j: big += "x".repeat_string(10000)
     test_eq(big.length, 200000)
     test_eq(big[199999], 'x')
+    // The right hand side may refer to the string itself, which it sees as it was: for the
+    // appends the string then keeps a reference of its own, so it is copied rather than grown.
+    var self = repeat_string("a", 111)  // Fills its allocation, so growing it moves it.
+    self += "x" + self
+    test_eq(self, repeat_string("a", 111) + "x" + repeat_string("a", 111))
+    var self2 = repeat_string("b", 4)  // Has room to grow in place.
+    self2 += self2 + self2
+    test_eq(self2, "bbbbbbbbbbbb")
+    self2 += substring(self2, 0, 2) + "!" + self2.substring(11, -1)
+    test_eq(self2, "bbbbbbbbbbbbbb!b")
+    let sh = AppendHolder { repeat_string("c", 111), [ repeat_string("d", 111) ] }
+    sh.s += "x" + sh.s
+    test_eq(sh.s.length, 223)
+    sh.v[0] += sh.v[0] + "y"
+    test_eq(sh.v[0].length, 223)
+    append_global = repeat_string("e", 111)
+    append_global += "!" + append_global
+    test_eq(append_global.length, 223)
+    // Also thru a parameter that borrows it.
+    def append_self_param(bs:string):
+        append_global += "?" + bs
+    append_self_param(append_global)
+    test_eq(append_global.length, 447)
+    // A piece that converts a vector or object holding the string sees it as it was too.
+    let sv = AppendHolder { "ab", [ "cd" ] }
+    let sv_before = string(sv.v)
+    sv.s += "-" + string(sv.v)
+    test_eq(sv.s, "ab-" + sv_before)
+    sv.v[0] += "-" + string(sv.v)
+    test_eq(sv.v[0], "cd-" + sv_before)
+    // What goes on without a string of its own: an explicit string(), a struct of scalars,
+    // substring and number_to_string.
+    var ex = ""
+    ex += string(42) + string(1.5) + string(int3 { 1, 2, 3 }) + string([ 4 ]) + string("s")
+    test_eq(ex, "421.5int3\{1, 2, 3\}[4]s")
+    let f3 = float3 { 0.5, 1.5, 2.5 }
+    ex += "/{f3}"
+    ex += f3
+    test_eq(ex, "421.5int3\{1, 2, 3\}[4]s/float3\{0.5, 1.5, 2.5\}float3\{0.5, 1.5, 2.5\}")
+    let src = "hello world"
+    ex = ""
+    ex += substring(src, 6, 5) + " " + src.substring(0, -1) + number_to_string(255, 16, 4)
+    ex += number_to_string(5, 2, 0)
+    test_eq(ex, "world hello world00FF101")
+    // The same onto a field, an element and a global, which hold their string differently.
+    let eh = AppendHolder { "", [ "" ] }
+    eh.s += substring(src, 0, 5) + int2 { 1, 2 } + number_to_string(10, 10, 3)
+    eh.v[0] += substring(src, 0, 5) + int2 { 1, 2 } + number_to_string(10, 10, 3)
+    append_global = ""
+    append_global += substring(src, 0, 5) + int2 { 1, 2 } + number_to_string(10, 10, 3)
+    test_eq(eh.s, "helloint2\{1, 2\}010")
+    test_eq(eh.v[0], eh.s)
+    test_eq(append_global, eh.s)
     // A constant is never grown, so every evaluation of the literal starts out the same.
     var lit = ""
     for(3) j:

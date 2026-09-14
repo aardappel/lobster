@@ -370,14 +370,8 @@ VECBOOL1234(all_ivec, "all",
 BUILTIN(substring, "s,start,size", "SII", "S",
     "returns a substring of size characters from index start."
     " size can be negative to indicate the rest of the string.")
-(VM &vm, LString *l, iint start, iint e) {
-    iint size = e;
-    if (start < 0) vm.BuiltinError(cat("substring: start cannot be negative: ", start));
-    if (size < 0) size = std::max((iint)0, l->len - start);
-    if (start + size > l->len)
-        vm.BuiltinError(cat("substring: range extends beyond the end: ", start + size, " > ", l->len));
-    auto ns = vm.NewString(string_view(l->data() + start, (size_t)size));
-    return ns;
+(VM &vm, LString *l, iint start, iint size) {
+    return vm.NewString(vm.SubstringRange(l, start, size));
 }
 
 BUILTIN(find_string, "s,substr,offset", "SSI?", "I",
@@ -551,16 +545,9 @@ BUILTIN(number_to_string, "number,base,minchars", "III", "S",
     "converts the (unsigned version) of the input integer number to a string given the base"
     " (2..36, e.g. 16 for hex) and outputting a minimum of characters (padding with 0).")
 (VM &vm, iint n, iint b, iint mc) {
-    if (b < 2 || b > 36 || mc > 32)
-        vm.BuiltinError("number_to_string: values out of range");
-    auto i = (uint64_t)n;
-    string s;
-    auto from = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    while (i || ssize(s) < mc) {
-        s.insert(0, 1, from[i % b]);
-        i /= b;
-    }
-    return vm.NewString(s);
+    vm.s_reuse.clear();
+    vm.NumberToString(vm.s_reuse, n, b, mc);
+    return vm.NewString(vm.s_reuse);
 }
 
 BUILTIN(lowercase, "s", "S", "S",
