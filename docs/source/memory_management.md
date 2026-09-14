@@ -367,10 +367,10 @@ is cool with any kind of ownership.
   place (`write_int8_le` and friends) can copy it first rather than change
   the constant.
 * `s += x` (and `s = s + x`) appends in place when `s` is the only reference
-  to a dynamic string and its allocation has the room (a large string that
-  had to grow got room to spare), so building a string up in a loop costs
-  what is appended rather than what has been built. A shared, constant or
-  temporary string is copied instead, as it always was: the append never
+  to a dynamic string and its allocation has the room (a string that had to
+  grow got as much room again as it took), so building a string up in a loop
+  costs what is appended rather than what has been built. A shared or
+  constant string is copied instead, as it always was: the append never
   changes what another reference sees. The right hand side is appended piece
   by piece rather than made into a string first: the operands of a
   concatenation, and an int or float written out as it goes on (a call the

@@ -314,9 +314,10 @@ LString *VM::NewString(iint l) {
     return s;
 }
 
-// A string that is expected to be appended to, see AppendString.
-LString *VM::NewStringSlack(iint l) {
-    auto s = new (pool.alloc_with_slack(ssizeof<LString>() + l + 1)) LString(l);
+// A string that is expected to be appended to, with `slack` bytes of room to do so in, see
+// AppendString.
+LString *VM::NewStringSlack(iint l, iint slack) {
+    auto s = new (pool.alloc_with_slack(ssizeof<LString>() + l + 1, slack)) LString(l);
     return s;
 }
 
@@ -363,15 +364,15 @@ LString *VM::Writable(LString *s) {
 
 // `s + b` where `s` is given up: when nothing else holds `s`, it is a dynamic string, and its
 // allocation has the room, the bytes go in place and `s` is the result, which makes
-// `s += x` in a loop cost what it appends rather than what it has (a large string that had to
-// grow got room to spare, see SlabAlloc::alloc_with_slack). Otherwise a new string, and `s`
-// loses its reference. A constant and a shared string are never grown, since they are what
-// other evaluations or references see.
+// `s += x` in a loop cost what it appends rather than what it has: a string that had to grow
+// got as much room again as it took, see SlabAlloc::alloc_with_slack. Otherwise a new string,
+// and `s` loses its reference. A constant and a shared string are never grown, since they are
+// what other evaluations or references see.
 LString *VM::AppendString(LString *s, string_view b) {
     auto newlen = s->len + (iint)b.size();
     auto newsize = ssizeof<LString>() + newlen + 1;
-    // A small allocation never has room past the largest small size, so what fits stays in
-    // the bucket its size says it is in.
+    // The room of a small allocation stops at the largest small size, so what fits in it is
+    // still a small allocation, which is what its size then says at deallocation.
     if (s->tti == TYPE_ELEM_STRING && s->refc == 1 &&
         newsize <= pool.size_of_allocation(s, ssizeof<LString>() + s->len + 1)) {
         auto dest = (char *)s->data();
@@ -380,7 +381,7 @@ LString *VM::AppendString(LString *s, string_view b) {
         dest[newlen] = 0;
         return s;
     }
-    auto ns = NewStringSlack(newlen);
+    auto ns = NewStringSlack(newlen, newsize);
     auto dest = (char *)ns->data();
     memcpy(dest, s->data(), (size_t)s->len);
     memcpy(dest + s->len, b.data(), b.size());

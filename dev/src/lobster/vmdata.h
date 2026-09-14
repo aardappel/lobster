@@ -1342,7 +1342,7 @@ public:
     LString *NewString(string_view s1, string_view s2);
     LString *ResizeString(LString *s, iint size, int c, bool back);
     LString *Writable(LString *s);
-    LString *NewStringSlack(iint l);
+    LString *NewStringSlack(iint l, iint slack);
     LString *AppendString(LString *s, string_view b);
     LString *AppendToString(LString *s, Value v, const TypeInfo &ti);
     void StringConstantDropped(LString *s);

@@ -193,11 +193,15 @@ class SlabAlloc {
         while (!largeallocs.Empty()) free(largeallocs.Get());
     }
 
-    // For an allocation that is expected to grow: a large one gets twice the room, which
-    // size_of_allocation reports, so appending to it can go on in place. A small one is what it
-    // is, since its bucket is decided by its size. Freed like any other allocation of its size.
-    void *alloc_with_slack(iint size) {
-        return size > MAXREUSESIZE ? alloc_large(size * 2) : alloc_small(size);
+    // For an allocation that is expected to grow: `slack` bytes of room past `size`, which
+    // size_of_allocation reports, so growing into it can go on in place. A small allocation
+    // stays a small one: its room is capped at the largest small size, so it moves to the large
+    // allocator only once its size does (with a few more moves than the slack would otherwise
+    // give it just under that size). Freed like any other allocation of its size, which is what
+    // decides which allocator it came from.
+    void *alloc_with_slack(iint size, iint slack) {
+        return size > MAXREUSESIZE ? alloc_large(size + slack)
+                                   : alloc_small(std::min(size + slack, MAXREUSESIZE));
     }
 
     // The room an allocation of `size` bytes actually has.
