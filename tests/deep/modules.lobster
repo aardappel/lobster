@@ -38,7 +38,7 @@ def modules_tests():
         expect_errors("import from \"{dir}\"\nimport relimport.nsvars\nreturn nsvars.z",
                       [ "unknown identifier `nsvars.z`" ])
         let nsret, nsrerr = compile_run_code(
-            "import from \"{dir}\"\nimport relimport.nsvars\nreturn nsvars.sum()", [])
+            "import from \"{dir}\"\nimport relimport.nsvars\nreturn nsvars.sum()", [], 1)
         test_eq(nsrerr, nil)
         test_eq(nsret, "6")
 

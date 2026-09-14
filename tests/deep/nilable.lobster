@@ -185,4 +185,15 @@ def nil_tests():
         elif fm5.nv > 0:
             test_true(true)
 
+    class RecTest:
+        r:RecTest? = nil
+        a = 1
+    let rec = RecTest {}
+    rec.r = rec
+    assert rec.r.r
+    assert rec.r.r.r
+    assert rec.r.r.r.r
+    assert rec.r.r.r.r.a == 1
+    rec.r = nil
+
 nil_tests()
