@@ -18,7 +18,7 @@ namespace lobster {
 // unsigned, signed overflow being undefined in C++ as well.
 enum { BINOP_DIVMOD = 1, BINOP_CMP = 2, BINOP_INTONLY = 4, BINOP_WRAP = 8 };
 
-template<int FL, typename F> ValueType BinOpConst(TypeChecker *tc, VTValue &val, const BinOp *b, F f) {
+template<int FL, typename F> ValueType BinOpConst(TypeCheckBase *tc, VTValue &val, const BinOp *b, F f) {
     VTValue lv;
     VTValue rv;
     auto tl = b->left->ConstVal(tc, lv);
@@ -49,48 +49,48 @@ template<int FL, typename F> ValueType BinOpConst(TypeChecker *tc, VTValue &val,
 // A block of one expression is that expression. Inlining leaves these behind once the
 // bindings it made for the arguments are gone, and without this the block hides the value from
 // everything that folds.
-ValueType Block::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType Block::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     if (children.size() != 1) return V_VOID;
     return children[0]->ConstVal(tc, val);
 }
 
-ValueType Nil::ConstVal(TypeChecker *, VTValue &val) const {
+ValueType Nil::ConstVal(TypeCheckBase *, VTValue &val) const {
     val = VTValue();
     return V_NIL;
 }
 
-ValueType IntConstant::ConstVal(TypeChecker *, VTValue &val) const {
+ValueType IntConstant::ConstVal(TypeCheckBase *, VTValue &val) const {
     val = VTValue(integer);
     return V_INT;
 }
 
-ValueType FloatConstant::ConstVal(TypeChecker *, VTValue &val) const {
+ValueType FloatConstant::ConstVal(TypeCheckBase *, VTValue &val) const {
     val = VTValue(flt);
     return V_FLOAT;
 }
 
 // Truth uses the payload bits, matching Value::True/False even for floats:
 // positive zero is false, while negative zero's sign bit makes it true.
-ValueType And::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType And::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     auto l = left->ConstVal(tc, val);
     if (l == V_VOID) return V_VOID;
     return !val.i ? l : right->ConstVal(tc, val);
 }
 
-ValueType Or::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType Or::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     auto l = left->ConstVal(tc, val);
     if (l == V_VOID) return V_VOID;
     return val.i ? l : right->ConstVal(tc, val);
 }
 
-ValueType Not::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType Not::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     auto t = child->ConstVal(tc, val);
     if (t == V_VOID) return t;
     val = VTValue(!val.i);
     return V_INT;
 }
 
-ValueType UnaryMinus::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType UnaryMinus::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     auto t = child->ConstVal(tc, val);
     switch (t) {
         // Wraps (the smallest int negates to itself), so unsigned, see BINOP_WRAP.
@@ -100,14 +100,14 @@ ValueType UnaryMinus::ConstVal(TypeChecker *tc, VTValue &val) const {
     }
 }
 
-ValueType Negate::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType Negate::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     auto t = child->ConstVal(tc, val);
     if (t != V_INT) return V_VOID;
     val.i = ~val.i;
     return V_INT;
 }
 
-ValueType IsType::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType IsType::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     if (!tc) {
         // This may be called from the parser, where we do not support this as a constant.
         return V_VOID;
@@ -165,14 +165,14 @@ ValueType IsType::ConstVal(TypeChecker *tc, VTValue &val) const {
     return V_VOID;
 }
 
-ValueType Assert::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType Assert::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     auto t = child->ConstVal(tc, val);
     if (t == V_VOID) return t;
     return val.i ? t : V_VOID;
 }
 
 
-ValueType ToFloat::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType ToFloat::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     auto t = child->ConstVal(tc, val);
     if (t == V_VOID) return t;
     assert(t == V_INT);
@@ -180,7 +180,7 @@ ValueType ToFloat::ConstVal(TypeChecker *tc, VTValue &val) const {
     return V_FLOAT;
 }
 
-ValueType ToInt::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType ToInt::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     auto t = child->ConstVal(tc, val);
     if (t == V_VOID) return t;
     assert(t == V_FLOAT);
@@ -188,84 +188,84 @@ ValueType ToInt::ConstVal(TypeChecker *tc, VTValue &val) const {
     return V_INT;
 }
 
-ValueType ToBool::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType ToBool::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     auto t = child->ConstVal(tc, val);
     if (t == V_VOID) return t;
     val = VTValue(!!val.i);
     return V_INT;
 }
 
-ValueType EnumCoercion::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType EnumCoercion::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return child->ConstVal(tc, val);
 }
 
-ValueType Plus::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType Plus::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_WRAP>(tc, val, this, [](auto l, auto r) { return l + r; });
 }
 
-ValueType Minus::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType Minus::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_WRAP>(tc, val, this, [](auto l, auto r) { return l - r; });
 }
 
-ValueType Multiply::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType Multiply::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_WRAP>(tc, val, this, [](auto l, auto r) { return l * r; });
 }
 
-ValueType Divide::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType Divide::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_DIVMOD>(tc, val, this, [](auto l, auto r) { return l / r; });
 }
 
-ValueType Mod::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType Mod::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     // This is also defined for floats, but since that needs fmod, we for now
     // simply don't constant fold it.
     return BinOpConst<BINOP_INTONLY|BINOP_DIVMOD>(tc, val, this, [](auto l, auto r) { return l % r; });
 }
 
-ValueType Equal::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType Equal::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_CMP>(tc, val, this, [](auto l, auto r) { return l == r; });
 }
 
-ValueType NotEqual::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType NotEqual::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_CMP>(tc, val, this, [](auto l, auto r) { return l != r; });
 }
 
-ValueType LessThan::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType LessThan::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_CMP>(tc, val, this, [](auto l, auto r) { return l < r; });
 }
 
-ValueType GreaterThan::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType GreaterThan::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_CMP>(tc, val, this, [](auto l, auto r) { return l > r; });
 }
 
-ValueType LessThanEq::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType LessThanEq::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_CMP>(tc, val, this, [](auto l, auto r) { return l <= r; });
 }
 
-ValueType GreaterThanEq::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType GreaterThanEq::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_CMP>(tc, val, this, [](auto l, auto r) { return l >= r; });
 }
 
-ValueType BitAnd::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType BitAnd::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) { return l & r; });
 }
 
-ValueType BitOr::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType BitOr::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) { return l | r; });
 }
 
-ValueType Xor::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType Xor::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) { return l ^ r; });
 }
 
 // NOTE: these must mask the shift count exactly like the VM does, see MaskedShiftLeft,
 // otherwise a constant folded shift and the same shift computed at runtime would differ.
-ValueType ShiftLeft::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType ShiftLeft::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) {
         return MaskedShiftLeft(l, r);
     });
 }
 
-ValueType ShiftRight::ConstVal(TypeChecker *tc, VTValue &val) const {
+ValueType ShiftRight::ConstVal(TypeCheckBase *tc, VTValue &val) const {
     return BinOpConst<BINOP_INTONLY>(tc, val, this, [](auto l, auto r) {
         return MaskedShiftRight(l, r);
     });

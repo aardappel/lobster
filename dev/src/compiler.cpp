@@ -203,6 +203,46 @@ string PrepQuery(Query &query, vector<pair<string, string>> &filenames) {
     return {};
 }
 
+// Logs how many functions and nodes specialization cloned, and the most cloned functions.
+void SpecializationStats(SymbolTable &st, vector<pair<string, string>> &filenames) {
+    if (min_output_level > OUTPUT_INFO) return;
+    int origsf = 0, clonesf = 0;
+    size_t orignodes = 0, clonenodes = 0;
+    map<Overload *, size_t> funstats;
+    // TODO: now that this function runs post-optimizer, would be good to include stats
+    // of how much the optimizer has increased node count too.
+    for (auto sf : st.subfunctiontable) {
+        if (!sf->sbody) continue;
+        auto count = sf->sbody->Count();
+        if (!sf->next)        {
+            origsf++;
+            orignodes += count;
+        } else {
+            clonesf++;
+            clonenodes += count;
+            funstats[sf->overload] += count;
+        }
+    }
+    vector<pair<Overload *, size_t>> funstatsv;
+    for (auto &p : funstats)
+        if (p.second > orignodes / 200)
+            funstatsv.push_back(p);
+    sort(funstatsv.begin(), funstatsv.end(),
+         [](const pair<Overload *, size_t> &a, const pair<Overload *, size_t> &b) {
+             return a.second > b.second;
+         });
+    LOG_INFO("SF count: orig: ", origsf, ", cloned: ", clonesf);
+    LOG_INFO("Node count: orig: ", orignodes, ", cloned: ", clonenodes);
+    for (auto [ov, fsize] : funstatsv) {
+        auto f = ov->sf->parent;
+        auto s = cat("Most clones: ", f->name, "/", f->nargs());
+        if (auto body = ov->sf->sbody) {
+            s += cat(" (", filenames[body->line.fileidx].first, ":", body->line.line, ")");
+        }
+        LOG_INFO(s, " -> ", fsize, " nodes accross ", ov->NumSubf() - 1, " extra clones");
+    }
+}
+
 string Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
                const CompileOptions &opts, string &c_codegen,
                string *parsedump, string *pakfile) {
@@ -248,7 +288,7 @@ string Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
     // Optimizer is not optional, must always run, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
     Optimizer opt(st, tc, opts.runtime_checks);
-    tc.Stats(filenames);
+    SpecializationStats(st, filenames);
     if (parsedump) *parsedump = parser.DumpAll(true);
     auto src_hash = lex.HashAll();
     CodeGen cg(parser, st, opts, src_hash, c_codegen);

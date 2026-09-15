@@ -18,6 +18,7 @@
 namespace lobster {
 
 struct TypeChecker;
+struct TypeCheckBase;
 struct Optimizer;
 struct CodeGen;
 
@@ -36,11 +37,16 @@ struct Node {
     virtual bool IsConstProp(TypeRef) const {
         return false;
     }
-    // Does control flow continue beyond this node?
-    virtual bool Terminal(TypeChecker &) const { return false; }
+    // Does control flow continue beyond this node? Like ConstVal, this only needs
+    // the shared checking utilities, not a particular typechecking topic.
+    virtual bool Terminal(TypeCheckBase &) const { return false; }
     // Node will have this type regardless of type-checking context.
     virtual TypeRef CFType() { return nullptr; }
-    // Derive type without type checking any expressions recursively.
+    // Derive type without type checking any expressions recursively: the type an expression
+    // will get from full typechecking, for expressions where that can be decided locally, i.e.
+    // without resolving names or type variables, calling functions, or any other action that
+    // could have side effects on typechecking order. Must either return exactly what
+    // TypeCheck() would make the exptype, or null.
     virtual TypeRef SimpleType(SymbolTable &) { return CFType(); }
     virtual string_view Name() const = 0;
     virtual void Dump(string &sd) const { sd += Name(); }
@@ -94,7 +100,7 @@ struct Node {
     }
     // Used by the type-checker and optimizer: the type of the constant this node folds to,
     // with `val` set to it, or V_VOID for a node that is not constant, which is the default.
-    virtual ValueType ConstVal(TypeChecker *, VTValue &) const { return V_VOID; }
+    virtual ValueType ConstVal(TypeCheckBase *, VTValue &) const { return V_VOID; }
     virtual Node *TypeCheck(TypeChecker &tc, size_t reqret, TypeRef parent_bound = {}) = 0;
     virtual Node *Optimize(Optimizer &opt);
     virtual void Generate(CodeGen &cg, size_t retval) const = 0;
@@ -244,11 +250,11 @@ struct TypeAnnotation : Node {
     SHARED_SIGNATURE(TypeAnnotation, "type", false)
 };
 
-#define RETURNSMETHOD bool Terminal(TypeChecker &tc) const;
+#define RETURNSMETHOD bool Terminal(TypeCheckBase &tc) const;
 #define OPTMETHOD Node *Optimize(Optimizer &opt);
 #define INITMETHOD bool IsConstInit() const;
 #define SIMPLEMETHOD TypeRef SimpleType(SymbolTable &);
-#define CONSTMETHOD ValueType ConstVal(TypeChecker *tc, VTValue &val) const;
+#define CONSTMETHOD ValueType ConstVal(TypeCheckBase *tc, VTValue &val) const;
 #define STATEMENTMETHOD bool ValidStatement() const { return true; }
 #define TRAPMETHOD bool MayTrap() const { return true; }
 

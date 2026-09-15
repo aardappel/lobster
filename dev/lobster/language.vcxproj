@@ -457,6 +457,16 @@
     <ClInclude Include="..\src\lobster\ttypes.h" />
     <ClInclude Include="..\src\lobster\type.h" />
     <ClInclude Include="..\src\lobster\typecheck.h" />
+    <ClInclude Include="..\src\lobster\typecheck_base.h" />
+    <ClInclude Include="..\src\lobster\typecheck_locations.h" />
+    <ClInclude Include="..\src\lobster\typecheck_functions.h" />
+    <ClInclude Include="..\src\lobster\typecheck_calls.h" />
+    <ClInclude Include="..\src\lobster\typecheck_constructors.h" />
+    <ClInclude Include="..\src\lobster\typecheck_flow.h" />
+    <ClInclude Include="..\src\lobster\typecheck_lval.h" />
+    <ClInclude Include="..\src\lobster\typecheck_ops.h" />
+    <ClInclude Include="..\src\lobster\typecheck_builtin.h" />
+    <ClInclude Include="..\src\lobster\typecheck_query.h" />
     <ClInclude Include="..\src\lobster\unicode.h" />
     <ClInclude Include="..\src\lobster\varint.h" />
     <ClInclude Include="..\src\lobster\vmdata.h" />

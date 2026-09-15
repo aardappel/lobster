@@ -82,6 +82,16 @@ else()
     src/lobster/varint.h
     src/lobster/ttypes.h
     src/lobster/typecheck.h
+    src/lobster/typecheck_base.h
+    src/lobster/typecheck_locations.h
+    src/lobster/typecheck_functions.h
+    src/lobster/typecheck_calls.h
+    src/lobster/typecheck_constructors.h
+    src/lobster/typecheck_flow.h
+    src/lobster/typecheck_lval.h
+    src/lobster/typecheck_ops.h
+    src/lobster/typecheck_builtin.h
+    src/lobster/typecheck_query.h
     src/lobster/unicode.h
     src/lobster/vmdata.h
     src/lobster/wentropy.h

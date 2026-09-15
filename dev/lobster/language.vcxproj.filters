@@ -185,6 +185,36 @@
     <ClInclude Include="..\src\lobster\typecheck.h">
       <Filter>compiler</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\lobster\typecheck_base.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\typecheck_locations.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\typecheck_functions.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\typecheck_calls.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\typecheck_constructors.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\typecheck_flow.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\typecheck_lval.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\typecheck_ops.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\typecheck_builtin.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\typecheck_query.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\lobster\il.h">
       <Filter>common</Filter>
     </ClInclude>
