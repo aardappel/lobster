@@ -12,16 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The builtins the generated code writes out itself rather than calling, one emitter each plus
-// the EmitCodegenBuiltin that picks between them, see BuiltinCodegen in natreg.h. This is
-// included into the body of CodeGen in codegen.h, since all of it are members of it that lean
-// on the emission helpers there.
+// Calls of builtins: the ones the generated code writes out itself rather than calling, one
+// emitter each plus the EmitCodegenBuiltin that picks between them, see BuiltinCodegen in
+// natreg.h, and the call by symbol of the rest. The shared state and emission helpers come from
+// CodeGenBase in codegen_base.h.
 //
 // Each emitter reads the arguments out of the slots below regso and leaves the return values in
 // the same ones, just as a call would. Two things they may not do: read a slot more than once
 // without going thru Reused, since a slot may hold a whole expression rather than a value, and
 // write a slot from inside a branch, since a write flushes whatever expressions are pending and
 // those then only happen on one path.
+
+namespace lobster {
+
+struct CodeGenBuiltin : virtual CodeGenBase {
+    // The builtins the code calls, by index, which get declared at the spot in the prologue
+    // reserved for them once it is known which they are.
+    map<int, NativeFun *> natives_used;
+    // How each argument of a builtin reaches it, see EmitNativeCall: -1 for one that is a
+    // single value, otherwise how many slots its values take, which it is passed as a vector
+    // of that width.
+    typedef vector<int> NativeArgs;
+
+    CodeGenBuiltin() {}
 
     // The vector one of the builtins below works on, in a local, since the slot it comes in is
     // also where the value the builtin leaves behind goes. `cmt` names the builtin.
@@ -570,3 +583,305 @@
         assert(false);
         return false;
     }
+
+    // Below here is the call of every other builtin, by its symbol, with the arguments and the
+    // values it returns converted between what the slots hold and the types it declares.
+
+    // A Value a helper returned as the kind the slot it goes into holds.
+    string Unbox(string_view expr, VKind k) {
+        if (cpp) return cat(expr, ".", Accessor(k));
+        if (k == VK_FUN) return cat("(fun_base_t)", expr, ".ival");
+        return cat(expr, ".", Member(k));
+    }
+
+    void SetValue(string &sd, const Place &d, string_view expr, string_view lf = "\n") {
+        assert(d.typed);
+        Write(sd, d, Unbox(expr, d.k()), lf);
+    }
+
+    // A typed value as a Value, for the few builtins that take a value whose type is only known
+    // at runtime: the C++ backend constructs it, the C one goes thru a maker, see Prologue.
+    string Box(const Place &p) {
+        if (cpp) return cat("Value(", Read(p), ")");
+        return cat("mkval", KindName(p.k()), "(", ReadTyped(p), ")");
+    }
+
+    // Whether the C code gets a Value a builtin returns thru a pointer it passes as the first
+    // argument: MSVC returns a class with constructors that way, where C returns the struct it
+    // mirrors Value with in a register. The C++ backend agrees with itself, and only the
+    // builtins that return an untyped Value are returned indirectly at all.
+    bool SretValues(NativeFun *nf) {
+        #ifdef _MSC_VER
+            // A numeric struct fails MSVC's rules for a return in a register on its base
+            // class alone, and an untyped Value on its private members, so both come back thru
+            // a pointer the caller passes first.
+            return !cpp && nf->ReturnsValue() &&
+                   (nf->RetWidth() || nf->RetKind() == BAK_VALUE);
+        #else
+            (void)nf;
+            return false;
+        #endif
+    }
+
+    // The profiler hooks around a call to a builtin, when compiled in.
+    void EmitNativeProfile(bool start, int nfi) {
+        #if LOBSTER_NATIVE_PROFILE
+            f_uses_pctx = true;
+            auto ns = cpp ? "lobster::" : "";
+            if (start) append(cb, "    pctx = ", ns, "RtNativeProfileStart(vm, ", nfi, ");\n");
+            else append(cb, "    ", ns, "RtNativeProfileEnd(pctx);\n");
+        #else
+            (void)start;
+            (void)nfi;
+        #endif
+    }
+
+    // The types a builtin declares its arguments as, see BuiltinSig. The C side has no name
+    // for a resource, whose fields it never reads, and holds a reference as a pointer to its
+    // header, hence the mirrors of the other three, see Prologue. A numeric struct becomes a
+    // vector of its width, which the C side has its own layout compatible type for.
+    string NativeArgCType(BuiltinArgKind k, int width) {
+        switch (k) {
+            case BAK_VALUE:    return "Value";
+            case BAK_REF:      return "RefObj *";
+            case BAK_FUNCTION: return "fun_base_t";
+            case BAK_INT:      return cpp ? "iint" : "long long";
+            case BAK_FLOAT:    return "double";
+            case BAK_STRING:   return "LString *";
+            case BAK_VECTOR:   return "LVector *";
+            case BAK_RESOURCE: return cpp ? "LResource *" : "void *";
+            case BAK_IVEC:     return cpp ? cat("vec<iint, ", width, ">") : cat("ivec", width);
+            case BAK_FVEC:     return cpp ? cat("vec<double, ", width, ">") : cat("fvec", width);
+            // Only a builtin the generated code writes out itself takes one of these, so it
+            // has no C type of its own, see the check in BuiltinDef.
+            case BAK_VALUEVEC: break;
+        }
+        assert(false);
+        return "";
+    }
+
+    // The type a builtin returns, which is that of its last return value, see BuiltinRet.
+    string NativeRetCType(NativeFun *nf) {
+        return nf->ReturnsValue() ? NativeArgCType(nf->RetKind(), nf->RetWidth()) : "void";
+    }
+
+    // A typed expression as a value of another kind, which between two kinds of reference is
+    // a cast: a builtin declares a resource or a vector where the slot it lands in may know
+    // the exact class it holds.
+    string CastAs(string_view expr, VKind from, VKind to) {
+        if (from == to || !IsRefKind(from) || !IsRefKind(to)) return string(expr);
+        return cat("(", CType(to), ")", expr);
+    }
+
+    // The kind of value a builtin hands back, for the slot it goes into.
+    static VKind NativeValueKind(BuiltinArgKind k) {
+        switch (k) {
+            case BAK_INT:    return VK_INT;
+            case BAK_FLOAT:  return VK_FLOAT;
+            case BAK_STRING: return VK_STRING;
+            case BAK_VECTOR: return VK_VECTOR;
+            case BAK_FUNCTION: return VK_FUN;
+            default:         return VK_REF;
+        }
+    }
+    VKind NativeRetKind(NativeFun *nf) { return NativeValueKind(nf->RetKind()); }
+
+    // The arguments of a call to a builtin, whose values start at slot `base`. Each is the
+    // slot it lives in, as the type the builtin takes it as. A numeric struct becomes a vector
+    // built from the slots its values are in.
+    string NativeArgList(int base, NativeFun *nf, const Types &args, const NativeArgs &nargs) {
+        string s;
+        auto slot = base;
+        for (auto [i, len] : enumerate(nargs)) {
+            auto kind = nf->ArgKind(i);
+            if (len >= 0) {
+                // C has no constructors, so it makes one thru a helper, see Prologue.
+                auto ctor = NativeArgCType(kind, len);
+                append(s, ", ", cpp ? ctor : "mk" + ctor, "(");
+                for (auto k = 0; k < len; k++) {
+                    append(s, k ? ", " : "", Read(SlotVar(slot + k, args[slot + k - base])));
+                }
+                s += ")";
+                slot += len;
+                continue;
+            }
+            auto p = SlotVar(slot, args[slot - base]);
+            switch (kind) {
+                case BAK_INT:
+                case BAK_FLOAT:    append(s, ", ", Read(p)); break;
+                case BAK_STRING:   append(s, ", ", ReadAs(p, VK_STRING)); break;
+                case BAK_VECTOR:   append(s, ", ", ReadAs(p, VK_VECTOR)); break;
+                case BAK_RESOURCE: append(s, ", ", cpp ? "(LResource *)" : "", Read(p)); break;
+                case BAK_REF:      append(s, ", ", ReadAs(p, VK_REF)); break;
+                case BAK_VALUE:    append(s, ", ", Box(p)); break;
+                default:           append(s, ", ", Read(p)); break;
+            }
+            slot++;
+        }
+        assert(slot - base == (int)args.size());
+        return s;
+    }
+
+    // One of the values a builtin hands back, out of the temporary it lands in, into the slots
+    // it lives in. A numeric struct takes as many of them as it is wide.
+    void EmitNativeValue(const Types &rets, int base, int slot, int width,
+                         BuiltinArgKind kind, string_view tmp) {
+        for (int i = 0; i < std::max(1, width); i++) {
+            auto d = SlotVar(slot + i, rets[slot + i - base]);
+            if (width) Write(cb, d, cat(tmp, ".", VecField(i)));
+            else if (kind == BAK_VALUE) SetValue(cb, d, tmp);
+            else Write(cb, d, CastAs(tmp, NativeValueKind(kind), d.k()));
+        }
+    }
+
+    // A call to a builtin, which the code makes directly by its symbol, declared in the
+    // prologue, see natives_used. It returns its last return value as the type that value is,
+    // and writes the ones before it thru a pointer per value that the caller passes ahead of
+    // the arguments, so every one of them stays the type it is. EmitNativeCall has already
+    // tracked the stack effect and ruled out an inline builtin.
+    void EmitNativeCallSymbol(NativeFun *nf, const Types &args, const Types &rets,
+                        const NativeArgs &nargs) {
+        auto uses = (int)args.size();
+        auto defs = (int)rets.size();
+        natives_used[nf->idx] = nf;
+        auto sret = SretValues(nf);
+        EmitNativeProfile(true, nf->idx);
+        auto base = regso - uses;
+        auto argstr = NativeArgList(base, nf, args, nargs);
+        auto nouts = nf->OutValues();
+        auto retslots = nf->RetSlots();
+        // Every temporary the call needs goes in a block of its own: one per value it writes
+        // thru a pointer, and one for a value it returns that does not go straight into a slot.
+        auto tmps = nouts || sret || nf->RetWidth();
+        if (tmps) {
+            append(cb, "    {");
+            comment(nf->name);
+        }
+        string outs;
+        for (int i = 0; i < nouts; i++) {
+            auto k = nf->RetValKind(i);
+            // A vec has no default constructor, so the C++ backend gives the temporary for one
+            // a value it does not use, where the C mirror needs none.
+            auto init = cpp && (k == BAK_IVEC || k == BAK_FVEC)
+                            ? cat("((", k == BAK_IVEC ? "iint" : "double", ")0)") : string();
+            append(cb, "    ", NativeArgCType(k, nf->RetValWidth(i)), " _o", i, init, ";\n");
+            append(outs, ", &_o", i);
+        }
+        auto call = cat(nf->def.symbol, "(", sret ? "&_nr, " : "", "vm", outs, argstr, ")");
+        // The name of the builtin is on the line that opens the block when there is one.
+        auto endl = [&]() { if (tmps) cb += "\n"; else comment(nf->name); };
+        if (!retslots) {
+            append(cb, "    ", call, ";");
+            endl();
+        } else if (nf->RetWidth() || sret) {
+            // A numeric struct is read a field at a time into the slots its values live in, and
+            // one the host compiler returns thru a pointer has nowhere else to land.
+            auto ct = NativeRetCType(nf);
+            if (sret) append(cb, "    ", ct, " _nr;\n    ", call, ";\n");
+            else append(cb, "    ", ct, " _nr = ", call, ";\n");
+            EmitNativeValue(rets, base, base + defs - retslots, nf->RetWidth(),
+                            nf->RetKind(), "_nr");
+        } else {
+            // The value it returns lands in the last of the slots the call leaves behind.
+            auto ret = SlotVar(base + defs - 1, rets[defs - 1]);
+            auto e = nf->RetKind() == BAK_VALUE ? Unbox(call, ret.k())
+                                               : CastAs(call, NativeRetKind(nf), ret.k());
+            Write(cb, ret, e, "");
+            endl();
+        }
+        // What it wrote thru a pointer comes out of the temporaries into their own slots.
+        auto slot = base;
+        for (int i = 0; i < nouts; i++) {
+            EmitNativeValue(rets, base, slot, nf->RetValWidth(i), nf->RetValKind(i),
+                            cat("_o", i));
+            slot += nf->RetValSlots(i);
+        }
+        if (tmps) cb += "    }\n";
+        EmitNativeProfile(false, nf->idx);
+    }
+
+    // The builtins the code calls by their symbol, see EmitNativeCall, whose definitions
+    // live in other translation units. The C side sees the references they take as
+    // pointers, and with MSVC gets a Value returned thru a pointer it passes first, see
+    // SretValues.
+    void DeclareNatives(string &sd) {
+        for (auto [idx, nf] : natives_used) {
+            auto rt = NativeRetCType(nf);
+            auto sep = rt.back() == '*' ? "" : " ";
+            if (cpp) {
+                append(sd, "extern \"C\" ", rt, sep, nf->def.symbol, "(VMRef");
+            } else if (SretValues(nf)) {
+                append(sd, "void ", nf->def.symbol, "(", rt, " *, VMRef");
+            } else {
+                append(sd, rt, sep, nf->def.symbol, "(VMRef");
+            }
+            // The values it does not return it writes thru a pointer of the type each is.
+            for (int i = 0; i < nf->OutValues(); i++) {
+                append(sd, ", ", NativeArgCType(nf->RetValKind(i), nf->RetValWidth(i)), " *");
+            }
+            for (size_t i = 0; i < nf->args.size(); i++) {
+                auto kind = nf->ArgKind(i);
+                auto width = kind == BAK_IVEC || kind == BAK_FVEC ? nf->ArgWidth(i) : 0;
+                append(sd, ", ", NativeArgCType(kind, width));
+            }
+            sd += ");\n";
+        }
+    }
+
+    // Track the call's stack effect and select inline builtin emission or a symbol call.
+    void EmitNativeCall(NativeFun *nf, const Types &args, const Types &rets,
+                        const NativeArgs &nargs, TypeRef elemtype) {
+        TrackUseDef((int)args.size(), (int)rets.size());
+        if (!EmitCodegenBuiltin(nf, args, rets, elemtype))
+            EmitNativeCallSymbol(nf, args, rets, nargs);
+    }
+
+    void Generate(const NativeCall &node, size_t retval) {
+        // TODO: could pass arg types in here if most exps have types, cheaper than
+        // doing it all in call instruction?
+        Types args;
+        NativeArgs nargtypes;
+        for (auto [i, c] : enumerate(node.children)) {
+            auto before = tstack_size;
+            Gen(c, 1);
+            if (Is<DefaultVal>(c)) {
+                // A single nil of the type, whatever it is. A struct argument that was left out is
+                // a value of zeroes instead, which the typechecker adds, so this is never one.
+                assert(!node.nf->ArgIsVec(i));
+                for (auto n = tstack_size - before; n; n--) {
+                    args.push_back(RtTypeOf(c->exptype));
+                }
+            } else {
+                AddTypes(args, c->exptype);
+            }
+            nargtypes.push_back(node.nf->ArgIsVec(i) ? ValWidth(c->exptype) : -1);
+        }
+        size_t nargs = node.children.size();
+        TakeTemp(nargs, true);
+        assert(nargs == node.nf->args.size());
+        // The ones the code writes out itself work on a vector, whose element type says what its
+        // elements hold, see CodeGen::Elem.
+        auto elemtype = !node.children.empty() && node.children[0]->exptype->t == V_VECTOR
+            ? node.children[0]->exptype->Element()
+            : type_undefined;
+        EmitNativeCall(node.nf, args, TypesOf(node.nattype, node.nattype->NumValues()), nargtypes,
+                       elemtype);
+        if (node.nf->retvals.size() > 0) {
+            assert(node.nf->retvals.size() == node.nattype->NumValues());
+            for (size_t i = 0; i < node.nattype->NumValues(); i++) {
+                rettypes.push_back({ node.nattype->Get(i),
+                                     node.nattype->GetLifetime(i, node.natlt) });
+            }
+        } else {
+            assert(node.nf->retvals.size() >= retval);
+        }
+        if (!retval) {
+            while (rettypes.size()) {
+                GenPop(rettypes.back());
+                rettypes.pop_back();
+            }
+        }
+    }
+};
+
+}  // namespace lobster

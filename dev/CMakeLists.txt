@@ -48,7 +48,16 @@ else()
   # FIXME: move into separate dirs so these can be globbed.
   set(LOBSTER_SRCS
     src/lobster/codegen.h
+    src/lobster/codegen_base.h
     src/lobster/codegen_builtin.h
+    src/lobster/codegen_type_table.h
+    src/lobster/codegen_ops.h
+    src/lobster/codegen_refcount.h
+    src/lobster/codegen_prologue.h
+    src/lobster/codegen_functions.h
+    src/lobster/codegen_lval.h
+    src/lobster/codegen_flow.h
+    src/lobster/codegen_constructors.h
     src/lobster/compiler.h
     src/lobster/geom.h
     src/lobster/idents.h

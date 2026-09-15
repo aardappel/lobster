@@ -419,7 +419,16 @@
     <ClInclude Include="..\include\flatbuffers\util.h" />
     <ClInclude Include="..\src\lobster\accumulator.h" />
     <ClInclude Include="..\src\lobster\codegen.h" />
+    <ClInclude Include="..\src\lobster\codegen_base.h" />
     <ClInclude Include="..\src\lobster\codegen_builtin.h" />
+    <ClInclude Include="..\src\lobster\codegen_type_table.h" />
+    <ClInclude Include="..\src\lobster\codegen_ops.h" />
+    <ClInclude Include="..\src\lobster\codegen_refcount.h" />
+    <ClInclude Include="..\src\lobster\codegen_prologue.h" />
+    <ClInclude Include="..\src\lobster\codegen_functions.h" />
+    <ClInclude Include="..\src\lobster\codegen_lval.h" />
+    <ClInclude Include="..\src\lobster\codegen_flow.h" />
+    <ClInclude Include="..\src\lobster\codegen_constructors.h" />
     <ClInclude Include="..\src\lobster\compiler.h" />
     <ClInclude Include="..\src\lobster\constval.h" />
     <ClInclude Include="..\src\lobster\dllist.h" />

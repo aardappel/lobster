@@ -128,7 +128,34 @@
     <ClInclude Include="..\src\lobster\codegen.h">
       <Filter>compiler</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\lobster\codegen_base.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\lobster\codegen_builtin.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\codegen_type_table.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\codegen_ops.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\codegen_refcount.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\codegen_prologue.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\codegen_functions.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\codegen_lval.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\codegen_flow.h">
+      <Filter>compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lobster\codegen_constructors.h">
       <Filter>compiler</Filter>
     </ClInclude>
     <ClInclude Include="..\src\lobster\compiler.h">

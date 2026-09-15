@@ -1877,7 +1877,7 @@ struct SymbolTable {
     // appear in the members' fields, and a field goes to the first free run of slots of its
     // kinds, which is only the next slot when the fields are declared in that order (the
     // common case, which the constructor code takes advantage of, see
-    // ObjectConstructor::GenerateFamilyStruct). A field that is a struct of several kinds
+    // CodeGen::GenerateFamilyStruct). A field that is a struct of several kinds
     // stays one block, which gets extra slots at the end when no run fits it. The slots a
     // member has no field in are padding (0 or nil), its hidden_sfields along with the type
     // slot. A member inherits the slots of its superclass's fields, so a method of the
