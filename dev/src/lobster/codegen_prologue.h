@@ -114,6 +114,14 @@ struct CodeGenPrologue : virtual CodeGenBase {
                 "    #pragma GCC diagnostic ignored \"-Wunused-variable\"\n"
                 "    #pragma GCC diagnostic ignored \"-Wtautological-compare\"\n"
                 "#endif\n"
+                // A specialization may not use all of its parameters, and a function whose every
+                // call was inlined is still emitted, since what refers to one is only known once
+                // all of them are written out.
+                "#if defined(_MSC_VER)\n"
+                "    #pragma warning(disable: 4100)  // Unreferenced formal parameter.\n"
+                "    #pragma warning(disable: 4505)  // Unreferenced function with internal "
+                "linkage removed.\n"
+                "#endif\n"
                 "\n"
                 "#if LOBSTER_ENGINE\n"
                 "    // FIXME: This makes SDL not modular, but without it it will miss the SDLMain indirection.\n"

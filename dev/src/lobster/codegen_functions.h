@@ -179,20 +179,124 @@ struct CodeGenFunctions : virtual CodeGenBase {
     }
 
     void DefineFunction(string &sd, bool label) {
-        sd += "\n";
         auto sf_idx = f_function_idx;
-        if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START)
-            append(sd, "// ", Signature(*st.subfunctiontable[sf_idx]), "\n");
         assert(f_arg_places.size() == f_args.size());
         // The body is complete, so a slot whose write is still deferred is never read:
         // dropping those here also keeps the writes to locals below from flushing them
-        // into the body, which is already past the declarations they would need.
+        // into the body, which is already finished.
         pending.clear();
+        // The prologue, the body and the epilogue, which the declarations go in front of once
+        // all of it is there: naming a variable is what declares it, so what the prologue and
+        // the epilogue name has to be known by then as well, see Local and SlotVarUsed.
+        string fb;
+        for (int i = 0; i < (int)f_args.size(); i++) {
+            auto varidx = f_args[i];
+            auto &p = f_arg_places[i];
+            if (sids[varidx].used_as_freevar) {
+                // The argument is the global for the duration of the call, whose old value the
+                // parameter holds meanwhile, to go back at the end. That old value is only
+                // ever put back, so it is read past the tag, which on the first call still
+                // says nil, the global not having been initialized yet.
+                auto t = Var("_t", p.rtt);
+                append(fb, "    { ", CType(p.k()), " _t; ", CopyValueText(t, p), " ",
+                       WriteText(p, ReadNil(Global(varidx))), " ",
+                       CopyValueText(Global(varidx), t), " }\n");
+            } else if (ShadowLocals()) {
+                CopyValue(fb, Shadow(var_to_local[varidx]), p);
+            }
+        }
+        // A parameter that owns a copy of what the caller passed takes it here, see
+        // SpecIdent::copy_on_entry. Given up on exit with the other owned variables, see
+        // EmitReturn, which is where --rcstats counts it.
+        if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
+            rc_suppress = true;
+            for (auto &arg : st.subfunctiontable[sf_idx]->args) {
+                if (!arg.sid->copy_on_entry || arg.sid->constprop) continue;
+                for (int i = 0; i < ValWidth(arg.sid->type); i++) {
+                    auto varidx = arg.sid->Idx() + i;
+                    if (!IsRefNil(var_types[varidx]->t)) continue;
+                    GenIncRef(fb, sids[varidx].used_as_freevar
+                                      ? Global(varidx)
+                                      : Local(var_to_local[varidx]));
+                }
+            }
+            rc_suppress = false;
+        }
+        for (int i = 0; i < (int)f_defs.size(); i++) {
+            // for most locals, this just saves an nil, only in recursive cases it has an
+            // actual value.
+            auto varidx = f_defs[i];
+            if (sids[varidx].used_as_freevar) {
+                append(fb, "    BackupVar(vm, ", varidx, ");\n");
+            } else {
+                // A reference starts out nil, since a return before its definition has run
+                // still gives up what the variable holds, see EmitReturn. A number is always
+                // written before it is read, so it is left alone.
+                // The kind comes from the place itself, since asking Local for it would declare
+                // a number that the code never names.
+                auto k = var_to_local[varidx];
+                if (IsRefKind(local_places[k].k())) SetNil(fb, Local(k));
+                if (ShadowLocals()) SetNil(fb, Shadow(k));
+            }
+        }
+        if (runtime_checks >= RUNTIME_STACK_TRACE && sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
+            // FIXME: can make this just and index and instead store funinfo_table ref in
+            // VM. Calling this here because now locals have been fully initialized.
+            append(fb, "    PushFunId(vm, funinfo_table + ", funstarttables.size(), ", ",
+                   local_places.empty() ? "0" : "locals", ");\n");
+            // This can be any format we want, see VM::DumpStackFrame
+            funstarttables.push_back(f_function_idx);
+            funstarttables.push_back((int)f_args.size());
+            funstarttables.insert(funstarttables.end(), f_args.begin(), f_args.end());
+            funstarttables.push_back((int)f_defs.size());
+            funstarttables.insert(funstarttables.end(), f_defs.begin(), f_defs.end());
+        }
+        for (int i = 0; i < (int)f_keeps.size(); i++) {
+            SetNil(fb, KeepVar(i));
+        }
+        // A return that has nothing of its own to say leaves these alone, since the caller then
+        // reads what a non-local return left in the buffer instead, see GenUnwind. Written one
+        // at a time rather than with an initializer, which libtcc compiles into a memset call.
+        if (f_ret_types.size() > 1) {
+            for (auto [i, kr] : enumerate(f_ret_types)) SetNil(fb, RetSlot((int)i, kr));
+        }
+
+        fb += cb;
+        cb.clear();
+
+        if (label) fb += "    epilogue:;\n";
+        if (has_profile) {
+            append(fb, "    ", cpp ? "lobster::" : "", "EndProfile(ctx);\n");
+        }
+        // The locals that live in a global get their old value back, see BackupVar above.
+        for (int i = (int)f_defs.size() - 1; i >= 0; i--) {
+            auto varidx = f_defs[i];
+            if (sids[varidx].used_as_freevar) {
+                append(fb, "    RestoreBackup(vm, ", varidx, ");\n");
+            }
+        }
+        // Counted for --rcstats where the keep was made, see EmitKeep.
+        rc_suppress = true;
+        for (int i = 0; i < (int)f_keeps.size(); i++) {
+            GenDecRef(fb, KeepVar(i));
+        }
+        rc_suppress = false;
+        for (int i = 0; i < (int)f_args.size(); i++) {
+            auto varidx = f_args[i];
+            if (sids[varidx].used_as_freevar) CopyValue(fb, Global(varidx), f_arg_places[i]);
+        }
+        if (runtime_checks >= RUNTIME_STACK_TRACE && f_function_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
+            append(fb, "    PopFunId(vm);\n");
+        }
+        if (!f_ret_types.empty()) fb += "    return ret;\n";
+        sd += "\n";
+        if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START)
+            append(sd, "// ", Signature(*st.subfunctiontable[sf_idx]), "\n");
         Types argtypes;
         for (auto &p : f_arg_places) argtypes.push_back(p.rtt);
         append(sd, FunSignature(FunName(sf_idx), argtypes, f_ret_types, &f_arg_places), " {\n");
-        // NOTE: f_keeps, f_slot_kinds and f_stage_max are not known until the
-        // end of codegen of the function!
+        // NOTE: f_keeps, f_slot_kinds, f_stage_max and which locals are named are not known
+        // until the end of codegen of the function!
         vector<Place> slots, keeps, locals;
         for (auto [i, kinds] : enumerate(f_slot_kinds)) {
             for (int k = 0; k < VK_COUNT; k++) {
@@ -203,7 +307,8 @@ struct CodeGenFunctions : virtual CodeGenBase {
         // The arguments are the parameters, so only the locals after them are declared here.
         int nargs_local = 0;
         for (auto varidx : f_args) if (!sids[varidx].used_as_freevar) nargs_local++;
-        for (int i = nargs_local; i < (int)local_places.size(); i++) locals.push_back(Local(i));
+        for (int i = nargs_local; i < (int)local_places.size(); i++)
+            if (local_used[i]) locals.push_back(local_places[i]);
         GenPlaceDecls(sd, slots);
         for (auto k : { VK_INT, VK_FLOAT }) {
             if (f_stage_max[k])
@@ -222,104 +327,7 @@ struct CodeGenFunctions : virtual CodeGenBase {
         } else if (f_ret_types.size() > 1) {
             append(sd, "    ", RetStruct(f_ret_types), " ret;\n");
         }
-        for (int i = 0; i < (int)f_args.size(); i++) {
-            auto varidx = f_args[i];
-            auto &p = f_arg_places[i];
-            if (sids[varidx].used_as_freevar) {
-                // The argument is the global for the duration of the call, whose old value the
-                // parameter holds meanwhile, to go back at the end. That old value is only
-                // ever put back, so it is read past the tag, which on the first call still
-                // says nil, the global not having been initialized yet.
-                auto t = Var("_t", p.rtt);
-                append(sd, "    { ", CType(p.k()), " _t; ", CopyValueText(t, p), " ",
-                       WriteText(p, ReadNil(Global(varidx))), " ",
-                       CopyValueText(Global(varidx), t), " }\n");
-            } else if (ShadowLocals()) {
-                CopyValue(sd, Shadow(var_to_local[varidx]), p);
-            }
-        }
-        // A parameter that owns a copy of what the caller passed takes it here, see
-        // SpecIdent::copy_on_entry. Given up on exit with the other owned variables, see
-        // EmitReturn, which is where --rcstats counts it.
-        if (sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
-            rc_suppress = true;
-            for (auto &arg : st.subfunctiontable[sf_idx]->args) {
-                if (!arg.sid->copy_on_entry || arg.sid->constprop) continue;
-                for (int i = 0; i < ValWidth(arg.sid->type); i++) {
-                    auto varidx = arg.sid->Idx() + i;
-                    if (!IsRefNil(var_types[varidx]->t)) continue;
-                    GenIncRef(sd, sids[varidx].used_as_freevar
-                                      ? Global(varidx)
-                                      : Local(var_to_local[varidx]));
-                }
-            }
-            rc_suppress = false;
-        }
-        for (int i = 0; i < (int)f_defs.size(); i++) {
-            // for most locals, this just saves an nil, only in recursive cases it has an
-            // actual value.
-            auto varidx = f_defs[i];
-            if (sids[varidx].used_as_freevar) {
-                append(sd, "    BackupVar(vm, ", varidx, ");\n");
-            } else {
-                // A reference starts out nil, since a return before its definition has run
-                // still gives up what the variable holds, see EmitReturn. A number is always
-                // written before it is read, so it is left alone.
-                auto k = var_to_local[varidx];
-                if (IsRefKind(Local(k).k())) SetNil(sd, Local(k));
-                if (ShadowLocals()) SetNil(sd, Shadow(k));
-            }
-        }
-        if (runtime_checks >= RUNTIME_STACK_TRACE && sf_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
-            // FIXME: can make this just and index and instead store funinfo_table ref in
-            // VM. Calling this here because now locals have been fully initialized.
-            append(sd, "    PushFunId(vm, funinfo_table + ", funstarttables.size(), ", ",
-                   local_places.empty() ? "0" : "locals", ");\n");
-            // This can be any format we want, see VM::DumpStackFrame
-            funstarttables.push_back(f_function_idx);
-            funstarttables.push_back((int)f_args.size());
-            funstarttables.insert(funstarttables.end(), f_args.begin(), f_args.end());
-            funstarttables.push_back((int)f_defs.size());
-            funstarttables.insert(funstarttables.end(), f_defs.begin(), f_defs.end());
-        }
-        for (int i = 0; i < (int)f_keeps.size(); i++) {
-            SetNil(sd, KeepVar(i));
-        }
-        // A return that has nothing of its own to say leaves these alone, since the caller then
-        // reads what a non-local return left in the buffer instead, see GenUnwind. Written one
-        // at a time rather than with an initializer, which libtcc compiles into a memset call.
-        if (f_ret_types.size() > 1) {
-            for (auto [i, kr] : enumerate(f_ret_types)) SetNil(sd, RetSlot((int)i, kr));
-        }
-
-        sd += cb;
-        cb.clear();
-
-        if (label) sd += "    epilogue:;\n";
-        if (has_profile) {
-            append(sd, "    ", cpp ? "lobster::" : "", "EndProfile(ctx);\n");
-        }
-        // The locals that live in a global get their old value back, see BackupVar above.
-        for (int i = (int)f_defs.size() - 1; i >= 0; i--) {
-            auto varidx = f_defs[i];
-            if (sids[varidx].used_as_freevar) {
-                append(sd, "    RestoreBackup(vm, ", varidx, ");\n");
-            }
-        }
-        // Counted for --rcstats where the keep was made, see EmitKeep.
-        rc_suppress = true;
-        for (int i = 0; i < (int)f_keeps.size(); i++) {
-            GenDecRef(sd, KeepVar(i));
-        }
-        rc_suppress = false;
-        for (int i = 0; i < (int)f_args.size(); i++) {
-            auto varidx = f_args[i];
-            if (sids[varidx].used_as_freevar) CopyValue(sd, Global(varidx), f_arg_places[i]);
-        }
-        if (runtime_checks >= RUNTIME_STACK_TRACE && f_function_idx < CODEGEN_SPECIAL_FUNCTION_ID_START) {
-            append(sd, "    PopFunId(vm);\n");
-        }
-        if (!f_ret_types.empty()) sd += "    return ret;\n";
+        sd += fb;
         sd += "}\n";
         ownedvars.clear();
         f_keeps.clear();
@@ -331,6 +339,7 @@ struct CodeGenFunctions : virtual CodeGenBase {
         f_uses_lobj = false;
         f_uses_lelem = false;
         local_places.clear();
+        local_used.clear();
         f_names_used.clear();
         nlabel = 0;
         has_profile = false;
@@ -384,6 +393,7 @@ struct CodeGenFunctions : virtual CodeGenBase {
             var_to_local.resize(sids.size(), -1);
         #endif
         local_places.clear();
+        local_used.clear();
         f_names_used.clear();
         f_arg_places.clear();
         f_ret_types = ReturnTypes(sf);
@@ -407,6 +417,7 @@ struct CodeGenFunctions : virtual CodeGenBase {
                     if (!sids[varidx].used_as_freevar) {
                         var_to_local[varidx] = (int)local_places.size();
                         local_places.push_back(Var(LocalName(*arg.sid, i), RtTypeOf(vtype)));
+                        local_used.push_back(false);
                         if (&f_ad == &f_args) f_arg_places.push_back(local_places.back());
                     } else if (&f_ad == &f_args) {
                         // Lives in a global while the function runs, so the parameter only

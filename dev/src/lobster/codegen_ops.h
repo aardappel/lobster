@@ -214,10 +214,12 @@ struct CodeGenOps : virtual CodeGenBase {
         TakeTemp(1, false);
         TrackUseDef(1, 1);
         // The string goes into a local first: the slot it comes in may hold a whole expression,
-        // and the comparison names it once per byte.
-        append(cb, "    { LString *_s = ", Read(Slot(1, VK_STRING)),
-               "; const unsigned char *_d = ",
-               cpp ? "(const unsigned char *)_s->data()" : "STRING_DATA(_s)", ";");
+        // and the comparison names it once per byte. The empty constant is decided by the
+        // length alone, so it gets no pointer to bytes it never reads.
+        append(cb, "    { LString *_s = ", Read(Slot(1, VK_STRING)), ";");
+        if (!str.empty())
+            append(cb, " const unsigned char *_d = ",
+                   cpp ? "(const unsigned char *)_s->data()" : "STRING_DATA(_s)", ";");
         string q;
         EscapeAndQuote(str, q, true);
         comment(q);

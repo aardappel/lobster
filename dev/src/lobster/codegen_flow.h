@@ -521,6 +521,7 @@ struct CodeGenFlow : virtual CodeGenBase {
             bs.Start();
             auto cas = AssertIs<Case>(n);
             auto lab = labels[i];
+            auto is_last = n == node.cases->children.back();
             // Don't actually emit labels because C code turns these into "case"
             if (cas->pattern->children.empty()) {
                 lab = deflab;
@@ -530,7 +531,12 @@ struct CodeGenFlow : virtual CodeGenBase {
             append(cb, "    ");
             if (case_values) {
                 for (auto v : (*case_values)[i]) append(cb, "case ", v, ":");
-                if (lab == deflab) append(cb, "default:");
+                // A type dispatch has a case for every type the value can have, so the last one
+                // takes any other value as well, which is also where a default case sits.
+                // Without a default the C compiler has to assume the switch can be skipped, and
+                // then sees the slots the cases write to as possibly uninitialized after it.
+                assert(lab != deflab || is_last);
+                if (is_last) append(cb, "default:");
             } else {
                 auto t = ilab.data();
                 for (auto v = mini; v <= maxi; v++) {
@@ -542,7 +548,7 @@ struct CodeGenFlow : virtual CodeGenBase {
             cb += ";\n";
             Generate(*cas, retval);
             bs.End();
-            if (n != node.cases->children.back()) {
+            if (!is_last) {
                 auto lab = EmitJump();
                 exitswitch.push_back(lab);
             }

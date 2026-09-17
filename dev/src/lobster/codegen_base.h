@@ -187,6 +187,9 @@ struct CodeGenBase {
     // The C variable each local (by var_to_local index) lives in, including its type, and
     // every name the function has handed out, to keep them apart.
     vector<Place> local_places;
+    // Whether the code of the function names each of those, which is what decides if it is
+    // declared, see Local and DefineFunction.
+    vector<bool> local_used;
     set<string> f_names_used;
     // The static type of each slot of every variable, by its index in sids.
     vector<TypeRef> var_types;
@@ -809,7 +812,7 @@ struct CodeGenBase {
     void SetNil(string &sd, const Place &d) {
         if (d.slot >= 0 && &sd == &cb) Defer(d, d.k() == VK_FLOAT ? "0.0" : "0", "");
         else if (d.typed) Write(sd, d, d.k() == VK_FLOAT ? "0.0" : "0");
-        else if (cpp) append(sd, "    ", d.s, " = Value(0, lobster::RTT_NIL);\n");
+        else if (cpp) append(sd, "    ", d.s, " = lobster::NilVal();\n");
         else append(sd, "    ", d.s, ".ival = 0;\n");
     }
 
@@ -949,8 +952,13 @@ struct CodeGenBase {
     // The array a struct local goes into to be indexed at runtime, one per numeric type its
     // fields can all be of, see EmitLvalStructIndex.
     static string StageArray(VKind k) { return k == VK_FLOAT ? "_lsf" : "_lsi"; }
-    // A local is a variable of its own like a stack slot, see LocalName.
-    Place Local(int i) { return local_places[i]; }
+    // A local is a variable of its own like a stack slot, see LocalName. Asking for it is what
+    // declares it: a variable whose every read and write the optimizer replaced by the constant
+    // it holds, or removed with the code around it, is never asked for and so never declared.
+    Place Local(int i) {
+        local_used[i] = true;
+        return local_places[i];
+    }
     // With stack traces on, every write to a local also lands in an array, since that is where
     // a trace dumps them from, see PushFunId.
     bool ShadowLocals() { return runtime_checks >= RUNTIME_STACK_TRACE; }
