@@ -1,8 +1,9 @@
 // General purpose dictionary implemented using "open addressing" hashing.
 
-// Key can be anything there is a hash() function for (which is all types except
-// structs of reference types), though if you use classes or vectors as keys
-// you must use the same instances to look up.
+// Key can be anything there is a hash() function for, though if you use classes
+// or vectors as keys you must use the same instances to look up. Of the structs
+// that is the ones of 1 to 4 scalar fields that are all int or all float, same
+// as for the other builtins taking a numeric struct.
 
 // Values can be any type (including any structs). To be able to pass nil to the
 // default val for get, the value type must be nillable.

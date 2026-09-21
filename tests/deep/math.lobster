@@ -7,6 +7,12 @@ import vec
 class DHashObj:
     x = 1
 
+// Numeric structs of a single field, which hash like any other width.
+struct DHashInt1:
+    x:int
+struct DHashFloat1:
+    x:float
+
 def math_tests():
     suite("math")
 
@@ -212,6 +218,9 @@ def math_tests():
     test_true(hash([ 1, 2 ]) >= 0)
     test_true(hash(int2 { 1, 2 }) >= 0)
     test_true(hash(float2 { 1.5, 2.5 }) >= 0)
+    test_true(hash(int4 { 1, 2, 3, 4 }) >= 0)
+    test_true(hash(DHashInt1 { 1 }) >= 0)
+    test_true(hash(DHashFloat1 { 1.5 }) >= 0)
     test_true(hash(true) >= 0)          // Enum (ref-free) value.
     test_true(hash(DHashObj {}) >= 0)   // Class instance.
     // Value-typed things (strings, scalars, numeric structs) hash by value:
@@ -219,6 +228,10 @@ def math_tests():
     test_eq(hash("abc"), hash("abc"))
     test_eq(hash(int2 { 1, 2 }), hash(int2 { 1, 2 }))
     test_eq(hash(1.5), hash(1.5))
+    test_eq(hash(DHashInt1 { 1 }), hash(DHashInt1 { 1 }))
+    test_eq(hash(DHashFloat1 { 1.5 }), hash(DHashFloat1 { 1.5 }))
+    // A single int field picks the int overload rather than the float one.
+    test_neq(hash(DHashInt1 { 1 }), hash(DHashFloat1 { 1.0 }))
     // Vectors and classes hash by identity (address), so two equal-but-distinct
     // objects generally hash differently, while an object hashes equal to
     // itself.

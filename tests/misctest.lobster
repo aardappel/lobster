@@ -332,6 +332,17 @@ run_test("misc"):
     let dict3 = dictionary<int3, int3>(17)
     dict3.set(int3 { 1, 2, 3 }, int3 { 4, 5, 6 })
     assert dict3.get(int3 { 1, 2, 3 }, int3_0) == int3 { 4, 5, 6 }
+    // A struct of a single field is a key like any other.
+    struct entityid:
+        id:int
+    let dict4 = dictionary<entityid, int>(17)
+    dict4.set(entityid { 42 }, 1)
+    dict4.add(entityid { 42 }, 10)
+    dict4.set(entityid { 7 }, 3)
+    assert dict4.get(entityid { 42 }, -1) == 11
+    dict4.del(entityid { 42 })
+    assert dict4.get(entityid { 42 }, -1) == -1
+    assert dict4.get(entityid { 7 }, -1) == 3
 
     // Break.
     var lc = 0

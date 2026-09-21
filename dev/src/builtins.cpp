@@ -1244,9 +1244,11 @@ BUILTIN_OVERLOAD(hash_float, "hash", "x", "F", "I",
         for (int i = 0; i < W; i++) h = h * 31 + SplitMix64Hash(ReadMem<uint64_t>(&v.c[i])); \
         return positive_bits(h); \
     }
+HASHW(hash_ivec, "I", iint, 1)
 HASHW(hash_ivec, "I", iint, 2)
 HASHW(hash_ivec, "I", iint, 3)
 HASHW(hash_ivec, "I", iint, 4)
+HASHW(hash_fvec, "F", double, 1)
 HASHW(hash_fvec, "F", double, 2)
 HASHW(hash_fvec, "F", double, 3)
 HASHW(hash_fvec, "F", double, 4)
