@@ -1367,19 +1367,22 @@ call). The choice:
    struct and any overload's first parameter type is a strict subtype of it,
    the call is a dynamic dispatch (below) instead.
 
-Builtin calls: a builtin may have several overloads, tried in declaration
-order; the first whose parameters all accept the arguments (with the builtin
-conversion rules: `int` to `float` coercion, numeric to nilable, a numeric
-struct argument for a struct parameter of the right element type and arity,
-any vector for a generic vector parameter, any reference type for a generic
-reference parameter, any value for a parameter declared as converting to
-string (as `print` and `string` do), and enum conversions) is called; missing
-optional arguments take the builtin's default. Some builtins are typed by their
+Builtin calls: a builtin may have several overloads, tried with the one
+declared first and then the rest in reverse declaration order; the first whose
+parameters all accept the arguments (with the builtin conversion rules: `int`
+to `float` coercion, numeric to nilable, a numeric struct argument for a
+struct parameter of the right element type and arity, any vector for a generic
+vector parameter, any reference type for a generic reference parameter, any
+value for a parameter declared as converting to string (as `print` and
+`string` do), and enum conversions) is called; missing optional arguments take
+the builtin's default. Some builtins are typed by their
 arguments (the return type is that of an argument, or the element type of a
-vector argument, or the result of a function argument). A builtin's numeric
-struct parameter of unspecified arity requires a struct argument that is one
-of the prelude's `intN`/`floatN` types or a struct of the same element type
-and a specified arity ("cannot deduce struct type" otherwise).
+vector argument, or the result of a function argument). The arity of a struct
+argument is the slots it takes, so a struct field counts for as many as it has
+and not for one. A builtin's numeric struct parameter of a specified arity is
+one of 1 to 4, so a wider struct fits no overload; one of unspecified arity
+takes a struct of any arity that is one of the prelude's `intN`/`floatN` types
+or has the same element type ("cannot deduce struct type" otherwise).
 
 ### Dynamic dispatch
 

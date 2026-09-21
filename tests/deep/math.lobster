@@ -13,6 +13,11 @@ struct DHashInt1:
 struct DHashFloat1:
     x:float
 
+// A struct is as wide as the slots it takes, not as the fields it declares.
+struct DHashInt3:
+    xy:int2
+    z:int
+
 def math_tests():
     suite("math")
 
@@ -232,6 +237,9 @@ def math_tests():
     test_eq(hash(DHashFloat1 { 1.5 }), hash(DHashFloat1 { 1.5 }))
     // A single int field picks the int overload rather than the float one.
     test_neq(hash(DHashInt1 { 1 }), hash(DHashFloat1 { 1.0 }))
+    // A struct of a struct and a scalar is the 3 slots it takes, not 2 fields.
+    test_eq(hash(DHashInt3 { int2 { 1, 2 }, 3 }), hash(int3 { 1, 2, 3 }))
+    test_eq(magnitude_squared(DHashInt3 { int2 { 1, 2 }, 3 }), 14)
     // Vectors and classes hash by identity (address), so two equal-but-distinct
     // objects generally hash differently, while an object hashes equal to
     // itself.

@@ -66,6 +66,12 @@ struct TypeCheckBuiltin : virtual TypeCheckLocations {
                                        ActualBuiltinType(arg.vttype, arg.flags,
                                                             etype, node.nf, true, i + 1, node),
                                        cf)) goto nomatch;
+                    // A plain V_ANY argument takes a reference and nothing else, see the check
+                    // in the argument loop below. Anything else has to find its overload
+                    // elsewhere, and is told which there are when it fits none of them, rather
+                    // than being reported against this one.
+                    if (arg.vttype->t == V_ANY && !arg.flags &&
+                        !IsRefNilNoStruct(etype->t)) goto nomatch;
                 }
                 node.nf = cnf;
                 break;

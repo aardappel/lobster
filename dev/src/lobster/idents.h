@@ -2239,8 +2239,10 @@ string TypeName(UnTypeRef type, bool tuple_brackets, int depth) {
         case V_STRUCT_NUM: {
             auto nvt = SymbolTable::GetVectorName(type->ns->t, type->ns->flen);
             if (nvt) return nvt;
-            // FIXME: better names?
-            return type->ns->t == V_INT ? "intN" : "floatN";
+            // Only 2 to 4 of them have a declared type to name, so a single one is named
+            // after those, and an unknown number of them takes an N in the same spot.
+            auto num = type->ns->t == V_INT ? "int" : "float";
+            return type->ns->flen >= 1 ? cat(num, type->ns->flen) : cat(num, "N");
         }
         case V_STRUCT_R:
         case V_STRUCT_S:

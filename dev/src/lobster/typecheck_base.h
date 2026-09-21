@@ -954,14 +954,15 @@ struct TypeCheckBase {
             Error(errorn, "INTERNAL: vector type too deeply nested for builtin");
             return type_error;
         }
+        // How wide the given struct is, which is the slots it takes rather than the fields it
+        // declares, since the slots are what a builtin taking a numeric struct is given. Those
+        // differ when a field is a struct of its own, which takes as many slots as it has.
+        auto slots = !e.Null() && e->t == V_STRUCT_S ? e->udt->numslots : -1;
         auto flen = vt->ns->flen;
         // Check if we allow any vector length.
-        if (!e.Null() && flen == -1 && e->t == V_STRUCT_S) {
-            flen = (int)e->udt->sfields.size();
-        }
+        if (flen == -1) flen = slots;
         if (flen >= 1) {
-            if (!e.Null() && e->t == V_STRUCT_S && (int)e->udt->sfields.size() == flen &&
-                e->udt->sametype->t == vt->ns->t) {
+            if (slots == flen && e->udt->sametype->t == vt->ns->t) {
                 // Allow any similar vector type, like "color".
                 return etype;
             } else {
