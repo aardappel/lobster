@@ -1074,11 +1074,14 @@ of a subtype counts as having each of its supertypes. `e is T?` is true when
 types that cannot otherwise be made nilable (so `1.5 is float?` is `1.5 is
 float`). For values of scalar, string, vector and (non-family) struct types
 the result is decided at compile time from the static types (`x is T` with
-`x:T?` being a nil check at run time). For class and family struct values it
-is a runtime test against the dynamic type: true if that type is `T` or a
-subclass of `T`. If the static type makes the result certain, the test folds
-to a constant (side effects of `e` are kept). `e` is not evaluated more than
-once.
+`x:T?` being a nil check at run time). A scalar is of its static type only:
+an enum converts to `int` but `e is int` is false for an enum value `e`, and
+`e is E` for an enum `E` is false for an `int` value `e` (such as `a | b` on
+a plain `enum`) and for a value of another enum. For class and family struct
+values it is a runtime test against the dynamic type: true if that type is
+`T` or a subclass of `T`. If the static type makes the result certain, the
+test folds to a constant (side effects of `e` are kept). `e` is not
+evaluated more than once.
 
 `typeof x` for a variable `x`, or `typeof T` for a type, is an `int` typeid
 identifying the type in the program's type table (`typeof int` is always

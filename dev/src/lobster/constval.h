@@ -151,6 +151,13 @@ ValueType IsType::ConstVal(TypeCheckBase *tc, VTValue &val) const {
         val = VTValue(false);
         return V_INT;
     }
+    // Scalars and function values have no runtime type either, and are of their static type
+    // only, which is not the tested type here: an enum converts to `int`, but an `int` is not
+    // of an enum type.
+    if (IsUnBoxed(ce->t)) {
+        val = VTValue(false);
+        return V_INT;
+    }
     // If no runtime type could ever match the tested type, this is
     // compile-time false. Tested against the non-nil element types, since
     // whether a nil value matches is determined by the tested type alone.
@@ -159,8 +166,7 @@ ValueType IsType::ConstVal(TypeCheckBase *tc, VTValue &val) const {
         val = VTValue(false);
         return V_INT;
     }
-    // This means it is always a reference type, since int/float/function don't convert
-    // into anything without coercion.
+    // Only a reference type is left, whose runtime type decides.
     assert(IsRefNil(ctype->t));
     return V_VOID;
 }

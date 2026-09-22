@@ -109,6 +109,15 @@ def enums_tests():
     test_true((~de_red) is int)
     test_true((de_f1 | 8) is int)
     test_true((de_f1 | de_red) is int)
+    // `is` on an enum or int value is decided by its static type alone, which is not
+    // that of any enum it converts to or was computed from, nor `int` for an enum.
+    test_true(not ((de_red | de_green) is de_color))
+    test_true(not ((de_red | de_green) is de_color?))
+    test_true(not (de_red is int))
+    test_true(not (de_red is de_zero))
+    def is_color(x): return x is de_color
+    test_true(is_color(de_blue))
+    test_true(not is_color(de_blue + 0))
 
     // Explicit int -> enum conversion; equality with the enum value.
     test_true(de_color(3) == de_red)
