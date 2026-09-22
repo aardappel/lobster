@@ -82,7 +82,9 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
                 }
                 // NOTE: cursids overwritten by this are not reverted; that only affects
                 // (the quality of errors in) further dead code checks.
-                TypeCheckFunctionDef(*sf, *sf->sbody->children[0]);
+                // The body stands in for the call there is none of: it stays in place while
+                // its statements get typechecked, which may replace (and delete) them.
+                TypeCheckFunctionDef(*sf, *sf->sbody);
                 dead_code_skipped = false;
             }
         }

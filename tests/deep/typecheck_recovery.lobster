@@ -610,6 +610,16 @@ def typecheck_recovery_tests():
         let z:float = "s"
         return 1
         """, [ "requires type `float`, got `string`", "type `int` does not have field `hf`" ])
+    // The context of the first error in an unreached function is that function, at its
+    // declaration, also when typechecking has replaced the statement it starts with.
+    expect_error_context("""
+        def helper(x:int) -> int: return x + 1
+        def dead(x:int) -> int:
+            helper(x)
+            let z:string = x
+            return x
+        return 1
+        """, [ "requires type `string`, got `int`", "(2): dead(x:int) -> int" ])
     // In an unreached function, code that needs an active caller (a call to a local function
     // of another function here) is not an error, and ends the check of that function, so
     // what comes before it is checked, and what comes after is not.
