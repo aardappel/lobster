@@ -23,6 +23,16 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
 
     TypeCheckConstructors() {}
 
+    // For errors in or about the default value of field `i` of `udt`, which `constructor` left
+    // out: what the constructor gets is a clone of the one written in the declaration, so
+    // they are reported on the declaration's line, which by itself doesn't say what
+    // constructor it was for.
+    SymbolTable::ResolveContext DefaultFieldContext(const UDT &udt, size_t i,
+                                                    const Node &constructor) {
+        return { .what = "default value of field", .udt = &udt,
+                 .name = udt.g.fields[i].id->name, .line = &constructor.line };
+    }
+
     // Resolve which fields of `g` the (tagged) initializers of `ac` belong
     // to, fill in defaults, check for missing fields, and return the
     // equivalent ObjectConstructor (consuming `ac`). When report_errors is
@@ -84,7 +94,8 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
         // there).
         auto constructor = new ObjectConstructor(ac->line, ctype);
         for (auto [i, e] : enumerate(exps)) {
-            constructor->Add(e ? e : g->fields[i].gdefaultval->Clone(true));
+            if (e) constructor->Add(e);
+            else constructor->AddDefault(g->fields[i].gdefaultval->Clone(true));
         }
         ac->children.clear();
         return constructor;
@@ -466,10 +477,16 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
             // The initializers filled in from the declaration may still mention its type
             // variables, whose values are only known once one of the specializations below
             // is picked, which needs the types of the initializers first.
-            SymbolTable::ResolveScope rs(
-                st, { .what = "constructor", .gudt = gudt, .tail = "given no specializers",
-                      .line = &node.line });
-            TypeCheckList(&node, LT_KEEP);
+            SymbolTable::ResolveContext no_specializers = {
+                .what = "constructor", .gudt = gudt, .tail = "given no specializers",
+                .line = &node.line };
+            arglists.push_back(&node);
+            for (auto [i, c] : enumerate(node.children)) {
+                optional<SymbolTable::ResolveScope> rs;
+                if (node.IsDefault(i)) rs.emplace(st, no_specializers);
+                TT(c, 1, LT_KEEP);
+            }
+            arglists.pop_back();
             // Try and find a matching named specialization.
             if (node.Arity() != gudt->fields.size())
                 ErrorAlways(node, "incorrect argument count for generic constructor");
@@ -569,7 +586,7 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
                         TypeCheckList(&node, LT_KEEP);
                         return ErrorNode(node);
                     }
-                    node.Add(udt->sfields[i].defaultval->Clone(true));
+                    node.AddDefault(udt->sfields[i].defaultval->Clone(true));
                 } else {
                     Error(node, "field ", Q(udt->g.fields[i].id->name), " not initialized");
                 }
@@ -578,6 +595,8 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
             // type variables that are now bound. Initializers beyond the fields (reported below)
             // and fields without one (reported above) leave the two lists different in length.
             for (auto [i, c] : enumerate(node.children)) {
+                optional<SymbolTable::ResolveScope> rs;
+                if (node.IsDefault(i)) rs.emplace(st, DefaultFieldContext(*udt, i, node));
                 TT(c, 1, LT_KEEP, i < udt->sfields.size() ? udt->sfields[i].type : type_error);
             }
             st.PopSuperGenerics(udt);
@@ -602,6 +621,8 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
         for (auto [i, c] : enumerate(node.children)) {
             if (i >= udt->sfields.size()) break;
             TypeRef elemtype = node.exptype->udt->sfields[i].type;
+            optional<SymbolTable::ResolveScope> rs;
+            if (node.IsDefault(i)) rs.emplace(st, DefaultFieldContext(*udt, i, node));
             SubType(c, elemtype, ArgName(i), node);
         }
         node.lt = LT_KEEP;  // Or LT_ANY if this is a numeric struct?

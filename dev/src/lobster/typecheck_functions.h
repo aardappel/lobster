@@ -50,6 +50,7 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
         Scope top_level_scope;
         top_level_scope.sf = st.toplevel;
         top_level_scope.call_context = parser.root;
+        top_level_scope.resolve_context_size = st.resolve_context.size();
         top_level_scope.flowstack_size = flowstack.size();
         scopes.push_back(top_level_scope);
         for (size_t fi = 0; fi < st.functiontable.size(); fi++) {
@@ -232,6 +233,7 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
         Scope scope;
         scope.sf = &sf;
         scope.call_context = &call_context;
+        scope.resolve_context_size = st.resolve_context.size();
         scope.flowstack_size = flowstack.size();
         scopes.push_back(scope);
         auto pfvss = preferfreestack.size();

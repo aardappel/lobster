@@ -41,6 +41,14 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
         return r;
     }
 
+    // For errors in or about the default value of argument `i` of `f`, which `call` left out:
+    // what the call gets is a clone of the one written in the declaration, so they are
+    // reported on the declaration's line, which by itself doesn't say what call it was for.
+    SymbolTable::ResolveContext DefaultArgContext(const Function &f, size_t i, const Node &call) {
+        return { .what = "default value of argument", .f = &f,
+                 .name = f.overloads[0]->sf->args[i].sid->id->name, .line = &call.line };
+    }
+
     // All overloads of all arity variants of a function, for errors about a
     // call that none of them matched.
     string DeclaredOverloads(Function *ff) {
@@ -156,11 +164,17 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
         // definition, since SubType below can cause specializations of the current function
         // to be typechecked with strongly typed function value arguments.
         if (static_dispatch || first_dynamic) {
+            auto call = Is<Call>(call_args);
+            auto first_default = call_args.children.size() - (call ? call->num_defaults : 0);
             for (auto [i, c] : enumerate(call_args.children)) {
                 auto &arg = sf->args[i];
                 // Check a dynamic dispatch only for the first case, and then skip
                 // checking the first arg.
-                if (static_dispatch || i) SubType(c, arg.spec_type, ArgName(i), f.name);
+                if (static_dispatch || i) {
+                    optional<SymbolTable::ResolveScope> rs;
+                    if (i >= first_default) rs.emplace(st, DefaultArgContext(f, i, call_args));
+                    SubType(c, arg.spec_type, ArgName(i), f.name);
+                }
                 // We really don't want to specialize functions on variables, so we simply
                 // disallow them. This should happen only infrequently.
                 if (arg.spec_type->HasValueType(V_VAR))
@@ -1168,16 +1182,12 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                     TT(node.children[0], 1, LT_ANY);
                     nargs++;
                 }
+                auto num_defaults = f->nargs() - nargs;
                 if (nargs < f->nargs()) {
                     for (size_t i = nargs; i < f->nargs(); i++) {
-                        // The default is a clone of the one written in the declaration, so a
-                        // type in it that fails to resolve (such as a type variable of the
-                        // function, which the call doesn't bind) gets reported on the
-                        // declaration's line, which by itself doesn't say what call it was for.
-                        SymbolTable::ResolveScope rs(
-                            st, { .what = "default value of argument", .f = f,
-                                  .name = f->overloads[0]->sf->args[i].sid->id->name,
-                                  .line = &node.line });
+                        // In the caller's context, where the type variables of the function
+                        // are not bound, so one in it can't be resolved.
+                        SymbolTable::ResolveScope rs(st, DefaultArgContext(*f, i, node));
                         node.children.push_back(f->default_args[i - f->FirstDefaultArg()]->Clone(true));
                         TT(node.children.back(), 1, LT_ANY);
                         nargs++;
@@ -1188,6 +1198,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                     sup_err();
                 unique_ptr<Call> fc(new Call(node, usf && usf->parent == f ? usf : f->overloads[0]->sf));
                 fc->children = node.children;
+                fc->num_defaults = num_defaults;
                 node.children.clear();
                 r = fc->TypeCheck(ASTChecker(), reqret, {});
                 fc.release();

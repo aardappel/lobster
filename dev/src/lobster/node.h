@@ -537,7 +537,16 @@ struct VectorConstructor : List {
 
 struct ObjectConstructor : List {
     UnTypeRef giventype;
+    // Which of the initializers are default values of fields the constructor was written
+    // without, cloned in from the declaration.
+    vector<bool> defaults;
     ObjectConstructor(const Line &ln, UnTypeRef _type) : List(ln), giventype(_type) {};
+    void AddDefault(Node *a) {
+        defaults.resize(children.size());
+        defaults.push_back(true);
+        Add(a);
+    }
+    bool IsDefault(size_t i) const { return i < defaults.size() && defaults[i]; }
     bool IsConstInit() const {
         for (auto n : children) {
             if (!n->IsConstInit()) return false;
@@ -590,6 +599,9 @@ struct Call : List {
     // Typechecking gave up on this call (see TypeChecker::GiveUpCall), so `sf` says nothing
     // about it.
     bool failed = false;
+    // How many of the last arguments are default values the call was written without, cloned
+    // in from the declaration.
+    size_t num_defaults = 0;
     explicit Call(GenericCall &gc, SubFunction *sf)
         : List(gc.line), sf(sf), specializers(gc.specializers), super(gc.super) {};
     Call(Line &ln, SubFunction *sf) : List(ln), sf(sf) {};

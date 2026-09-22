@@ -281,6 +281,53 @@ def typecheck_recovery_tests():
         return 1
         """, [ "could not resolve type variable `T`",
                "(3): default value of argument `x` of `f`" ])
+    // Any other error in a default value, or about it not fitting what it is the default of,
+    // names what it was for the same way.
+    expect_error_context("""
+        def f<T>(x:T, y:T = 0):
+            return x
+        print(f("a"))
+        return 1
+        """, [ "`f` (2nd argument) requires type `string`, got `int`",
+               "(3): default value of argument `y` of `f`" ])
+    expect_error_context("""
+        class A<T>:
+            x:T
+            y:T = 0
+        print(A<string> { "a" }.x)
+        return 1
+        """, [ "(2nd argument) requires type `string`, got `int`",
+               "(4): default value of field `y` of `A<string>`" ])
+    expect_error_context("""
+        class A<T>:
+            x:T
+            y = T {}
+        print(A<float2> { float2 { 1.0, 2.0 } }.x)
+        return 1
+        """, [ "field `x` not initialized", "in default value of field `y` of `A<float2>`" ])
+    // In between the calls that led there, and even when the error is not the first, which
+    // leaves out the calls.
+    expect_error_context("""
+        def make():
+            return sqrt("a")
+        def f(x, y = make()):
+            return x
+        def g():
+            return f(1)
+        print(g())
+        return 1
+        """, [ "string(3): make()\n  in string(6): default value of argument `y` of `f`\n" +
+               "  in string(7): g()" ])
+    expect_error_context("""
+        let q:int = "x"
+        def f(x, y = sqrt("a")):
+            return x
+        def g():
+            return f(1)
+        print(g())
+        return 1
+        """, [ "`sqrt` (1st argument) requires type `float`, got `string`\n" +
+               "  in string(5): default value of argument `y` of `f`" ])
     // The initializers of a constructor that can't be resolved still get typechecked.
     expect_errors("""
         class A:

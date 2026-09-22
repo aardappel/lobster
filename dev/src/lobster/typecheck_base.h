@@ -61,6 +61,9 @@ struct TypeCheckBase {
     struct Scope {
         SubFunction *sf = nullptr;
         const Node *call_context = nullptr;
+        // How many entries st.resolve_context had when this was entered: the ones after that
+        // are what this function is in the middle of, see AddErrorContext.
+        size_t resolve_context_size = 0;
         // Where in the writes recorded for the function the outermost loop currently being
         // typechecked started, see LoopWroteBefore.
         size_t loop_events_start = 0;
@@ -220,34 +223,46 @@ struct TypeCheckBase {
         return n.Name();
     }
 
-    void AddStackTrace(string &err) {
+    // The context lines of an error, innermost first: the calls that led to it, each preceded
+    // by what its function is in the middle of for a particular specialization or use (see
+    // SymbolTable::ResolveContext). That of the innermost function is always given, since
+    // without it an error on the line of a declaration doesn't say what it is about; the
+    // calls only for the first error, unless --full-error.
+    void AddErrorContext(string &err) {
+        auto &rcs = st.resolve_context;
+        auto rci = rcs.size();
+        auto add_resolve_contexts = [&](size_t down_to) {
+            for (; rci > down_to; rci--) st.AddResolveContext(err, rcs[rci - 1]);
+        };
+        auto calls = full_error || parser.lex.num_errors == 0;
         set<Ident *> already_seen;
-        if (!scopes.empty()) {
-            size_t scope_count = 0;
-            for (auto &scope : reverse(scopes)) {
-                if (scope.sf == st.toplevel) continue;
-                err += "\n  in " + parser.lex.Location(scope.call_context->line) + ": ";
-                if (full_error) {
-                    err += SignatureWithFreeVars(*scope.sf, &already_seen);
-                    for (auto dl : scope.sf->sbody->children) {
-                        if (auto def = Is<Define>(dl)) {
-                            if (Is<DefaultVal>(def->child)) continue;  // A pre-decl.
-                            for (auto p : def->tsids) {
-                                err += ", " + p.sid->id->name + ":" + TypeName(p.sid->type);
-                            }
+        size_t scope_count = 0;
+        for (auto &scope : reverse(scopes)) {
+            add_resolve_contexts(scope.resolve_context_size);
+            if (!calls) return;
+            if (scope.sf == st.toplevel) continue;
+            err += "\n  in " + parser.lex.Location(scope.call_context->line) + ": ";
+            if (full_error) {
+                err += SignatureWithFreeVars(*scope.sf, &already_seen);
+                for (auto dl : scope.sf->sbody->children) {
+                    if (auto def = Is<Define>(dl)) {
+                        if (Is<DefaultVal>(def->child)) continue;  // A pre-decl.
+                        for (auto p : def->tsids) {
+                            err += ", " + p.sid->id->name + ":" + TypeName(p.sid->type);
                         }
                     }
-                } else {
-                    err += Signature(*scope.sf);
-                    scope_count++;
-                    if (scope_count == 5 && scopes.size() > 7) {
-                        err += cat("\n  (", scopes.size() - scope_count,
-                            " more functions omitted, --full-error to see more) ");
-                        break;
-                    }
+                }
+            } else {
+                err += Signature(*scope.sf);
+                scope_count++;
+                if (scope_count == 5 && scopes.size() > 7) {
+                    err += cat("\n  (", scopes.size() - scope_count,
+                        " more functions omitted, --full-error to see more) ");
+                    return;
                 }
             }
         }
+        add_resolve_contexts(0);
     }
 
     // Errors don't stop typechecking: they get collected (see Lex::Report), and the code that
@@ -276,7 +291,7 @@ struct TypeCheckBase {
     template<typename... Ts> void ErrorAlways(const Node &n, const Ts &...args) {
         if (dead_code_skipped) return;
         auto err = cat(args...);
-        if (full_error || parser.lex.num_errors == 0) AddStackTrace(err);
+        AddErrorContext(err);
         parser.lex.Report(err, &n.line);
     }
 
@@ -337,7 +352,7 @@ struct TypeCheckBase {
 
     template<typename... Ts> void Warn(const Node &n, const Ts &...args) {
         auto err = cat(args...);
-        if (full_error) AddStackTrace(err);
+        if (full_error) AddErrorContext(err);
         parser.lex.Warn(err, &n.line);
     }
 

@@ -1009,11 +1009,12 @@ struct SymbolTable {
 
     function<void(UDT &)> type_check_call_back;
 
-    // What ResolveTypeVars is in the middle of, innermost last. A type written in a generic
-    // declaration is resolved once per specialization (and one in a default argument once per
-    // call that leaves it out), so the line an error in one is on is the declaration, which on
-    // its own doesn't say which specialization went wrong or what asked for it. Formatted only
-    // when there is an error, see ResolveError.
+    // What type resolution or the typechecker is in the middle of for a particular
+    // specialization or use of it, innermost last. A generic declaration is resolved and
+    // typechecked once per specialization, and a default value once per call or constructor
+    // that leaves it out, so the line an error in one is on is the declaration, which on its
+    // own doesn't say which specialization went wrong or what asked for it. Formatted only
+    // when there is an error, see error_context_call_back.
     struct ResolveContext {
         const char *what = nullptr;
         const UDT *udt = nullptr;     // The specialization it belongs to, if there is one.
@@ -1034,14 +1035,17 @@ struct SymbolTable {
         ~ResolveScope() { st.resolve_context.pop_back(); }
     };
 
-    // Lets the typechecker add the calls it is in the middle of (see
-    // TypeCheckBase::AddStackTrace) to an error reported from here, since type resolution
-    // is mostly driven by it and has no nodes of its own to report against.
+    // Adds the context lines to an error reported from here. The typechecker gives the calls
+    // it is in the middle of as well, in between these (see TypeCheckBase::AddErrorContext),
+    // since type resolution is mostly driven by it and has no nodes of its own to report
+    // against.
     function<void(string &)> error_context_call_back;
 
     SymbolTable(Lex &lex) : lex(lex) {
         type_check_call_back = [](UDT &) {};
-        error_context_call_back = [](string &) {};
+        error_context_call_back = [this](string &err) {
+            for (auto &rc : reverse(resolve_context)) AddResolveContext(err, rc);
+        };
         namespace_stack.push_back({});
     }
 
@@ -1715,19 +1719,20 @@ struct SymbolTable {
         return tv;
     }
 
+    void AddResolveContext(string &err, const ResolveContext &rc) {
+        err += "\n  in ";
+        if (rc.line) append(err, lex.Location(*rc.line), ": ");
+        err += rc.what;
+        if (!rc.name.empty()) append(err, " ", Q(rc.name));
+        if (rc.udt) append(err, " of ", Q(TypeName(&rc.udt->thistype)));
+        else if (rc.gudt) append(err, " of ", Q(rc.gudt->name));
+        else if (rc.f) append(err, " of ", Q(rc.f->name));
+        if (rc.tail) append(err, " ", rc.tail);
+    }
+
     // An error resolving a type, which names what was being resolved and the calls that
     // led there on top of the line the type is written on.
     void ResolveError(string err, const Line &errl) {
-        for (auto &rc : reverse(resolve_context)) {
-            err += "\n  in ";
-            if (rc.line) append(err, lex.Location(*rc.line), ": ");
-            err += rc.what;
-            if (!rc.name.empty()) append(err, " ", Q(rc.name));
-            if (rc.udt) append(err, " of ", Q(TypeName(&rc.udt->thistype)));
-            else if (rc.gudt) append(err, " of ", Q(rc.gudt->name));
-            else if (rc.f) append(err, " of ", Q(rc.f->name));
-            if (rc.tail) append(err, " ", rc.tail);
-        }
         error_context_call_back(err);
         lex.Report(err, &errl);
     }
