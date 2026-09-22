@@ -119,6 +119,15 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
             return false;  // Function not in context.
             found:;
         }
+        // A return from a function none of whose calls was active returned nothing to it (see
+        // Return::TypeCheck), so where one is, the return must be typechecked anew. Where none
+        // is, a new specialization would come out the same, and a recursive call in it would
+        // make another one, without end.
+        for (auto f : ssf.reuse_inactive_returns) {
+            for (auto &isc : scopes) {
+                if (isc.sf->parent == f) return false;
+            }
+        }
         return true;
     }
 

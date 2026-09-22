@@ -797,6 +797,8 @@ struct SubFunction {
     size_t num_returns_non_local = 0;
     size_t reqret = 0;  // Do the caller(s) want values to be returned?
     vector<pair<const SubFunction *, TypeRef>> reuse_return_events;
+    // Functions returned from while none of their calls was active, see Return::TypeCheck.
+    vector<const Function *> reuse_inactive_returns;
     vector<AssignEvent> reuse_assign_events;
     bool isrecursivelycalled = false;
     Block *sbody = nullptr;

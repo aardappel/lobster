@@ -155,6 +155,16 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
         }
     }
 
+    // A return from `f` while none of its calls is active (see Return::TypeCheck) is in every
+    // function being typechecked, which can then be reused only where that is still the case,
+    // see CompatibleReturns.
+    void RecordInactiveReturn(const Function &f) {
+        for (auto &isc : scopes) {
+            auto &irs = isc.sf->reuse_inactive_returns;
+            if (std::find(irs.begin(), irs.end(), &f) == irs.end()) irs.push_back(&f);
+        }
+    }
+
     void CheckExplicitFreeVarSid(ExplicitFreeVar *fvd, SpecIdent *sid, TypeRef type, bool checkfields, Node &context) {
         if (sid->id->name == fvd->name) {
             fvd->spec.sid = sid;
@@ -414,6 +424,7 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
                 ErrorAlways(call_context, "return from ", Q(isf->parent->name),
                             " called out of context");
         }
+        for (auto f : sf->reuse_inactive_returns) RecordInactiveReturn(*f);
     }
 
     // This more complex iteration is needed for recursion, see Check(Return &) below
@@ -473,9 +484,11 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
         node.lt = LT_ANY;
         // Ensure what we're returning from is going to be on the stack at runtime.
         // First find correct specialization for sf.
+        auto active = false;
         for (auto isc : reverse(scopes)) {
             if (isc.sf->parent == node.sf->parent) {
                 node.sf = isc.sf;
+                active = true;
                 break;
             }
         }
@@ -512,7 +525,14 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
             ErrorAlways(node, "control reaches end of non-void function");
             return &node;
         }
-        if (!Is<DefaultVal>(node.child)) {
+        if (!active) {
+            // A non-local return from a function none of whose calls is active: an error (see
+            // below), except in dead code, which is typechecked without the callers that would
+            // provide one, see TypeCheckDeadCode. node.sf is still the one the parser gave it, a
+            // specialization unrelated to this return (possibly of live code), so the value
+            // isn't returned to anything.
+            RecordInactiveReturn(*node.sf->parent);
+        } else if (!Is<DefaultVal>(node.child)) {
             auto scchild = (Node *)SkipCoercions(node.child);
             if (auto mrs = Is<MultipleReturn>(scchild)) {
                 RetVal(mrs->exptype, node.sf, node);

@@ -462,6 +462,21 @@ def typecheck_recovery_tests():
         let z:float = "s"
         return outer()
         """, [ "requires type `float`, got `string`", "missing return statement" ])
+    // A return from a function none of whose calls is active is an error, which doesn't keep a
+    // recursive call of the function it is in from reusing the specialization being checked.
+    expect_errors("""
+        def handler(body):
+            body()
+            return 0
+        def f(n:int) -> int:
+            if n > 1000:
+                return 1 from handler
+            return if n <= 0: 0 else: f(n - 1)
+        let r = f(3)
+        let z:float = "s"
+        return r
+        """, [ "return from `handler` called out of context",
+               "requires type `float`, got `string`" ])
     // A return from the program keeps one value, so extra ones are not an error.
     let mret, merr = compile_run_code("def f():\n    return 1, 2 from program\nf()\nreturn 3",
                                       [], 100)
