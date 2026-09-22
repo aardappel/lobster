@@ -1170,6 +1170,14 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                 }
                 if (nargs < f->nargs()) {
                     for (size_t i = nargs; i < f->nargs(); i++) {
+                        // The default is a clone of the one written in the declaration, so a
+                        // type in it that fails to resolve (such as a type variable of the
+                        // function, which the call doesn't bind) gets reported on the
+                        // declaration's line, which by itself doesn't say what call it was for.
+                        SymbolTable::ResolveScope rs(
+                            st, { .what = "default value of argument", .f = f,
+                                  .name = f->overloads[0]->sf->args[i].sid->id->name,
+                                  .line = &node.line });
                         node.children.push_back(f->default_args[i - f->FirstDefaultArg()]->Clone(true));
                         TT(node.children.back(), 1, LT_ANY);
                         nargs++;

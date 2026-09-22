@@ -1010,16 +1010,18 @@ struct SymbolTable {
     function<void(UDT &)> type_check_call_back;
 
     // What ResolveTypeVars is in the middle of, innermost last. A type written in a generic
-    // declaration is resolved once per specialization, so the line an error in one is on is
-    // the declaration, which on its own doesn't say which specialization went wrong or what
-    // asked for it. Formatted only when there is an error, see ResolveError.
+    // declaration is resolved once per specialization (and one in a default argument once per
+    // call that leaves it out), so the line an error in one is on is the declaration, which on
+    // its own doesn't say which specialization went wrong or what asked for it. Formatted only
+    // when there is an error, see ResolveError.
     struct ResolveContext {
         const char *what = nullptr;
-        const UDT *udt = nullptr;    // The specialization it belongs to, if there is one.
-        const GUDT *gudt = nullptr;  // Its declaration, when no specialization was picked.
-        string_view name;            // The field it is the type of, empty if none.
-        const char *tail = nullptr;  // The rest of the phrase, after the type.
-        const Line *line = nullptr;  // What asked for it, if not the type's own line.
+        const UDT *udt = nullptr;     // The specialization it belongs to, if there is one.
+        const GUDT *gudt = nullptr;   // Its declaration, when no specialization was picked.
+        const Function *f = nullptr;  // The function, for an argument of one.
+        string_view name;             // The field or argument it is about, empty if none.
+        const char *tail = nullptr;   // The rest of the phrase, after the type.
+        const Line *line = nullptr;   // What asked for it, if not the type's own line.
     };
     vector<ResolveContext> resolve_context;
 
@@ -1723,6 +1725,7 @@ struct SymbolTable {
             if (!rc.name.empty()) append(err, " ", Q(rc.name));
             if (rc.udt) append(err, " of ", Q(TypeName(&rc.udt->thistype)));
             else if (rc.gudt) append(err, " of ", Q(rc.gudt->name));
+            else if (rc.f) append(err, " of ", Q(rc.f->name));
             if (rc.tail) append(err, " ", rc.tail);
         }
         error_context_call_back(err);

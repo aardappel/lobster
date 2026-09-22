@@ -272,6 +272,15 @@ def typecheck_recovery_tests():
         print(C {}.m<int>())
         return 1
         """, [ "could not resolve type variable `T`", "in type of field `q` of `C`" ])
+    // A default argument is typechecked at each call that leaves it out, where the type
+    // variables of the function are not bound.
+    expect_error_context("""
+        def f<T>(x = T {}):
+            return x
+        print(f<int>())
+        return 1
+        """, [ "could not resolve type variable `T`",
+               "(3): default value of argument `x` of `f`" ])
     // The initializers of a constructor that can't be resolved still get typechecked.
     expect_errors("""
         class A:
