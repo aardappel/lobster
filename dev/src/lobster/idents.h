@@ -362,7 +362,8 @@ struct UDT : Named {
     // masks it out only then, since the whole slot is the index otherwise.
     bool family_type_slot_shared = false;
     UDTState state = UDTState::DECLARED;
-    bool in_forest = false;  // Present in the subudts of itself & superclasses.
+    // Present in the subudts of itself & superclasses (those still open, see RegisterSubUDT).
+    bool in_forest = false;
     bool unnamed_specialization = false;
     Type thistype;  // convenient place to store the type corresponding to this.
     TypeRef sametype = type_undefined;  // If all fields are int/float, this allows vector ops.
@@ -2144,12 +2145,15 @@ struct SymbolTable {
     // Register a specialization in the subudts list of itself and all its
     // superclasses. Called by the declchecker for all specializations known
     // after parsing, and from EnsureUDTChecked for specializations created
-    // during typechecking.
+    // during typechecking. Those don't get into the lists of classes a dispatch
+    // has already been typechecked on, since such a dispatch snapshots the set of
+    // subclasses it was built for (see DispatchEntry::subudts_size), which must stay
+    // what it was for its reuse and codegen.
     void RegisterSubUDT(UDT *udt) {
         if (udt->in_forest) return;
         udt->in_forest = true;
         for (auto u = udt; u; u = u->ssuperclass) {
-            u->subudts.push_back(udt);
+            if (u->subudts_dispatched_where.empty()) u->subudts.push_back(udt);
             // An abstract class can never be a dispatch case itself, it only
             // needs to be present as a dispatch root.
             if (udt->g.is_abstract) break;

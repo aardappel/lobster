@@ -350,6 +350,27 @@ def declcheck_order_tests():
                  "def dead2(x:int) -> int:\n    return inner2() + x\n" +
                  "assert outer2() == 3\nreturn 9", "9")
 
+    // A specialization that only a function that is never called creates can't reach a
+    // dispatch on its superclass at runtime, so it is not an error for that dispatch to be
+    // typechecked first: here in a function it calls, which got checked by itself before it.
+    expect_dk_ok("abstract class DE:\n    w = 1\n" +
+                 "abstract class DW : DE\n" +
+                 "class DT : DW\n    def run() -> int: return 2\n" +
+                 "class DA<F> : DW\n    body:F\n" +
+                 "    def run() -> int:\n        let f = body\n        return f()\n" +
+                 "def any_ui<F>(b:F) -> DE: return DA<F> \{ b \}\n" +
+                 "def run_ui(e:DE) -> int:\n" +
+                 "    switch e:\n        case DW: return e.run()\n        default: return 0\n" +
+                 "def dead3() -> int: return run_ui(any_ui(): 1)\n" +
+                 "return 5", "5")
+    // Or in live code.
+    expect_dk_ok("abstract class DN:\n    def name() -> string: return \"n\"\n" +
+                 "class DB<T> : DN\n    v:T\n    def name() -> string: return \"b\"\n" +
+                 "def mk<T>(v:T) -> DN: return DB<T> \{ v \}\n" +
+                 "def show(n:DN) -> string: return n.name()\n" +
+                 "def dead4(x:int) -> string: return show(mk(x))\n" +
+                 "return show(mk(\"s\"))", "b")
+
     // An inheritance cycle formed thru a pre-declaration is an error.
     expect_error("class A\nclass B : A\nclass A : B\nreturn 1", "inheritance cycle")
 

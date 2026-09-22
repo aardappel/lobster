@@ -1400,7 +1400,9 @@ return type without coercion (the dispatch's return type is their union;
 recursive dispatch requires declared return types). The set of subtypes is
 that of the whole program as declared; a specialization of a generic class
 created (by first use) after a dispatch on its superclass was type checked is
-an error ("already used in dynamic dispatch ... before it has been declared").
+an error ("already used in dynamic dispatch ... before it has been declared"),
+except where only a function that is never called creates it (see
+Specialization).
 A `super f(...)` call resolves statically to the implementation for the
 superclass of the enclosing method's class. Methods of related types declared
 in different scopes cannot dispatch together (error).

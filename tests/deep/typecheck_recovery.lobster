@@ -484,6 +484,25 @@ def typecheck_recovery_tests():
         let z:float = "s"
         return test()
         """, [ "same scope", "requires type `float`, got `string`" ])
+    // A specialization created after a dispatch on its superclass, which that dispatch
+    // can't include, can still be switched on itself.
+    expect_errors("""
+        abstract class A:
+            x = 0
+        class B<T> : A
+            y:T
+        def mk<T>(v:T): return B<T> { v }
+        def f(a:A):
+            switch a:
+                case A: print "a"
+        f(mk(1))
+        let s = mk("x")
+        switch s:
+            case A: print "s"
+        let z:float = "s"
+        return 1
+        """, [ "class `B` already used in dynamic dispatch of `switch` on `A` before it has been declared",
+               "requires type `float`, got `string`" ])
 
     // Unreached functions are still checked for their errors after errors elsewhere.
     expect_errors("""
@@ -535,6 +554,22 @@ def typecheck_recovery_tests():
         return f()
         """, [ "unknown field/function reference `unknown_thing`",
                "requires type `float`, got `string`" ])
+    // Creating a specialization after a dispatch on its superclass was typechecked is not an
+    // error in an unreached function (see declcheck.lobster), and doesn't end its check.
+    expect_errors("""
+        abstract class A:
+            def name() -> string: return "a"
+        class B<T> : A
+            v:T
+            def name() -> string: return "b"
+        def mk<T>(v:T) -> A: return B<T> { v }
+        def show(a:A) -> string: return a.name()
+        def dead(x:int) -> string:
+            let s = show(mk(x))
+            let z:float = s
+            return s
+        return 1
+        """, [ "requires type `float`, got `string`" ])
 
     // Errors that were fatal: the borrow checker's, the string assignment codegen used to
     // catch, and a duplicate serializable id.

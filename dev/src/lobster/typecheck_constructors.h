@@ -245,23 +245,27 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
         // in the inheritance forest; this can only be a specialization that
         // got created during typechecking (of a generic type).
         if (!udt.in_forest) {
-            auto dispatched = false;
-            for (auto u = &udt; u; u = u->ssuperclass) {
-                if (!u->subudts_dispatched_where.empty()) {
-                    // A dispatch on a superclass has already been typechecked, so
-                    // its vtables can no longer be extended with this new
-                    // specialization. Without this error, the VM could run into
-                    // empty vtable entries.
-                    ErrorAlways(errn, "class ", Q(udt.name),
-                                " already used in dynamic dispatch of ",
-                                Q(u->subudts_dispatched_where), " on ", Q(u->name),
-                                " before it has been declared");
-                    dispatched = true;
+            // Dead code never runs, so no object of a class that only it creates can reach
+            // a dispatch. Which of the two it gets to first is also just the order
+            // TypeCheckDeadCode goes in: a function that dispatches may have been checked
+            // by itself before the dead function that creates the class and then calls it.
+            if (!checking_dead_code) {
+                for (auto u = &udt; u; u = u->ssuperclass) {
+                    if (!u->subudts_dispatched_where.empty()) {
+                        // A dispatch on a superclass has already been typechecked, so
+                        // its vtables can no longer be extended with this new
+                        // specialization. Without this error, the VM could run into
+                        // empty vtable entries.
+                        ErrorAlways(errn, "class ", Q(udt.name),
+                                    " already used in dynamic dispatch of ",
+                                    Q(u->subudts_dispatched_where), " on ", Q(u->name),
+                                    " before it has been declared");
+                    }
                 }
             }
-            // Those dispatches also snapshot the set of subclasses they were built for (see
-            // DispatchEntry::subudts_size), which must stay what it was for their reuse.
-            if (!dispatched) st.RegisterSubUDT(&udt);
+            // Also after the error: a switch or dispatch on this class itself needs it
+            // among its own subudts.
+            st.RegisterSubUDT(&udt);
         }
         // Inline struct fields contribute their slots to our size, so they
         // must be complete first.
