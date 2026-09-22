@@ -62,7 +62,7 @@ is desired.
 
 // How many bytes a block from malloc can hold, which is at least what was asked for and often
 // more, so a string that grows can use the room before asking for a bigger block.
-#ifdef _MSC_VER
+#ifdef _WIN32
     #include <malloc.h>
     inline size_t MallocUsableSize(void *p) { return _msize(p); }
 #elif defined(__APPLE__)

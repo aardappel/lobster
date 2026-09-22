@@ -14,6 +14,18 @@
 
 // Misc platform specific stuff.
 
+#if defined(_WIN32) && !defined(_MSC_VER)
+    // Include these before stdafx.h: its "using namespace std" makes the Windows `byte` typedef
+    // ambiguous with std::byte (MSVC avoids this with _HAS_STD_BYTE, libstdc++ has no such switch).
+    #define VC_EXTRALEAN
+    #define WIN32_LEAN_AND_MEAN
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #include <windows.h>
+    #include <sapi.h>
+    #include <comdef.h>
+#endif
 #include "lobster/stdafx.h"
 #include <stdarg.h>
 #include <time.h>
