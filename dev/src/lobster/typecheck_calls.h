@@ -702,7 +702,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                 // Gotten to the end and we still have multiple matches!
                 if (specializers) {
                     // Last ditch effort: remove overloads that don't match the generic params.
-                    pickfrom.erase(remove_if(pickfrom.begin(), pickfrom.end(),
+                    pickfrom.erase(std::remove_if(pickfrom.begin(), pickfrom.end(),
                                          [&](Overload *ov) {
                         return specializers->size() != ov->sf->generics.size();
                                              }),

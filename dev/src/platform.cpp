@@ -14,18 +14,6 @@
 
 // Misc platform specific stuff.
 
-#if defined(_WIN32) && !defined(_MSC_VER)
-    // Include these before stdafx.h: its "using namespace std" makes the Windows `byte` typedef
-    // ambiguous with std::byte (MSVC avoids this with _HAS_STD_BYTE, libstdc++ has no such switch).
-    #define VC_EXTRALEAN
-    #define WIN32_LEAN_AND_MEAN
-    #ifndef NOMINMAX
-        #define NOMINMAX
-    #endif
-    #include <windows.h>
-    #include <sapi.h>
-    #include <comdef.h>
-#endif
 #include "lobster/stdafx.h"
 #include <stdarg.h>
 #include <time.h>
@@ -126,7 +114,7 @@ int hwcores = 1;
 bool hwpopcount = true;
 void InitCPU() {
     // This can fail and return 0, so default to 2 threads:
-    hwthreads = max(2, (int)thread::hardware_concurrency());
+    hwthreads = max(2, (int)std::thread::hardware_concurrency());
     // As a baseline, assume desktop CPUs are hyperthreaded, and mobile ones are not.
     #ifdef PLATFORM_ES3
         hwcores = hwthreads;
@@ -331,11 +319,11 @@ string SanitizePath(string_view path) {
     return r;
 }
 
-map<string, tuple<string, int64_t, int64_t, int64_t>, less<>> pakfile_registry;
+map<string, std::tuple<string, int64_t, int64_t, int64_t>, less<>> pakfile_registry;
 
 void AddPakFileEntry(string_view pakfilename, string_view relfilename, int64_t off,
                      int64_t len, int64_t uncompressed) {
-    pakfile_registry[string(relfilename)] = make_tuple(pakfilename, off, len, uncompressed);
+    pakfile_registry[string(relfilename)] = std::make_tuple(pakfilename, off, len, uncompressed);
 }
 
 string last_abs_path_loaded;
@@ -359,7 +347,7 @@ int64_t LoadFileFromAny(string_view filename, string *dest, int64_t start, int64
 void TextModeConvert(string &s, bool binary) {
     if (binary) return;
     #ifdef _WIN32
-        s.erase(remove(s.begin(), s.end(), '\r'), s.end());
+        s.erase(std::remove(s.begin(), s.end(), '\r'), s.end());
     #endif
 }
 
@@ -445,17 +433,17 @@ bool FileExists(string_view filename, bool allow_absolute) {
 bool FileDelete(string_view relfilename) {
     // FIXME: not super safe? tries to delete in every import dir.
     for (auto &wd : write_dirs) {
-        if (remove((wd + SanitizePath(relfilename)).c_str()) == 0) return true;
+        if (std::remove((wd + SanitizePath(relfilename)).c_str()) == 0) return true;
     }
     return false;
 }
 
 bool ScanDirAbs(string_view absdir, vector<DirectoryInfo> &dest) {
-    using namespace filesystem;
+    using namespace std::filesystem;
     string folder = SanitizePath(absdir);
     #if !defined(PLATFORM_ES3)
         path p = folder.empty() ? "/" : folder;
-        error_code ec;
+        std::error_code ec;
         directory_iterator iter{p, ec};
         if (ec) return false;
         for (; iter != directory_iterator(); iter.increment(ec)) {
@@ -479,7 +467,7 @@ bool ScanDir(string_view reldir, vector<DirectoryInfo> &dest) {
             auto pos = reldir.size();
             if (prfn.find_first_of("/\\", pos) == pos) pos++;  // Skip first separator if any.
             if (prfn.find_first_of("/\\", pos) != string::npos) continue;  // Item in subdir.
-            dest.push_back({ prfn.substr(pos), get<2>(tup) });
+            dest.push_back({ prfn.substr(pos), std::get<2>(tup) });
         }
     }
     // Even if we found things in pakfile, we scan filesystem additionally, since LoadFile

@@ -440,7 +440,7 @@ BUILTIN(replace_string, "s,a,b,count", "SSSI?", "S",
     auto sv = is->strv();
     auto a = ia->strv();
     auto b = ib->strv();
-    auto c = count ? count : numeric_limits<iint>::max();
+    auto c = count ? count : std::numeric_limits<iint>::max();
     if (a.empty()) {
         // We could error here, but more useful to just return the input.
         s = sv;

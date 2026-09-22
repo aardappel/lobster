@@ -220,7 +220,7 @@ struct Field {
     UnTypeRef giventype;
     // Inherited fields share the declaration's default, including the lexical bindings
     // the declchecker adds there. Typechecking and construction only work on clones.
-    shared_ptr<Node> gdefaultval;
+    std::shared_ptr<Node> gdefaultval;
     bool isprivate;
     bool in_scope;  // Whether the `member` statement declaring it has been reached.
     // The method a `member` declared this in, null for an ordinary field. Only

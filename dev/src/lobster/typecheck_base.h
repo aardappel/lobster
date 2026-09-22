@@ -692,7 +692,7 @@ struct TypeCheckBase {
             case V_FLOAT:
                 if (a->exptype->t == V_INT) {
                     if (auto ic = Is<IntConstant>(a)) {
-                        auto this_warn = make_pair(ic->line, ic->integer);
+                        auto this_warn = std::make_pair(ic->line, ic->integer);
                         if (integer_literal_warnings.insert(this_warn).second) {
                             parser.WarnAt(a, "integer literal (", ic->integer,
                                           ") where float expected");

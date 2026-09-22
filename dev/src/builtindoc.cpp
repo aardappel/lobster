@@ -203,7 +203,7 @@ void DumpBuiltinDocJson(NativeRegistry &nfr) {
     /* ParamDefault */ {", \"default\": \"", "\""},
     /* Param        */ {"{", "}"},
     /* RetTypeWrap  */ {"\"", "\""}};
-    cout << GetBuiltinDoc(nfr, false, json_tags, JSONEscape);
+    std::cout << GetBuiltinDoc(nfr, false, json_tags, JSONEscape);
 }
 
 }  // namespace lobster

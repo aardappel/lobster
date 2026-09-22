@@ -40,7 +40,7 @@ template<typename T> bool WaveFunctionCollapse(const int2 &insize, const char **
     num_contradictions = 0;
     typedef uint64_t bitmask_t;
     const auto nbits = sizeof(bitmask_t) * 8;
-    array<int, 256> tile_lookup;
+    std::array<int, 256> tile_lookup;
     tile_lookup.fill(-1);
     struct Tile { bitmask_t sides[4] = {}; int freq = 0; char tidx = 0; };
     vector<Tile> tiles;

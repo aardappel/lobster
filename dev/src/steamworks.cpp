@@ -110,19 +110,19 @@ struct SteamState {
     }
 
     auto FindPeer(const SteamNetworkingIdentity &net_identity) {
-        return find_if(peers.begin(), peers.end(), [&](const auto &peer) {
+        return std::find_if(peers.begin(), peers.end(), [&](const auto &peer) {
             return peer.net_identity == net_identity;
         });
     }
 
     auto FindPeer(const string_view ident) {
-        return find_if(peers.begin(), peers.end(), [&](const auto& peer) {
+        return std::find_if(peers.begin(), peers.end(), [&](const auto& peer) {
             return peer.ident == ident;
         });
     }
 
     auto FindPeer(HSteamNetConnection conn) {
-        return find_if(peers.begin(), peers.end(), [&](const auto& peer) {
+        return std::find_if(peers.begin(), peers.end(), [&](const auto& peer) {
             return peer.connection == conn;
         });
     }
@@ -135,7 +135,7 @@ struct SteamState {
             peer = peers.end() - 1;
             found = false;
         }
-        return make_pair(peer, found);
+        return std::make_pair(peer, found);
     }
 
     auto RenamePeer(string_view_nt str_identity, string_view_nt str_new_identity) {
@@ -396,12 +396,12 @@ struct SteamState {
     /// Steamworks calls from within the handler.
     static void DebugOutputFn(ESteamNetworkingSocketsDebugOutputType /*nType*/,
                               const char *pszMsg) {
-        lock_guard<mutex> guard(debug_output_mutex);
+        std::lock_guard<mutex> guard(debug_output_mutex);
         debug_output.push_back(string(pszMsg));
     }
 
     vector<string> GetDebugOutput() {
-        lock_guard<mutex> guard(debug_output_mutex);
+        std::lock_guard<mutex> guard(debug_output_mutex);
         auto result = std::move(debug_output);
         debug_output.clear();
         return result;
@@ -608,28 +608,28 @@ struct SteamState {
     static string ResolveToAbsolutePath(string_view path) {
         auto p = SanitizePath(path);
         if (!IsAbsolute(p)) p = GetMainWriteDir() + p;
-        error_code ec;
-        auto abs = filesystem::absolute(filesystem::path(p), ec);
+        std::error_code ec;
+        auto abs = std::filesystem::absolute(std::filesystem::path(p), ec);
         return ec ? p : abs.string();
     }
 
-    static bool CopyDirRecursive(const filesystem::path &src, const filesystem::path &dst,
+    static bool CopyDirRecursive(const std::filesystem::path &src, const std::filesystem::path &dst,
                                  vector<string> &copied_files) {
-        error_code ec;
-        filesystem::create_directories(dst, ec);
+        std::error_code ec;
+        std::filesystem::create_directories(dst, ec);
         if (ec) return false;
-        filesystem::recursive_directory_iterator iter(src, ec);
+        std::filesystem::recursive_directory_iterator iter(src, ec);
         if (ec) return false;
         for (auto &entry : iter) {
-            auto rel = filesystem::relative(entry.path(), src, ec);
+            auto rel = std::filesystem::relative(entry.path(), src, ec);
             if (ec) return false;
             auto target = dst / rel;
             if (entry.is_directory()) {
-                filesystem::create_directories(target, ec);
+                std::filesystem::create_directories(target, ec);
                 if (ec) return false;
             } else if (entry.is_regular_file()) {
-                filesystem::copy_file(entry.path(), target,
-                                      filesystem::copy_options::overwrite_existing, ec);
+                std::filesystem::copy_file(entry.path(), target,
+                                          std::filesystem::copy_options::overwrite_existing, ec);
                 if (ec) return false;
                 copied_files.push_back(target.generic_string());
             }
@@ -678,7 +678,7 @@ struct SteamState {
             // The item folder is named after the workshop file id, but the files
             // inside it keep the names they were uploaded with (see SetItemContent),
             // so copying preserves original filenames.
-            auto dest = filesystem::path(ResolveToAbsolutePath(dest_dir));
+            auto dest = std::filesystem::path(ResolveToAbsolutePath(dest_dir));
             if (own_subdirs) dest /= to_string(id);
             if (!CopyDirRecursive(folder, dest, copied_files)) {
                 LOG_ERROR("WorkshopSync(): failed to copy item ", id, " from ", folder);

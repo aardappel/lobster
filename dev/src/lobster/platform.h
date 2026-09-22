@@ -61,7 +61,7 @@ extern void AddPakFileEntry(string_view pakfilename, string_view relfilename, in
 struct DirectoryInfo {
     string name;
     int64_t size = 0;
-    filesystem::file_time_type last_write_time;
+    std::filesystem::file_time_type last_write_time;
 };
 
 extern bool ScanDir(string_view reldir, vector<DirectoryInfo> &dest);

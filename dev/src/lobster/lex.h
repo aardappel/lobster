@@ -25,7 +25,7 @@ struct LoadedFile : Line {
     const char *tokenstart = nullptr;
     const char *prevtokenstart = nullptr;
     const char *prevtokenend = nullptr;
-    shared_ptr<string> source { new string() };
+    std::shared_ptr<string> source { new string() };
     TType token = T_NONE;
     int tokline = 1;  // line before, if current token crossed a line
     bool islf = false;
@@ -68,7 +68,7 @@ struct LoadedFile : Line {
 struct Lex : LoadedFile {
     vector<LoadedFile> parentfiles;
     set<string, less<>> allfiles;
-    vector<shared_ptr<string>> allsources;
+    vector<std::shared_ptr<string>> allsources;
 
     vector<pair<string, string>> &filenames;
 

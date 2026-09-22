@@ -81,7 +81,7 @@ template<typename T> struct ImplicitFunctionImpl : ImplicitFunction {
         assert(all(end <= distgrid->dim) && all(int3(0) <= start));
         auto uniform_scale = average(size);
         max_smoothmink = max(max_smoothmink, uniform_scale * smoothmink);
-        vector<future<void>> results(end.x - start.x);
+        vector<std::future<void>> results(end.x - start.x);
         for (int x = start.x; x < end.x; x++) {
             results[x - start.x] = threadpool.enqueue([&, x]() {
                 for (int y = start.y; y < end.y; y++) {

@@ -140,8 +140,8 @@ BUILTIN(format_time, "format,time,localtime", "SIB", "S",
     " the time will be displayed using the local timezone, otherwise it will use UTC."
     " Returns an empty string on error.")
 (VM &vm, LString *format, iint time, iint use_localtime) {
-    chrono::system_clock::time_point tp { chrono::seconds(time) };
-    time_t tt = chrono::system_clock::to_time_t(tp);
+    std::chrono::system_clock::time_point tp { std::chrono::seconds(time) };
+    time_t tt = std::chrono::system_clock::to_time_t(tp);
     tm ctm{};
     bool ok = false;
     #ifdef _WIN32
@@ -195,23 +195,23 @@ BUILTIN(scan_folder, "folder,rel", "SB?", "S]?I]?I]?",
         //     "I believe the Windows file_clock epoch is 1601-01-01 00:00:00 UTC. The
         //     difference between that and the system_clock epoch (1970-01-01 00:00:00
         //     UTC) is 13,4774 days or 3'234'576h."
-        using namespace literals;
+        using namespace std::chrono_literals;
         #if defined(_WIN32)
-            const chrono::duration file_to_system_clock_epoch_offset = 3'234'576h;
+            const std::chrono::duration file_to_system_clock_epoch_offset = 3'234'576h;
         #elif defined(__GLIBCXX__)  // libstdc++
             // From the same stack overflow article above: "On gcc I believe
             // the epoch is 2174-01-01 00:00:00 UTC".
             // I calculated the following value locally on my linux laptop.
-            const chrono::duration file_to_system_clock_epoch_offset = -1'788'240h;
+            const std::chrono::duration file_to_system_clock_epoch_offset = -1'788'240h;
         #else  // libc++ or other
-            const chrono::duration file_to_system_clock_epoch_offset = 0h;
+            const std::chrono::duration file_to_system_clock_epoch_offset = 0h;
         #endif
-        auto system_time = chrono::system_clock::time_point{
-            chrono::duration_cast<chrono::system_clock::duration>(
+        auto system_time = std::chrono::system_clock::time_point{
+            std::chrono::duration_cast<std::chrono::system_clock::duration>(
                 entry.last_write_time.time_since_epoch() -
                 file_to_system_clock_epoch_offset)
         };
-        tlist->Push(vm, Value((int64_t)chrono::duration_cast<chrono::seconds>(
+        tlist->Push(vm, Value((int64_t)std::chrono::duration_cast<std::chrono::seconds>(
                                   system_time.time_since_epoch())
                                   .count()));
     }

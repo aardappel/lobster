@@ -15,7 +15,6 @@
 #pragma once
 
 #ifdef _MSC_VER
-    #define _HAS_STD_BYTE 0  // clashes with windows headers.
     #define _CRT_SECURE_NO_WARNINGS
     #define _SCL_SECURE_NO_WARNINGS
     #define _CRTDBG_MAP_ALLOC
@@ -68,7 +67,28 @@
 #include <iostream>
 #include <iomanip>
 
-using namespace std;
+// Standard library names used without qualification, ordered by usage frequency.
+using std::string;
+using std::string_view;
+using std::vector;
+using std::pair;
+using std::map;
+using std::span;
+using std::max;
+using std::set;
+using std::min;
+using std::unordered_map;
+using std::unique_ptr;
+using std::function;
+using std::less;
+using std::mutex;
+using std::to_string;
+using std::sort;
+using std::swap;
+using std::find;
+using std::make_unique;
+using std::list;
+using std::optional;
 
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/flexbuffers.h"

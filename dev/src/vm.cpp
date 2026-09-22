@@ -1026,7 +1026,7 @@ void VM::WorkerWrite(RefObj *ref) {
     st->ToLobsterBinary(*this, buf);
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {
-        unique_lock<mutex> lock(tt.mtx);
+        std::unique_lock<mutex> lock(tt.mtx);
         tt.tuples.emplace_back(std::move(buf));
     }
     tt.condition.notify_one();
@@ -1039,7 +1039,7 @@ Value VM::WorkerRead(type_elem_t tti) {
     vector<uint8_t> buf;
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {
-        unique_lock<mutex> lock(tt.mtx);
+        std::unique_lock<mutex> lock(tt.mtx);
         tt.condition.wait(lock, [&] { return !tuple_space->alive || !tt.tuples.empty(); });
         if (!tt.tuples.empty()) {
             buf = std::move(tt.tuples.front());
@@ -1059,7 +1059,7 @@ Value VM::WorkerCheck(type_elem_t tti) {
     vector<uint8_t> buf;
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {
-        unique_lock<mutex> lock(tt.mtx);
+        std::unique_lock<mutex> lock(tt.mtx);
         if (tt.tuples.empty()) return NilVal();
         buf = std::move(tt.tuples.front());
         tt.tuples.pop_front();
@@ -1075,7 +1075,7 @@ void VM::WorkerWake(type_elem_t tti) {
     if (ti.t != RTT_CLASS) Error("thread check: must be a class type");
     auto &tt = tuple_space->tupletypes[ti.structidx];
     {
-        unique_lock<mutex> lock(tt.mtx);
+        std::unique_lock<mutex> lock(tt.mtx);
         tt.tuples.emplace_back(vector<uint8_t>{});
     }
     tt.condition.notify_one();

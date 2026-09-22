@@ -453,7 +453,7 @@ template<typename T, int N> inline vec<T, N> round(const vec<T, N> &v) {
 }
 
 template<typename T> inline T clamp(T v, T lo, T hi) {
-    static_assert(is_scalar<T>(), "");
+    static_assert(std::is_scalar<T>(), "");
     return std::min(hi, std::max(lo, v));
 }
 template<typename T, int N> inline vec<T, N> clamp(const vec<T, N> &v, const vec<T, N> &lo,

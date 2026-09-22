@@ -315,7 +315,7 @@ void DeleteTexture(Texture &tex) {
 }
 
 enum { MAX_TEXTURE_UNITS_BOUND = 64 };
-array<unsigned, MAX_TEXTURE_UNITS_BOUND> currently_bound{};
+std::array<unsigned, MAX_TEXTURE_UNITS_BOUND> currently_bound{};
 int max_texture_unit = -1;
 
 void SetTexture(int textureunit, const Texture &tex) {

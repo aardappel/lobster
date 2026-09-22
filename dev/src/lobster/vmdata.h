@@ -330,7 +330,7 @@ struct LResource : RefObj {
     }
 };
 
-template <typename T> requires is_base_of_v<Resource, T> struct LResourceRefCPointer {
+template <typename T> requires std::is_base_of_v<Resource, T> struct LResourceRefCPointer {
 private:
     LResource *value = nullptr;
     VM *vm = nullptr;
@@ -575,7 +575,7 @@ struct Value {
     VM_INLINEM TypeInfo   *tival  () const { return ti_;          }
 
     template<typename T> T ifval() const {
-        if constexpr (is_floating_point<T>()) { return (T)fval_; }
+        if constexpr (std::is_floating_point<T>()) { return (T)fval_; }
         else                                  { return (T)ival_; }
     }
 
@@ -996,11 +996,11 @@ struct TupleSpace {
         // contention.
         list<vector<uint8_t>> tuples;
         mutex mtx;
-        condition_variable condition;
+        std::condition_variable condition;
     };
     vector<TupleType> tupletypes;
 
-    atomic<bool> alive;
+    std::atomic<bool> alive;
 
     TupleSpace(size_t numstructs) : tupletypes(numstructs), alive(true) {}
 };
@@ -1192,7 +1192,7 @@ struct VM : VMBase {
     // Whether this VM ever started workers, which share the string constants with it and count
     // on them without atomics, so their counts say nothing after that.
     bool workers_started = false;
-    vector<thread> workers;
+    vector<std::thread> workers;
     TupleSpace *tuple_space = nullptr;
 
     // These are used by builtins, sticking them here makes them thread-safe.
@@ -1556,7 +1556,7 @@ template<typename T> inline void DeallocSubBuf(VM &vm, T *v, iint size) {
     vm.pool.dealloc(mem, size * ssizeof<T>() + header_sz);
 }
 
-template <typename T, typename... Args> requires is_base_of_v<Resource, T>
+template <typename T, typename... Args> requires std::is_base_of_v<Resource, T>
 LResourceRefCPointer<T> NewResLRes(VM &vm, lobster::ResourceType &resource_type, Args &&...args) {
     auto *value = new T(args...);
     auto *resource = vm.NewResource(&resource_type, value);

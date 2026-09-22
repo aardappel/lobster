@@ -368,8 +368,8 @@ struct GeometryCache {
     Geometry *cube_geom[2] = { nullptr, nullptr };
     int cube_ibo[2] = { 0, 0 };
     map<int, Geometry *> circlevbos;
-    map<tuple<int, float, float, float>, Geometry *> roundedboxvbos;
-    map<tuple<int, float, float, float, float>, pair<Geometry *, int>> roundedboxbordervbos;
+    map<std::tuple<int, float, float, float>, Geometry *> roundedboxvbos;
+    map<std::tuple<int, float, float, float, float>, pair<Geometry *, int>> roundedboxbordervbos;
     map<pair<int, float>, pair<Geometry *, int>> opencirclevbos;
 
     ~GeometryCache();

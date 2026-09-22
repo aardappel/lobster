@@ -66,7 +66,7 @@ inline string ToUTF8(const wchar_t *in) {
 }
 
 // Appends into dest, returns false if encoding error encountered.
-inline bool FromUTF8(string_view &in, wstring &dest) {
+inline bool FromUTF8(string_view &in, std::wstring &dest) {
     while (!in.empty()) {
         int u = FromUTF8(in);
         if (u < 0) return false;
@@ -104,7 +104,7 @@ inline void unit_test_unicode() {
     p = "\xF0\xA4\xAD\xA2"; assert(FromUTF8(p) == 0x24B62 && p.empty());
     (void)p;
 
-    wstring dest;
+    std::wstring dest;
     p = "\xe3\x83\xa6\xe3\x83\xbc\xe3\x82\xb6\xe3\x83\xbc\xe5\x88"
         "\xa5\xe3\x82\xb5\xe3\x82\xa4\xe3\x83\x88\x00";
     assert(FromUTF8(p, dest) && p.empty());
