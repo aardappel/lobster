@@ -443,8 +443,10 @@ BUILTIN(get_palette_color, "palette_idx,entry", "II", "F}:4", "")
     return ToVec<double4>(color2vec(palettes[palette_idx].colors[entry]));
 }
 
-BUILTIN(sample_down, "scale,world,alpha_threshold", "IR:voxelsF", "R:voxels", "")
-(VM &vm, iint scale, LResource *world, double alpha_threshold) {
+BUILTIN(sample_down, "scale,world,alpha_threshold,transparent_index", "IR:voxelsFI?:/", "R:voxels",
+    "returns a new block scaled down by the given factor. voxels of palette index"
+    " transparent_index (unless -1) count as empty space, like index 0")
+(VM &vm, iint scale, LResource *world, double alpha_threshold, iint transparent_index) {
     auto sc = (int)scale;
     if (sc < 2 || sc > 128)
         vm.Error("cg.sample_down: scale out of range");
@@ -469,11 +471,13 @@ BUILTIN(sample_down, "scale,world,alpha_threshold", "IR:voxelsF", "R:voxels", ""
                             auto d = int3(xd, yd, zd);
                             auto origpos = pos * sc + d;
                             auto c = v.grid.Get(origpos);
+                            if (c == transparent_index) continue;
                             // If the voxel is on the edge of the model it is visible.
                             if (max(origpos.equal(0)) != 1 && max(origpos.equal(v.grid.dim - 1)) != 1) {
                                 // Check the 6 neighbors, if any are empty, it is visble.
                                 for (int i = 0; i < 6; i++) {
-                                    if (v.grid.Get(origpos + neighbors[i]) == 0) goto visible;
+                                    auto n = v.grid.Get(origpos + neighbors[i]);
+                                    if (n == transparant || n == transparent_index) goto visible;
                                 }
                                 // Not visible.
                                 // We only count internal voxels if there's no visible voxels.
