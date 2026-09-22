@@ -116,7 +116,11 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                     goto found;
                 }
             }
-            return false;  // Function not in context.
+            // Function not in context. In dead code (see TypeCheckDeadCode), which lacks the
+            // caller that would provide one, the return then goes nowhere however it was
+            // typechecked (see ReplayReturns), while typechecking it anew would redo all it calls
+            // in a context no live call of it has.
+            if (!checking_dead_code) return false;
             found:;
         }
         // A return from a function none of whose calls was active returned nothing to it (see

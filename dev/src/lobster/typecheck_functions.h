@@ -413,6 +413,12 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
                     goto destination_found;
                 }
             }
+            // Dead code has no caller that would provide one, so there the return goes nowhere,
+            // as one typechecked in it does, see Return::TypeCheck.
+            if (checking_dead_code) {
+                RecordInactiveReturn(*isf->parent);
+                continue;
+            }
             // This error should hopefully be rare, but still possible if this call is in
             // a very different context.
             ErrorAlways(call_context, "return out of call to ", Q(sf->parent->name),
