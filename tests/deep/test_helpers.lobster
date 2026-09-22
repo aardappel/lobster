@@ -84,3 +84,13 @@ def expect_errors(code:string, expect:[string], max_errors:int):
 
 def expect_errors(code:string, expect:[string]):
     expect_errors(code, expect, 100)
+
+// As expect_errors, but each of `expect` may match anywhere in the whole error string,
+// including the context lines an error is followed by.
+def expect_error_context(code:string, expect:[string]):
+    let _, err = compile_run_code(code, [], 100)
+    num_checks++
+    let text = err or ""
+    for(expect) e:
+        if text.find_string(e) < 0:
+            fail("error did not contain \"{e}\":\n{text}\n  for:\n{code}")

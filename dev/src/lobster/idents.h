@@ -1008,8 +1008,37 @@ struct SymbolTable {
 
     function<void(UDT &)> type_check_call_back;
 
+    // What ResolveTypeVars is in the middle of, innermost last. A type written in a generic
+    // declaration is resolved once per specialization, so the line an error in one is on is
+    // the declaration, which on its own doesn't say which specialization went wrong or what
+    // asked for it. Formatted only when there is an error, see ResolveError.
+    struct ResolveContext {
+        const char *what = nullptr;
+        const UDT *udt = nullptr;    // The specialization it belongs to, if there is one.
+        const GUDT *gudt = nullptr;  // Its declaration, when no specialization was picked.
+        string_view name;            // The field it is the type of, empty if none.
+        const char *tail = nullptr;  // The rest of the phrase, after the type.
+        const Line *line = nullptr;  // What asked for it, if not the type's own line.
+    };
+    vector<ResolveContext> resolve_context;
+
+    // Pushes a context for as long as it is in scope.
+    struct ResolveScope {
+        SymbolTable &st;
+        ResolveScope(SymbolTable &st, const ResolveContext &rc) : st(st) {
+            st.resolve_context.push_back(rc);
+        }
+        ~ResolveScope() { st.resolve_context.pop_back(); }
+    };
+
+    // Lets the typechecker add the calls it is in the middle of (see
+    // TypeCheckBase::AddStackTrace) to an error reported from here, since type resolution
+    // is mostly driven by it and has no nodes of its own to report against.
+    function<void(string &)> error_context_call_back;
+
     SymbolTable(Lex &lex) : lex(lex) {
         type_check_call_back = [](UDT &) {};
+        error_context_call_back = [](string &) {};
         namespace_stack.push_back({});
     }
 
@@ -1683,6 +1712,22 @@ struct SymbolTable {
         return tv;
     }
 
+    // An error resolving a type, which names what was being resolved and the calls that
+    // led there on top of the line the type is written on.
+    void ResolveError(string err, const Line &errl) {
+        for (auto &rc : reverse(resolve_context)) {
+            err += "\n  in ";
+            if (rc.line) append(err, lex.Location(*rc.line), ": ");
+            err += rc.what;
+            if (!rc.name.empty()) append(err, " ", Q(rc.name));
+            if (rc.udt) append(err, " of ", Q(TypeName(&rc.udt->thistype)));
+            else if (rc.gudt) append(err, " of ", Q(rc.gudt->name));
+            if (rc.tail) append(err, " ", rc.tail);
+        }
+        error_context_call_back(err);
+        lex.Report(err, &errl);
+    }
+
     TypeRef ResolveTypeVars(UnTypeRef type, const Line &errl) {
         switch (type->t) {
             case V_NIL:
@@ -1744,7 +1789,9 @@ struct SymbolTable {
                         if (gtv.tv == type->tv && !gtv.type.Null()) return gtv.type;
                     }
                 }
-                lex.Report(cat("could not resolve type variable ", Q(type->tv->name)), &errl);
+                ResolveError(cat("could not resolve type variable ", Q(type->tv->name),
+                                 ": nothing in this context binds it to a type"),
+                             errl);
                 return type_error;
             }
             default:
@@ -1803,7 +1850,11 @@ struct SymbolTable {
 
     void ResolveFields(UDT &udt, const Line &errl) {
         bound_typevars_stack.push_back(udt.GetBoundGenerics());
-        auto supertype = ResolveTypeVars(udt.g.gsuperclass, errl);
+        TypeRef supertype = nullptr;
+        {
+            ResolveScope rs(*this, { .what = "superclass", .udt = &udt });
+            supertype = ResolveTypeVars(udt.g.gsuperclass, errl);
+        }
         if (supertype->t != V_UNDEFINED) {
             assert(IsUDT(supertype->t));
             udt.ssuperclass = supertype->udt;
@@ -1829,9 +1880,11 @@ struct SymbolTable {
             // derives it by typechecking the default, so partially resolved
             // state can never be silently read (V_ANY, the previous sentinel,
             // is also a legitimate type).
+            ResolveScope rs(*this,
+                { .what = "type of field", .udt = &udt, .name = field.id->name });
             udt.sfields.push_back({ field.gdefaultval && field.giventype->t == V_ANY
                                         ? TypeRef(nullptr)
-                                        : ResolveTypeVars(field.giventype, errl) });
+                                        : ResolveTypeVars(field.giventype, field.defined_in) });
             udt.sfields.back().bits = field.bits;
         }
         PopSuperGenerics(udt.ssuperclass);

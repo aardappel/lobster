@@ -241,6 +241,37 @@ def typecheck_recovery_tests():
         return 1
         """, [ "generic constructor matches no named explicit specialization of `A`",
                "too many initializers for `A`", "requires type `float`, got `string`" ])
+    // With no named specialization to match at all, that is the error, rather than one per
+    // type variable in the initializers taken from the declaration.
+    expect_errors("""
+        class A<T>:
+            x:T
+            y = []::T
+        print(A { 1 }.x)
+        let z:float = "s"
+        return 1
+        """, [ "cannot construct `A` without specializers",
+               "requires type `float`, got `string`" ])
+    // A type that can't be resolved is reported where it is written, which for one in a
+    // generic declaration is nowhere near what asked for it, so the error names both.
+    expect_error_context("""
+        class A<T>:
+            x:T
+            y = []::T
+        class Ai = A<int>
+        print(A { 1 }.x)
+        return 1
+        """, [ "could not resolve type variable `T`",
+               "constructor of `A` given no specializers" ])
+    expect_error_context("""
+        class C:
+            a = 1
+            def m<T>():
+                member q:T = 0
+                return q
+        print(C {}.m<int>())
+        return 1
+        """, [ "could not resolve type variable `T`", "in type of field `q` of `C`" ])
     // The initializers of a constructor that can't be resolved still get typechecked.
     expect_errors("""
         class A:

@@ -51,6 +51,11 @@ struct TypeChecker final : TypeCheckFunctions, TypeCheckCalls, TypeCheckConstruc
         st.type_check_call_back = [&](UDT &udt) {
             EnsureUDTChecked(udt, *scopes.back().call_context);
         };
+        // Type resolution runs on behalf of whatever is being typechecked, so give its
+        // errors the same call stack the typechecker's own get (see ErrorAlways).
+        st.error_context_call_back = [&](string &err) {
+            if (full_error || parser.lex.num_errors == 0) AddStackTrace(err);
+        };
         // FIXME: this is unfriendly.
         if (!st.RegisterDefaultTypes()) {
             // Nothing can be typechecked without them; Compile stops on the error.

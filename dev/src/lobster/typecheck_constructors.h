@@ -174,6 +174,11 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
                 // hold the original expression and recover independently.
                 f.gdefaultval.reset(new ErrorValue(line));
             }
+            // The default is a clone of one written in the declaration, so a type in it
+            // that fails to resolve gets reported on the declaration's line, which by
+            // itself doesn't say which specialization it was being resolved for.
+            SymbolTable::ResolveScope rs(
+                st, { .what = "default value of field", .udt = &udt, .name = f.id->name });
             sfield.defaultval = clone_default(f.gdefaultval.get());
             if (!sfield.type.Null()) {
                 // Type was specified explicitly or CFType succeeded, we are done.
@@ -431,8 +436,36 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
         if (node.giventype->t == V_UUDT && node.giventype->spec_udt->specializers.empty()) {
             // Special case for generic type constructor with no specializers.
             // Versions WITH specializers are instead resolved below.
-            TypeCheckList(&node, LT_KEEP);
             auto gudt = node.giventype->spec_udt->gudt;
+            bool any_named = false;
+            for (auto udti = gudt->first; udti; udti = udti->next)
+                if (!udti->unnamed_specialization) { any_named = true; break; }
+            if (!any_named) {
+                // There is nothing for the initializers to be matched against, so that is
+                // the error, not whatever checking them turns up: the ones filled in from
+                // the declaration mention type variables this gives no values for, so those
+                // are bound to the error type to keep errors about them from standing in
+                // for this one.
+                vector<GenericTypeVariable> unresolved = gudt->generics;
+                for (auto &gtv : unresolved) gtv.type = type_error;
+                st.bound_typevars_stack.push_back(unresolved);
+                TypeCheckList(&node, LT_KEEP);
+                st.bound_typevars_stack.pop_back();
+                // Not about the types of the initializers, so reported even when one of
+                // those could not be typed.
+                ErrorAlways(node, "cannot construct ", Q(gudt->name),
+                                  " without specializers: no named specialization of it to"
+                                  " match (write ", Q(cat(gudt->name, "<...>{...}")),
+                                  " instead)");
+                return ErrorNode(node);
+            }
+            // The initializers filled in from the declaration may still mention its type
+            // variables, whose values are only known once one of the specializations below
+            // is picked, which needs the types of the initializers first.
+            SymbolTable::ResolveScope rs(
+                st, { .what = "constructor", .gudt = gudt, .tail = "given no specializers",
+                      .line = &node.line });
+            TypeCheckList(&node, LT_KEEP);
             // Try and find a matching named specialization.
             if (node.Arity() != gudt->fields.size())
                 ErrorAlways(node, "incorrect argument count for generic constructor");
