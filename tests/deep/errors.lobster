@@ -310,18 +310,21 @@ def errors_tests():
                  "requires type `int2`, got `int3`")
     expect_error("import vec\nlet a = float4 \{ 1.0, 2.0, 3.0, 4.0 \}\n" +
                  "return string(cardinal_spline(a, a, a, a, 0.5, 0.5))",
-                 "match no overloads")
+                 "requires type `numeric struct (all float) of 2 to 3 slots`, got `float4`")
     // A builtin taking a numeric struct takes 1 to 4 slots of one scalar type, so a struct
-    // of mixed types, or of more slots than that, is offered the overloads there are rather
-    // than being reported against the one taking any reference.
+    // of mixed types, or of more slots than that, is told which kinds of struct there are
+    // overloads for rather than being reported against the one taking any reference.
     expect_error("struct S:\n    a:int\n    b:float\nreturn hash(S \{ 1, 2.0 \})",
-                 "match no overloads of hash")
+                 "`S` does not have all int or all float fields")
     expect_error("import vec\nstruct S:\n    a:int4\n    b:int4\nreturn hash(S \{ int4_1, int4_1 \})",
-                 "match no overloads of hash")
+                 "`S` has 8 slots, not 2: a struct field counts for as many slots as it has")
     // The slots a struct takes are what that counts, and a struct field is as many slots as
     // it has, so a pair of them is not a struct of two.
     expect_error("import vec\nstruct S:\n    a:float2\n    b:float2\nreturn string(atan2(S \{ float2_1, float2_1 \}))",
                  "requires type `float2`, got `S`")
+    // An overloaded builtin with no numeric struct overload at all takes no struct there.
+    expect_error("import vec\nreturn binary_search([ 1 ], int2 \{ 1, 2 \})",
+                 "struct value cannot be used in `binary_search`")
     // continue outside a loop.
     expect_error("continue\nreturn 1", "must occur inside")
     // Assigning the wrong type to a typed field.

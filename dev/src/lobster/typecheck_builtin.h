@@ -34,6 +34,99 @@ struct TypeCheckBuiltin : virtual TypeCheckLocations {
         return err;
     }
 
+    // Whether argument `i` of the call is acceptable to argument `arg` of overload `cnf`.
+    bool BuiltinArgFits(const NativeCall &node, const NativeFun *cnf, const Narg &arg, size_t i) {
+        if (i >= node.children.size()) {
+            // Default args always good for overload match.
+            return arg.optional;
+        }
+        // Special purpose treatment of V_ANY to allow generic vectors in overloaded
+        // length() etc.
+        auto etype = node.children[i]->exptype;
+        auto cf = CF_NUMERIC_NIL;
+        if (arg.vttype->t != V_STRING) cf = ConvertFlags(cf | CF_COERCIONS);
+        if (arg.vttype->t != V_ANY &&
+            (arg.vttype->t != V_VECTOR ||
+             etype->t != V_VECTOR ||
+             arg.vttype->sub->t != V_ANY) &&
+            !ConvertsTo(etype,
+                        ActualBuiltinType(arg.vttype, arg.flags, etype, cnf, true, i + 1, node),
+                        cf)) return false;
+        // A plain V_ANY argument takes a reference and nothing else, same as the check the
+        // argument loop does. Anything else has to find its overload elsewhere, and is told
+        // what there is when it fits none of them, rather than being reported against this
+        // one.
+        if (arg.vttype->t == V_ANY && !arg.flags && !IsRefNilNoStruct(etype->t)) return false;
+        return true;
+    }
+
+    // The numeric structs the overloads of a builtin accept for argument `i`: which element
+    // types, and which widths (in slots).
+    struct NumStructArg {
+        bool ints = false;
+        bool floats = false;
+        bool any_width = false;
+        int min_slots = 0;  // 0 when there are no numeric struct overloads at all.
+        int max_slots = 0;
+
+        string Describe() const {
+            auto desc = string("numeric struct (all ");
+            desc += ints && floats ? "int or all float" : ints ? "int" : "float";
+            desc += ") of ";
+            if (any_width) desc += "any number of";
+            else if (min_slots == max_slots) desc += cat(min_slots);
+            else desc += cat(min_slots, " to ", max_slots);
+            return desc + " slots";
+        }
+    };
+
+    NumStructArg NumStructArgOf(const NativeFun *nf, size_t i) {
+        NumStructArg nsa;
+        for (auto cnf = nf->first; cnf; cnf = cnf->overloads) {
+            if (i >= cnf->args.size()) continue;
+            auto vt = cnf->args[i].vttype;
+            if (vt->t != V_STRUCT_NUM) continue;
+            (vt->ns->t == V_INT ? nsa.ints : nsa.floats) = true;
+            if (vt->ns->flen < 0) {
+                nsa.any_width = true;
+            } else {
+                if (!nsa.min_slots || vt->ns->flen < nsa.min_slots) nsa.min_slots = vt->ns->flen;
+                if (vt->ns->flen > nsa.max_slots) nsa.max_slots = vt->ns->flen;
+            }
+        }
+        if (nsa.any_width && !nsa.min_slots) nsa.min_slots = 1;
+        return nsa;
+    }
+
+    // A struct argument that fits no overload is reported in terms of the numeric structs the
+    // builtin does take, since a list of overloads for the individual widths does not make the
+    // restriction obvious, and the other overloads in it can never apply to a struct.
+    void NumStructArgError(const NativeCall &node, size_t i) {
+        auto nf = node.nf->first;
+        auto &c = *node.children[i];
+        auto udt = c.exptype->udt;
+        auto nsa = NumStructArgOf(nf, i);
+        if (!nsa.min_slots) {
+            Error(c, "struct value cannot be used in ", Q(nf->name));
+            return;
+        }
+        string why;
+        if (!udt->sametype->Numeric()) {
+            why = cat(Q(udt->name), " does not have all int or all float fields");
+        } else if (!(udt->sametype->t == V_INT ? nsa.ints : nsa.floats)) {
+            why = cat(Q(udt->name), " has ", TypeName(udt->sametype), " fields");
+        } else {
+            why = cat(Q(udt->name), " has ", udt->numslots, " slots");
+            // A field that is a struct itself takes as many slots as it has, so a slot count
+            // that doesn't match the fields as written needs spelling out.
+            if (udt->numslots != ssize(udt->sfields))
+                why += cat(", not ", ssize(udt->sfields),
+                           ": a struct field counts for as many slots as it has");
+        }
+        RequiresError(nsa.Describe(), c.exptype, c, i < nf->args.size() ? nf->args[i].name : "",
+                      nf->name, nullptr, why);
+    }
+
     Node *Check(NativeCall &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
         // The arguments were typechecked by the GenericCall this came from.
         assert(node.children.empty() || node.children[0]->exptype->t != V_UNDEFINED);
@@ -47,37 +140,24 @@ struct TypeCheckBuiltin : virtual TypeCheckLocations {
             auto cnf = node.nf->first;
             for (; cnf; cnf = cnf->overloads) {
                 if (cnf->args.size() < node.Arity()) continue;
-                for (auto [i, arg] : enumerate(cnf->args)) {
-                    if (i >= node.children.size()) {
-                        // Default args always good for overload match.
-                        if (arg.optional) continue;
-                        goto nomatch;
-                    }
-                    // Special purpose treatment of V_ANY to allow generic vectors in overloaded
-                    // length() etc.
-                    auto etype = node.children[i]->exptype;
-                    auto cf = CF_NUMERIC_NIL;
-                    if (arg.vttype->t != V_STRING) cf = ConvertFlags(cf | CF_COERCIONS);
-                    if (arg.vttype->t != V_ANY &&
-                        (arg.vttype->t != V_VECTOR ||
-                         etype->t != V_VECTOR ||
-                         arg.vttype->sub->t != V_ANY) &&
-                        !ConvertsTo(etype,
-                                       ActualBuiltinType(arg.vttype, arg.flags,
-                                                            etype, node.nf, true, i + 1, node),
-                                       cf)) goto nomatch;
-                    // A plain V_ANY argument takes a reference and nothing else, see the check
-                    // in the argument loop below. Anything else has to find its overload
-                    // elsewhere, and is told which there are when it fits none of them, rather
-                    // than being reported against this one.
-                    if (arg.vttype->t == V_ANY && !arg.flags &&
-                        !IsRefNilNoStruct(etype->t)) goto nomatch;
-                }
+                for (auto [i, arg] : enumerate(cnf->args))
+                    if (!BuiltinArgFits(node, cnf, arg, i)) goto nomatch;
                 node.nf = cnf;
                 break;
                 nomatch:;
             }
             if (!cnf) {
+                // A struct argument no overload can take at all gets told what kinds of struct
+                // the builtin does take, rather than a list of overloads it can never fit.
+                for (auto [i, c] : enumerate(node.children)) {
+                    if (!IsStruct(c->exptype->t)) continue;
+                    bool fits = false;
+                    for (auto onf = node.nf->first; onf && !fits; onf = onf->overloads)
+                        fits = i < onf->args.size() && BuiltinArgFits(node, onf, onf->args[i], i);
+                    if (fits) continue;
+                    NumStructArgError(node, i);
+                    return give_up();
+                }
                 auto err = NatCallMsg("arguments match no overloads of ", node.nf, node);
                 for (auto c : node.children) err += DemotionNote(*c);
                 Error(node, err);

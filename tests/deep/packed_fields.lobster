@@ -529,6 +529,6 @@ def packed_fields_tests():
             a:int<32>
             b:int<32>
         return manhattan(S { 1, 2 })
-        """, [ "arguments match no overloads of manhattan" ])
+        """, [ "requires type `numeric struct (all int) of 1 to 4 slots`, got `S`" ])
 
 packed_fields_tests()

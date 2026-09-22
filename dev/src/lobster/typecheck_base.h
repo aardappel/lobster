@@ -341,13 +341,16 @@ struct TypeCheckBase {
         parser.lex.Warn(err, &n.line);
     }
 
-    // `value` is what has type `got`, when that is not `n` itself.
+    // `value` is what has type `got`, when that is not `n` itself. `note` says why the type
+    // given doesn't qualify, where the requirement alone doesn't make that apparent.
     void RequiresError(string_view required, TypeRef got, const Node &n, string_view argname = "",
-                       string_view context = "", const Node *value = nullptr) {
+                       string_view context = "", const Node *value = nullptr,
+                       string_view note = "") {
         Error(n, Q(context.size() ? context : NiceName(n)), " ",
                  (argname.size() ? "(" + argname + " argument) " : ""),
                  "requires type ", Q(required), ", got ", Q(TypeName(got)),
-                 DemotionNote(value ? *value : n));
+                 DemotionNote(value ? *value : n),
+                 (note.size() ? cat("\n  ", note) : ""));
     }
 
     void NoStruct(const Node &n, string_view context) {
