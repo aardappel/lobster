@@ -630,8 +630,20 @@ struct TypeCheckFlow : virtual TypeCheckLocations {
         // Check for constness early, to be able to lift out side effects, which
         // makes downstream if-then optimisations easier.
         VTValue cval;
-        auto t = node.ConstVal(this, cval);
-        if (t == V_INT) {
+        bool unknown;
+        auto t = node.ConstVal(this, cval, unknown);
+        if (unknown) {
+            // Whatever the test decided now, later code could bind that type to something
+            // that contradicts it.
+            auto ctype = node.child->exptype;
+            if (ctype->HasValueType(V_VAR)) {
+                Error(node, Q("is"), " cannot test a value whose type is not known yet: ",
+                      Q(TypeName(ctype)));
+            } else {
+                Error(node, Q("is"), " cannot test against a type that is not known yet: ",
+                      Q(TypeName(node.resolvedtype)));
+            }
+        } else if (t == V_INT) {
             auto intc = (new IntConstant(node.line, cval.i))->TypeCheck(ASTChecker(), 1, {});
             if (node.child->SideEffectRec()) {
                 // must retain side effects.

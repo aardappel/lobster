@@ -108,6 +108,12 @@ ValueType Negate::ConstVal(TypeCheckBase *tc, VTValue &val) const {
 }
 
 ValueType IsType::ConstVal(TypeCheckBase *tc, VTValue &val) const {
+    bool unknown;
+    return ConstVal(tc, val, unknown);
+}
+
+ValueType IsType::ConstVal(TypeCheckBase *tc, VTValue &val, bool &unknown) const {
+    unknown = false;
     if (!tc) {
         // This may be called from the parser, where we do not support this as a constant.
         return V_VOID;
@@ -136,6 +142,19 @@ ValueType IsType::ConstVal(TypeCheckBase *tc, VTValue &val) const {
         val = VTValue(true);
         return V_INT;
     }
+    // Whether a value of the static type could have the tested type, compared as the non-nil
+    // element types, since whether a nil value matches is determined by the tested type alone.
+    // Where that depends on what a type variable not bound yet (the element type of a `[]` or
+    // `nil`, say) will be, the test can't tell, see TypeChecker::Check(IsType &): binding it
+    // here would make the test true by construction.
+    bool binds;
+    auto converts = tc->CouldConvertTo(te, ce, binds,
+                                       resolvedtype->t == V_NIL ? V_NIL : V_UNDEFINED,
+                                       ctype->t == V_NIL ? V_NIL : V_UNDEFINED);
+    if (converts && binds) {
+        unknown = true;
+        return V_VOID;
+    }
     // Where the tested type can match nothing but the nil a possibly nil value may be, the
     // test is a nil check at run time.
     auto nil_check = AcceptsNil() && ctype->t == V_NIL;
@@ -158,10 +177,8 @@ ValueType IsType::ConstVal(TypeCheckBase *tc, VTValue &val) const {
         val = VTValue(false);
         return V_INT;
     }
-    // If no runtime type could ever match the tested type, this is
-    // compile-time false. Tested against the non-nil element types, since
-    // whether a nil value matches is determined by the tested type alone.
-    if (!tc->ConvertsTo(te, ce, CF_UNIFICATION)) {
+    // If no runtime type could ever match the tested type, this is compile-time false.
+    if (!converts) {
         if (nil_check) return V_VOID;
         val = VTValue(false);
         return V_INT;

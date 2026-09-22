@@ -87,6 +87,8 @@ struct TypeCheckBase {
     // rest of the function being checked get skipped, see SkipDeadCode.
     bool checking_dead_code = false;
     bool dead_code_skipped = false;
+    // Set while CouldConvertTo is asking whether a conversion takes binding a type variable.
+    bool *would_bind = nullptr;
     // The answer to opts.query, once found, see ProcessQuery.
     string query_result;
 
@@ -399,6 +401,12 @@ struct TypeCheckBase {
                 if (&*v == &*type) return true;  // Same cycle.
                 v = v->sub;
             } while (&*v != &*hasvar);  // Force TypeRef pointer comparison.
+        }
+        if (would_bind) {
+            *would_bind = true;
+            return true;
+        }
+        if (type->t == V_VAR) {
             // Combine two cyclic linked lists.. elegant!
             swap((Type *&)hasvar->sub, (Type *&)type->sub);
         } else {
@@ -505,6 +513,17 @@ struct TypeCheckBase {
                     ValueType type_parent = V_UNDEFINED, ValueType bound_parent = V_UNDEFINED) {
         assert(bound->t != V_UUDT && bound->t != V_TYPEVAR);
         return UnConvertsTo(type, bound, cf, type_parent, bound_parent);
+    }
+
+    // ConvertsTo with CF_UNIFICATION, except that it binds no type variable: `binds` is set if
+    // it would have bound one.
+    bool CouldConvertTo(TypeRef type, TypeRef bound, bool &binds, ValueType type_parent,
+                        ValueType bound_parent) {
+        binds = false;
+        would_bind = &binds;
+        auto converts = ConvertsTo(type, bound, CF_UNIFICATION, type_parent, bound_parent);
+        would_bind = nullptr;
+        return converts;
     }
 
     bool ConvertsToTuple(const vector<Type::TupleElem> &ttup, const vector<Type::TupleElem> &stup) {

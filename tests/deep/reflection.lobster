@@ -26,6 +26,18 @@ def reflection_tests():
     test_true(int2_1 is int2)
     test_true(not (1 is float))
     test_true(not (1.5 is int))
+    // `is` on a value whose type no use settled yet (as an element of a `[]` or a `nil` may
+    // have) decides only where no type the value could still get changes the outcome, and
+    // doesn't settle the type (see the errors below).
+    var nu = nil
+    test_true(not (nu is int))  // A nil can't get a type that can't be nilable.
+    test_true(nu is int?)       // Which leaves a nil check.
+    let vu = []
+    test_true(not (vu is string))
+    nu = "s"
+    vu.push(1.5)
+    test_true(not (nu is int?))
+    test_true(vu[0] is float)
 
     // Compile-time if: branches with type errors for a given specialization
     // are culled, and the return type is just the taken branch.
@@ -116,5 +128,30 @@ def reflection_tests():
     test_eq(oldquoted, false)
     test_eq(oldlen, 100000)
     test_eq(oldind, 0)
+
+    // Compile errors (see typecheck_recovery.lobster for the mechanism).
+    guard not vm_compiled_mode()
+    // `is` on a value whose type no use settled yet, where the outcome depends on it. That
+    // the test does not settle it is why `push` gets no error, and the promotion of `n` in
+    // the branch still happens.
+    expect_errors("""
+        class C:
+            x = 1
+        let v = []
+        let n = nil
+        print(v[0] is int)
+        print(if n is C: n.x else: 0)
+        print(v is [int])
+        v.push("s")
+        return 0
+        """, [ "`is` cannot test a value whose type is not known yet: `unknown`",
+               "`is` cannot test a value whose type is not known yet: `nil`",
+               "`is` cannot test a value whose type is not known yet: `[]`" ])
+    // The same for a tested type no use settled yet.
+    expect_errors("""
+        def f<T>(a:T, b): return b is T
+        return f([], [ 1 ])
+        """, [ "`is` cannot test against a type that is not known yet: `[]`",
+               "can\'t infer `1st` argument of call to `f`" ])
 
 reflection_tests()

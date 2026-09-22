@@ -770,6 +770,8 @@ struct IsType : Unary {
     }
     SHARED_SIGNATURE(IsType, TName(T_IS), false)
     CONSTMETHOD
+    // Also says whether the result is left undecided since it depends on a type not known yet.
+    ValueType ConstVal(TypeCheckBase *tc, VTValue &val, bool &unknown) const;
 };
 
 struct EnumCoercion : Unary {

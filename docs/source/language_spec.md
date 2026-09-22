@@ -1083,6 +1083,15 @@ values it is a runtime test against the dynamic type: true if that type is
 test folds to a constant (side effects of `e` are kept). `e` is not
 evaluated more than once.
 
+Unlike a conversion (see Conversions), the test never binds an inference
+variable, which would make it true by construction. Where the static type of
+`e`, or `T`, still has one, the result is decided as above only if no type
+the variable could be bound to later changes it, and is an error ("`is`
+cannot test a value whose type is not known yet") otherwise. So after `let
+n = nil`, before any use determines its type, `n is int` is false and `n is
+int?` is a nil check, since `int?` never exists, but `n is string` is an
+error, as is `v[0] is int` after `let v = []`.
+
 `typeof x` for a variable `x`, or `typeof T` for a type, is an `int` typeid
 identifying the type in the program's type table (`typeof int` is always
 `0`). Typeids convert to `int`; comparing typeids of different static types
