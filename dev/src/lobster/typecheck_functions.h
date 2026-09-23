@@ -290,10 +290,12 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
                         sf.returntype = nt;
                     }
                 } else if (len < sf.reqret) {
+                    // Only a function value passed as a function type that returns more gets
+                    // here: a call gets the specialization for no more values than the
+                    // function declares, see TypeCheckCallStatic.
                     ErrorAlways(call_context, "returning ", len, " values, caller requires ",
                                 sf.reqret);
-                    // The body returns what it declares; the call gets padded, see
-                    // TypeCheckCallStatic.
+                    // The body returns what it declares.
                     sf.reqret = len;
                 }
             }

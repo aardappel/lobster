@@ -216,8 +216,26 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
         return sf->returntype;
     }
 
+    // How many values a specialization of `sf` returns to a call that wants `reqret`: a
+    // function that declares its return type returns no more than it declares, see
+    // TypeCheckCallStatic.
+    size_t SpecializationReqRet(const SubFunction &sf, size_t reqret) {
+        if (sf.returngiventype.Null()) return reqret;
+        return std::min(reqret, sf.returngiventype->NumValues());
+    }
+
+    // What a call that wants `reqret` values gets from `sf`, which returns `rtype`: the error
+    // type for any values `sf` doesn't return, which the call got an error for.
+    TypeRef CallReturnType(TypeRef rtype, const SubFunction &sf, size_t reqret) {
+        if (sf.reqret >= reqret) return rtype;
+        // The return type of a dynamic dispatch is a type variable until its functions have
+        // been typechecked, which a recursive call happens before, even when it is going to
+        // be no values at all.
+        return PadValues(sf.reqret ? rtype : type_void, reqret, LT_KEEP, type_error);
+    }
+
     bool SpecializationIsCompatible(const SubFunction &sf, size_t reqret) {
-        return reqret == sf.reqret &&
+        return SpecializationReqRet(sf, reqret) == sf.reqret &&
             FreeVarsSameAsCurrent(sf, false) &&
             CompatibleReturns(sf);
     }
@@ -301,6 +319,13 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                 gtv.type = type_error;
             }
         }
+        // A call that wants more values than the function declares gets the specialization
+        // for just those, padded with the error type (see CallReturnType). That is what a
+        // specialization of its own would amount to, except that no call like it would find
+        // that one again, so a recursive one would make new ones forever.
+        auto spec_reqret = SpecializationReqRet(*sf, reqret);
+        if (spec_reqret < reqret)
+            ErrorAlways(call_args, "returning ", spec_reqret, " values, caller requires ", reqret);
         // Having a lifetime per arg is mostly useful on smaller functions to not get
         // unnecessary refc overhead on the border, especially if they later get inlined.
         // But for really big functions it just risks unnecessary specializations for no gain,
@@ -374,8 +399,9 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                     LOG_DEBUG("re-using: ", Signature(*sf));
                     CheckFreeVariablesFromFunction(sf);
                     ReplayReturns(sf, call_args);
-                    return TypeCheckMatchingCall(sf, call_args, static_dispatch, first_dynamic,
-                                                 de);
+                    auto rtype = TypeCheckMatchingCall(sf, call_args, static_dispatch,
+                                                       first_dynamic, de);
+                    return CallReturnType(rtype, *sf, reqret);
                 }
                 fail:;
             }
@@ -383,7 +409,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
         // No match, make new specialization.
         sf = CloneFunction(ov);
         // Now specialize.
-        sf->reqret = reqret;
+        sf->reqret = spec_reqret;
         sf->generics = generics;
         UDT *udt = nullptr;
         if (sf->overload->method_of && IsUDT(call_args.children[0]->exptype->t)) {
@@ -411,10 +437,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
             st.PopSuperGenerics(udt);
         }
         st.bound_typevars_stack.pop_back();
-        // A function declared to return fewer values than the call asks for (which
-        // TypeCheckFunctionDef reported, and made the function's reqret) returns those.
-        if (sf->reqret < reqret) rtype = PadValues(rtype, reqret, LT_KEEP, type_error);
-        return rtype;
+        return CallReturnType(rtype, *sf, reqret);
     }
 
     TypeRef TypeCheckCallDispatch(UDT &dispatch_udt, SubFunction *&csf, List &call_args,
@@ -470,7 +493,10 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                 // Type check this as if it is a static dispatch to just the root function.
                 TypeCheckMatchingCall(csf = disp->sf, call_args, true, false, disp.get());
                 vtable_idx = (int)i;
-                return disp->returntype;
+                if (disp->sf->reqret < reqret)
+                    ErrorAlways(call_args, "returning ", disp->sf->reqret,
+                                " values, caller requires ", reqret);
+                return CallReturnType(disp->returntype, *disp->sf, reqret);
             }
             fail:;
         }
@@ -649,7 +675,10 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                 DecBorrowers(c->lt, call_args);
             }
         }
-        return dispatch_udt.dispatch_table[vtable_idx]->returntype;
+        // TypeCheckCallStatic reported any values the call wants that the functions don't
+        // declare.
+        auto &disp = *dispatch_udt.dispatch_table[vtable_idx];
+        return disp.sf ? CallReturnType(disp.returntype, *disp.sf, reqret) : disp.returntype;
     }
 
     // A call that can't be typechecked: no function gets specialized for it, and it produces

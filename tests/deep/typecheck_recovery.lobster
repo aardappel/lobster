@@ -452,6 +452,33 @@ def typecheck_recovery_tests():
         return 1
         """, [ "recursive function `f` must have explicit return type",
                "requires type `float`, got `string`" ])
+    // A call that wants more values than the function declares gets the specialization for
+    // just those, which a recursive call like it can reuse, also in a function that is never
+    // called, and through a dynamic dispatch.
+    expect_errors("""
+        def f(n:int) -> void:
+            f(f(1))
+        def g(n:int) -> int:
+            let a, b = g(n - 1)
+            return a + b
+        f(1)
+        let z:float = "s"
+        return 1
+        """, [ "returning 0 values, caller requires 1", "requires type `float`, got `string`",
+               "returning 1 values, caller requires 2" ])
+    expect_errors("""
+        class A:
+            x = 0
+            def m(n:int) -> void:
+                m(m(n - 1))
+        class B : A
+            def m(n:int) -> void:
+                return
+        let o:A = B {}
+        o.m(1)
+        let z:float = "s"
+        return 1
+        """, [ "returning 0 values, caller requires 1", "requires type `float`, got `string`" ])
     // A function whose only returns are non-local never returns normally; its callers see
     // the type it declared regardless.
     expect_errors("""
