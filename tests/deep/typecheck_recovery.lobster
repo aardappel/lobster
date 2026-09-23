@@ -491,6 +491,32 @@ def typecheck_recovery_tests():
         return 1
         """, [ "free variable `x` not in scope", "is a constant struct",
                "requires type `float`, got `string`" ])
+    // A function value that a `static` initializer calls runs at top level, before the
+    // function the `static` is in has even been typechecked.
+    expect_errors("""
+        def apply(g): return g()
+        def f():
+            var n = 1
+            static s = apply(): n
+            static t = apply(): n = 2
+            return s
+        print(f())
+        let z:float = "s"
+        return 1
+        """, [ "free variable `n` not in scope", "free variable `n` not in scope",
+               "requires type `float`, got `string`" ])
+    // An explicit free variable bound to a variable that is not initialized yet.
+    expect_errors("""
+        def fa(c) [dfv]:
+            dfv = c
+        def t():
+            fa(1)
+            var dfv = 0
+            return dfv
+        print(t())
+        let z:float = "s"
+        return 1
+        """, [ "access of `dfv` before being initialized", "requires type `float`, got `string`" ])
 
     // Operators.
     expect_errors("""

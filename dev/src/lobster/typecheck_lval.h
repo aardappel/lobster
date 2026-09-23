@@ -188,9 +188,13 @@ struct TypeCheckLval : virtual TypeCheckLocations {
         for (auto &sc : reverse(scopes)) if (sc.sf == node.sid->sf_def) goto in_scope;
         // A free var of a scope that would have to be active.
         if (checking_dead_code) return SkipDeadCode(node);
-        Error(node, "free variable ", Q(node.sid->id->name), " not in scope: it is defined in ",
-                 Q(node.sid->sf_def->parent->name), " (", parser.lex.Location(node.sid->id->line),
-                 "), so a function value that uses it can only be called while that is in scope");
+        // Its function need not even have been typechecked yet (when this is in a function
+        // value that a `static` initializer calls, say), so there is no type to go on.
+        return ErrorNode(node, "free variable ", Q(node.sid->id->name),
+                         " not in scope: it is defined in ", Q(node.sid->sf_def->parent->name),
+                         " (", parser.lex.Location(node.sid->id->line),
+                         "), so a function value that uses it can only be called while that is"
+                         " in scope");
         in_scope:
         if (node.sid->id->predeclaration)
             Error(node, "access of ", Q(node.sid->id->name), " before being initialized");
@@ -229,6 +233,13 @@ struct TypeCheckLval : virtual TypeCheckLocations {
 
     Node *Check(Assign &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
         if (auto nn = OperatorOverload(node)) return nn;
+        if (LvalueLifetime(*node.left, false) == LT_UNDEF) {
+            // A variable that is not initialized yet, or of a function not even typechecked
+            // yet, which the left side reported: there is nothing to assign to.
+            TT(node.right, 1, LT_ANY);
+            ReleaseChildren(node);
+            return ErrorNode(node);
+        }
         // An assigned variable owns, which decides how the right hand side is adjusted below.
         if (auto idr = Is<IdentRef>(node.left)) FlipSpeculative(idr->sid);
         DecBorrowers(node.left->lt, node);
