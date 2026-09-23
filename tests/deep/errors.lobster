@@ -260,6 +260,14 @@ def errors_tests():
     // Recursive functions must declare their return type.
     expect_error("def f(n): return if n: f(n - 1) else: 0\nreturn f(3)",
                  "explicit return type")
+    // A function value that returns or takes itself (a static is visible in its own
+    // initializer) has a type that contains itself, named down to a few nested signatures.
+    expect_error("def g():\n    static f = fn(): f\n    return 1 + f()\nreturn g()",
+                 "() -> function`")
+    expect_error("def g():\n    static f = fn(): [f]\n    return 1 + f()\nreturn g()",
+                 "() -> [function]]]]`")
+    expect_error("def g():\n    static f = fn(x): x\n    return 1 + f(f)\nreturn g()",
+                 "(x:function) -> function`")
     // Ints don't implicitly convert to enums.
     expect_error("def f(b:bool): return b\nreturn f(2)", "error")
     // A void function call cannot be used as a value.

@@ -2262,29 +2262,25 @@ inline string Signature(const GUDT &gudt) {
     return r;
 }
 
+// `depth` is the number of signatures this one is nested in, see TypeName.
 inline string Signature(const SubFunction &sf, int depth = 0) {
     string r = sf.parent->name;
     if (!sf.generics.empty() && sf.explicit_generics) {
         r += "<";
         for (auto [i, gtv] : enumerate(sf.generics)) {
             if (i) r += ",";
-            r += gtv.type.Null() ? gtv.tv->name : TypeName(gtv.type);
+            r += gtv.type.Null() ? gtv.tv->name : TypeName(gtv.type, true, depth + 1);
         }
         r += ">";
     }
     r += "(";
     for (auto [i, arg] : enumerate(sf.args)) {
-        auto type = arg.spec_type;
-        if (arg.spec_type->t == V_FUNCTION && depth > 1) {
-            // Avoid recursive function types.
-            type = type_function_null_void;
-        }
-        FormatArg(r, arg.sid->id->name, i, type, depth + 1);
+        FormatArg(r, arg.sid->id->name, i, arg.spec_type, depth + 1);
     }
     r += ")";
     if (sf.returntype->t != V_VOID && sf.returntype->t != V_UNDEFINED && sf.returntype->t != V_VAR) {
         r += " -> ";
-        r += TypeName(sf.returntype, false);
+        r += TypeName(sf.returntype, false, depth + 1);
     }
     return r;
 }
@@ -2292,13 +2288,13 @@ inline string Signature(const SubFunction &sf, int depth = 0) {
 // Declared in compiler.h, so that the files outside the compiler can name a type too.
 string TypeName(UnTypeRef type, bool tuple_brackets, int depth) {
     // A type name followed by its type arguments, when it has any.
-    auto specialized = [](string_view name, const auto &types) {
+    auto specialized = [depth](string_view name, const auto &types) {
         string s(name);
         if (types.empty()) return s;
         s += "<";
         for (auto [i, t] : enumerate(types)) {
             if (i) s += ", ";
-            s += TypeName(t);
+            s += TypeName(t, true, depth);
         }
         return s + ">";
     };
@@ -2323,22 +2319,25 @@ string TypeName(UnTypeRef type, bool tuple_brackets, int depth) {
         case V_VECTOR:
             return type->Element()->t == V_VAR
                         ? "[]"
-                        : "[" + TypeName(type->Element()) + "]";
+                        : "[" + TypeName(type->Element(), true, depth) + "]";
         case V_FUNCTION:
-            return type->sf
+            // A signature can contain the type of its own function (a function value that
+            // takes or returns itself, also inside another type), so past a few nested
+            // signatures a function type is named just by its kind.
+            return type->sf && depth <= 2
                 ? Signature(*type->sf, depth)
                 : "function";
 
         case V_NIL:
             return type->Element()->t == V_VAR
                 ? "nil"
-                : TypeName(type->Element()) + "?";
+                : TypeName(type->Element(), true, depth) + "?";
         case V_TUPLE: {
             string s;
             if (tuple_brackets) s += "(";
             for (auto [i, te] : enumerate(*type->tup)) {
                 if (i) s += ", ";
-                s += TypeName(te.type);
+                s += TypeName(te.type, true, depth);
             }
             if (tuple_brackets) s += ")";
             return s;
@@ -2346,7 +2345,7 @@ string TypeName(UnTypeRef type, bool tuple_brackets, int depth) {
         case V_INT:
             return type->e ? type->e->name : "int";
         case V_TYPEID:
-            return "typeid(" + TypeName(type->sub) + ")";
+            return "typeid(" + TypeName(type->sub, true, depth) + ")";
         case V_TYPEVAR:
             return string(type->tv->name);
         case V_RESOURCE:

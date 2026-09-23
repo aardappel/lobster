@@ -444,6 +444,23 @@ def functions_tests():
         static plus_x = fn(a): a + x
         return plus_x(y)
     test_eq(static_fn(1), 6)
+    // A static is visible in its own initializer, so the function value in one can call
+    // itself, or return itself, e.g. as the next state of a state machine, which gives it a
+    // type that contains that same type.
+    def static_count(n:int) -> int:
+        static count = fn(k:int) -> int: if k: count(k - 1) + 1 else: 0
+        return count(n)
+    test_eq(static_count(3), 3)
+    def collatz(n:int) -> [int]:
+        static step = fn(v:[int]):
+            let x = v.top()
+            v.push(if x % 2: x * 3 + 1 else: x / 2)
+            step
+        let v = [ n ]
+        var next = step(v)
+        while v.top() != 1: next = next(v)
+        return v
+    test_seq(collatz(6), [ 6, 3, 10, 5, 16, 8, 4, 2, 1 ])
 
     // Functions defined at local scope.
     def outerfn():
