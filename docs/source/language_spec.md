@@ -353,7 +353,10 @@ Allowed in any nested scope (a function body, or a block at file scope; not
 directly at file scope). Declares a variable with program lifetime, private
 to its file, initialized once, immediately before
 the top-level statement that (lexically) contains the declaring function
-executes; the initializer is evaluated in the top-level context. Its type is
+executes; the initializer is evaluated in the top-level context, so it may not
+use the variables of the functions it is in (their locals and parameters, or
+fields through `this` or `::`), except inside a function value it creates, as
+that runs where it is called. Its type is
 the given type or the initializer's type. `static_frame` additionally re-evaluates the initializer
 and stores its value each time the statement is executed after a frame has
 passed since its previous execution (frames are counted by the engine's frame
@@ -367,7 +370,9 @@ Allowed inside a method (a `def` in a `class` body) of a class that is not a
 struct and has no subclasses yet. Declares an additional field of the class,
 with the initializer as its default value (evaluated like any field default:
 at every construction site, so it may not refer to fields, locals of the
-method, or anything declared by the method), and the annotation or the
+method, or anything declared by the method, except that a function value it
+creates may use the method's locals and fields, as that runs where it is
+called), and the annotation or the
 initializer's type as its type. The field is accessible by its unqualified
 name only lexically inside the declaring method (including nested functions),
 and only after the `member` statement in the method body; it is not

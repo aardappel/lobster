@@ -87,6 +87,13 @@ class DCCounter:
         let lam = fn: deep + 1
         def loc(): return deep * 10
         return lam() + loc()
+    def withfn():
+        let n = 5
+        // A function value that a `member` initializer creates may use the method's locals:
+        // it runs where it gets called, here, not wherever the class is constructed.
+        member getn = fn(): n
+        let f = getn
+        return f()
 
 // Forward declaration: usable in types before the full definition exists.
 class DCFwd
@@ -393,6 +400,7 @@ def classes_tests():
     test_eq(cnt1.bumpt(), 1.5)
     test_eq(cnt1.bumpt(), 2.5)
     test_eq(cnt1.nested(), 12)
+    test_eq(cnt1.withfn(), 5)
 
     // Reference-typed field defaults are evaluated per instance, not shared.
     class VHolder:

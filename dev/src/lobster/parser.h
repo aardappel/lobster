@@ -143,19 +143,31 @@ struct Parser {
         lex.Warn(cat(args...), what ? &what->line : nullptr);
     }
 
-    // Non-zero while parsing the initializer of a `member` declaration, holding
-    // the number of enclosing function scopes at that point. That initializer
-    // is the field's default, so it runs wherever the class is constructed and
-    // can't see anything declared by the method it is written in. Anything the
-    // initializer itself declares (a lambda's args, say) is fine.
-    size_t field_init_scopes = 0;
+    // While parsing the initializer of a `member` or `static` declaration, which doesn't run
+    // where it is written: that of a `member` is the field's default, so it runs wherever the
+    // class is constructed, and that of a `static` runs at top level. So it can't use the
+    // variables of the functions it is written in, the first `scopes` function scopes, other
+    // than in a function value it creates: that runs wherever it gets called, where they may
+    // well be in scope.
+    struct RelocatedInit {
+        size_t scopes = 0;  // 0 outside such an initializer.
+        // For errors: the declaration's keyword, and where its initializer runs.
+        string_view decl, runs;
+    };
+    RelocatedInit relocated_init;
 
     // Whether something declared by `sf_def` is one of those out of reach.
-    bool OutsideFieldInit(SubFunction *sf_def) {
+    bool OutsideRelocatedInit(SubFunction *sf_def) {
+        // Directly in the initializer, what is in scope is declared by those functions.
         // Index 0 is the top level, whose variables are globals, so in reach.
-        for (size_t i = 1; i < field_init_scopes; i++)
-            if (st.defsubfunctionstack[i] == sf_def) return true;
-        return false;
+        return st.defsubfunctionstack.size() == relocated_init.scopes &&
+               sf_def != st.defsubfunctionstack[0];
+    }
+
+    void RelocatedInitLocalError(string_view idname) {
+        Error("local variable ", Q(idname), " cannot be used in a ", Q(relocated_init.decl),
+              " initializer: it is evaluated ", relocated_init.runs,
+              ", not where the declaration is written");
     }
 
     void Parse() {
@@ -444,6 +456,7 @@ struct Parser {
             }
             case T_STATIC:
             case T_STATIC_FRAME: {
+                auto decl = TName(lex.token);
                 bool frame = lex.token == T_STATIC_FRAME;
                 lex.Next();
                 if (isprivate) Error("static declaration is always private");
@@ -464,7 +477,12 @@ struct Parser {
                 // For now, pin these as freevars, just incase it all gets inlined and they're not.
                 id->cursid->used_as_freevar = true;
                 Expect(T_ASSIGN);
-                Node *init = ParseExp();
+                Node *init = nullptr;
+                {
+                    DS<RelocatedInit> ds(relocated_init,
+                                         { st.defsubfunctionstack.size(), decl, "at top level" });
+                    init = ParseExp();
+                }
                 auto def = new Define(lex, init);
                 def->tsids.push_back({ id->cursid, type });
                 // Add to toplevel scope in progress! Should end up before our parent.
@@ -702,8 +720,11 @@ struct Parser {
             // construction site, which is typically in that same scope. A
             // `member` is declared inside a method, but its default is used
             // wherever the class gets constructed, which is not.
-            DS<size_t> ds(field_init_scopes,
-                          local_member ? st.defsubfunctionstack.size() : size_t(0));
+            DS<RelocatedInit> ds(relocated_init,
+                                 local_member
+                                     ? RelocatedInit { st.defsubfunctionstack.size(), "member",
+                                                       "wherever the class is constructed" }
+                                     : RelocatedInit {});
             init = ParseExp();
         }
         if (local_member && !init) {
@@ -1787,7 +1808,13 @@ struct Parser {
             // GenericCall::TypeCheck, which has to know about it since the variable scopes
             // are gone by then.
             auto id = st.Lookup(idname);
-            if (id) call->cand_var = id->cursid;
+            if (id) {
+                call->cand_var = id->cursid;
+                // In an initializer that runs elsewhere, it is what gets called there too,
+                // unless a builtin has this name.
+                if (OutsideRelocatedInit(id->cursid->sf_def) && !natreg.FindNative(idname))
+                    RelocatedInitLocalError(idname);
+            }
         }
         return call;
     }
@@ -2399,10 +2426,10 @@ struct Parser {
         // Check for field reference in a :: scope, or a pattern variable.
         if (field) {
             assert(wse);
-            if (OutsideFieldInit(wse->id->cursid->sf_def))
-                Error("field ", Q(idname), " cannot be used in a ", Q("member"), " initializer:"
-                      " it is evaluated wherever the class is constructed, where there is no"
-                      " instance to read it from yet");
+            if (OutsideRelocatedInit(wse->id->cursid->sf_def))
+                Error("field ", Q(idname), " cannot be used in a ", Q(relocated_init.decl),
+                      " initializer: it is evaluated ", relocated_init.runs,
+                      ", where there is no instance to read it from yet");
             wse->id->Read();
             return new Dot(field, lex, wse->Object(lex));
         }
@@ -2420,10 +2447,7 @@ struct Parser {
             if (f || nf) return ErrorExp("can\'t use named function ", Q(idname), " as value");
             else return ErrorExp("unknown identifier ", Q(idname));
         }
-        if (OutsideFieldInit(id->cursid->sf_def))
-            Error("local variable ", Q(idname), " cannot be used in a ", Q("member"),
-                  " initializer: it is evaluated wherever the class is constructed, not where"
-                  " the declaration is written");
+        if (OutsideRelocatedInit(id->cursid->sf_def)) RelocatedInitLocalError(idname);
         return new IdentRef(lex, id->cursid);
     }
 

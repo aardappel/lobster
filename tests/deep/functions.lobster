@@ -436,6 +436,13 @@ def functions_tests():
         return ++idsf
     test_eq(next_idsf(), 11)
     test_eq(next_idsf(), 12)
+    // A function value that a static initializer creates may use the function's
+    // locals: it runs where it gets called, not at top level like the initializer.
+    def static_fn(y):
+        let x = 5
+        static plus_x = fn(a): a + x
+        return plus_x(y)
+    test_eq(static_fn(1), 6)
 
     // Functions defined at local scope.
     def outerfn():
