@@ -644,11 +644,15 @@ struct TypeCheckFlow : virtual TypeCheckLocations {
                       Q(TypeName(node.resolvedtype)));
             }
         } else if (t == V_INT) {
-            auto intc = (new IntConstant(node.line, cval.i))->TypeCheck(ASTChecker(), 1, {});
+            // Made the way the parser makes `true` and `false`, which gives it the test's `bool`
+            // type.
+            auto ic = new IntConstant(node.line, cval.i);
+            ic->from = st.default_bool_type->Lookup(cval.i);
+            auto intc = ic->TypeCheck(ASTChecker(), 1, {});
             if (node.child->SideEffectRec()) {
                 // must retain side effects.
                 auto seq = new Seq(node.child->line, node.child, intc);
-                seq->exptype = type_int;
+                seq->exptype = node.exptype;
                 seq->lt = LT_ANY;
                 node.child = nullptr;
                 delete &node;

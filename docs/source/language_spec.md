@@ -1085,8 +1085,8 @@ an enum converts to `int` but `e is int` is false for an enum value `e`, and
 a plain `enum`) and for a value of another enum. For class and family struct
 values it is a runtime test against the dynamic type: true if that type is
 `T` or a subclass of `T`. If the static type makes the result certain, the
-test folds to a constant (side effects of `e` are kept). `e` is not
-evaluated more than once.
+test folds to the constant `true` or `false` (side effects of `e` are kept).
+`e` is not evaluated more than once.
 
 Unlike a conversion (see Conversions), the test never binds an inference
 variable, which would make it true by construction. Where the static type of

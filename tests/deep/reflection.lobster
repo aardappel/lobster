@@ -38,6 +38,24 @@ def reflection_tests():
     vu.push(1.5)
     test_true(not (nu is int?))
     test_true(vu[0] is float)
+    // A test decided at compile time is a bool like one decided at run time, also where the
+    // side effects of the tested value are kept.
+    test_eq("{1 is int}", "true")
+    test_eq(string(1 is float), "false")
+    let isb = 1 is int
+    test_true(isb is bool)
+    test_true((1 is int and 1.5 is float) is bool)
+    var isn = 0
+    def is_bump():
+        isn++
+        return 1
+    test_eq("{is_bump() is int}", "true")
+    test_eq(isn, 1)
+    def is_ov(b:bool): return "bool"
+    def is_ov(i:int): return "int"
+    test_eq(is_ov(1 is int), "bool")
+    let isv = [ 1 is int, dref_as_base(DReflSub {}) is DReflSub ]
+    test_true(isv is [bool])
 
     // Compile-time if: branches with type errors for a given specialization
     // are culled, and the return type is just the taken branch.
