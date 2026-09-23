@@ -588,9 +588,11 @@ struct TypeCheckBase {
         AdjustLifetime(a, orig_recip);
     }
 
+    // An int that is not a bool is converted too, since an and/or results in the value of an
+    // operand, not just its truth.
     void MakeBool(Node *&a) {
         DecBorrowers(a->lt, *a);
-        if (a->exptype->t == V_INT) return;
+        if (a->exptype->t == V_INT && a->exptype->e == st.default_bool_type) return;
         a = new ToBool(a->line, a);
         a->exptype = &st.default_bool_type->thistype;
         a->lt = LT_ANY;

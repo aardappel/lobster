@@ -151,6 +151,42 @@ def operators_tests():
     let nilstr = nil::string
     test_eq(nilstr or 1, true)
     test_eq(nilstr or 2.5, true)
+    // An int operand becomes a bool as well, so the result is `true` rather than the int,
+    // whichever side it is on, also against a bool (see enums.lobster for other enums). The
+    // reassignment keeps it from folding at compile time, the let is folded.
+    var five = 5
+    five = 5
+    test_eq(five or 2.5, true)
+    test_eq(2.5 and five, true)
+    test_eq(stra and five, true)
+    test_eq(five or stra, true)
+    test_eq(nilstr or five, true)
+    test_eq(true and five, true)
+    test_eq(five or false, true)
+    test_eq(false or five, true)
+    test_eq(string(true and five), "true")
+    test_eq((true and five) or stra, true)
+    let lfive = 5
+    test_eq(lfive or 2.5, true)
+    test_eq(true and lfive, true)
+    test_eq(lfive or false, true)
+    test_eq(nilstr or lfive, true)
+    def and_five(b:bool) -> int: return b and five
+    test_eq(and_five(true), 1)
+    test_eq(and_five(false), 0)
+    // Jumped on as a condition, the int is tested as is.
+    var yes = true
+    yes = true
+    var nought = 0
+    nought = 0
+    var taken = 0
+    while yes and five and taken < 5: taken++
+    if yes and five: taken += 10
+    if yes and nought: taken += 100
+    if nought or yes: taken += 1000
+    if not (five and stra): taken += 10000
+    if not (nought and stra): taken += 100000
+    test_eq(taken, 101015)
     // Comparisons produce bool.
     test_eq(1 < 2, true)
     test_eq(1 > 2, false)

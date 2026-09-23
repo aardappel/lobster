@@ -305,5 +305,23 @@ def enums_tests():
     test_true(1 > 0 and 42)
     test_true(not (1 > 2 and 42))
     test_eq(de_red and de_blue, de_blue)
+    // The value is a bool as well: an int or enum operand is converted by its truth, rather
+    // than kept, also when nothing about it is known at compile time.
+    test_eq(de_red and 1, true)
+    test_eq(1 > 0 and 42, true)
+    test_eq(de_red or 1 > 0, true)
+    test_eq(de_a or 42, true)
+    test_eq(de_a and 42, false)
+    var dblue = de_blue
+    dblue = de_blue
+    var dseven = 7
+    dseven = 7
+    test_eq(dblue or dseven, true)
+    test_eq(dseven and dblue, true)
+    test_eq(true and dblue, true)
+    test_eq(dblue or false, true)
+    test_eq(dblue and de_b, true)
+    test_eq(de_a or dseven, true)
+    test_eq(string(dseven and dblue), "true")
 
 enums_tests()

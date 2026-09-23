@@ -934,10 +934,11 @@ an `or` contributes only its right operand's type (`(a and b) or c` is typed
 from `b` and `c`); if there is no union, or one operand is an enum and the
 other a plain `int` or a different enum, both operands are converted to
 `bool` (`1`/`0` by truth) and the result is `bool`. Thus `n or 1` with
-`n:string?` is `true` of type `bool`, as is `1 or nil`, and `0 or 2.5` is
-`true`. A bare `nil` (or a variable initialized from an untyped `nil`) has an
-unbound element type, which unifies with the other operand's type; when that
-type cannot be nilable this is an error (`nil or 1`, see Conversions).
+`n:string?` is `true` of type `bool`, as is `1 or nil`, `0 or 2.5` is
+`true`, and `true and 5` is `true` (not `5`). A bare `nil` (or a variable
+initialized from an untyped `nil`) has an unbound element type, which unifies
+with the other operand's type; when that type cannot be nilable this is an
+error (`nil or 1`, see Conversions).
 `not a` yields `bool`: `true` when `a` is false. A condition whose type is a
 non-nilable reference type gets a warning (it is always true).
 

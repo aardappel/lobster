@@ -397,8 +397,9 @@ def functions_tests():
     def fact(n:int) -> int: return if n <= 1: 1 else: n * fact(n - 1)
     test_eq(fact(6), 720)
     test_eq(6.fact(), 720)  // Recursive call via dot syntax.
-    // Recursion via `or`: the bool/int union collapses to int.
-    def factor(n:int) -> int: return 1 > n or factor(n - 1) * n
+    // Recursion via `or`: the and-or selection idiom is typed from the values it selects
+    // (`1 > n or ...` would be a bool).
+    def factor(n:int) -> int: return 1 > n and 1 or factor(n - 1) * n
     test_eq(factor(5), 120)
     def is_even(n:int) -> int:
         return if n == 0: true else: is_odd(n - 1)

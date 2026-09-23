@@ -169,7 +169,7 @@ run_test("misc"):
     assert 264 == sum(testvector.map(): _ * _)
 
 
-    def factorial(n:int) -> int: return 1 > n or factorial(n - 1) * n
+    def factorial(n:int) -> int: return 1 > n and 1 or factorial(n - 1) * n
     assert 7.factorial == 5040
 
     let applyto4 = fn f: f(4)

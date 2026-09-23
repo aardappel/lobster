@@ -117,6 +117,11 @@ struct CodeGenFlow : virtual CodeGenBase {
             GenCondJump(nt->child, !onfail, lab);
             return;
         }
+        // Making a bool of a number does not change its truth.
+        if (auto tb = Is<ToBool>(n); tb && numeric(tb->child)) {
+            GenCondJump(tb->child, onfail, lab);
+            return;
+        }
         Gen(n, 1);
         TakeTemp(1, false);
         auto k = KindOf(n->exptype);
