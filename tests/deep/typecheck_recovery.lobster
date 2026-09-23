@@ -728,5 +728,12 @@ def typecheck_recovery_tests():
         """, [ "nil cannot take type `int`, which cannot be nilable",
                "nil cannot take type `float`, which cannot be nilable",
                "requires type `float`, got `string`" ])
+    // A value where a builtin wants a type, which its result would have been of.
+    expect_errors("""
+        let v, err = parse_data(1 - 1, "2")
+        let z:float = "s"
+        return v or err
+        """, [ "`parse_data` (1st argument) requires type `typeid(any)`, got `int`",
+               "requires type `float`, got `string`" ])
 
 typecheck_recovery_tests()

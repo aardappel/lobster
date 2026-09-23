@@ -297,8 +297,8 @@ struct TypeCheckBuiltin : virtual TypeCheckLocations {
                     if (nftype->t == V_TYPEID) {
                         assert(!sa);  // assumes always first.
                         auto tin = node.children[0];  // Usually a TypeOf, but could be IdentRef or any exp?
-                        assert(tin->exptype->t == V_TYPEID);  // Must have been checked above.
-                        type = tin->exptype->sub;
+                        // Anything but a typeid got an error from the SubType above.
+                        type = tin->exptype->t == V_TYPEID ? tin->exptype->sub : type_error;
                     }
 
                     if (ret.optional) {
