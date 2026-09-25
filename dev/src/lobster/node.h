@@ -63,24 +63,18 @@ struct Node {
     // Whether this node is valid as a statement by itself regardless of side effects,
     // i.e. definitions, control flow etc, used by the "no effect" warning.
     virtual bool ValidStatement() const { return false; }
-    bool SideEffectRec() {
-        if (SideEffect()) return true;
+    // Whether `f` holds for this node or any node below it.
+    template<typename F> bool Any(F f) {
+        if (f(this)) return true;
         auto ch = Children();
         if (!ch) return false;
         for (size_t i = 0; i < Arity(); i++) {
-            if (ch[i]->SideEffectRec()) return true;
+            if (ch[i]->Any(f)) return true;
         }
         return false;
     }
-    bool MayTrapRec() {
-        if (MayTrap()) return true;
-        auto ch = Children();
-        if (!ch) return false;
-        for (size_t i = 0; i < Arity(); i++) {
-            if (ch[i]->MayTrapRec()) return true;
-        }
-        return false;
-    }
+    bool SideEffectRec() { return Any([](Node *n) { return n->SideEffect(); }); }
+    bool MayTrapRec() { return Any([](Node *n) { return n->MayTrap(); }); }
     size_t Count() {
         size_t count = 0;
         Iterate([&](Node *) { count++; });
@@ -259,7 +253,12 @@ struct TypeAnnotation : Node {
 #define TRAPMETHOD bool MayTrap() const { return true; }
 
 // generic node types
-NARY_NODE(List, "list", false, )
+NARY_NODE(List, "list", false, \
+    /* What the constructors are, see IsConstInit. */ \
+    bool ChildrenConstInit() const { \
+        for (auto n : children) if (!n->IsConstInit()) return false; \
+        return true; \
+    })
 BINARY_NODE(BinOp, "binop", false, left, right, SIMPLEMETHOD)
 UNARY_NODE(Coercion, "coercion", false, )
 
@@ -522,12 +521,7 @@ struct GenericCall : List {
 struct VectorConstructor : List {
     UnTypeRef giventype;
     VectorConstructor(const Line &ln) : List(ln), giventype((UnType *)nullptr) {};
-    bool IsConstInit() const {
-        for (auto n : children) {
-            if (!n->IsConstInit()) return false;
-        }
-        return true;
-    }
+    bool IsConstInit() const { return ChildrenConstInit(); }
     bool EqAttr(const Node *o) const {
         return giventype->Equal(*((VectorConstructor *)o)->giventype);
     }
@@ -547,12 +541,7 @@ struct ObjectConstructor : List {
         Add(a);
     }
     bool IsDefault(size_t i) const { return i < defaults.size() && defaults[i]; }
-    bool IsConstInit() const {
-        for (auto n : children) {
-            if (!n->IsConstInit()) return false;
-        }
-        return true;
-    }
+    bool IsConstInit() const { return ChildrenConstInit(); }
     bool IsConstProp(TypeRef resolved) const {
         // Use resolved instead of giventype.
         if (resolved->t != V_STRUCT_S) return false;
@@ -575,12 +564,7 @@ struct AutoConstructor : List {
     // type for the Name { .. } form.
     UnTypeRef giventype = (UnType *)nullptr;
     AutoConstructor(const Line &ln) : List(ln) {};
-    bool IsConstInit() const {
-        for (auto n : children) {
-            if (!n->IsConstInit()) return false;
-        }
-        return true;
-    }
+    bool IsConstInit() const { return ChildrenConstInit(); }
     bool EqAttr(const Node *o) const {
         for (auto [i, tag] : enumerate(tags)) {
             if (tag != ((AutoConstructor *)o)->tags[i]) return false;

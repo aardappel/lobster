@@ -274,11 +274,6 @@ class UnTypeRef {
     UnTypeRef(const UnType *_type) : type(_type) {}
     UnTypeRef(const Type *_type)   : type(_type) {}
 
-    UnTypeRef &operator=(const UnTypeRef &o) {
-        type = o.type;
-        return *this;
-    }
-
     const UnType &operator*()  const { return *(const UnType *)type; }
     const UnType *operator->() const { return (const UnType *)type; }
 
@@ -296,11 +291,6 @@ class TypeRef : public UnTypeRef {
     public:
     TypeRef()                  : UnTypeRef() {}
     TypeRef(const Type *_type) : UnTypeRef(_type) {}
-
-    TypeRef &operator=(const TypeRef &o) {
-        type = o.type;
-        return *this;
-    }
 
     const Type &operator*()  const { return *type; }
     const Type *operator->() const { return type; }
