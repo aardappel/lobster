@@ -800,9 +800,8 @@ struct Parser {
             parent_list->Add(new UDTRef(line, udt));
             return;
         }
-        GUDT *gudt = st.LookupStruct(sname);
-        bool was_predeclaration = gudt && gudt->predeclaration;
-        gudt = &st.StructDecl(sname, is_struct, lex);
+        bool was_predeclaration;
+        auto gudt = &StructDecl(sname, is_struct, was_predeclaration);
         UDT *udt = nullptr;
         if (Either(T_COLON, T_LT)) {
             // A regular struct declaration
@@ -829,12 +828,7 @@ struct Parser {
             if (!gudt->IsGeneric()) {
                 // We create a specialization since there will be no explicit specializations.
                 // Create it early since the superclass specializers below may refer to it.
-                if (was_predeclaration) {
-                    udt = gudt->first;
-                    assert(udt && !udt->next);
-                } else { 
-                    udt = st.MakeSpecialization(*gudt, sname, false, false);
-                }
+                udt = SingleSpecialization(gudt, sname, was_predeclaration);
             }
             if (lex.token == T_IDENT) {
                 // Unpacked by hand, see the lambda capture comment above.
@@ -921,17 +915,31 @@ struct Parser {
             } else {
                 gudt->predeclaration = true;
             }
-            if (was_predeclaration && gudt->predeclaration) {
-                // Multiple pre-declarations, don't add another specialization.
-                udt = gudt->first;
-                assert(udt && !udt->next);
-            } else {
-                // Also make a specialization, since it will typically be referred to in fields of
-                // other types (that get resolved) before this is fully declared.
-                udt = st.MakeSpecialization(*gudt, sname, false, false);
-            }
+            // Also make a specialization, since it will typically be referred to in fields of
+            // other types (that get resolved) before this is fully declared.
+            udt = SingleSpecialization(gudt, sname, was_predeclaration);
         }
         FinishTypeDecl(gudt, udt, line, parent_list);
+    }
+
+    // Declares the type `sname` (see SymbolTable::StructDecl), and whether that continues a
+    // pre-declaration of it. A declaration that clashes with an existing one gets a
+    // declaration of its own, so is not continuing anything.
+    GUDT &StructDecl(string_view sname, bool is_struct, bool &was_predeclaration) {
+        auto prev = st.LookupStruct(sname);
+        was_predeclaration = prev && prev->predeclaration;
+        auto &gudt = st.StructDecl(sname, is_struct, lex);
+        was_predeclaration = was_predeclaration && &gudt == prev;
+        return gudt;
+    }
+
+    // The one specialization of a non-generic type: the one its pre-declaration made, which
+    // whatever came in between refers to, or else a new one.
+    UDT *SingleSpecialization(GUDT *gudt, string_view sname, bool was_predeclaration) {
+        if (!was_predeclaration) return st.MakeSpecialization(*gudt, sname, false, false);
+        auto udt = gudt->first;
+        assert(udt && !udt->next);
+        return udt;
     }
 
     // Makes `gudt` a subclass of `gsup`: it starts out with the fields of `gsup`.
@@ -971,19 +979,11 @@ struct Parser {
     // specialization, as ParseTypeDecl does for `class sname:` / `struct sname:`.
     pair<GUDT *, UDT *> DeclareType(string_view sname, bool is_struct, bool isprivate,
                                     bool is_abstract) {
-        auto gudt = st.LookupStruct(sname);
-        bool was_predeclaration = gudt && gudt->predeclaration;
-        gudt = &st.StructDecl(sname, is_struct, lex);
+        bool was_predeclaration;
+        auto gudt = &StructDecl(sname, is_struct, was_predeclaration);
         gudt->is_abstract = is_abstract;
         gudt->isprivate = isprivate;
-        UDT *udt = nullptr;
-        if (was_predeclaration) {
-            udt = gudt->first;
-            assert(udt && !udt->next);
-        } else {
-            udt = st.MakeSpecialization(*gudt, sname, false, false);
-        }
-        return { gudt, udt };
+        return { gudt, SingleSpecialization(gudt, sname, was_predeclaration) };
     }
 
     // `union class U:` with an indented list of `M(field:type, ...)` lines (the parens may

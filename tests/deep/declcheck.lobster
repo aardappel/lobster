@@ -390,6 +390,16 @@ def declcheck_order_tests():
     // Pre-declared struct never defined is an error.
     expect_error("class Undefined\nreturn 1", "never defined")
 
+    // A pre-declaration continued by an abstract declaration has one specialization, which
+    // is what its subclasses and every use in between refer to.
+    expect_dk_ok("class PA\nabstract class PA\nclass PB : PA\n    x = 1\n" +
+                 "def pf(a:PA) -> int: return if a is PB: 1 else: 0\n" +
+                 "return pf(PB \{\})", "1")
+
+    // A declaration of the other kind than a pre-declaration is a type of its own (an error),
+    // which leaves the pre-declaration undefined.
+    expect_error("class PK\nstruct PK:\n    x = 1\nreturn 1", "previously declared as different kind")
+
     // A local function shadows an outer one of the same name for lexically
     // nested code only.
     expect_dk_ok("def s() -> int: return 1\n" +
