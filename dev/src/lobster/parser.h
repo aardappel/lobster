@@ -117,6 +117,28 @@ struct Parser {
         SkipTo();
     }
 
+    // The lines of an indented block (fields, enum values, cases), after its T_INDENT, `f`
+    // parsing one, up to and including the dedent that ends it.
+    template<typename F> void ParseLines(F f) {
+        for (;;) {
+            auto errors_before = lex.num_errors;
+            f();
+            EndOfLine(errors_before);
+            if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
+        }
+        Expect(T_DEDENT);
+    }
+
+    // The same for a block that has to be there. Without one, whatever is there instead is
+    // left for the caller's line.
+    template<typename F> void ParseIndentedLines(F f) {
+        if (!IsNext(T_INDENT)) {
+            Expected(T_INDENT);
+            return;
+        }
+        ParseLines(f);
+    }
+
     // The separator between two elements of a list ending in `closing`. When it is missing,
     // reports that and skips the rest of the list, leaving `closing` (if found) for the
     // caller. Returns whether the list continues.
@@ -382,11 +404,9 @@ struct Parser {
                 def->isprivate = isprivate;
                 def->flags = !incremental;
                 Expect(T_COLON);
-                if (!IsNext(T_INDENT)) {
-                    Expected(T_INDENT);
-                } else {
-                    for (;;) {
-                        auto errors_before = lex.num_errors;
+                ParseIndentedLines([&]() {
+                    // A line holds one or more values.
+                    do {
                         auto evname = st.MaybeMakeNameSpace(ExpectId(), true);
                         if (IsNext(T_ASSIGN)) {
                             auto e = ParseExp();
@@ -419,12 +439,8 @@ struct Parser {
                             while (cur > 0 && next <= (uint64_t)cur) next <<= 1;
                             cur = (int64_t)next;
                         }
-                        if (IsNext(T_COMMA)) continue;
-                        EndOfLine(errors_before);
-                        if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
-                    }
-                    Expect(T_DEDENT);
-                }
+                    } while (IsNext(T_COMMA));
+                });
                 list->Add(new EnumRef(line, def));
                 break;
             }
@@ -856,8 +872,7 @@ struct Parser {
             if (IsNext(T_INDENT)) {
                 bool fieldsdone = false;
                 st.bound_typevars_stack.push_back(gudt->generics);
-                for (;;) {
-                    auto errors_before = lex.num_errors;
+                ParseLines([&]() {
                     if (IsNext(T_ATTRIBUTE)) {
                         auto [key, value] = ParseAttribute(gudt->attributes);
                         if (key == "serializable") {
@@ -891,10 +906,7 @@ struct Parser {
                             ParseField(gudt, member_private, false);
                         }
                     }
-                    EndOfLine(errors_before);
-                    if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
-                }
-                Expect(T_DEDENT);
+                });
                 st.bound_typevars_stack.pop_back();
             }
             // A struct with an abstract struct superclass has the type field, so it may be
@@ -986,12 +998,7 @@ struct Parser {
         auto udt = up.second;
         FinishTypeDecl(gudt, udt, line, parent_list);
         Expect(T_COLON);
-        if (!IsNext(T_INDENT)) {
-            Expected(T_INDENT);
-            return;
-        }
-        for (;;) {
-            auto errors_before = lex.num_errors;
+        ParseIndentedLines([&]() {
             Line mline = lex;
             auto mname = st.MaybeMakeNameSpace(ExpectId(), true);
             // Unpacked by hand, see the lambda capture comment in ParseTypeDecl.
@@ -1006,10 +1013,7 @@ struct Parser {
                 }, T_RIGHTPAREN);
             }
             FinishTypeDecl(mgudt, mudt, mline, parent_list);
-            EndOfLine(errors_before);
-            if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
-        }
-        Expect(T_DEDENT);
+        });
     }
 
     FunRef *ParseNamedFunctionDefinition(bool is_constructor, bool isprivate, GUDT *self) {
@@ -1036,6 +1040,17 @@ struct Parser {
             auto idname = string(st.MaybeMakeNameSpace(ExpectId(), !self));
             return ParseFunction(&idname, is_constructor, isprivate, true, true, self);
         }
+    }
+
+    // The explicit free variable of this name declared by one of the named functions being
+    // parsed, the innermost first.
+    ExplicitFreeVar *FindExplicitFreeVar(string_view name) {
+        for (auto f : reverse(namedfunctionstack)) {
+            for (auto fvd : f->overloads.back()->freevardecls) {
+                if (name == fvd->name) return fvd;
+            }
+        }
+        return nullptr;
     }
 
     void ImplicitReturn(Overload &ov) {
@@ -1196,14 +1211,7 @@ struct Parser {
                         Error("explicit free variable double declaration: ", Q(id));
                     }
                 }
-                for (auto f : reverse(namedfunctionstack)) {
-                    auto ov = f->overloads.back();
-                    for (auto fvd : ov->freevardecls) {
-                        if (id == fvd->name) {
-                            Warn("explicit free variable shadowing: ", Q(id));
-                        }
-                    }
-                }
+                if (FindExplicitFreeVar(id)) Warn("explicit free variable shadowing: ", Q(id));
                 if (!st.declared_explicit_free_variables.empty()) {
                     if (!st.declared_explicit_free_variables.count(id)) {
                         Error("explicit free variable not declared in ", Q("nonlocal from"), " : ", Q(id));
@@ -1793,9 +1801,9 @@ struct Parser {
                 auto islf = IsNext(T_LINEFEED);
                 if (!islf && lex.token != T_LAMBDA) { return; }
                 if (!IsNext(T_LAMBDA)) {
-                    lex.PushCur();
-                    if (islf) lex.Push(T_LINEFEED);
-                    lex.Next();
+                    // The line break was not followed by another function value, so it ends
+                    // the call after all.
+                    lex.Undo(T_LINEFEED);
                     return;
                 }
             }
@@ -2013,12 +2021,7 @@ struct Parser {
                 bool have_default = false;
                 bool have_out_of_range = false;
                 auto cases = new List(lex);
-                if (!IsNext(T_INDENT)) {
-                    Expected(T_INDENT);
-                    return new Switch(line, value, cases);
-                }
-                for (;;) {
-                    auto errors_before = lex.num_errors;
+                ParseIndentedLines([&]() {
                     List *pattern = new List(lex);
                     Line cline = lex;
                     bool out_of_range = false;
@@ -2082,10 +2085,7 @@ struct Parser {
                     cas->out_of_range = out_of_range;
                     cas->withtype = withtype;
                     cases->Add(cas);
-                    EndOfLine(errors_before);
-                    if (!IsNext(T_LINEFEED) || Either(T_ENDOFFILE, T_DEDENT)) break;
-                }
-                Expect(T_DEDENT);
+                });
                 return new Switch(line, value, cases);
             }
             default:
@@ -2107,9 +2107,8 @@ struct Parser {
         } else if (IsNext(T_ELSE)) {
             return new IfElse(line, cond, thenp, ParseBlock(-1, false, allow_multi_assign));
         } else {
-            lex.PushCur();
-            if (islf) lex.Push(T_LINEFEED);
-            lex.Next();
+            // The line break belongs to whatever follows the if after all.
+            if (islf) lex.Undo(T_LINEFEED);
             return new IfThen(line, cond, thenp);
         }
     }
@@ -2434,14 +2433,7 @@ struct Parser {
             return new Dot(field, lex, wse->Object(lex));
         }
         // Check any non-lexical-scope freevars.
-        for (auto f : reverse(namedfunctionstack)) {
-            auto ov = f->overloads.back();
-            for (auto fvd : ov->freevardecls) {
-                if (idname == fvd->name) {
-                    return new FreeVarRef(lex, fvd);
-                }
-            }
-        }
+        if (auto fvd = FindExplicitFreeVar(idname)) return new FreeVarRef(lex, fvd);
         // It's likely a regular variable.
         if (!id) {
             if (f || nf) return ErrorExp("can\'t use named function ", Q(idname), " as value");
