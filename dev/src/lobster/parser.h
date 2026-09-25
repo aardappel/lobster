@@ -565,14 +565,15 @@ struct Parser {
                 // in a free-standing method we can't allow new fields to be added when a subclass
                 // has already copied them. We can maybe lift this restriction.
                 if (gudt->has_subclasses) Error("member cannot be added in freestanding method to class that has been subclassed");
-                st.bound_typevars_stack.push_back(gudt->generics);
                 auto field_idx = gudt->fields.size();
-                // FIXME: this will lookup idents in this exp in the current context, and it should do so
-                // outside the current class it is in somehow.
-                ParseField(gudt, true, true);
+                {
+                    SymbolTable::BoundTypeVars btv(st, gudt->generics);
+                    // FIXME: this will lookup idents in this exp in the current context, and it should do so
+                    // outside the current class it is in somehow.
+                    ParseField(gudt, true, true);
+                }
                 // Only the method this sits in may access it, see Dot::TypeCheck.
                 gudt->fields.back().member_of = st.defsubfunctionstack.back()->overload;
-                st.bound_typevars_stack.pop_back();
                 auto initc = gudt->fields.back().gdefaultval->Clone(true);
                 SpecIdent *this_sid = nullptr;
                 if (frame) {
@@ -855,21 +856,22 @@ struct Parser {
                     ssup = nullptr;
                 }
                 InheritFrom(gudt, gsup);
-                st.bound_typevars_stack.push_back(gudt->generics);
                 if (ssup) {
                     gudt->gsuperclass = { &ssup->thistype };
-                    st.bound_typevars_stack.pop_back();
                 } else {
                     gudt->gsuperclass = { st.NewSpecUDT(gsup) };
                     auto &su = *gudt->gsuperclass->spec_udt;
-                    if (IsNext(T_LT)) ParseTypeSpecializers(su);
-                    else CheckSpecializers(su);
-                    st.bound_typevars_stack.pop_back();
+                    if (IsNext(T_LT)) {
+                        SymbolTable::BoundTypeVars btv(st, gudt->generics);
+                        ParseTypeSpecializers(su);
+                    } else {
+                        CheckSpecializers(su);
+                    }
                 }
             }
             if (IsNext(T_INDENT)) {
                 bool fieldsdone = false;
-                st.bound_typevars_stack.push_back(gudt->generics);
+                SymbolTable::BoundTypeVars btv(st, gudt->generics);
                 ParseLines([&]() {
                     if (IsNext(T_ATTRIBUTE)) {
                         auto [key, value] = ParseAttribute(gudt->attributes);
@@ -905,7 +907,6 @@ struct Parser {
                         }
                     }
                 });
-                st.bound_typevars_stack.pop_back();
             }
             // A struct with an abstract struct superclass has the type field, so it may be
             // without fields of its own, like a value of an enum.
@@ -1123,7 +1124,7 @@ struct Parser {
                 });
             }
         }
-        st.bound_typevars_stack.push_back(sf->generics);
+        SymbolTable::BoundTypeVars btv(st, sf->generics);
         if (parens) Expect(T_LEFTPAREN);
         size_t nargs = 0;
         bool self_withtype = false;
@@ -1136,7 +1137,6 @@ struct Parser {
             st.AddWithStruct(GetGUDTAny(atype), id, sf);
             id->cursid->withtype = true;
         }
-        bool non_inline_method = false;
         node_small_vector default_args;
         if (lex.token != T_RIGHTPAREN && parseargs) {
             for (;;) {
@@ -1149,10 +1149,9 @@ struct Parser {
                     auto atype = ParseType(withtype, nullptr);
                     if (withtype) st.AddWithStruct(GetGUDTAny(atype), id, sf);
                     if (nargs == 1 && (atype->t == V_UUDT || IsUDT(atype->t))) {
-                        non_inline_method = true;
                         self = GetGUDTAny(atype);
                         self_withtype = withtype;
-                        st.bound_typevars_stack.push_back(self->generics);
+                        btv.Push(self->generics);
                     }
                     ov->givenargs.push_back({ atype });
                 } else {
@@ -1299,8 +1298,6 @@ struct Parser {
         }
         if (self_withtype) gudtstack.pop_back();
         if (name) namedfunctionstack.pop_back();
-        if (non_inline_method) st.bound_typevars_stack.pop_back();
-        st.bound_typevars_stack.pop_back();
         st.FunctionScopeCleanup(ov->gbody ? ov->gbody->Count() : 0);
         return new FunRef(line, sf);
     }

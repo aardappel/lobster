@@ -198,11 +198,12 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
             }
             // With this specialization's bindings in scope, so SimpleType can
             // resolve type variables in e.g. []::T defaults.
-            st.bound_typevars_stack.push_back(udt.GetBoundGenerics());
-            st.PushSuperGenerics(udt.ssuperclass);
-            auto simple_type = sfield.defaultval->SimpleType(st);
-            st.PopSuperGenerics(udt.ssuperclass);
-            st.bound_typevars_stack.pop_back();
+            TypeRef simple_type = nullptr;
+            {
+                SymbolTable::BoundTypeVars btv(st, udt.GetBoundGenerics());
+                btv.PushSupers(udt.ssuperclass);
+                simple_type = sfield.defaultval->SimpleType(st);
+            }
             if (simple_type.Null()) {
                 // Track how often field types can only be derived by fully
                 // typechecking the initializer (with --debug), since that is
@@ -217,9 +218,11 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
                 // checking, especially function calls, whose "return from" may fail here.
                 // Sadly that is not easy given the amount of type-checking code this
                 // already relies on.
-                st.PushSuperGenerics(&udt);
-                TT(sfield.defaultval, 1, LT_ANY);
-                st.PopSuperGenerics(&udt);
+                {
+                    SymbolTable::BoundTypeVars btv(st);
+                    btv.PushSupers(&udt);
+                    TT(sfield.defaultval, 1, LT_ANY);
+                }
                 DecBorrowers(sfield.defaultval->lt, errn);
                 // FIXME: because the above may do things like insert coercions etc in exp,
                 // we have to undo that here.
@@ -463,9 +466,10 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
                 // for this one.
                 vector<GenericTypeVariable> unresolved = gudt->generics;
                 for (auto &gtv : unresolved) gtv.type = type_error;
-                st.bound_typevars_stack.push_back(unresolved);
-                TypeCheckList(&node, LT_KEEP);
-                st.bound_typevars_stack.pop_back();
+                {
+                    SymbolTable::BoundTypeVars btv(st, std::move(unresolved));
+                    TypeCheckList(&node, LT_KEEP);
+                }
                 // Not about the types of the initializers, so reported even when one of
                 // those could not be typed.
                 ErrorAlways(node, "cannot construct ", Q(gudt->name),
@@ -570,7 +574,8 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
             // typechecked before they can be cloned in below, regardless of where
             // its declaration statement sits relative to this constructor.
             EnsureUDTChecked(*udt, node);
-            st.PushSuperGenerics(udt);
+            SymbolTable::BoundTypeVars btv(st);
+            btv.PushSupers(udt);
             // Fill in default args.. already done in the parser normally, but can happen if
             // this is a T {} constructor.
             for (size_t i = node.children.size(); i < udt->sfields.size(); i++) {
@@ -582,7 +587,6 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
                         udts_in_progress.end()) {
                         Error(node, "default value of field ", Q(udt->g.fields[i].id->name),
                                         " recursively constructs ", Q(udt->name));
-                        st.PopSuperGenerics(udt);
                         TypeCheckList(&node, LT_KEEP);
                         return ErrorNode(node);
                     }
@@ -599,7 +603,6 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
                 if (node.IsDefault(i)) rs.emplace(st, DefaultFieldContext(*udt, i, node));
                 TT(c, 1, LT_KEEP, i < udt->sfields.size() ? udt->sfields[i].type : type_error);
             }
-            st.PopSuperGenerics(udt);
         }
         assert(udt);
         // We have to check this here, since the parser couldn't check this yet.

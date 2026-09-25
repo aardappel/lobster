@@ -394,15 +394,13 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
         // Now specialize.
         sf->reqret = spec_reqret;
         sf->generics = generics;
-        UDT *udt = nullptr;
+        SymbolTable::BoundTypeVars btv(st);
         if (sf->overload->method_of && IsUDT(call_args.children[0]->exptype->t)) {
-            udt = call_args.children[0]->exptype->udt;
-        }
-        if (udt) {
-            st.PushSuperGenerics(udt);
+            auto udt = call_args.children[0]->exptype->udt;
+            btv.PushSupers(udt);
             sf->method_of = udt;
         }
-        st.bound_typevars_stack.push_back(sf->generics);
+        btv.Push(sf->generics);
         for (auto [i, c] : enumerate(call_args.children)) {
             auto &arg = sf->args[i];
             arg.sid->lt = ArgLifetime(c, arg, i);
@@ -416,10 +414,6 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
         LOG_DEBUG("specialization: ", Signature(*sf));
         auto rtype =
             TypeCheckMatchingCall(sf, call_args, static_dispatch, first_dynamic, de);
-        if (udt) {
-            st.PopSuperGenerics(udt);
-        }
-        st.bound_typevars_stack.pop_back();
         return CallReturnType(rtype, *sf, reqret);
     }
 
@@ -843,9 +837,12 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                         gtv.tv = ov->sf->generics[i].tv;
                         gtv.type = st.ResolveTypeVars(specializers->at(i), call_args.line);
                     }
-                    st.bound_typevars_stack.push_back(generics);
-                    auto arg = st.ResolveTypeVars(ov->sf->overload->givenargs[argidx], call_args.line);
-                    st.bound_typevars_stack.pop_back();
+                    TypeRef arg;
+                    {
+                        SymbolTable::BoundTypeVars btv(st, generics);
+                        arg = st.ResolveTypeVars(ov->sf->overload->givenargs[argidx],
+                                                 call_args.line);
+                    }
                     // TODO: Should we instead do ConvertsTo here?
                     if (type->Equal(*arg)) {
                         matches.push_back(ov);

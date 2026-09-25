@@ -958,7 +958,33 @@ struct SymbolTable {
     vector<Enum *> enumtable;
 
     vector<TypeVariable *> typevars;
+    // The type variables in scope, innermost last, each with the type it is bound to (null
+    // while parsing), see ResolveTypeVars. Only ever changed thru a BoundTypeVars.
     vector<vector<GenericTypeVariable>> bound_typevars_stack;
+
+    // Brings type variables into scope for as long as it is in scope itself: the generics
+    // given, and/or with PushSupers the bound generics of a specialization and its
+    // superclasses, whichever came last taking precedence.
+    struct BoundTypeVars {
+        SymbolTable &st;
+        size_t pushed = 0;
+        BoundTypeVars(SymbolTable &st) : st(st) {}
+        BoundTypeVars(SymbolTable &st, vector<GenericTypeVariable> generics) : st(st) {
+            Push(std::move(generics));
+        }
+        BoundTypeVars(const BoundTypeVars &) = delete;
+        BoundTypeVars &operator=(const BoundTypeVars &) = delete;
+        ~BoundTypeVars() {
+            while (pushed--) st.bound_typevars_stack.pop_back();
+        }
+        void Push(vector<GenericTypeVariable> generics) {
+            st.bound_typevars_stack.push_back(std::move(generics));
+            pushed++;
+        }
+        void PushSupers(UDT *u) {
+            for (; u; u = u->ssuperclass) Push(u->GetBoundGenerics());
+        }
+    };
 
     vector<size_t> scopelevels;
 
@@ -1805,18 +1831,6 @@ struct SymbolTable {
         }
     }
 
-    void PushSuperGenerics(UDT *u) {
-        for (; u; u = u->ssuperclass) {
-            bound_typevars_stack.push_back(u->GetBoundGenerics());
-        }
-    }
-
-    void PopSuperGenerics(UDT *u) {
-        for (; u; u = u->ssuperclass) {
-            bound_typevars_stack.pop_back();
-        }
-    }
-
     size_t CheckUDTSameTypeRec(UDT &cudt, TypeRef &sametype, size_t slot, size_t rec) {
         for (size_t i = 0; i < cudt.sfields.size(); i++) {
             // Can't use Union here since it will bind variables, use simplified
@@ -1855,46 +1869,46 @@ struct SymbolTable {
     }
 
     void ResolveFields(UDT &udt, const Line &errl) {
-        bound_typevars_stack.push_back(udt.GetBoundGenerics());
-        TypeRef supertype = nullptr;
         {
-            ResolveScope rs(*this, { .what = "superclass", .udt = &udt });
-            supertype = ResolveTypeVars(udt.g.gsuperclass, errl);
-        }
-        if (supertype->t != V_UNDEFINED) {
-            assert(IsUDT(supertype->t));
-            udt.ssuperclass = supertype->udt;
-            // An inheritance cycle can be declared thru pre-declarations, and
-            // would make the walks over ssuperclass everywhere run forever.
-            // Checking at the moment the link is added means the chain below
-            // is guaranteed cycle-free.
-            for (auto u = udt.ssuperclass; u; u = u->ssuperclass) {
-                if (u == &udt) {
-                    lex.Report(cat("inheritance cycle in type ", Q(udt.g.name)), &errl);
-                    // Left without a superclass, at both levels, which breaks the cycle.
-                    udt.ssuperclass = nullptr;
-                    udt.g.gsuperclass = UnTypeRef();
-                    break;
+            BoundTypeVars btv(*this, udt.GetBoundGenerics());
+            TypeRef supertype = nullptr;
+            {
+                ResolveScope rs(*this, { .what = "superclass", .udt = &udt });
+                supertype = ResolveTypeVars(udt.g.gsuperclass, errl);
+            }
+            if (supertype->t != V_UNDEFINED) {
+                assert(IsUDT(supertype->t));
+                udt.ssuperclass = supertype->udt;
+                // An inheritance cycle can be declared thru pre-declarations, and
+                // would make the walks over ssuperclass everywhere run forever.
+                // Checking at the moment the link is added means the chain below
+                // is guaranteed cycle-free.
+                for (auto u = udt.ssuperclass; u; u = u->ssuperclass) {
+                    if (u == &udt) {
+                        lex.Report(cat("inheritance cycle in type ", Q(udt.g.name)), &errl);
+                        // Left without a superclass, at both levels, which breaks the cycle.
+                        udt.ssuperclass = nullptr;
+                        udt.g.gsuperclass = UnTypeRef();
+                        break;
+                    }
                 }
             }
+            btv.PushSupers(udt.ssuperclass);
+            for (size_t i = udt.sfields.size(); i < udt.g.fields.size(); i++) {
+                auto &field = udt.g.fields[i];
+                // A field with no type given whose type could not be derived from
+                // its default value at parse time stays null until EnsureUDTChecked
+                // derives it by typechecking the default, so partially resolved
+                // state can never be silently read (V_ANY, the previous sentinel,
+                // is also a legitimate type).
+                ResolveScope rs(*this,
+                    { .what = "type of field", .udt = &udt, .name = field.id->name });
+                udt.sfields.push_back({ field.gdefaultval && field.giventype->t == V_ANY
+                                            ? TypeRef(nullptr)
+                                            : ResolveTypeVars(field.giventype, field.defined_in) });
+                udt.sfields.back().bits = field.bits;
+            }
         }
-        PushSuperGenerics(udt.ssuperclass);
-        for (size_t i = udt.sfields.size(); i < udt.g.fields.size(); i++) {
-            auto &field = udt.g.fields[i];
-            // A field with no type given whose type could not be derived from
-            // its default value at parse time stays null until EnsureUDTChecked
-            // derives it by typechecking the default, so partially resolved
-            // state can never be silently read (V_ANY, the previous sentinel,
-            // is also a legitimate type).
-            ResolveScope rs(*this,
-                { .what = "type of field", .udt = &udt, .name = field.id->name });
-            udt.sfields.push_back({ field.gdefaultval && field.giventype->t == V_ANY
-                                        ? TypeRef(nullptr)
-                                        : ResolveTypeVars(field.giventype, field.defined_in) });
-            udt.sfields.back().bits = field.bits;
-        }
-        PopSuperGenerics(udt.ssuperclass);
-        bound_typevars_stack.pop_back();
         udt.family_root = FamilyRootOf(&udt);
         // NOTE: all users of sametype will only act on it if it is numeric, since
         // otherwise it would a scalar field to become any without boxing.
