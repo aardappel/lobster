@@ -186,6 +186,21 @@ struct TypeCheckBase {
         arglists.pop_back();
     }
 
+    // The functions being typechecked, innermost last.
+
+    // Whether a call of `sf` is being typechecked.
+    bool IsActive(const SubFunction *sf) {
+        for (auto &sc : scopes) if (sc.sf == sf) return true;
+        return false;
+    }
+
+    // The innermost scope that is a call of a specialization of `f`, or null when none is.
+    // Valid until the next function is entered.
+    Scope *ActiveScopeOf(const Function *f) {
+        for (auto &sc : reverse(scopes)) if (sc.sf->parent == f) return &sc;
+        return nullptr;
+    }
+
     // Diagnostics, error recovery, and current variable identities.
 
     // Needed for any sids in cloned code.

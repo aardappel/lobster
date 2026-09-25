@@ -557,7 +557,7 @@ struct TypeCheckLocations : virtual TypeCheckBase {
     // typechecked (recursion) keeps the binding of the call that entered it, since its body is
     // being checked against that.
     void BindParamAliases(SubFunction *sf, List &call_args) {
-        for (auto &sc : scopes) if (sc.sf == sf) return;
+        if (IsActive(sf)) return;
         for (auto [i, c] : enumerate(call_args.children)) {
             auto sid = sf->args[i].sid;
             sid->alias_sid = nullptr;
@@ -588,12 +588,7 @@ struct TypeCheckLocations : virtual TypeCheckBase {
         MakeLifetime(c, LT_BORROW, 1, 1);
         // The count TypeCheckFunctionDef took on the caller's borrow for the parameter, which
         // exists only while the function is being typechecked.
-        for (auto &sc : scopes) {
-            if (sc.sf == sid->sf_def) {
-                DecBorrowers(sid->lt, *c);
-                break;
-            }
-        }
+        if (IsActive(sid->sf_def)) DecBorrowers(sid->lt, *c);
         sid->lt = LT_BORROW;
         sid->alias_sid = nullptr;
         sid->alias_derefs.clear();

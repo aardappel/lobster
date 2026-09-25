@@ -20,6 +20,16 @@ namespace lobster {
 struct TypeCheckFunctions : virtual TypeCheckLocations {
     TypeCheckFunctions() {}
 
+    // Enters `sf`, called from `call_context`, for the typechecking of its body.
+    void PushScope(SubFunction *sf, const Node &call_context) {
+        Scope scope;
+        scope.sf = sf;
+        scope.call_context = &call_context;
+        scope.resolve_context_size = st.resolve_context.size();
+        scope.flowstack_size = flowstack.size();
+        scopes.push_back(scope);
+    }
+
     // Typecheck top level named functions that were never reached, purely to
     // report the basic errors they may contain. Everything that got
     // typechecked only because of this is reverted to dead afterwards, so
@@ -47,12 +57,7 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
         // one here too: globals must resolve like they do during the rest of typechecking,
         // rather than count as free variables of a scope that would have to be active, which
         // would abandon the check at the first use of one (see IdentRef::TypeCheck).
-        Scope top_level_scope;
-        top_level_scope.sf = st.toplevel;
-        top_level_scope.call_context = parser.root;
-        top_level_scope.resolve_context_size = st.resolve_context.size();
-        top_level_scope.flowstack_size = flowstack.size();
-        scopes.push_back(top_level_scope);
+        PushScope(st.toplevel, *parser.root);
         for (size_t fi = 0; fi < st.functiontable.size(); fi++) {
             auto f = st.functiontable[fi];
             // Top level named functions only (scopelevel 2, 1 is file scope).
@@ -242,12 +247,7 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
             }
         }
         LOG_DEBUG("function start: ", SignatureWithFreeVars(sf, nullptr));
-        Scope scope;
-        scope.sf = &sf;
-        scope.call_context = &call_context;
-        scope.resolve_context_size = st.resolve_context.size();
-        scope.flowstack_size = flowstack.size();
-        scopes.push_back(scope);
+        PushScope(&sf, call_context);
         auto pfvss = preferfreestack.size();
         auto dss = definestack.size();
         st.BlockScopeStart();
@@ -394,38 +394,33 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
         // Apply effects of return statements for functions being reused, see
         // RetVal above.
         for (auto [isf, type] : sf->reuse_return_events) {
-            for (auto &isc : reverse(scopes)) {
-                if (isc.sf->parent == isf->parent) {
-                    // NOTE: will have to re-apply lifetimes as well if we change
-                    // from default of LT_KEEP.
-                    RetVal(type, isc.sf, call_context);
-                    // RetVal takes a return for a local one when the function it returns from
-                    // is the current scope, which here it is only because the function that
-                    // holds the return is being reused rather than typechecked. The return is
-                    // in that function, not in this one, and the inliner has to know that, see
-                    // Call::Optimize.
-                    if (isc.sf == scopes.back().sf) isc.sf->num_returns_non_local++;
-                    // This should in theory not cause an error, since the previous
-                    // specialization was also ok with this set of return types.
-                    // It could happen though if this specialization has an
-                    // additional return statement that was optimized
-                    // out in the previous one.
-                    SubTypeT(type, isc.sf->returntype, call_context, "",
-                        "reused return value");
-                    goto destination_found;
-                }
-            }
-            // Dead code has no caller that would provide one, so there the return goes nowhere,
-            // as one typechecked in it does, see Return::TypeCheck.
-            if (checking_dead_code) {
+            if (auto isc = ActiveScopeOf(isf->parent)) {
+                auto dest_sf = isc->sf;
+                // NOTE: will have to re-apply lifetimes as well if we change
+                // from default of LT_KEEP.
+                RetVal(type, dest_sf, call_context);
+                // RetVal takes a return for a local one when the function it returns from
+                // is the current scope, which here it is only because the function that
+                // holds the return is being reused rather than typechecked. The return is
+                // in that function, not in this one, and the inliner has to know that, see
+                // Call::Optimize.
+                if (dest_sf == scopes.back().sf) dest_sf->num_returns_non_local++;
+                // This should in theory not cause an error, since the previous
+                // specialization was also ok with this set of return types.
+                // It could happen though if this specialization has an
+                // additional return statement that was optimized
+                // out in the previous one.
+                SubTypeT(type, dest_sf->returntype, call_context, "", "reused return value");
+            } else if (checking_dead_code) {
+                // Dead code has no caller that would provide one, so there the return goes
+                // nowhere, as one typechecked in it does, see Return::TypeCheck.
                 RecordInactiveReturn(*isf->parent);
-                continue;
+            } else {
+                // This error should hopefully be rare, but still possible if this call is in
+                // a very different context.
+                ErrorAlways(call_context, "return out of call to ", Q(sf->parent->name),
+                            " can\'t find destination ", Q(isf->parent->name));
             }
-            // This error should hopefully be rare, but still possible if this call is in
-            // a very different context.
-            ErrorAlways(call_context, "return out of call to ", Q(sf->parent->name),
-                        " can\'t find destination ", Q(isf->parent->name));
-            destination_found:;
         }
         for (auto [isf, type] : sf->reuse_return_events) {
             auto start_sf = scopes.back().sf;
@@ -495,12 +490,9 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
         // Ensure what we're returning from is going to be on the stack at runtime.
         // First find correct specialization for sf.
         auto active = false;
-        for (auto isc : reverse(scopes)) {
-            if (isc.sf->parent == node.sf->parent) {
-                node.sf = isc.sf;
-                active = true;
-                break;
-            }
+        if (auto isc = ActiveScopeOf(node.sf->parent)) {
+            node.sf = isc->sf;
+            active = true;
         }
         // TODO: LT_KEEP here is to keep it simple for now, since ideally we want to also allow
         // LT_BORROW, but then we have to prove that we don't outlive the owner.

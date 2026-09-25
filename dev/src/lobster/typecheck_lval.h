@@ -185,17 +185,17 @@ struct TypeCheckLval : virtual TypeCheckLocations {
 
     Node *Check(IdentRef &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
         UpdateCurrentSid(node.sid);
-        for (auto &sc : reverse(scopes)) if (sc.sf == node.sid->sf_def) goto in_scope;
-        // A free var of a scope that would have to be active.
-        if (checking_dead_code) return SkipDeadCode(node);
-        // Its function need not even have been typechecked yet (when this is in a function
-        // value that a `static` initializer calls, say), so there is no type to go on.
-        return ErrorNode(node, "free variable ", Q(node.sid->id->name),
-                         " not in scope: it is defined in ", Q(node.sid->sf_def->parent->name),
-                         " (", parser.lex.Location(node.sid->id->line),
-                         "), so a function value that uses it can only be called while that is"
-                         " in scope");
-        in_scope:
+        if (!IsActive(node.sid->sf_def)) {
+            // A free var of a scope that would have to be active.
+            if (checking_dead_code) return SkipDeadCode(node);
+            // Its function need not even have been typechecked yet (when this is in a function
+            // value that a `static` initializer calls, say), so there is no type to go on.
+            return ErrorNode(node, "free variable ", Q(node.sid->id->name),
+                             " not in scope: it is defined in ", Q(node.sid->sf_def->parent->name),
+                             " (", parser.lex.Location(node.sid->id->line),
+                             "), so a function value that uses it can only be called while that"
+                             " is in scope");
+        }
         if (node.sid->id->predeclaration)
             Error(node, "access of ", Q(node.sid->id->name), " before being initialized");
         CheckFreeVariable(*node.sid);

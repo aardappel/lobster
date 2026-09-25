@@ -92,11 +92,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
             // For the sake of explicit free variables which (unlike lexical free vars) can
             // refer to multiple different variables, we must check if the variable is reachable at all.
             // FIXME: we should really be able to see this without looping if cursid is null?
-            for (auto &sc : reverse(scopes)) {
-                if (sc.sf == sid->sf_def) goto found;
-            }
-            return false;
-            found:;
+            if (!IsActive(sid->sf_def)) return false;
         }
         for (auto &fvfi : sf.freevarflowfields) {
             auto curtype = UseFlow(fvfi);
@@ -110,27 +106,22 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
     bool CompatibleReturns(const SubFunction &ssf) {
         for (auto &re : ssf.reuse_return_events) {
             auto sf = re.first;
-            for (auto isc : reverse(scopes)) {
-                if (isc.sf->parent == sf->parent) {
-                    if (isc.sf->reqret != sf->reqret) return false;
-                    goto found;
-                }
+            if (auto isc = ActiveScopeOf(sf->parent)) {
+                if (isc->sf->reqret != sf->reqret) return false;
+            } else if (!checking_dead_code) {
+                // Function not in context. In dead code (see TypeCheckDeadCode), which lacks
+                // the caller that would provide one, the return then goes nowhere however it
+                // was typechecked (see ReplayReturns), while typechecking it anew would redo
+                // all it calls in a context no live call of it has.
+                return false;
             }
-            // Function not in context. In dead code (see TypeCheckDeadCode), which lacks the
-            // caller that would provide one, the return then goes nowhere however it was
-            // typechecked (see ReplayReturns), while typechecking it anew would redo all it calls
-            // in a context no live call of it has.
-            if (!checking_dead_code) return false;
-            found:;
         }
         // A return from a function none of whose calls was active returned nothing to it (see
         // Return::TypeCheck), so where one is, the return must be typechecked anew. Where none
         // is, a new specialization would come out the same, and a recursive call in it would
         // make another one, without end.
         for (auto f : ssf.reuse_inactive_returns) {
-            for (auto &isc : scopes) {
-                if (isc.sf->parent == f) return false;
-            }
+            if (ActiveScopeOf(f)) return false;
         }
         return true;
     }
@@ -168,11 +159,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
         // below gives up), since it is those a write in the callee may conflict with. Not
         // while it is still being typechecked (a recursive call): its writes are checked
         // against the context of the call that entered it.
-        if (reused) {
-            auto active = false;
-            for (auto &sc : scopes) if (sc.sf == sf) { active = true; break; }
-            if (!active) ReplayAssigns(sf, call_args);
-        }
+        if (reused && !IsActive(sf)) ReplayAssigns(sf, call_args);
         // Finally check all args. We do this after checking the function
         // definition, since SubType below can cause specializations of the current function
         // to be typechecked with strongly typed function value arguments.
@@ -203,15 +190,11 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
             }
         }
         // See if this call is recursive:
-        for (auto &sc : scopes) {
-            if (sc.sf == sf) {
-                sf->isrecursivelycalled = true;
-                if (sf->returngiventype.Null())
-                    ErrorAlways(call_args, "recursive function ", Q(sf->parent->name),
-                                " must have explicit return type");
-
-                break;
-            }
+        if (IsActive(sf)) {
+            sf->isrecursivelycalled = true;
+            if (sf->returngiventype.Null())
+                ErrorAlways(call_args, "recursive function ", Q(sf->parent->name),
+                            " must have explicit return type");
         }
         return sf->returntype;
     }
