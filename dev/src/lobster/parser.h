@@ -71,6 +71,28 @@ struct Parser {
             su.specializers.push_back(&*ErrorType());
     }
 
+    // The same for a list that was given, but is short.
+    void CheckSpecializers(SpecUDT &su) {
+        if (su.specializers.size() < su.gudt->generics.size())
+            Error("too few type specializers");
+        PadSpecializers(su);
+    }
+
+    // The specializers `<T1, T2>` of a use of the generic type of `su` (its `<` consumed
+    // already), which ends up with exactly as many as the type has generics: extra ones are
+    // reported and dropped, missing ones reported and padded.
+    template<typename T = UnTypeRef>
+    void ParseTypeSpecializers(SpecUDT &su, bool allow_unresolved = true) {
+        ParseSpecializerList([&]() {
+            auto type = ParseType<T>(false, nullptr, allow_unresolved);
+            if (su.specializers.size() == su.gudt->generics.size())
+                Error("too many type specializers");
+            else
+                su.specializers.push_back(&*type);
+        });
+        CheckSpecializers(su);
+    }
+
     // Skips tokens until one of `ts`, or, when that is not found first, the end of the current
     // statement (the linefeed, dedent or end of file ending it), leaving that as the current
     // token. Bracketed groups and indented blocks in between are skipped whole, since stopping
@@ -781,21 +803,13 @@ struct Parser {
             auto gsup = ParseSup(is_struct).first;
             auto udt = st.MakeSpecialization(*gsup, sname, true, true);
             Expect(T_LT);
-            ParseSpecializerList([&]() {
-                auto type = ParseType<TypeRef>(false, nullptr, false);
-                if (udt->bound_generics.size() == gsup->generics.size())
-                    Error("too many type specializers");
-                else
-                    udt->bound_generics.push_back(type);
-            });
+            SpecUDT specializers(gsup);
+            ParseTypeSpecializers<TypeRef>(specializers, false);
+            udt->bound_generics.assign(specializers.specializers.begin(),
+                                       specializers.specializers.end());
             if (isprivate != gsup->isprivate) Error("specialization must have same privacy level");
             if (gsup->predeclaration) Error("must specialize fully defined type");
             if (is_abstract) Error("specialization cannot be abstract");
-            if (udt->bound_generics.size() != gsup->generics.size()) {
-                Error("missing specializers");
-                while (udt->bound_generics.size() != gsup->generics.size())
-                    udt->bound_generics.push_back(ErrorType<TypeRef>());
-            }
             st.ResolveFields(*udt, lex);
             parent_list->Add(new UDTRef(line, udt));
             return;
@@ -847,20 +861,10 @@ struct Parser {
                     st.bound_typevars_stack.pop_back();
                 } else {
                     gudt->gsuperclass = { st.NewSpecUDT(gsup) };
-                    auto &specializers = gudt->gsuperclass->spec_udt->specializers;
-                    if (IsNext(T_LT)) {
-                        ParseSpecializerList([&]() {
-                            auto type = ParseType(false);
-                            if (specializers.size() == gsup->generics.size())
-                                Error("too many type specializers");
-                            else
-                                specializers.push_back(&*type);
-                        });
-                    }
+                    auto &su = *gudt->gsuperclass->spec_udt;
+                    if (IsNext(T_LT)) ParseTypeSpecializers(su);
+                    else CheckSpecializers(su);
                     st.bound_typevars_stack.pop_back();
-                    if (specializers.size() < gsup->generics.size())
-                        Error("too few type specializers");
-                    PadSpecializers(*gudt->gsuperclass->spec_udt);
                 }
             }
             if (IsNext(T_INDENT)) {
@@ -1417,17 +1421,7 @@ struct Parser {
                                     "named specialization)");
                         }
                         dest = (const Type *)st.NewSpecUDT(gudt).get();
-                        auto &specializers = dest->spec_udt->specializers;
-                        ParseSpecializerList([&]() {
-                            auto type = ParseType<T>(false, nullptr, allow_unresolved);
-                            if (specializers.size() == gudt->generics.size())
-                                Error("too many type specializers");
-                            else
-                                specializers.push_back(&*type);
-                        });
-                        if (specializers.size() < gudt->generics.size())
-                            Error("too few type specializers");
-                        PadSpecializers(*dest->spec_udt);
+                        ParseTypeSpecializers<T>(*dest->spec_udt, allow_unresolved);
                     } else {
                         if (!gudt->predeclaration) {
                             if (allow_unresolved)
