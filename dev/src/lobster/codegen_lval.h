@@ -919,30 +919,6 @@ struct CodeGenLval : virtual CodeGenBase {
         }
     }
 
-    // The node a value comes from, past the lifetime conversion that gives it up rather than
-    // takes it, which a value that is not made into one of its own has no use for.
-    static const Node *SkipDecrefWrapper(const Node *n) {
-        if (auto lt = Is<ToLifetime>(n); lt && lt->decref && !lt->incref) return lt->child;
-        return n;
-    }
-
-    // The operands of a chain of string concatenations, in order: what GenConcatOp allocates
-    // one string for, and GenStringAppendOps appends one by one.
-    static void FlattenConcat(const Node *n, node_small_vector &strs) {
-        strs.push_back((Node *)n);
-        for (;;) {
-            auto c = SkipDecrefWrapper(strs[0]);
-            auto p = Is<Plus>(c);
-            if (p && p->left->exptype->t == V_STRING && p->right->exptype->t == V_STRING) {
-                strs.erase(0);
-                strs.insert(0, p->right);
-                strs.insert(0, p->left);
-            } else {
-                break;
-            }
-        }
-    }
-
     // `lval += rhs` on a string: the pieces of the right hand side go onto the string one by
     // one (see RtSAppend), rather than into a string of their own first. A concatenation
     // contributes its operands, and a conversion the value it converts, which is written out

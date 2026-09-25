@@ -164,6 +164,22 @@ struct CodeGenRefCount : virtual CodeGenBase {
         }
     }
 
+    // Calls `f` with the stack offset and runtime type of every slot of a value of `type`,
+    // whose first slot is at `stack_offset`, that holds a reference: the value itself, or
+    // the reference fields of a struct of references.
+    // TODO: alternatively call a single helper with a list or bitmask? See BitMaskForRefStruct.
+    template<typename F> static void ForEachRefSlot(TypeRef type, int stack_offset, F f) {
+        if (type->t != V_STRUCT_R) {
+            f(stack_offset, RtTypeOf(type));
+            return;
+        }
+        auto &udt = *type->udt;
+        for (int j = 0; j < udt.numslots; j++) {
+            auto stype = SlotTypeOf(udt, j);
+            if (IsRefNil(stype->t)) f(stack_offset + udt.numslots - 1 - j, RtTypeOf(stype));
+        }
+    }
+
     void Generate(const ToLifetime &node, size_t retval) {
         Gen(node.child, retval);
         rc_tag = cat("tolt:", SkipCoercionsForRc(node.child)->Name());
@@ -178,35 +194,13 @@ struct CodeGenRefCount : virtual CodeGenBase {
             if (IsRefNil(node.child->exptype->Get(i)->t)) {
                 if (node.incref & (1LL << i)) {
                     assert(IsRefNil(type->t));
-                    if (type->t == V_STRUCT_R) {
-                        // TODO: alternatively call a single helper with a list or bitmask?
-                        // See BitMaskForRefStruct.
-                        for (int j = 0; j < type->udt->numslots; j++) {
-                            auto stype = SlotTypeOf(*type->udt, j);
-                            if (IsRefNil(stype->t)) {
-                                EmitIncRef(stack_offset + type->udt->numslots - 1 - j,
-                                           RtTypeOf(stype));
-                            }
-                        }
-                    } else {
-                        EmitIncRef(stack_offset, RtTypeOf(type));
-                    }
+                    ForEachRefSlot(type, stack_offset,
+                                   [&](int off, RTType rtt) { EmitIncRef(off, rtt); });
                 }
                 if (node.decref & (1LL << i)) {
                     assert(IsRefNil(type->t));
-                    if (type->t == V_STRUCT_R) {
-                        // TODO: alternatively call a single helper with a list or bitmask?
-                        // See BitMaskForRefStruct.
-                        for (int j = 0; j < type->udt->numslots; j++) {
-                            auto stype = SlotTypeOf(*type->udt, j);
-                            if (IsRefNil(stype->t)) {
-                                EmitKeep(stack_offset + (type->udt->numslots - j - 1),
-                                         RtTypeOf(stype));
-                            }
-                        }
-                    } else {
-                        EmitKeep(stack_offset, RtTypeOf(type));
-                    }
+                    ForEachRefSlot(type, stack_offset,
+                                   [&](int off, RTType rtt) { EmitKeep(off, rtt); });
                 }
             }
             stack_offset += ValWidth(type);

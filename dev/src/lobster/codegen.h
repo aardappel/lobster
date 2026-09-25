@@ -167,12 +167,7 @@ struct CodeGen final : CodeGenBuiltin, CodeGenTypeTable, CodeGenOps, CodeGenRefC
         // Generate a dummmy function for function values that are never called.
         // Would be good if the optimizer guarantees these don't exist, but for now this is
         // more debuggable if it does happen to get called.
-        f_function_idx = CODEGEN_SPECIAL_FUNCTION_ID_DUMMY;
-        f_args.clear();
-        f_defs.clear();
-        f_arg_places.clear();
-        f_ret_types.clear();
-        f_keeps.clear();
+        BeginSpecialFunction(CODEGEN_SPECIAL_FUNCTION_ID_DUMMY);
         TrackUseDef(0, 0);
         append(cb, "    RtAbort(vm);\n");
         DefineFunction(c_codegen, false);
@@ -199,12 +194,7 @@ struct CodeGen final : CodeGenBuiltin, CodeGenTypeTable, CodeGenOps, CodeGenRefC
         }
 
         // Emit the root function.
-        f_function_idx = CODEGEN_SPECIAL_FUNCTION_ID_ENTRY;
-        f_args.clear();
-        f_defs.clear();
-        f_arg_places.clear();
-        f_ret_types.clear();
-        f_keeps.clear();
+        BeginSpecialFunction(CODEGEN_SPECIAL_FUNCTION_ID_ENTRY);
         auto return_value = opts.return_value;
         Gen(parser.root, return_value);
         auto type = parser.root->exptype;

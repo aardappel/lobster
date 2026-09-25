@@ -141,6 +141,18 @@ struct CodeGenFunctions : virtual CodeGenBase {
         append(sd, FunSignature(FunName(sf.idx), ArgTypes(sf), ReturnTypes(sf), nullptr), ";\n");
     }
 
+    // Starts one of the functions the code has besides the program's own (see
+    // CODEGEN_SPECIAL_FUNCTION_ID_START), which takes no arguments and returns nothing, the
+    // way GenScope starts a function of the program.
+    void BeginSpecialFunction(int idx) {
+        f_function_idx = idx;
+        f_args.clear();
+        f_defs.clear();
+        f_arg_places.clear();
+        f_ret_types.clear();
+        f_keeps.clear();
+    }
+
     // A declaration of the variables of one kind, a line per 12 of them to keep it readable.
     void GenDecls(string &sd, VKind k, const vector<string> &names) {
         if (names.empty()) return;

@@ -246,23 +246,7 @@ struct CodeGenOps : virtual CodeGenBase {
         // Exception to the code below, since we want to generate an efficient concatenation
         // of any number of strings.
         node_small_vector strs;
-        strs.push_back(n->left);
-        strs.push_back(n->right);
-        for (;;) {
-            auto c = strs[0];
-            if (auto lt = Is<ToLifetime>(c)) {
-                assert(lt->decref == 1 && lt->incref == 0);
-                c = lt->child;
-            }
-            auto p = Is<Plus>(c);
-            if (p && p->left->exptype->t == V_STRING && p->right->exptype->t == V_STRING) {
-                strs.erase(0);
-                strs.insert(0, p->right);
-                strs.insert(0, p->left);
-            } else {
-                break;
-            }
-        }
+        FlattenConcat(n, strs);
         // TODO: we can even detect any ToString nodes here and generate an even more efficient
         // call that does I2S etc inline with even fewer allocations.
         for (auto s : strs) {
