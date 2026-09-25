@@ -114,6 +114,12 @@ def functions_tests():
     def ovc(x:OvB): return "sub"
     test_eq(ovc(OvB {}), "sub")
     test_eq(ovc(OvA {}), "base")
+    // A nilable superclass is a step further up than the superclass itself, so a subclass
+    // value picks the latter, and only nil the former.
+    def ovn(x:OvA): return "base"
+    def ovn(x:OvA?): return "nilable"
+    test_eq(ovn(OvB {}), "base")
+    test_eq(ovn(nil), "nilable")
 
     // Default arguments, which may reference variables in scope.
     let defbase = 10

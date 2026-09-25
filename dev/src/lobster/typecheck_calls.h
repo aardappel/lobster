@@ -432,9 +432,9 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
             // two levels will be present are low.
             if (disp->sf && disp->sf->method_of == &dispatch_udt && disp->dispatch_root &&
                 &f == disp->sf->parent) {
-                for (auto [i, c] : enumerate(call_args.children)) {
-                    auto &arg = disp->sf->args[i];
-                    if (i && !ConvertsTo(c->exptype, arg.spec_type, CF_NONE))
+                for (auto [j, c] : enumerate(call_args.children)) {
+                    auto &arg = disp->sf->args[j];
+                    if (j && !ConvertsTo(c->exptype, arg.spec_type, CF_NONE))
                         goto fail;
                 }
                 // If this ever fails, that means new types got added during typechecking..
@@ -764,56 +764,44 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                     }
                 }
             }
+            // Of the overloads whose argument `type` is a subtype of, the closest one in its
+            // class hierarchy wins, `distance` giving how far up the argument of an overload
+            // is; equally close ones all stay, for the next argument to decide between.
+            auto pick_closest = [&](Overload *ov, auto distance) {
+                if (matches.size() != 1) {
+                    matches.push_back(ov);
+                    return;
+                }
+                auto dist = distance(ov), odist = distance(matches[0]);
+                if (dist < odist) matches[0] = ov;
+                else if (dist == odist) matches.push_back(ov);
+            };
             // Then see if there's a match by subtyping.
             if (matches.empty()) {
                 for (auto ov : pickfrom) {
                     auto arg = ov->givenargs[argidx];
-                    if (arg->t != V_UUDT || !IsDynamicType(type)) {
-                        continue;
-                    }
-                    auto dist = DistanceToSpecializedSuper(arg->spec_udt->gudt, type->udt);
-                    if (dist >= 0) {
-                        if (matches.size() == 1) {
-                            auto oarg = matches[0]->givenargs[argidx];
-                            assert(oarg->t == V_UUDT);
-                            auto odist =
-                                DistanceToSpecializedSuper(oarg->spec_udt->gudt, type->udt);
-                            if (dist < odist) {
-                                matches[0] = ov;  // Overwrite with better pick.
-                            } else if (odist < dist) {
-                                // Keep old one.
-                            } else {
-                                // Keep both, and hope the next arg disambiguates.
-                                matches.push_back(ov);
-                            }
-                        } else {
-                            matches.push_back(ov);
-                        }
-                    }
+                    if (arg->t != V_UUDT || !IsDynamicType(type)) continue;
+                    if (DistanceToSpecializedSuper(arg->spec_udt->gudt, type->udt) < 0) continue;
+                    pick_closest(ov, [&](Overload *o) {
+                        // Only what this loop added is in matches, so this is a V_UUDT too.
+                        return DistanceToSpecializedSuper(o->givenargs[argidx]->spec_udt->gudt,
+                                                          type->udt);
+                    });
                 }
             }
             if (matches.empty()) {
                 for (auto ov : pickfrom) {
-                    auto arg = ov->givenargs[argidx];
-                    if (!UnConvertsTo(type, arg, CF_NONE)) {
+                    if (!UnConvertsTo(type, ov->givenargs[argidx], CF_NONE)) continue;
+                    if (!IsDynamicType(type)) {
+                        matches.push_back(ov);
                         continue;
                     }
-                    if (matches.size() == 1 && IsDynamicType(type)) {
-                        auto oarg = matches[0]->givenargs[argidx];
-                        // Prefer "closest" supertype.
-                        auto dist = SuperDistance(arg->udt, type->udt);
-                        auto odist = SuperDistance(oarg->udt, type->udt);
-                        if (dist < odist) {
-                            matches[0] = ov;  // Overwrite with better pick.
-                        } else if (odist < dist) {
-                            // Keep old one.
-                        } else {
-                            // Keep both, and hope the next arg disambiguates.
-                            matches.push_back(ov);
-                        }
-                    } else {
-                        matches.push_back(ov);
-                    }
+                    pick_closest(ov, [&](Overload *o) {
+                        // A class or family struct converts only to a superclass, or to a
+                        // nilable one, which is a step further up than the class itself.
+                        auto a = o->givenargs[argidx];
+                        return SuperDistance(a->ElementIfNil()->udt, type->udt) + (a->t == V_NIL);
+                    });
                 }
             }
             // Then see if there's a match if we'd instantiate a fully generic arg.
