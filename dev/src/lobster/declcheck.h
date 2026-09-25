@@ -50,6 +50,8 @@ struct DeclChecker {
         // regardless of where their declarations sit relative to the code
         // being typechecked.
         for (auto udt : st.udttable) st.RegisterSubUDT(udt);
+        // Before the collapse below, which copies the struct types whose kind this decides.
+        FinalizeFamilies();
         // Any mention of a non generic type that parsed as V_UUDT (uses of a
         // then pre-declared type, the self arg of methods) is from here on
         // indistinguishable from its single specialization, so overwrite it
@@ -57,15 +59,10 @@ struct DeclChecker {
         // UnifyVar does for type variables). This makes V_UUDT mean "involves
         // unbound type variables" everywhere after this pass.
         auto collapse = [](UnType &ut) {
-            if (ut.t != V_UUDT) return;
-            auto gudt = ut.spec_udt->gudt;
-            if (gudt->IsGeneric() || !ut.spec_udt->specializers.empty()) return;
-            if (!gudt->first || gudt->predeclaration) return;
-            *(Type *)&ut = *SingleNonGenericSpecialization(*gudt);
+            if (auto udt = CollapsesTo(ut)) *(Type *)&ut = udt->thistype;
         };
         for (auto ut : st.untypelist) collapse(*ut);
         for (auto gudt : st.gudttable) collapse(gudt->unspecialized_type);
-        FinalizeFamilies();
         for (auto f : st.functiontable) {
             if (f->anonymous || f->overloads.empty()) continue;
             auto &fs = st.functions_by_name[f->name];
@@ -128,20 +125,27 @@ struct DeclChecker {
         }
     }
 
+    // The specialization a mention of a non generic type that parsed as V_UUDT stands for,
+    // see the collapse in Check. Null for any other type.
+    static UDT *CollapsesTo(const UnType &ut) {
+        if (ut.t != V_UUDT) return nullptr;
+        auto gudt = ut.spec_udt->gudt;
+        if (gudt->IsGeneric() || !ut.spec_udt->specializers.empty()) return nullptr;
+        if (!gudt->first || gudt->predeclaration) return nullptr;
+        return SingleNonGenericSpecialization(*gudt)->udt;
+    }
+
     // Whether a field of this declared type may hold a reference in some specialization:
-    // anything but a definitely scalar type, including one still to be inferred.
+    // anything but a definitely scalar type, including one still to be inferred. A struct
+    // counts by its kind so far, see the fixpoint in FinalizeFamilies.
     static bool MayBeRef(UnTypeRef type) {
+        if (auto udt = CollapsesTo(*type)) type = &udt->thistype;
         switch (type->t) {
             case V_INT:
             case V_FLOAT:
             case V_FUNCTION:
+            case V_STRUCT_S:
                 return false;
-            case V_STRUCT_S: {
-                // A member of a family that may still turn out to hold references, see
-                // the fixpoint in FinalizeFamilies.
-                auto root = FamilyRootOf(&type->udt->g);
-                return root && root->family_hasref;
-            }
             default:
                 // A generic struct (V_UUDT) can be given reference type arguments.
                 return true;
@@ -153,11 +157,19 @@ struct DeclChecker {
     // as well as every struct that (transitively) has a field of such a type, whose
     // kind was decided by the parser before that was known.
     void FinalizeFamilies() {
-        // Over declarations, since a generic member's field may hold a reference in one
-        // specialization and not in another, and a family is one kind in all of them.
-        // A nested family value counts once its own family is known to hold references.
+        for (auto udt : st.udttable) {
+            if (!udt->g.is_struct) continue;
+            // The root's declaration may have followed the member's (a pre-declared
+            // struct that was then declared abstract).
+            udt->family_root = FamilyRootOf(udt);
+            if (udt->family_root) udt->sametype = type_undefined;
+        }
+        // A struct becoming one of references can make a family that holds it one, which
+        // makes more structs so, whether they are in a family or hold a member of one.
         for (bool changed = true; changed;) {
             changed = false;
+            // Over declarations, since a generic member's field may hold a reference in one
+            // specialization and not in another, and a family is one kind in all of them.
             for (auto gudt : st.gudttable) {
                 auto root = FamilyRootOf(gudt);
                 if (!root || root->family_hasref) continue;
@@ -169,16 +181,8 @@ struct DeclChecker {
                     }
                 }
             }
-        }
-        for (bool changed = true; changed;) {
-            changed = false;
             for (auto udt : st.udttable) {
-                if (!udt->g.is_struct) continue;
-                // The root's declaration may have followed the member's (a pre-declared
-                // struct that was then declared abstract).
-                udt->family_root = FamilyRootOf(udt);
-                if (udt->family_root) udt->sametype = type_undefined;
-                if (udt->UpdateStructType()) changed = true;
+                if (udt->g.is_struct && udt->UpdateStructType()) changed = true;
             }
         }
     }

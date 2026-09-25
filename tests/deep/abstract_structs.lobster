@@ -149,6 +149,27 @@ struct ASOuter:
     v:ASValue
     x:int
 
+// Families that hold references only thru a member the others don't see: a field whose type
+// is only known from its default (so it may be a reference), and a plain struct holding a
+// family of references. The members without any have the family's kind all the same, also as
+// the self of their inline methods.
+abstract struct ASComp
+
+struct ASCompRect : ASComp
+    anchor = float2_0
+
+struct ASCompTest : ASComp
+    def as_thing(): return 42
+
+abstract struct ASOuterFam
+
+struct ASOuterIn : ASOuterFam
+    o:ASOuter
+
+struct ASOuterNone : ASOuterFam
+    n:int
+    def as_twice_n(): return n * 2
+
 // Serializable members, for the lobster binary format.
 abstract struct ASSer
 
@@ -413,6 +434,12 @@ def abstract_structs_tests():
     switch os1.v:
         case ASPair: test_eq(os1.v.b, 2)
         default: test_true(false)
+    test_eq(ASCompTest {}.as_thing(), 42)
+    let comps = [ ASCompRect {}, ASCompTest {} ]::ASComp
+    test_eq("{comps}", "[ASCompRect\{float2\{0.0, 0.0\}\}, ASCompTest\{\}]")
+    test_eq(ASOuterNone { 3 }.as_twice_n(), 6)
+    let ofs = [ ASOuterIn { ASOuter { ASStr { "in" }, 1 } }, ASOuterNone { 2 } ]::ASOuterFam
+    test_eq("{ofs}", "[ASOuterIn\{ASOuter\{ASStr\{\"in\"\}, 1\}\}, ASOuterNone\{2\}]")
     // Vectors: push, pop, copy, iteration, and element writes.
     let vec = []::ASValue
     vec.push(ASInt { 1 })
