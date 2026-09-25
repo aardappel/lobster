@@ -172,10 +172,34 @@ struct CodeGenTypeTable : virtual CodeGenBase {
             }
             dvs = PushDefaultValue(V_INT, VTValue((int64_t)word));
         }
-        tt.push_back(TYPE_ELEM_INT);
+        PushSlotEntry(tt, TYPE_ELEM_INT, parent, dvs, PushPackedFields(fields));
+    }
+
+    // The entry of one slot (see TypeInfo::elemtypes): its type, the struct field it is
+    // flattened in from (or -1), its default, and the fields packed into it (or -1).
+    static void PushSlotEntry(small_vector<type_elem_t, 2> &tt, type_elem_t ti,
+                              type_elem_t parent, type_elem_t dvs,
+                              type_elem_t packed = (type_elem_t)-1) {
+        tt.push_back(ti);
         tt.push_back(parent);
         tt.push_back(dvs);
-        tt.push_back(PushPackedFields(fields));
+        tt.push_back(packed);
+    }
+
+    // The entries of a field that is its whole slot(s): those of its struct flattened in, all
+    // with that struct as their parent, or the one of the slot it is, with the default from
+    // `dvs_overrides` when there is one, else its own.
+    void PushFieldEntries(const SField &sfield, small_vector<type_elem_t, 2> &tt,
+                          type_elem_t parent, type_elem_t dvs_overrides) {
+        auto ti = GetTypeTableOffset(sfield.type);
+        auto dvs = PushDefaultValues(sfield);
+        if (IsStruct(sfield.type->t)) {
+            // FIXME: in this case, we don't actually need to store the "dvs" list since it's used inline.
+            PushFields(sfield.type->udt, tt, parent < 0 ? ti : parent, dvs);
+        } else {
+            PushSlotEntry(tt, ti, parent,
+                          dvs_overrides ? type_table[dvs_overrides + sfield.slot] : dvs);
+        }
     }
 
     // The entries of the fields of a type, one per slot (see TypeInfo::elemtypes), those of a
@@ -194,27 +218,12 @@ struct CodeGenTypeTable : virtual CodeGenBase {
                 // An inferred field of a class declared in a function that is never used, so it
                 // never got a type. Nothing can construct it, and ComputeSizes already gave it
                 // the single slot described here.
-                tt.push_back(TYPE_ELEM_ANY);
-                tt.push_back(parent);
-                tt.push_back((type_elem_t)0);
-                tt.push_back((type_elem_t)-1);
-                continue;
-            }
-            if (sfield.bits) {
+                PushSlotEntry(tt, TYPE_ELEM_ANY, parent, (type_elem_t)0);
+            } else if (sfield.bits) {
                 // The first field in the slot describes it along with the others in it.
                 if (!sfield.bitoff) PushPackedSlot(udt, sfield.slot, tt, parent, dvs_overrides);
-                continue;
-            }
-            auto ti = GetTypeTableOffset(sfield.type);
-            auto dvs = PushDefaultValues(sfield);
-            if (IsStruct(sfield.type->t)) {
-                // FIXME: in this case, we don't actually need to store the "dvs" list since it's used inline.
-                PushFields(sfield.type->udt, tt, parent < 0 ? ti : parent, dvs);
             } else {
-                tt.push_back(ti);
-                tt.push_back(parent);
-                tt.push_back(dvs_overrides ? type_table[dvs_overrides + sfield.slot] : dvs);
-                tt.push_back((type_elem_t)-1);
+                PushFieldEntries(sfield, tt, parent, dvs_overrides);
             }
         }
     }
@@ -237,23 +246,15 @@ struct CodeGenTypeTable : virtual CodeGenBase {
                 if (sf.slot == s && (!sfield || sf.bitoff < sfield->bitoff)) sfield = &sf;
             }
             if (!sfield) {
-                tt.push_back(GetTypeTableOffset(FindSlot(*udt, s)->type));
-                tt.push_back(parent);
-                if (dvs_overrides) {
-                    tt.push_back(type_table[dvs_overrides + s]);
-                } else if (!s && !udt->g.is_abstract) {
-                    tt.push_back(PushDefaultValue(V_INT, VTValue((int64_t)udt->FamilyIndex())));
-                } else {
-                    tt.push_back((type_elem_t)0);
-                }
-                tt.push_back((type_elem_t)-1);
+                auto dvs = dvs_overrides ? type_table[dvs_overrides + s]
+                         : !s && !udt->g.is_abstract
+                             ? PushDefaultValue(V_INT, VTValue((int64_t)udt->FamilyIndex()))
+                             : (type_elem_t)0;
+                PushSlotEntry(tt, GetTypeTableOffset(FindSlot(*udt, s)->type), parent, dvs);
                 s++;
             } else if (sfield->type.Null()) {
                 // See PushFields.
-                tt.push_back(TYPE_ELEM_ANY);
-                tt.push_back(parent);
-                tt.push_back((type_elem_t)0);
-                tt.push_back((type_elem_t)-1);
+                PushSlotEntry(tt, TYPE_ELEM_ANY, parent, (type_elem_t)0);
                 s++;
             } else if (sfield->bits) {
                 // The type slot holds the family index besides the fields sharing it.
@@ -261,16 +262,7 @@ struct CodeGenTypeTable : virtual CodeGenBase {
                 PushPackedSlot(udt, s, tt, parent, dvs_overrides, index);
                 s++;
             } else {
-                auto ti = GetTypeTableOffset(sfield->type);
-                auto dvs = PushDefaultValues(*sfield);
-                if (IsStruct(sfield->type->t)) {
-                    PushFields(sfield->type->udt, tt, parent < 0 ? ti : parent, dvs);
-                } else {
-                    tt.push_back(ti);
-                    tt.push_back(parent);
-                    tt.push_back(dvs_overrides ? type_table[dvs_overrides + s] : dvs);
-                    tt.push_back((type_elem_t)-1);
-                }
+                PushFieldEntries(*sfield, tt, parent, dvs_overrides);
                 s += ValWidth(sfield->type);
             }
         }

@@ -25,18 +25,8 @@ struct CodeGenOps : virtual CodeGenBase {
     // is more specific than the kind SlotTypeOf gives the slot, and decides what comparing
     // the slot means, see GenStructCompare.
     static TypeRef DeclaredSlotType(const UDT &udt, int i) {
-        for (auto &sfield : udt.sfields) {
-            if (i >= sfield.slot && i < sfield.slot + ValWidth(sfield.type)) {
-                if (IsStruct(sfield.type->t))
-                    return DeclaredSlotType(*sfield.type->udt, i - sfield.slot);
-                return sfield.bits ? type_int : sfield.type;
-            }
-        }
-        for (auto &sfield : udt.hidden_sfields) {
-            if (sfield.slot == i) return sfield.type;
-        }
-        assert(false);
-        return type_undefined;
+        auto sfield = FindSlot(udt, i);
+        return sfield->bits ? type_int : sfield->type;
     }
 
     // Calling a helper for something this small costs more than the work itself, and pushes
