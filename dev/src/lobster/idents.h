@@ -1068,17 +1068,46 @@ struct SymbolTable {
         for (auto su  : specudts)         delete su;
     }
 
-    bool MaybeNameSpace(string_view name) const {
-        return !current_namespace.empty() && name.find(".") == name.npos;
+    // Whether `name` may be meant as a name in namespace `ns`: an unqualified name while a
+    // namespace is in effect.
+    static bool MaybeNameSpace(string_view name, string_view ns) {
+        return !ns.empty() && name.find(".") == name.npos;
     }
 
-    string NameSpaced(string_view name, string_view ns) {
+    bool MaybeNameSpace(string_view name) const {
+        return MaybeNameSpace(name, current_namespace);
+    }
+
+    static string NameSpaced(string_view name, string_view ns) {
         return cat(ns, ".", name);
     }
 
     string NameSpaced(string_view name) {
         assert(MaybeNameSpace(name));
         return NameSpaced(name, current_namespace);
+    }
+
+    // Looks a name up the way every use of one is resolved: as a name in namespace `ns` first
+    // (see MaybeNameSpace), then as it is. `find` looks up one spelling, and returns something
+    // false for one it doesn't find.
+    template<typename F> static auto LookupNS(string_view name, string_view ns, F find) {
+        if (MaybeNameSpace(name, ns)) {
+            if (auto found = find(NameSpaced(name, ns))) return found;
+        }
+        return find(name);
+    }
+
+    // The same in a map by name: a pointer to what the name maps to, or null.
+    template<typename M> static typename M::mapped_type *FindNS(M &dict, string_view name,
+                                                              string_view ns) {
+        return LookupNS(name, ns, [&](string_view n) -> typename M::mapped_type * {
+            auto it = dict.find(typename M::key_type(n));
+            return it != dict.end() ? &it->second : nullptr;
+        });
+    }
+
+    template<typename M> typename M::mapped_type *FindNS(M &dict, string_view name) {
+        return FindNS(dict, name, current_namespace);
     }
 
     string_view StoreName(const string &s) {
@@ -1095,13 +1124,8 @@ struct SymbolTable {
     }
 
     Ident *Lookup(string_view name) {
-        if (MaybeNameSpace(name)) {
-            auto it = idents.find(NameSpaced(name));
-            if (it != idents.end()) return it->second->Read();
-        }
-        auto it = idents.find(name);
-        if (it != idents.end()) return it->second->Read();
-        return nullptr;
+        auto id = FindNS(idents, name);
+        return id ? (*id)->Read() : nullptr;
     }
 
     Ident *NewId(string_view name, SubFunction *sf, bool withtype, size_t scopelevel, Line &line) {
@@ -1321,37 +1345,25 @@ struct SymbolTable {
     }
 
     Enum *EnumLookup(string_view name, bool decl) {
-        auto eit = enums.find(name);
-        if (eit != enums.end()) {
-            if (!decl) return eit->second;
+        if (!decl) {
+            auto e = FindNS(enums, name);
+            return e ? *e : nullptr;
+        }
+        if (enums.find(name) != enums.end()) {
             lex.Report("double declaration of enum: " + name);
             return NewEnum(name, false);
-        }
-        if (!decl) {
-            if (MaybeNameSpace(name)) {
-                eit = enums.find(NameSpaced(name));
-                if (eit != enums.end()) return eit->second;
-            }
-            return nullptr;
         }
         return NewEnum(name, true);
     }
 
     EnumVal *EnumValLookup(string_view name, bool decl) {
         if (!decl) {
-            if (MaybeNameSpace(name)) {
-                auto evit = enumvals.find(NameSpaced(name));
-                if (evit != enumvals.end()) return evit->second;
-            }
+            auto ev = FindNS(enumvals, name);
+            return ev ? *ev : nullptr;
         }
-        auto evit = enumvals.find(name);
-        if (evit != enumvals.end()) {
-            if (!decl) return evit->second;
+        if (enumvals.find(name) != enumvals.end()) {
             lex.Report("double declaration of enum value: " + name);
             return new EnumVal(name, 0);
-        }
-        if (!decl) {
-            return nullptr;
         }
         auto ev = new EnumVal(name, 0);
         enumvals[ev->name /* must be in value */] = ev;
@@ -1404,13 +1416,8 @@ struct SymbolTable {
     }
 
     GUDT *LookupStruct(string_view name) {
-        if (MaybeNameSpace(name)) {
-            auto uit = gudts.find(NameSpaced(name));
-            if (uit != gudts.end()) return uit->second;
-        }
-        auto uit = gudts.find(name);
-        if (uit != gudts.end()) return uit->second;
-        return nullptr;
+        auto gudt = FindNS(gudts, name);
+        return gudt ? *gudt : nullptr;
     }
     GUDT *LookupStructQuery(string_view name) {
         GUDT* res = LookupStruct(name);
@@ -1456,13 +1463,8 @@ struct SymbolTable {
     }
 
     UDT *LookupSpecialization(string_view name) {
-        if (MaybeNameSpace(name)) {
-            auto uit = udts.find(NameSpaced(name));
-            if (uit != udts.end()) return uit->second;
-        }
-        auto uit = udts.find(name);
-        if (uit != udts.end()) return uit->second;
-        return nullptr;
+        auto udt = FindNS(udts, name);
+        return udt ? *udt : nullptr;
     }
 
     pair<GUDT *, UDT *> StructOrSpecializationUse(string_view name) {
@@ -1546,15 +1548,11 @@ struct SymbolTable {
     // Any function of this name, once parsing has cleaned up the scoped lookup above: the top
     // level one if there is one, else the first declared. For the IDE queries.
     Function *FindFunctionAnywhere(string_view name) {
-        if (MaybeNameSpace(name)) {
-            auto f = FindFunctionAnywhere(NameSpaced(name));
-            if (f) return f;
-        }
-        auto it = functions_by_name.find(name);
-        if (it == functions_by_name.end()) return nullptr;
+        auto fs = FindNS(functions_by_name, name);
+        if (!fs) return nullptr;
         // Top level functions are at scopelevel 2 (1 is the file scope).
-        for (auto f : it->second) if (f->scopelevel == 2) return f;
-        return it->second[0];
+        for (auto f : *fs) if (f->scopelevel == 2) return f;
+        return (*fs)[0];
     }
 
     // The function of this name in the innermost scope that has one, while parsing.
@@ -1564,11 +1562,8 @@ struct SymbolTable {
     }
 
     Function *FindFunction(string_view name) {
-        if (MaybeNameSpace(name)) {
-            auto f = GetFirstFunction(NameSpaced(name));
-            if (f) return f;
-        }
-        return GetFirstFunction(string(name));
+        return LookupNS(name, current_namespace,
+                        [&](string_view n) { return GetFirstFunction(string(n)); });
     }
 
     SpecIdent *NewSid(Ident *id, SubFunction *sf, bool withtype, TypeRef type = nullptr) {

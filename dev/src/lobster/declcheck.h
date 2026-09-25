@@ -199,13 +199,11 @@ struct DeclChecker {
     // error here, which covers code the typechecker never reaches.
 
     Function *FindLexical(string_view name, string_view ns) {
-        if (!ns.empty() && name.find(".") == string_view::npos) {
-            auto it = function_scopes.find(cat(ns, ".", name));
-            if (it != function_scopes.end() && !it->second.empty()) return it->second.back();
-        }
-        auto it = function_scopes.find(name);
-        if (it != function_scopes.end() && !it->second.empty()) return it->second.back();
-        return nullptr;
+        return SymbolTable::LookupNS(name, ns, [&](string_view n) -> Function * {
+            auto it = function_scopes.find(n);
+            return it != function_scopes.end() && !it->second.empty() ? it->second.back()
+                                                                      : nullptr;
+        });
     }
 
     bool RelatedGUDT(GUDT *a, GUDT *b) {
@@ -256,19 +254,12 @@ struct DeclChecker {
 
     // Does any function of this name exist at all, in any scope?
     bool FunctionExists(string_view name, string_view ns) {
-        if (!ns.empty() && name.find(".") == string_view::npos) {
-            if (st.functions_by_name.find(cat(ns, ".", name)) != st.functions_by_name.end())
-                return true;
-        }
-        return st.functions_by_name.find(name) != st.functions_by_name.end();
+        return SymbolTable::FindNS(st.functions_by_name, name, ns) != nullptr;
     }
 
     NativeFun *FindNativeNS(string_view name, string_view ns) {
-        if (!ns.empty() && name.find(".") == string_view::npos) {
-            auto nf = natreg.FindNative(cat(ns, ".", name));
-            if (nf) return nf;
-        }
-        return natreg.FindNative(name);
+        return SymbolTable::LookupNS(name, ns,
+                                     [&](string_view n) { return natreg.FindNative(n); });
     }
 
     void ResolveCall(GenericCall &call) {

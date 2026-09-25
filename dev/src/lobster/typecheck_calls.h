@@ -1026,9 +1026,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                 }
                 return nullptr;
             };
-            if (!node.ns.empty() && node.name.find(".") == string_view::npos)
-                ff = find_active(cat(node.ns, ".", node.name));
-            if (!ff) ff = find_active(node.name);
+            ff = SymbolTable::LookupNS(node.name, node.ns, find_active);
             if (!ff && out_of_block) {
                 Error(node, "function ", Q(node.name), " is declared in a block that does not"
                                 " contain this call (a different branch of an ", Q("if"),
