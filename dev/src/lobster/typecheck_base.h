@@ -348,6 +348,20 @@ struct TypeCheckBase {
         for (size_t i = 0; i < n.Arity(); i++) DecBorrowers(n.Children()[i]->lt, n);
     }
 
+    // Stands in for a node whose children were typechecked but that nothing can be made of:
+    // they give up what they borrow, since no call or operation is going to take it.
+    Node *GiveUp(Node &n) {
+        ReleaseChildren(n);
+        return ErrorNode(n);
+    }
+
+    // A node that produces no value, like a statement or a declaration.
+    Node *VoidNode(Node &n) {
+        n.exptype = type_void;
+        n.lt = LT_ANY;
+        return &n;
+    }
+
     // `reqret` values for something that produced fewer: what it did produce, padded with
     // `with`.
     TypeRef PadValues(TypeRef type, size_t reqret, Lifetime lt, TypeRef with) {

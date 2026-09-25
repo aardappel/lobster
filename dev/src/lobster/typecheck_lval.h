@@ -123,9 +123,7 @@ struct TypeCheckLval : virtual TypeCheckLocations {
             }
         }
         definestack.push_back(&node);
-        node.exptype = type_void;
-        node.lt = LT_ANY;
-        return &node;
+        return VoidNode(node);
     }
 
     Node *Check(Member &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
@@ -134,18 +132,14 @@ struct TypeCheckLval : virtual TypeCheckLocations {
         f.in_scope = true;
         scopes.back().scoped_fields.push_back(&node);
         if (node.this_sid) UpdateCurrentSid(node.this_sid);
-        node.exptype = type_void;
-        node.lt = LT_ANY;
-        return &node;
+        return VoidNode(node);
     }
 
     Node *Check(Static &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
         TT(node.child, 1, node.sid->lt);
         SubType(node.child, node.sid->type, "static initializer", node);
         // FIXME: not doing any of the flow stuff Assign / Define do, needed?
-        node.exptype = type_void;
-        node.lt = LT_ANY;
-        return &node;
+        return VoidNode(node);
     }
 
     Node *Check(AssignList &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
@@ -178,9 +172,7 @@ struct TypeCheckLval : virtual TypeCheckLocations {
             StorageType(left->exptype, *left);
             // TODO: should call tc.AssignFlowPromote(*left, vartype) here?
         }
-        node.exptype = type_void;
-        node.lt = LT_ANY;
-        return &node;
+        return VoidNode(node);
     }
 
     Node *Check(IdentRef &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
@@ -237,8 +229,7 @@ struct TypeCheckLval : virtual TypeCheckLocations {
             // A variable that is not initialized yet, or of a function not even typechecked
             // yet, which the left side reported: there is nothing to assign to.
             TT(node.right, 1, LT_ANY);
-            ReleaseChildren(node);
-            return ErrorNode(node);
+            return GiveUp(node);
         }
         // An assigned variable owns, which decides how the right hand side is adjusted below.
         if (auto idr = Is<IdentRef>(node.left)) FlipSpeculative(idr->sid);

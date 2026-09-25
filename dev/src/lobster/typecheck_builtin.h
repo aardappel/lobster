@@ -130,11 +130,6 @@ struct TypeCheckBuiltin : virtual TypeCheckLocations {
     Node *Check(NativeCall &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
         // The arguments were typechecked by the GenericCall this came from.
         assert(node.children.empty() || node.children[0]->exptype->t != V_UNDEFINED);
-        // Stands in for a call that doesn't fit the builtin, see TypeChecker::ErrorNode.
-        auto give_up = [&]() {
-            ReleaseChildren(node);
-            return ErrorNode(node);
-        };
         if (node.nf->first->overloads) {
             // Multiple overloads available, figure out which we want to call.
             auto cnf = node.nf->first;
@@ -156,12 +151,12 @@ struct TypeCheckBuiltin : virtual TypeCheckLocations {
                         fits = i < onf->args.size() && BuiltinArgFits(node, onf, onf->args[i], i);
                     if (fits) continue;
                     NumStructArgError(node, i);
-                    return give_up();
+                    return GiveUp(node);
                 }
                 auto err = NatCallMsg("arguments match no overloads of ", node.nf, node);
                 for (auto c : node.children) err += DemotionNote(*c);
                 Error(node, err);
-                return give_up();
+                return GiveUp(node);
             }
         }
         for (auto [i, arg] : enumerate(node.nf->args)) {
@@ -205,13 +200,13 @@ struct TypeCheckBuiltin : virtual TypeCheckLocations {
                 } else {
                     ErrorAlways(node,
                                    NatCallMsg("wrong number of many arguments for ", node.nf, node));
-                    return give_up();
+                    return GiveUp(node);
                 }
             }
         }
         if (node.children.size() != node.nf->args.size()) {
             ErrorAlways(node, NatCallMsg("too many arguments for ", node.nf, node));
-            return give_up();
+            return GiveUp(node);
         }
         vector<TypeRef> argtypes(node.children.size());
         for (auto [i, c] : enumerate(node.children)) {
@@ -280,8 +275,7 @@ struct TypeCheckBuiltin : virtual TypeCheckLocations {
             if (arg.flags & NF_MUTATES) CheckElementWrite(c, &node);
         }
 
-        node.exptype = type_void;  // no retvals
-        node.lt = LT_ANY;
+        VoidNode(node);  // no retvals
         if (node.nf->retvals.size() > 1) node.exptype = st.NewTuple(node.nf->retvals.size());
         for (auto [i, ret] : enumerate(node.nf->retvals)) {
             int sa = 0;

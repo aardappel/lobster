@@ -210,17 +210,13 @@ struct TypeCheckFlow : virtual TypeCheckLocations {
             }
         } else {
             // constant == false: this if-then is entirely redundant, replace.
-            auto r = new DefaultVal(node.line);
-            r->exptype = type_void;
-            r->lt = LT_ANY;
+            auto r = VoidNode(*new DefaultVal(node.line));
             delete &node;
             return r;
         }
         // No else: this always returns void.
         node.truepart->exptype = type_void;
-        node.exptype = type_void;
-        node.lt = LT_ANY;
-        return &node;
+        return VoidNode(node);
     }
 
     Node *Check(IfElse &node, size_t reqret, TypeRef /*parent_bound*/) {
@@ -283,9 +279,7 @@ struct TypeCheckFlow : virtual TypeCheckLocations {
         EnterLoop();
         TypeCheckBranch(true, node.condition, node.wbody, 0);
         LeaveLoop();
-        node.exptype = type_void;
-        node.lt = LT_ANY;
-        return &node;
+        return VoidNode(node);
     }
 
     Node *Check(For &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
@@ -332,10 +326,7 @@ struct TypeCheckFlow : virtual TypeCheckLocations {
         st.BlockScopeCleanup();
         if (fle && fle->sid && fle->sid->speculative) ReleaseSpeculative(fle->sid);
         DecBorrowers(node.iter->lt, node);
-        // Currently always return V_NIL
-        node.exptype = type_void;
-        node.lt = LT_ANY;
-        return &node;
+        return VoidNode(node);
     }
 
     Node *Check(ForLoopElem &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
@@ -350,24 +341,21 @@ struct TypeCheckFlow : virtual TypeCheckLocations {
         return &node;
     }
 
-    Node *Check(Break &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
+    // A break or continue, which leaves the innermost loop of the function it is in.
+    Node *TypeCheckLoopExit(Node &node) {
         if (scopes.back().loop_flow.empty())
-            Error(node, Q("break"), " must occur inside a ", Q("while"), " or ", Q("for"));
+            Error(node, Q(node.Name()), " must occur inside a ", Q("while"), " or ", Q("for"));
         else
             RecordLoopFlowExit();
-        node.exptype = type_void;
-        node.lt = LT_ANY;
-        return &node;
+        return VoidNode(node);
+    }
+
+    Node *Check(Break &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
+        return TypeCheckLoopExit(node);
     }
 
     Node *Check(Continue &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        if (scopes.back().loop_flow.empty())
-            Error(node, Q("continue"), " must occur inside a ", Q("while"), " or ", Q("for"));
-        else
-            RecordLoopFlowExit();
-        node.exptype = type_void;
-        node.lt = LT_ANY;
-        return &node;
+        return TypeCheckLoopExit(node);
     }
 
     Node *Check(Switch &node, size_t reqret, TypeRef /*parent_bound*/) {
@@ -388,8 +376,7 @@ struct TypeCheckFlow : virtual TypeCheckLocations {
         vector<iint> ints_seen;
         if (ptype->IsEnum()) enum_cases.resize(ptype->e->vals.size());
         if (ptype->t == V_INT) ints_seen.reserve(64);
-        node.cases->exptype = type_void;
-        node.cases->lt = LT_ANY;
+        VoidNode(*node.cases);
         FlowBranch merged;
         bool any_fallthrough = false;
         for (auto [i, n] : enumerate(node.cases->children)) {
@@ -398,8 +385,7 @@ struct TypeCheckFlow : virtual TypeCheckLocations {
             auto cflow = std::move(case_flow);
             auto cas = AssertIs<Case>(n);
             if (!cas->pattern->Arity()) (cas->out_of_range ? out_of_range_loc : default_loc) = i;
-            cas->pattern->exptype = type_void;
-            cas->pattern->lt = LT_ANY;
+            VoidNode(*cas->pattern);
             for (auto c : cas->pattern->children) {
                 if (on_types) {
                     if (!Is<UDTRef>(c)) Error(*c, "non-type value in switch on type");
@@ -512,15 +498,12 @@ struct TypeCheckFlow : virtual TypeCheckLocations {
                     // Add a runtime error for when the value is out of range. An `out_of_range` case
                     // already occupies this slot with code of its own.
                     auto pat = new List(node.cases->line);
-                    pat->exptype = type_void;
-                    pat->lt = LT_ANY;
+                    VoidNode(*pat);
                     // Blocks always have minimum of 1 statement in them, so an empty one signals runtime error here.
                     auto blk = new Block(node.cases->line);
-                    blk->exptype = type_void;
-                    blk->lt = LT_ANY;
+                    VoidNode(*blk);
                     auto cas = new Case(node.cases->line, pat, blk);
-                    cas->exptype = type_void;
-                    cas->lt = LT_ANY;
+                    VoidNode(*cas);
                     node.cases->Add(cas);
                 }
             } else {

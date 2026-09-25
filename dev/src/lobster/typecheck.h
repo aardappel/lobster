@@ -199,10 +199,8 @@ Node *ErrorValue::TypeCheck(TypeChecker &tc, size_t, TypeRef /*parent_bound*/) {
     return tc.ErrorNode(*this);
 }
 
-Node *DefaultVal::TypeCheck(TypeChecker &, size_t, TypeRef /*parent_bound*/) {
-    exptype = type_void;
-    lt = LT_ANY;
-    return this;
+Node *DefaultVal::TypeCheck(TypeChecker &tc, size_t, TypeRef /*parent_bound*/) {
+    return tc.VoidNode(*this);
 }
 
 Node *Coercion::TypeCheck(TypeChecker &tc, size_t reqret, TypeRef /*parent_bound*/) {

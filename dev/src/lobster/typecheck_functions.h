@@ -485,8 +485,7 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
     }
 
     Node *Check(Return &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        node.exptype = type_void;
-        node.lt = LT_ANY;
+        VoidNode(node);
         // Ensure what we're returning from is going to be on the stack at runtime.
         // First find correct specialization for sf.
         auto active = false;

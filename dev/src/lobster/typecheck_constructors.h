@@ -451,6 +451,13 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
 
     Node *Check(ObjectConstructor &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
         UDT *udt = nullptr;
+        // Stands in for a constructor of a type that can't be made out, see
+        // TypeChecker::ErrorNode; the initializers still get typechecked, for the errors in
+        // them.
+        auto give_up = [&]() {
+            TypeCheckList(&node, LT_KEEP);
+            return ErrorNode(node);
+        };
         if (node.giventype->t == V_UUDT && node.giventype->spec_udt->specializers.empty()) {
             // Special case for generic type constructor with no specializers.
             // Versions WITH specializers are instead resolved below.
@@ -525,10 +532,7 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
             node.exptype = &udt->thistype;
         } else {
             node.exptype = st.ResolveTypeVars(node.giventype, node.line);
-            if (node.exptype->IsError()) {
-                TypeCheckList(&node, LT_KEEP);
-                return ErrorNode(node);
-            }
+            if (node.exptype->IsError()) return give_up();
             if (!IsUDT(node.exptype->t)) {
                 // A T {} where T resolves to a non-struct/class type stands for the
                 // default value of that type, so generic code (like
@@ -566,8 +570,7 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
                     }
                 }
                 Error(node, "type does not resolve to an object constructor: ", Q(TypeName(node.exptype)));
-                TypeCheckList(&node, LT_KEEP);
-                return ErrorNode(node);
+                return give_up();
             }
             udt = node.exptype->udt;
             // Complete the UDT on demand: its field defaults must have been
@@ -587,8 +590,7 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
                         udts_in_progress.end()) {
                         Error(node, "default value of field ", Q(udt->g.fields[i].id->name),
                                         " recursively constructs ", Q(udt->name));
-                        TypeCheckList(&node, LT_KEEP);
-                        return ErrorNode(node);
+                        return give_up();
                     }
                     node.AddDefault(udt->sfields[i].defaultval->Clone(true));
                 } else {
@@ -651,9 +653,7 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
     }
 
     Node *Check(EnumRef &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        node.exptype = type_void;
-        node.lt = LT_ANY;
-        return &node;
+        return VoidNode(node);
     }
 
     Node *Check(GUDTRef &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
@@ -662,16 +662,12 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
                 EnsureUDTChecked(*udt, node);
             }
         }
-        node.exptype = type_void;
-        node.lt = LT_ANY;
-        return &node;
+        return VoidNode(node);
     }
 
     Node *Check(UDTRef &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
         // Its specializations get checked from GUDTRef::TypeCheck.
-        node.exptype = type_void;
-        node.lt = LT_ANY;
-        return &node;
+        return VoidNode(node);
     }
 };
 

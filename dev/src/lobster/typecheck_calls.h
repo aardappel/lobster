@@ -897,8 +897,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
         // The arguments still get typechecked when the call can't be, for the errors in them.
         auto give_up = [&]() {
             TypeCheckList(dc, LT_ANY);
-            ReleaseChildren(*dc);
-            return ErrorNode(*dc);
+            return GiveUp(*dc);
         };
         if (!ftype->IsFunction()) {
             if (!ftype->IsError())
@@ -1057,12 +1056,6 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                                "super must be used on a method that has a superclass implementation");
             }
         };
-        // This node stands in for a call nothing applies to, see TypeChecker::ErrorNode: the
-        // arguments give up what they borrow, since no call is going to take them.
-        auto give_up = [&]() {
-            ReleaseChildren(node);
-            return ErrorNode(node);
-        };
         auto likely_field_access = fld && node.fromdot && node.noparens;
         if (likely_field_access && udt && udt->g.Has(fld) >= 0) {
             unique_ptr<Dot> dot(new Dot(fld, node));
@@ -1074,7 +1067,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
             // Specialized error for nil deref, since if we don't, it will try and interpret this as a function call with a nil arg.
             Error(node, "dereferencing nillable type: ", Q(TypeName(type)),
                      DemotionNote(*node.children[0]));
-            return give_up();
+            return GiveUp(node);
         } else {
             // A function or builtin call. Selection is on receiver type first,
             // then arity:
@@ -1248,7 +1241,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                 }
                 err += DeclaredOverloads(ff);
                 ErrorAlways(node, err);
-                return give_up();
+                return GiveUp(node);
             } else {
                 if (fld && node.fromdot && node.noparens) {
                     Error(node, "type ", Q(TypeName(type)), " does not have field ", Q(fld->name),
@@ -1260,7 +1253,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                 } else if (!unknown_reported) {
                     ErrorAlways(node, "unknown field/function reference ", Q(node.name));
                 }
-                return give_up();
+                return GiveUp(node);
             }
         }
         node.children.clear();
