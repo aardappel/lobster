@@ -88,7 +88,7 @@ struct KeyState {
     bool repeat = false;
 
     double lasttime[2] = { -1, -1 };
-    int2 lastpos[2] = { int2(-1, -1), int2(-1, -1) };
+    double2 lastpos[2] = { double2(-1, -1), double2(-1, -1) };
 
     void Reset() {
         frames_down = 0;
@@ -146,7 +146,7 @@ double target_frametime = 0.001;
 double last_sleep = 0.0;
 
 int2 screensize = int2_0;
-int2 inputscale = int2_1;
+double2 inputscale = double2(1.0);
 
 bool fullscreen = false;
 bool cursor = true;
@@ -163,11 +163,11 @@ float controller_axes[SDL_GAMEPAD_AXIS_COUNT] = { 0 };
 
 struct Finger {
     SDL_FingerID id;
-    int2 mousepos;
-    int2 mousedelta;
+    double2 mousepos;
+    double2 mousedelta;
     bool used;
 
-    Finger() : id(0), mousepos(-1), mousedelta(0), used(false) {};
+    Finger() : id(0), mousepos(-1.0), mousedelta(0.0), used(false) {};
 };
 
 const int MAXFINGERS = 10;
@@ -194,7 +194,7 @@ void updatemousebutton(int button, int finger, bool on) {
 }
 
 void clearfingers(bool delta) {
-    for (auto &f : fingers) (delta ? f.mousedelta : f.mousepos) = int2(0);
+    for (auto &f : fingers) (delta ? f.mousedelta : f.mousepos) = double2(0.0);
 }
 
 int findfinger(SDL_FingerID id, bool remove) {
@@ -217,7 +217,7 @@ int findfinger(SDL_FingerID id, bool remove) {
     return 0;
 }
 
-const int2 &GetFinger(int i, bool delta) {
+const double2 &GetFinger(int i, bool delta) {
     auto &f = fingers[max(min(i, MAXFINGERS - 1), 0)];
     return delta ? f.mousedelta : f.mousepos;
 }
@@ -240,13 +240,13 @@ int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et) {
             // this is a bit clumsy as SDL has a list of fingers and so do we, but they work a bit differently
             int j = findfinger(e.fingerID, et == SDL_EVENT_FINGER_UP);
             auto &f = fingers[j];
-            auto ep = float2(e.x, e.y);
-            auto ed = float2(e.dx, e.dy);
-            auto xy = ep * float2(screensize);
+            auto ep = double2(e.x, e.y);
+            auto ed = double2(e.dx, e.dy);
+            auto xy = ep * double2(screensize);
 
             // FIXME: converting back to int coords even though touch theoretically may have higher res
-            f.mousepos = int2(xy * float2(inputscale));
-            f.mousedelta += int2(ed * float2(screensize));
+            f.mousepos = xy * inputscale;
+            f.mousedelta += ed * double2(screensize);
             return j;
         }
     }
@@ -315,10 +315,12 @@ bool SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event) {
 const int2 &GetScreenSize() { return screensize; }
 
 void ScreenSizeChanged() {
+    // These two will generally be the same on Win/Lin because we use SDL_WINDOW_HIGH_PIXEL_DENSITY,
+    // though on Mac they will typically still have a 2.0 ratio.
     int2 inputsize = int2_0;
     SDL_GetWindowSize(_sdl_window, &inputsize.x, &inputsize.y);
     SDL_GetWindowSizeInPixels(_sdl_window, &screensize.x, &screensize.y);
-    inputscale = screensize / inputsize;
+    inputscale = double2(screensize) / double2(inputsize);
 }
 
 SDL_Gamepad *find_controller() {
@@ -736,16 +738,16 @@ bool SDLFrame() {
                 if (nomousekeyb.first) break;
                 updatemousebutton(event.button.button, 0, event.button.down);
                 if (cursor) {
-                    fingers[0].mousepos = int2(int(event.button.x), int(event.button.y)) * inputscale;  // TODO(SDL3): support floats here?
+                    fingers[0].mousepos = double2(event.button.x, event.button.y) * inputscale;
                 }
                 break;
             }
 
             case SDL_EVENT_MOUSE_MOTION:
                 if (nomousekeyb.first) break;
-                fingers[0].mousedelta += int2(int(event.motion.xrel), int(event.motion.yrel));  // TODO(SDL3): support floats here?
+                fingers[0].mousedelta += double2(event.motion.xrel, event.motion.yrel);
                 if (cursor) {
-                    fingers[0].mousepos = int2(int(event.motion.x), int(event.motion.y)) * inputscale;  // TODO(SDL3): support floats here?
+                    fingers[0].mousepos = double2(event.motion.x, event.motion.y) * inputscale;
                 } else {
                     //if (skipmousemotion) { skipmousemotion--; break; }
                     //if (event.motion.x == screensize.x / 2 && event.motion.y == screensize.y / 2) break;
@@ -945,7 +947,7 @@ double GetKeyTime(string_view name, int on) {
     return ks.lasttime[on];
 }
 
-int2 GetKeyPos(string_view name, int on) {
+double2 GetKeyPos(string_view name, int on) {
     auto &ks = keymap_lookup(name);
     return ks.lastpos[on];
 }

@@ -111,7 +111,7 @@ extern "C" iint GLFrame(VM &vm) {
     return !cb;
 }
 
-float2 localpos(const int2 &pos) {
+float2 localpos(const double2 &pos) {
     return (otransforms.view2object() * float4(float3(float2(pos), 0), 1)).xyz().xy();
 }
 float2 localfingerpos(int i) {
@@ -437,7 +437,7 @@ BUILTIN(mouse_pos, "i", "I", "I}:2",
     "the current mouse/finger position in pixels, pass a value other than 0 to read additional"
     " fingers (for touch screens only if the corresponding gl.isdown is true)")
 (VM &, iint i) {
-    return ToVec<iint2>(GetFinger((int)i, false));
+    return ToVec<iint2>(iint2(GetFinger((int)i, false) + 0.5));
 }
 
 BUILTIN(mouse_delta, "i", "I", "I}:2",
@@ -445,7 +445,7 @@ BUILTIN(mouse_delta, "i", "I", "I}:2",
     " substracting positions to correctly deal with lifted fingers and FPS mode"
     " (gl.cursor(0))")
 (VM &, iint i) {
-    return ToVec<iint2>(GetFinger((int)i, true));
+    return ToVec<iint2>(iint2(GetFinger((int)i, true) + 0.5));
 }
 
 BUILTIN(local_mouse_pos, "i", "I", "F}:2",
@@ -460,7 +460,7 @@ BUILTIN(last_pos, "name,down", "SI", "I}:2",
 (VM &, LString *name, iint down) {
     auto on = (int)down;
     auto p = GetKeyPos(name->strv(), on);
-    return ToVec<iint2>(p);
+    return ToVec<iint2>(p + 0.5);
 }
 
 BUILTIN(local_last_pos, "name,down", "SI", "F}:2",
