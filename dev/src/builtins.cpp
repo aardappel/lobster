@@ -90,6 +90,13 @@ BUILTIN(print, "x", "Ss", "",
     }
 }
 
+BUILTIN(flush_output, "", "", "",
+    "flush console output, for example when a parent process waits for a readiness message on a pipe")
+(VM &) {
+    fflush(stdout);
+    fflush(stderr);
+}
+
 // The identity function: the typechecker converts the argument, see NF_CONVERTANYTOSTRING,
 // so there is nothing left for the generated code to do, see BCG_STRING.
 BUILTIN_CODEGEN(BCG_STRING, string, "x", "Ssk", "S",
