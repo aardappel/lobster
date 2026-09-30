@@ -120,6 +120,13 @@ def serialization_tests():
     let dflex = flexbuffers_value_to_binary(DSerDefaults {})
     let djson = assert flexbuffers_binary_to_json(dflex, false, "")
     test_eq(djson, "\{ dc: \{ x: 3, y: 4 \}, dd: \"x\" \}")
+    // Opt-in complete protocol data includes numeric defaults and nil references too.
+    let complete = flexbuffers_value_to_binary(DSerDefaults {}, 0, false, true)
+    let cjson = assert flexbuffers_binary_to_json(complete, false, "")
+    test_eq(cjson, "\{ da: 1, db: 2.5, dc: \{ x: 3, y: 4 \}, dd: \"x\" \}")
+    let complete_all = flexbuffers_value_to_binary(all, 0, false, true)
+    let cajson = assert flexbuffers_binary_to_json(complete_all, false, "")
+    test_true(cajson.find_string("f: null") >= 0)
     // json with quoted field names.
     let qjson = assert flexbuffers_binary_to_json(dflex, true, "")
     test_eq(qjson, "\{ \"dc\": \{ \"x\": 3, \"y\": 4 \}, \"dd\": \"x\" \}")

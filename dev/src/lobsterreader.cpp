@@ -397,14 +397,16 @@ BUILTIN_OUTS(parse_data, "typeid,stringdata", "TS", "A1?S?",
     ParseData(val, err, vm, (type_elem_t)type, ins->strv());
 }
 
-BUILTIN(flexbuffers_value_to_binary, "val,max_nesting,cycle_detection", "AI?B?", "S",
+BUILTIN(flexbuffers_value_to_binary, "val,max_nesting,cycle_detection,include_defaults", "AI?B?B?", "S",
     "turns any reference value into a flexbuffer. max_nesting defaults to 100. "
-    "cycle_detection is by default off (expensive)")
-(VM &vm, RefObj *ref, iint mn, iint cycle_detect) {
+    "cycle_detection is by default off (expensive). include_defaults preserves fields equal to their "
+    "default values (off by default, useful for complete JSON protocol responses).")
+(VM &vm, RefObj *ref, iint mn, iint cycle_detect, iint include_defaults) {
     auto val = Value(ref);
     ToFlexBufferContext fbc(vm, 1024, flexbuffers::BUILDER_FLAG_SHARE_KEYS);
     if (mn > 0) fbc.max_depth = mn;
     fbc.cycle_detect = (cycle_detect != 0);
+    fbc.save_default_value_fields = include_defaults != 0;
     val.ToFlexBuffer(fbc, ref ? ref->ti(vm).t : RTT_NIL, {}, (type_elem_t)0);
     fbc.builder.Finish();
     if (!fbc.cycle_hit.empty())
