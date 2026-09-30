@@ -541,6 +541,7 @@ BUILTIN(compile_run_c_code, "code,input", "SS", "S?S?",
 void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
     extern BuiltinGroup core_builtins;
     extern BuiltinGroup file_builtins;
+    extern BuiltinGroup tcp_builtins;
     extern BuiltinGroup flatbuffers_builtins;
     extern BuiltinGroup parsedata_builtins;
     extern BuiltinGroup matrix_builtins;
@@ -549,6 +550,7 @@ void RegisterCoreLanguageBuiltins(NativeRegistry &nfr) {
     RegisterBuiltin(nfr, "", "builtin", core_builtins);
     RegisterBuiltin(nfr, "", "compiler", compiler_builtins);
     RegisterBuiltin(nfr, "", "file", file_builtins);
+    RegisterBuiltin(nfr, "tcp", "tcp", tcp_builtins);
     RegisterBuiltin(nfr, "flatbuffers", "flatbuffers", flatbuffers_builtins);
     RegisterBuiltin(nfr, "", "parsedata", parsedata_builtins);
     RegisterBuiltin(nfr, "matrix", "matrix", matrix_builtins);

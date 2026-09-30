@@ -100,6 +100,7 @@ else()
     src/builtins.cpp
     src/compiler.cpp
     src/file.cpp
+    src/tcp.cpp
     src/lobsterreader.cpp
     src/main.cpp
     src/pakfile.cpp
