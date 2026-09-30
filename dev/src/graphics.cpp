@@ -518,6 +518,16 @@ BUILTIN(set_target_delta_time, "delta_time", "F", "",
     SetTargetFrameTime(ft);
 }
 
+BUILTIN(set_fixed_delta_time, "delta_time", "F", "",
+    "headless only: pace frames in wall time and report a fixed delta_time (0 disables)."
+    " Slow frames do not catch up. gl.time still reports wall time; this does not guarantee determinism.")
+(VM &vm, double ft) {
+    TestGL(vm);
+    if (SDLHasDisplay() || !std::isfinite(ft) || ft < 0.0 || ft > 0.2)
+        vm.Error("set_fixed_delta_time requires headless mode and a delta in [0, 0.2]");
+    SetFixedFrameTime(ft);
+}
+
 BUILTIN(time, "", "", "F",
     "seconds since the start of the OpenGL subsystem, updated only once per frame (use"
     " seconds_elapsed() for continuous timing)")

@@ -146,6 +146,7 @@ uint64_t timefreq = 0, timestart = 0;
 int frames = 0;
 vector<float> frametimelog;
 double target_frametime = 0.001;
+static double fixed_frametime = 0.0;
 double last_sleep = 0.0;
 
 int2 screensize = int2_0;
@@ -367,6 +368,7 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
         if (flags & INIT_HEADLESS) return "Headless graphics currently requires Windows or Linux";
     #endif
     has_display = !(flags & INIT_HEADLESS);
+    fixed_frametime = 0.0;
     MakeDPIAware();
     TextToSpeechInit();  // Needs to be before SDL_Init because COINITBASE_MULTITHREADED
     // SDL_SetMainReady();
@@ -662,6 +664,7 @@ float SDLGetRollingAverage(size_t n) {
 }
 
 void SetTargetFrameTime(double ft) { target_frametime = ft; }
+void SetFixedFrameTime(double ft) { fixed_frametime = ft; }
 
 void NameToLower(string &name) {
     std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
@@ -681,8 +684,17 @@ bool SDLFrame() {
         #endif
     }
 
-    frametime = GetSeconds() - lasttime;
-    lasttime += frametime;
+    // Opt-in headless pacing. A slow frame does not cause a catch-up burst, and simulation
+    // still receives exactly one fixed step. Keep the existing display timing path intact.
+    if (fixed_frametime > 0.0) {
+        auto remaining = fixed_frametime - (GetSeconds() - lasttime);
+        if (remaining > 0.0) SDL_DelayPrecise((uint64_t)(remaining * 1000000000.0));
+        lasttime = GetSeconds();
+        frametime = fixed_frametime;
+    } else {
+        frametime = GetSeconds() - lasttime;
+        lasttime += frametime;
+    }
     // Let's not run slower than this, very long pauses can cause animation & gameplay glitches.
     const double minfps = 5.0;
     frametime = min(1.0 / minfps, frametime);
@@ -691,7 +703,7 @@ bool SDLFrame() {
     if (frametimelog.size() > 64) frametimelog.erase(frametimelog.begin());
 
     auto sleep_time = target_frametime - (frametime - last_sleep);
-    if (sleep_time > 0.0) {
+    if (!fixed_frametime && sleep_time > 0.0) {
         SDL_DelayPrecise((uint64_t)sleep_time);
         last_sleep = sleep_time;
     }
