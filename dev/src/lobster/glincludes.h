@@ -158,6 +158,10 @@
         GLEXTS
     #undef GLEXT
 #endif
+#ifdef PLATFORM_WINNIX
+    #include "lobster/glheadless.h"
+#endif
+
 #if !defined(NDEBUG)
     #define LOG_GL_ERRORS
 #endif

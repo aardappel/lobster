@@ -17,6 +17,7 @@
 #include "lobster/vmdata.h"
 #include "lobster/glinterface.h"
 #include "lobster/glincludes.h"
+#include "lobster/sdlinterface.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -271,8 +272,8 @@ Texture CreateBlankTexture(string_view name, const int3 &size, int tf) {
 }
 
 Texture CreateColoredTexture(string_view name, const int3 &size, const float4 &color, int tf) {
-    if (tf & TF_MULTISAMPLE) {
-        return CreateTexture(name, nullptr, size, tf);  // No buffer required.
+    if ((tf & TF_MULTISAMPLE) || !SDLHasDisplay()) {
+        return CreateTexture(name, nullptr, size, tf);  // No upload buffer required.
     } else {
         auto sz = (tf & TF_FLOAT ? (sizeof(float4) / (tf & TF_16 ? 2 : 1)) : sizeof(byte4));
         if (tf & TF_CUBEMAP) sz *= 6;

@@ -150,7 +150,8 @@ using namespace geom;
         // https://github.com/wolfpld/tracy/issues/422
         // https://github.com/wolfpld/tracy/issues/419
         #define LOBSTER_FRAME_PROFILE_THIS_SCOPE ZoneScoped;
-        #define LOBSTER_FRAME_PROFILE_GPU TracyGpuZone(__FUNCTION__)
+        extern bool SDLHasDisplay();
+        #define LOBSTER_FRAME_PROFILE_GPU TracyGpuNamedZone(___tracy_gpu_zone, __FUNCTION__, SDLHasDisplay())
         #define TRACY_ENABLE 1
         #define TRACY_ON_DEMAND 1
         #define TRACY_ONLY_LOCALHOST 1

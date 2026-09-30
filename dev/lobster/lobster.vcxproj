@@ -606,6 +606,7 @@
     <ClInclude Include="..\src\lobster\3dgrid.h" />
     <ClInclude Include="..\src\lobster\cubegen.h" />
     <ClInclude Include="..\src\lobster\fontrenderer.h" />
+    <ClInclude Include="..\src\lobster\glheadless.h" />
     <ClInclude Include="..\src\lobster\glincludes.h" />
     <ClInclude Include="..\src\lobster\glinterface.h" />
     <ClInclude Include="..\src\lobster\graphics.h" />
@@ -4688,6 +4689,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseASAN|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\src\meshgen.cpp" />
+    <ClCompile Include="..\src\glheadless.cpp" />
     <ClCompile Include="..\src\glsystem.cpp" />
     <ClCompile Include="..\src\physics.cpp" />
     <ClCompile Include="..\src\sdlsystem.cpp" />

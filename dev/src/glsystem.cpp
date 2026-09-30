@@ -219,6 +219,10 @@ string OpenGLVendorStr() {
 }
 
 string OpenGLInit(int samples, bool srgb) {
+    #ifdef PLATFORM_WINNIX
+        // Install before even the first error/vendor query; headless needs no driver.
+        SetGLHeadless(!SDLHasDisplay());
+    #endif
     GL_CHECK("before_init");
     LOG_INFO(OpenGLVendorStr());
     // If not called, flashes red framebuffer on OS X before first gl.clear() is called.
@@ -230,7 +234,7 @@ string OpenGLInit(int samples, bool srgb) {
                 name = funcast.fun; \
                 if (!name && needed) return "no " #name; \
             }
-        GLBASEEXTS GLEXTS
+        if (SDLHasDisplay()) { GLBASEEXTS GLEXTS }
         #undef GLEXT
         GL_CALL(glEnable(GL_DEBUG_OUTPUT));
         if (glDebugMessageCallback && glDebugMessageInsert && glDebugMessageControl) {
@@ -279,13 +283,13 @@ string OpenGLInit(int samples, bool srgb) {
     if (!geomcache) geomcache = new GeometryCache();
     #if LOBSTER_FRAME_PROFILER
         #undef new
-        TracyGpuContext;
+        if (SDLHasDisplay()) { TracyGpuContext; }
         #if defined(_MSC_VER) && !defined(NDEBUG)
             #define new DEBUG_NEW
         #endif
     #endif
     #if defined(_WIN32) && LOBSTER_RENDERDOC
-        if (HMODULE mod = LoadLibraryA("renderdoc.dll")) {
+        if (HMODULE mod = SDLHasDisplay() ? LoadLibraryA("renderdoc.dll") : nullptr) {
             pRENDERDOC_GetAPI RENDERDOC_GetAPI =
                 (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
             RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);

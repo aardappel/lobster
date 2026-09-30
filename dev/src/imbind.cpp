@@ -91,10 +91,29 @@ void IMGUIFrameCleanup() {
     indent_stack.clear();
 }
 
+void IMGUIHeadlessTextures(bool shutdown = false) {
+    static ImTextureID next_id = 1;
+    for (auto tex : ImGui::GetPlatformIO().Textures) {
+        if (shutdown || tex->Status == ImTextureStatus_WantDestroy) {
+            tex->SetTexID(ImTextureID_Invalid);
+            tex->SetStatus(ImTextureStatus_Destroyed);
+        } else if (tex->Status == ImTextureStatus_WantCreate) {
+            tex->SetTexID(next_id++);
+            tex->SetStatus(ImTextureStatus_OK);
+        } else if (tex->Status == ImTextureStatus_WantUpdates) {
+            tex->SetStatus(ImTextureStatus_OK);
+        }
+    }
+}
+
 void IMGUICleanup() {
     if (!imgui_init) return;
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL3_Shutdown();
+    if (SDLHasDisplay()) {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplSDL3_Shutdown();
+    } else {
+        IMGUIHeadlessTextures(true);
+    }
     ImGui::DestroyContext();
     imgui_init = false;
     IMGUIFrameCleanup();
@@ -103,7 +122,7 @@ void IMGUICleanup() {
 
 bool IMGUIInit(iint flags, bool dark, float rounding, float border) {
     if (imgui_init) return true;
-    if (!_sdl_window || !_sdl_context) return false;
+    if (SDLHasDisplay() && (!_sdl_window || !_sdl_context)) return false;
     IMGUI_CHECKVERSION();
     auto context = ImGui::CreateContext();
     auto &io = ImGui::GetIO();
@@ -139,14 +158,22 @@ bool IMGUIInit(iint flags, bool dark, float rounding, float border) {
             cols[i].z = powf(cols[i].z, 2.2f);
         }
     }
-    ImGui_ImplSDL3_InitForOpenGL(_sdl_window, _sdl_context);
-    ImGui_ImplOpenGL3_Init(
-        #ifdef PLATFORM_ES3
-            "#version 300 es"
-        #else
-            "#version 150"
-        #endif
-    );
+    if (SDLHasDisplay()) {
+        ImGui_ImplSDL3_InitForOpenGL(_sdl_window, _sdl_context);
+        ImGui_ImplOpenGL3_Init(
+            #ifdef PLATFORM_ES3
+                "#version 300 es"
+            #else
+                "#version 150"
+            #endif
+        );
+    } else {
+        io.BackendPlatformName = "lobster_headless";
+        io.BackendRendererName = "lobster_headless";
+        io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
+        auto &pio = ImGui::GetPlatformIO();
+        pio.Renderer_TextureMaxWidth = pio.Renderer_TextureMaxHeight = 16384;
+    }
     // This disables ctrl+tab being a window switcher.
     // TODO: may need to be exposed to be optional?
     // https://github.com/ocornut/imgui/issues/3255
@@ -192,7 +219,8 @@ void NPop(VM &vm, Nesting n) {
         switch (tn) {
             case N_FRAME:
                 ImGui::Render();
-                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+                if (SDLHasDisplay()) ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+                else IMGUIHeadlessTextures();
                 // FIXME: this seems buggy.
                 /*
                 // Update and Render additional Platform Windows
@@ -293,7 +321,7 @@ void RequireMenuNesting(VM &vm) {
 }
 
 pair<bool, bool> IMGUIEvent(SDL_Event *event) {
-    if (!imgui_init) return { false, false };
+    if (!imgui_init || !SDLHasDisplay()) return { false, false };
     switch (event->type) {
         case SDL_EVENT_KEY_DOWN:
         case SDL_EVENT_KEY_UP: {
@@ -1177,8 +1205,16 @@ BUILTIN(frame_start, "", "", "",
 (VM &vm) {
     IsInit(vm, { N_NONE, N_NONE });
     IMGUIFrameCleanup();
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL3_NewFrame();
+    if (SDLHasDisplay()) {
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL3_NewFrame();
+    } else {
+        auto &io = ImGui::GetIO();
+        auto size = GetScreenSize();
+        io.DisplaySize = ImVec2(float(size.x), float(size.y));
+        io.DisplayFramebufferScale = ImVec2(1, 1);
+        io.DeltaTime = max(float(SDLDeltaTime()), 0.000001f);
+    }
     ImGui::NewFrame();
     NPush(N_FRAME);
     imgui_frame++;

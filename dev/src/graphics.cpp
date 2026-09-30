@@ -224,7 +224,7 @@ BuiltinGroup graphics_builtins;
 
 BUILTIN(window, "title,xs,ys,flags,samples", "SIII?I?:1", "S?",
     "opens a window for OpenGL rendering. returns error string if any problems, nil"
-    " otherwise. For flags, see modules/gl.lobster")
+    " otherwise. window_init_headless initializes CPU graphics state without a window or GPU. For flags, see modules/gl.lobster")
 (VM &vm, LString *title, iint xs, iint ys, iint flags, iint samples) {
     if (gs)
         vm.BuiltinError("cannot call gl.window() twice");
@@ -327,9 +327,15 @@ BUILTIN_OVERLOAD(window_size_set, "window_size", "size", "I}:2", "",
     SDLSetWindowSize(size);
 }
 
+BUILTIN(has_display, "", "", "B",
+    "whether gl.window initialized a display. False before initialization and in headless mode.")
+(VM &) {
+    return gs && SDLHasDisplay();
+}
+
 BUILTIN(visible, "", "", "B",
     "checks if the window is currently visible (not minimized, or on mobile devices, in the"
-    " foreground). If false, you should not render anything, nor run the frame's code.")
+    " foreground). Remains true in headless mode so frame logic still runs; use has_display to test for a display.")
 (VM &) {
     return !SDLIsMinimized();
 }

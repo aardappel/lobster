@@ -11,6 +11,7 @@ enum_flags window_init:
     window_init_no_resizable     // If not set, window is resizable (if windowed).
     window_init_borderless       // If not set, window is bordered (if windowed).
     window_init_fixed_vsync      // If not set, use adaptive vsync.
+    window_init_headless         // Windows/Linux: CPU graphics state, no window or GL context.
 
 // Used for built-in gl.save_mesh()
 enum model_format:

@@ -42,6 +42,9 @@
   #pragma warning(pop)
 #endif
 
+static bool has_display = true;
+bool SDLHasDisplay() { return has_display; }
+
 SDL_Window *_sdl_window = nullptr;
 SDL_GLContext _sdl_context = nullptr;
 
@@ -315,6 +318,7 @@ bool SDLHandleAppEvents(void * /*userdata*/, SDL_Event *event) {
 const int2 &GetScreenSize() { return screensize; }
 
 void ScreenSizeChanged() {
+    if (!has_display) return;
     // These two will generally be the same on Win/Lin because we use SDL_WINDOW_HIGH_PIXEL_DENSITY,
     // though on Mac they will typically still have a 2.0 ratio.
     int2 inputsize = int2_0;
@@ -359,10 +363,14 @@ int2 DPIAwareScreenSize(int2 desired_screensize) {
 }
 
 string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags flags, int samples) {
+    #ifndef PLATFORM_WINNIX
+        if (flags & INIT_HEADLESS) return "Headless graphics currently requires Windows or Linux";
+    #endif
+    has_display = !(flags & INIT_HEADLESS);
     MakeDPIAware();
     TextToSpeechInit();  // Needs to be before SDL_Init because COINITBASE_MULTITHREADED
     // SDL_SetMainReady();
-    if (!SDL_Init(SDL_INIT_VIDEO /* | SDL_INIT_AUDIO*/)) {
+    if (!SDL_Init(has_display ? SDL_INIT_VIDEO : SDL_INIT_EVENTS)) {
         return SDLError("Unable to initialize SDL");
     }
 
@@ -372,105 +380,112 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
 
     SDL_SetLogPriorities(SDL_LOG_PRIORITY_WARN);
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, gl_major);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, gl_minor);
-    #ifdef PLATFORM_ES3
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    #else
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-        #if defined(__APPLE__) || defined(_WIN32)
-            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, samples > 1);
-            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, samples);
+    if (has_display) {
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, gl_major);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, gl_minor);
+        #ifdef PLATFORM_ES3
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+        #else
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+            #if defined(__APPLE__) || defined(_WIN32)
+                SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, samples > 1);
+                SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, samples);
+            #endif
         #endif
-    #endif
 
-    //SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);      // set this if we're in 2D mode for speed on mobile?
-    SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 1);    // because we redraw the screen each frame
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    #ifndef __EMSCRIPTEN__ // FIXME: https://github.com/emscripten-ports/SDL2/issues/86
-        if (flags & INIT_LINEAR_COLOR) SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
-    #endif
+        //SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);      // set this if we're in 2D mode for speed on mobile?
+        SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 1);    // because we redraw the screen each frame
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+        #ifndef __EMSCRIPTEN__ // FIXME: https://github.com/emscripten-ports/SDL2/issues/86
+            if (flags & INIT_LINEAR_COLOR) SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
+        #endif
 
-    #ifdef _DEBUG
-        // Hopefully get some more validation out of OpenGL.
-        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
-    #endif
+        #ifdef _DEBUG
+            // Hopefully get some more validation out of OpenGL.
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+        #endif
 
-    if (startinbackground) {
-        // Both this and the SetWindowPos below are needed: the hint stops the window from
-        // taking focus when shown, but it would still appear on top of everything.
-        SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN, "0");
-    }
-
-    LOG_INFO("SDL about to figure out display mode...");
-
-    // FIXME: for emscripten, this picks screen size, not browser window size, and doesn't resize.
-    #ifdef PLATFORM_ES3
-        landscape = desired_screensize.x >= desired_screensize.y;
-        int display_mode_count;
-        SDL_DisplayMode **modes =
-            SDL_GetFullscreenDisplayModes(SDL_GetPrimaryDisplay(), &display_mode_count);
-        screensize = int2(320, 200);
-        for (int i = 0; i < display_mode_count; i++) {
-            SDL_DisplayMode *mode = modes[i];
-            LOG_INFO("mode: ", mode->w, " ", mode->h);
-            if (landscape ? mode->w > screensize.x : mode->h > screensize.y) {
-                screensize = int2(mode->w, mode->h);
-            }
+        if (startinbackground) {
+            // Both this and the SetWindowPos below are needed: the hint stops the window from
+            // taking focus when shown, but it would still appear on top of everything.
+            SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN, "0");
         }
-        LOG_INFO("chosen resolution: ", screensize.x, " ", screensize.y);
-        LOG_INFO("SDL about to create window...");
-        auto wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS;
-        #ifdef __EMSCRIPTEN__
-            wflags |= SDL_WINDOW_RESIZABLE;
+
+        LOG_INFO("SDL about to figure out display mode...");
+
+        // FIXME: for emscripten, this picks screen size, not browser window size, and doesn't resize.
+        #ifdef PLATFORM_ES3
+            landscape = desired_screensize.x >= desired_screensize.y;
+            int display_mode_count;
+            SDL_DisplayMode **modes =
+                SDL_GetFullscreenDisplayModes(SDL_GetPrimaryDisplay(), &display_mode_count);
+            screensize = int2(320, 200);
+            for (int i = 0; i < display_mode_count; i++) {
+                SDL_DisplayMode *mode = modes[i];
+                LOG_INFO("mode: ", mode->w, " ", mode->h);
+                if (landscape ? mode->w > screensize.x : mode->h > screensize.y) {
+                    screensize = int2(mode->w, mode->h);
+                }
+            }
+            LOG_INFO("chosen resolution: ", screensize.x, " ", screensize.y);
+            LOG_INFO("SDL about to create window...");
+            auto wflags = SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS;
+            #ifdef __EMSCRIPTEN__
+                wflags |= SDL_WINDOW_RESIZABLE;
+            #endif
+            _sdl_window = SDL_CreateWindow(title.c_str(), screensize.x, screensize.y, wflags);
+            LOG_INFO(_sdl_window ? "SDL window passed..." : "SDL window FAILED...");
+            if (landscape) SDL_SetHint("SDL_HINT_ORIENTATIONS", "LandscapeLeft LandscapeRight");
+        #else
+            screensize = DPIAwareScreenSize(desired_screensize);
+            // STARTUP-TIME-COST: 0.16 sec.
+            _sdl_window = SDL_CreateWindow(
+                title.c_str(), screensize.x, screensize.y,
+                SDL_WINDOW_OPENGL | SDL_WINDOW_HIGH_PIXEL_DENSITY |
+                    (flags & INIT_NO_RESIZABLE ? 0 : SDL_WINDOW_RESIZABLE) |
+                    (flags & INIT_BORDERLESS ? SDL_WINDOW_BORDERLESS : 0) |
+                    (flags & INIT_MAXIMIZED ? SDL_WINDOW_MAXIMIZED : 0));
+            SDLSetFullscreen(flags);
         #endif
-        _sdl_window = SDL_CreateWindow(title.c_str(), screensize.x, screensize.y, wflags);
-        LOG_INFO(_sdl_window ? "SDL window passed..." : "SDL window FAILED...");
-        if (landscape) SDL_SetHint("SDL_HINT_ORIENTATIONS", "LandscapeLeft LandscapeRight");
-    #else
-        screensize = DPIAwareScreenSize(desired_screensize);
-        // STARTUP-TIME-COST: 0.16 sec.
-        _sdl_window = SDL_CreateWindow(
-            title.c_str(), screensize.x, screensize.y,
-            SDL_WINDOW_OPENGL | SDL_WINDOW_HIGH_PIXEL_DENSITY |
-                (flags & INIT_NO_RESIZABLE ? 0 : SDL_WINDOW_RESIZABLE) |
-                (flags & INIT_BORDERLESS ? SDL_WINDOW_BORDERLESS : 0) |
-                (flags & INIT_MAXIMIZED ? SDL_WINDOW_MAXIMIZED : 0));
-        SDLSetFullscreen(flags);
-    #endif
-    ScreenSizeChanged();
-    LOG_INFO("obtained resolution: ", screensize.x, " ", screensize.y);
+        ScreenSizeChanged();
+        LOG_INFO("obtained resolution: ", screensize.x, " ", screensize.y);
 
-    if (!_sdl_window)
-        return SDLError("Unable to create window");
+        if (!_sdl_window)
+            return SDLError("Unable to create window");
 
-    LOG_INFO("SDL window opened...");
+        LOG_INFO("SDL window opened...");
 
 
-    _sdl_context = SDL_GL_CreateContext(_sdl_window);
-    LOG_INFO(_sdl_context ? "SDL context passed..." : "SDL context FAILED...");
-    if (!_sdl_context) return SDLError("Unable to create OpenGL context");
+        _sdl_context = SDL_GL_CreateContext(_sdl_window);
+        LOG_INFO(_sdl_context ? "SDL context passed..." : "SDL context FAILED...");
+        if (!_sdl_context) return SDLError("Unable to create OpenGL context");
 
-    LOG_INFO("SDL OpenGL context created...");
+        LOG_INFO("SDL OpenGL context created...");
 
-    #ifndef __IOS__
-        if (flags & INIT_NO_VSYNC) {
-            SDL_GL_SetSwapInterval(0);
-        } else if (flags & INIT_FIXED_VSYNC) {
-            SDL_GL_SetSwapInterval(1);
-        } else {
-            // By default, attempt adaptive vsync, which may fail.
-            if (!SDL_GL_SetSwapInterval(-1)) {
-                // Fall back on regular vsync.
+        #ifndef __IOS__
+            if (flags & INIT_NO_VSYNC) {
+                SDL_GL_SetSwapInterval(0);
+            } else if (flags & INIT_FIXED_VSYNC) {
                 SDL_GL_SetSwapInterval(1);
+            } else {
+                // By default, attempt adaptive vsync, which may fail.
+                if (!SDL_GL_SetSwapInterval(-1)) {
+                    // Fall back on regular vsync.
+                    SDL_GL_SetSwapInterval(1);
+                }
             }
-        }
-    #endif
+        #endif
+    } else {
+        // Preserve logical dimensions and frame/input state without a video device.
+        screensize = max(desired_screensize, int2_1);
+        inputscale = double2(1);
+        LOG_INFO("SDL headless: no window or OpenGL context");
+    }
 
     auto gl_err = OpenGLInit(samples, flags & INIT_LINEAR_COLOR);
 
     // STARTUP-TIME-COST: 0.08 sec. (due to controller, not joystick)
-    if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) && SDL_InitSubSystem(SDL_INIT_GAMEPAD)) {
+    if (has_display && SDL_InitSubSystem(SDL_INIT_JOYSTICK) && SDL_InitSubSystem(SDL_INIT_GAMEPAD)) {
         SDL_JoystickEventsEnabled();
         SDL_UpdateJoysticks();
         int count;
@@ -494,7 +509,7 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
     lasttime = -0.02f;    // ensure first frame doesn't get a crazy delta
 
     #ifdef _WIN32
-        if (startinbackground) {
+        if (has_display && startinbackground) {
             auto hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(_sdl_window),
                                                      SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
             if (hwnd) {
@@ -508,6 +523,7 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
 }
 
 void SDLSetFullscreen(InitFlags flags) {
+    if (!has_display) return;
     bool fs = false;
     if (flags & INIT_FULLSCREEN) {
         if (flags & INIT_NATIVE) {
@@ -554,6 +570,10 @@ void SDLSetFullscreen(InitFlags flags) {
 }
 
 void SDLSetWindowSize(int2 size) {
+    if (!has_display) {
+        screensize = max(size, int2_1);
+        return;
+    }
     if (!_sdl_window) return;
     //size = DPIAwareScreenSize(size);
     SDL_SetWindowSize(_sdl_window, size.x, size.y);
@@ -561,6 +581,7 @@ void SDLSetWindowSize(int2 size) {
 }
 
 string SDLDebuggerWindow() {
+    if (!has_display) return "The graphical debugger is unavailable in headless mode";
     #ifdef PLATFORM_ES3
         return "Can\'t open debugger window on non-desktop platform";
     #endif
@@ -651,7 +672,7 @@ void NameToLower(string &name) {
 bool SDLFrame() {
     if (minimized) {
         SDL_Delay(100);  // save CPU/battery
-    } else {
+    } else if (has_display) {
         #ifndef __EMSCRIPTEN__
             SDL_GL_SwapWindow(_sdl_window);
             OpenGLPostSwapBuffers();
@@ -963,6 +984,10 @@ bool SDLIsMinimized() { return minimized; }
 bool SDLCursor(bool on) {
     if (on == cursor) return cursor;
     cursor = !cursor;
+    if (!has_display) {
+        if (!cursor) clearfingers(false);
+        return !cursor;
+    }
     if (cursor) {
         if (fullscreen) SDL_SetWindowMouseGrab(_sdl_window, false);
         SDL_ShowCursor();
@@ -988,6 +1013,10 @@ bool SDLGrab(bool on) {
 }
 
 void SDLMessageBox(string_view_nt title, string_view_nt msg) {
+    if (!has_display) {
+        LOG_ERROR(title, ": ", msg);
+        return;
+    }
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title.c_str(), msg.c_str(), _sdl_window);
 }
 
@@ -1057,6 +1086,7 @@ void SDLTestMode(int num_frames) {
 void SDLStartInBackground() { startinbackground = true; }
 
 int SDLScreenDPI(int screen) {
+    if (!has_display) return 96;
     // TODO(SDL3): "SDL_GetDisplayDPI() - not reliable across platforms,
     // approximately replaced by multiplying SDL_GetWindowDisplayScale() times
     // 160 on iPhone and Android, and 96 on other platforms."
