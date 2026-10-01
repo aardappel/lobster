@@ -368,9 +368,14 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
         if (flags & INIT_HEADLESS) return "Headless graphics currently requires Windows or Linux";
     #endif
     has_display = !(flags & INIT_HEADLESS);
+    if (!has_display) {
+        // Audio may have started before gl.window selected headless mode.
+        SDLSoundClose();
+        StopTextToSpeech();
+    }
     fixed_frametime = 0.0;
     MakeDPIAware();
-    TextToSpeechInit();  // Needs to be before SDL_Init because COINITBASE_MULTITHREADED
+    if (has_display) TextToSpeechInit();  // Before SDL_Init because COINITBASE_MULTITHREADED
     // SDL_SetMainReady();
     if (!SDL_Init(has_display ? SDL_INIT_VIDEO : SDL_INIT_EVENTS)) {
         return SDLError("Unable to initialize SDL");

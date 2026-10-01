@@ -53,6 +53,10 @@ struct Audio {
 static map<string, Audio, less<>> audio_files;
 
 bool SDLSoundInit() {
+    // Every sound/music/stream load or playback path comes through here. Headless
+    // callers get the existing unavailable-audio results without opening a device
+    // or reading/decoding audio files. Audio-only programs still work before SDLInit.
+    if (!SDLHasDisplay()) return false;
     if (mixer) return true;
     if (!MIX_Init()) {
         LOG_ERROR("MIX_Init: ", SDL_GetError());

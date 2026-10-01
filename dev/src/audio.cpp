@@ -192,7 +192,7 @@ BUILTIN(sound_time_length, "channel", "I", "F",
 BUILTIN(text_to_speech, "text", "S", "",
     "Queues up text for async text to speech output. Currently on: win32")
 (VM &, LString *text) {
-    QueueTextToSpeech(text->strv());
+    if (SDLHasDisplay()) QueueTextToSpeech(text->strv());
 }
 
 BUILTIN(text_to_speech_stop, "", "", "",
