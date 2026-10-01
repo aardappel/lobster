@@ -77,6 +77,7 @@ CPPSRCS= \
 	../src/simplex.cpp \
 	../src/steamworks.cpp \
 	../src/stdafx.cpp \
+	../src/tcp.cpp \
 	../src/tonative.cpp \
     ../src/vm.cpp \
 	../src/vmdata.cpp \
