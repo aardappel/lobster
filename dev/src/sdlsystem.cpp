@@ -709,7 +709,7 @@ bool SDLFrame() {
 
     auto sleep_time = target_frametime - (frametime - last_sleep);
     if (!fixed_frametime && sleep_time > 0.0) {
-        SDL_DelayPrecise((uint64_t)sleep_time);
+        SDL_DelayPrecise((uint64_t)(sleep_time * 1000000000.0));
         last_sleep = sleep_time;
     }
 
