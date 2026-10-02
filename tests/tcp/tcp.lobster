@@ -33,6 +33,17 @@ def exchange(server_listener, server_port):
     let server = assert peer
     let empty, recv_error = tcp.receive(server, 1024)
     assert not recv_error and empty == nil
+    // Waiting ends early for what was asked about, and only for that.
+    let idle_start = seconds_elapsed()
+    assert not tcp.wait(server_listener, server, false, 0.2)
+    assert seconds_elapsed() - idle_start >= 0.15
+    assert not tcp.wait(nil, nil, false, 0.01)
+    assert tcp.wait(nil, server, true, 1.0)
+    let one, one_error = tcp.send(socket, "x")
+    assert not one_error and one == 1
+    assert tcp.wait(nil, server, false, 1.0)
+    let got, got_error = tcp.receive(server, 1024)
+    assert not got_error and got == "x"
     let bad_count, bad_send = tcp.send(socket, "test", 5)
     assert not bad_count and bad_send
     let bad_data, bad_receive = tcp.receive(server, 0)
@@ -63,6 +74,8 @@ def exchange(server_listener, server_port):
     return server
 
 let peer = exchange(listener, port)
+// The other end has gone, which is worth waking up for.
+assert tcp.wait(nil, peer, false, 1.0)
 let deadline = seconds_elapsed() + 10.0
 var eof = false
 while not eof:

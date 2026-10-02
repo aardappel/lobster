@@ -241,4 +241,41 @@ BUILTIN(receive, "socket,max_bytes", "R:tcpsocketI", "S?S?",
     return (LString *)nullptr;
 }
 
+BUILTIN(wait, "listener,socket,writable,seconds", "R:tcplistener?R:tcpsocket?BF", "B",
+    "the one call here that blocks, for a loop with nothing to do until its peer acts: sleeps for at"
+    " most seconds (0..1), or until the listener has a connection to accept, or the socket has data"
+    " to receive, was closed, or (with writable) can be sent to. Either may be nil. Returns whether"
+    " to try those calls now, rather than whether they will succeed.")
+(VM &vm, LResource *listener, LResource *socket, iint writable, double seconds) {
+    if (!(seconds >= 0.0 && seconds <= 1.0)) vm.BuiltinError("tcp.wait: seconds must be 0..1");
+    fd_set reading, writing;
+    FD_ZERO(&reading);
+    FD_ZERO(&writing);
+    int highest = -1;
+    auto watch = [&](SocketHandle handle, fd_set &set) {
+        #ifndef _WIN32
+            if (handle >= FD_SETSIZE) return false;
+        #endif
+        FD_SET(handle, &set);
+        highest = max(highest, (int)handle);
+        return true;
+    };
+    if (listener && !watch(GetResourceDec<TCPSocket>(listener, &tcplistener_type).handle, reading)) return true;
+    if (socket) {
+        auto &s = GetResourceDec<TCPSocket>(socket, &tcpsocket_type);
+        // A connection that is still being made reports its outcome by becoming writable.
+        if (!watch(s.handle, reading) || ((writable || s.connecting) && !watch(s.handle, writing))) return true;
+    }
+    if (highest < 0) {
+        // Windows rejects a select without sockets instead of sleeping.
+        std::this_thread::sleep_for(std::chrono::duration<double>(seconds));
+        return false;
+    }
+    timeval timeout;
+    timeout.tv_sec = (long)seconds;
+    timeout.tv_usec = (long)((seconds - (double)timeout.tv_sec) * 1000000.0);
+    // An error counts as ready too: the call that is tried next reports it.
+    return select(highest + 1, &reading, &writing, nullptr, &timeout) != 0;
+}
+
 }  // namespace lobster
