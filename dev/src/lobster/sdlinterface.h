@@ -55,7 +55,7 @@ extern double SDLDeltaTime();
 extern vector<float> &SDLGetFrameTimeLog();
 extern float SDLGetRollingAverage(size_t n);
 extern void SetTargetFrameTime(double ft);
-extern void SetFixedFrameTime(double ft);
+extern void SetFixedFrameTime(double ft, double pace);
 
 extern int SDLWheelDelta();
 

@@ -78,4 +78,18 @@ for(2):
             assert im.add_font("data/fonts/Droid_Sans_Mono/DroidSansMono.ttf", 24.0)
     im.cleanup()
 
+if not display:
+    // Frames report the fixed delta time whether they are stretched to real time or not.
+    let dt = 1.0 / 50.0
+    gl.set_fixed_delta_time(dt, dt)
+    assert gl.frame()
+    var start = seconds_elapsed()
+    for(5): assert gl.frame()
+    assert gl.delta_time() == dt and seconds_elapsed() - start >= 4.5 * dt
+    gl.set_fixed_delta_time(dt, 0.0)
+    start = seconds_elapsed()
+    for(50): assert gl.frame()
+    assert gl.delta_time() == dt and seconds_elapsed() - start < 25.0 * dt
+    gl.set_fixed_delta_time(0.0, 0.0)
+
 print "headless/display regression passed (has_display: {gl.has_display()})"

@@ -147,6 +147,7 @@ int frames = 0;
 vector<float> frametimelog;
 double target_frametime = 0.001;
 static double fixed_frametime = 0.0;
+static double fixed_frame_pace = 0.0;
 double last_sleep = 0.0;
 
 int2 screensize = int2_0;
@@ -373,7 +374,7 @@ string SDLInit(string_view_nt title, const int2 &desired_screensize, InitFlags f
         SDLSoundClose();
         StopTextToSpeech();
     }
-    fixed_frametime = 0.0;
+    SetFixedFrameTime(0.0, 0.0);
     MakeDPIAware();
     if (has_display) TextToSpeechInit();  // Before SDL_Init because COINITBASE_MULTITHREADED
     // SDL_SetMainReady();
@@ -669,7 +670,10 @@ float SDLGetRollingAverage(size_t n) {
 }
 
 void SetTargetFrameTime(double ft) { target_frametime = ft; }
-void SetFixedFrameTime(double ft) { fixed_frametime = ft; }
+void SetFixedFrameTime(double ft, double pace) {
+    fixed_frametime = ft;
+    fixed_frame_pace = pace;
+}
 
 void NameToLower(string &name) {
     std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
@@ -689,10 +693,12 @@ bool SDLFrame() {
         #endif
     }
 
-    // Opt-in headless pacing. A slow frame does not cause a catch-up burst, and simulation
-    // still receives exactly one fixed step. Keep the existing display timing path intact.
+    // Opt-in headless timing. Simulation receives exactly one fixed step per frame, whatever
+    // the frame took: it is stretched to fixed_frame_pace of wall time, which is no stretching
+    // at all when that is 0. A slow frame does not cause a catch-up burst. Keep the existing
+    // display timing path intact.
     if (fixed_frametime > 0.0) {
-        auto remaining = fixed_frametime - (GetSeconds() - lasttime);
+        auto remaining = fixed_frame_pace - (GetSeconds() - lasttime);
         if (remaining > 0.0) SDL_DelayPrecise((uint64_t)(remaining * 1000000000.0));
         lasttime = GetSeconds();
         frametime = fixed_frametime;
