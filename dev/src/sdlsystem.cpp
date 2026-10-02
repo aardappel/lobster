@@ -707,7 +707,10 @@ bool SDLFrame() {
     frametimelog.push_back((float)frametime);
     if (frametimelog.size() > 64) frametimelog.erase(frametimelog.begin());
 
+    // frametime includes the previous sleep, which must be taken off to get at the work done.
+    // A frame that did not sleep leaves nothing to take off the next one.
     auto sleep_time = target_frametime - (frametime - last_sleep);
+    last_sleep = 0.0;
     if (!fixed_frametime && sleep_time > 0.0) {
         SDL_DelayPrecise((uint64_t)(sleep_time * 1000000000.0));
         last_sleep = sleep_time;
