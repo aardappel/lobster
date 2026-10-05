@@ -1053,7 +1053,7 @@ Value VM::WorkerRead(type_elem_t tti) {
 
 Value VM::WorkerCheck(type_elem_t tti) {
     if (!tuple_space) return NilVal();
-    if (!!tuple_space->alive) return NilVal();
+    if (!tuple_space->alive) return NilVal();
     auto &ti = GetTypeInfo(tti);
     if (ti.t != RTT_CLASS) Error("thread check: must be a class type");
     vector<uint8_t> buf;
