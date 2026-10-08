@@ -78,7 +78,7 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
     compiled/run. `--debug` outputs even more, only useful for working on the compiler.
 -   `--silent` : Only output errors.
 
--   `--error N` : the maximum amount of errors to output, default 10.
+-   `--errors N` : the maximum amount of errors to output, default 10.
 
 -   `--full-error` : Lobster is able to generate _compile time stack traces_ when
     the typechecker fails, but those can get long, so by default they get truncated,
