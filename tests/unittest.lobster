@@ -23,7 +23,6 @@ import stringtest
 // Not added to speedtest yet.
 import mischtest
 import ccodetest
-import stringtest
 import lifetimetest
 import builtintest
 import operators
