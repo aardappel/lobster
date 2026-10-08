@@ -10,7 +10,7 @@ Get pre-built binaries (Windows, Mac, Linux)
 
 If you don't want to deal with building it yourself, go to
 [github CI](https://github.com/aardappel/lobster/actions?query=workflow%3ACI)
-(click on the latest succesful run to get a list of binaries at the bottom).
+(click on the latest successful run to get a list of binaries at the bottom).
 These are 64-bit for all platforms.
 
 Note: if you're NOT seeing a list of artifacts at the bottom of each run, that
