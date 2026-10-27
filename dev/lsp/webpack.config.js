@@ -33,10 +33,11 @@ module.exports = {
     devtool: 'source-map',
 	context: path.join(__dirname),
     entry: {
-        extension: './src/server.ts',
+        lobster_lsp: './src/server.ts',
+        lobsterfmt: './src/format/main.ts',
     },
     output: {
-        filename: 'lobster_lsp.js',
+        filename: '[name].js',
         path: path.join(__dirname, 'webpack-out'),
         libraryTarget: "commonjs",
     }

@@ -53,6 +53,7 @@ connection.onInitialize((params: InitializeParams) => {
 			completionProvider: {
 				resolveProvider: false
 			},
+			documentFormattingProvider: true,
 
 			codeActionProvider: hasCodeActionLiteralSupportCapability,
 			definitionProvider: true,
@@ -102,11 +103,13 @@ connection.onDidChangeWatchedFiles(_change => {
 import registerCodeAction from './features/code_action';
 import registerCompletion from './features/completion';
 import registerDefinition from './features/definition';
+import registerFormatting from './features/formatting';
 import registerHover from './features/hover';
 
 registerCodeAction(instance);
 registerCompletion(instance);
 registerDefinition(instance);
+registerFormatting(instance);
 registerHover(instance);
 
 // Listen on the connection
