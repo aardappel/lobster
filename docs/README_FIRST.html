@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>Welcome to Lobster!</title>
+  <title>Lobster Programming Language</title>
   <style>
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
@@ -21,28 +21,128 @@
       vertical-align: middle;
     }
     .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
   </style>
   <link rel="stylesheet" href="github.css" />
   <link rel="icon" type="image/svg" href="lobster.svg" />
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">Welcome to Lobster!</h1>
-</header>
-<p><img src="./lobster.svg" height=250></p>
+<div class="hero">
+<div class="hero-text">
+<p><img src="./lobster.svg" class="hero-logo" /></p>
+<h1 id="welcome-to-lobster">Welcome to Lobster!</h1>
 <p>Lobster is a statically typed programming language with a
 Python-esque syntax that combines the advantages of an expressive type
 system and compile-time memory management with a very lightweight,
 friendly and terse syntax, by doing most of the heavy lifting for you.
 It is competitive in <a href="RESULTS.html">speed</a> with the fastest
 languages.</p>
+<p><a href="getting_started.html" class="button">Get started</a>
+<a href="language_reference.html" class="button secondary">Language
+reference</a></p>
 <p>The homepage has more on <a href="http://strlen.com/lobster/">the
-"why" of Lobster</a>.</p>
-<p>Chat on <a href="https://discord.gg/szJPYdX">Discord</a> or <a
+"why" of Lobster</a>. Chat on <a
+href="https://discord.gg/szJPYdX">Discord</a> or <a
 href="https://gitter.im/lobster_programming_language/community">Gitter</a>.</p>
+</div>
+<div class="hero-code">
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> vec</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">color</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> gl</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="bu">fatal</span>(<span class="bu">gl.window</span>(<span class="st">&quot;sierpinski&quot;</span>, <span class="dv">512</span>, <span class="dv">512</span>))</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> directions <span class="op">=</span> [ <span class="cn">float2_0</span>, <span class="cn">float2_x</span>, <span class="cn">float2_y</span> ]</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> poly <span class="op">=</span> <span class="bu">gl.new_poly</span>(directions)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">sierpinski</span>(depth) <span class="op">-&gt;</span> <span class="dt">void</span>:</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> depth:</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="bu">gl.scale</span> <span class="fl">0.5</span>:</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span>(directions) d:</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>                <span class="bu">gl.translate</span> d:</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>                    sierpinski(depth <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>        <span class="bu">gl.render_mesh</span>(poly)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="bu">gl.frame</span>():</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">gl.button</span>(<span class="st">&quot;escape&quot;</span>) <span class="op">==</span> <span class="dv">1</span>: <span class="cf">return</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.clear</span>(<span class="cn">color_black</span>)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.scale</span>(<span class="dt">float</span>(<span class="bu">gl.window_size</span>()))</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    sierpinski(<span class="dv">7</span>)</span></code></pre></div>
+<p><a
+href="https://github.com/aardappel/lobster/blob/master/samples/sierpinski.lobster">samples/sierpinski.lobster</a>
+draws a Sierpinski triangle.</p>
+</div>
+</div>
 <p>This document is the starting point for all the Lobster
 documentation.</p>
-<h2 id="using-the-compiler">Using the compiler</h2>
+<div class="cards">
+<section id="using-the-compiler" class="card">
+<h3>Using the compiler</h3>
 <p>A quick <a href="getting_started.html">getting started</a> guide.</p>
 <p>More detailed: using Lobster from the <a
 href="command_line_usage.html">command line</a>, or setting up editors
@@ -56,7 +156,9 @@ href="https://github.com/lite-xl/lite-xl-plugins/blob/master/plugins/language_lo
 <blockquote>
 <p>Right now VSCode is the only one with a lsp.</p>
 </blockquote>
-<h2 id="learning-the-language">Learning the language</h2>
+</section>
+<section id="learning-the-language" class="card">
+<h3>Learning the language</h3>
 <p>If you already know how to program in at least one C-style language
 (C/C++/C#/Java/JavaScript etc), then a way to get a quick idea of where
 Lobster is different is by looking at the <a
@@ -74,17 +176,32 @@ Read about the <a href="type_checker.html">type system</a> or <a
 href="memory_management.html">memory management</a>. The <a
 href="language_spec.html">language spec</a> has more detail on the exact
 behavior of current language features.</p>
-<h2 id="building-lobster">Building Lobster</h2>
+</section>
+<section id="building-lobster" class="card">
+<h3>Building Lobster</h3>
 <p>Read about the <a href="implementation.html">implementation</a> to be
 able to compile, extend or use Lobster for your own C++ projects.</p>
-<h2 id="using-the-engine">Using the engine</h2>
+</section>
+<section id="using-the-engine" class="card">
+<h3>Using the engine</h3>
 <p>Lobster comes with <a href="engine.html">built-in functionality for
 drawing</a> and many other things.</p>
+</section>
+</div>
 <h2 id="about-lobster">About Lobster</h2>
-<p>Lobster was designed and implemented by Wouter van Oortmerssen
-(aardappel at gmail dot com / strlen.com).</p>
+<p>Lobster was designed and implemented by Wouter van Oortmerssen (<a
+href="https://strlen.com">strlen.com</a>,
+aardappel at gmail dot com).</p>
 <p>It has been released under the Apache v2 open source licence.</p>
 <p>Read about the <a href="philosophy.html">design philosophy, history
 and future</a>.</p>
+<div class="social">
+<p><a href="https://github.com/aardappel/lobster">GitHub</a> <a
+href="https://discord.gg/szJPYdX">Discord</a> <a
+href="https://gitter.im/lobster_programming_language/community">Gitter</a>
+<a
+href="https://www.facebook.com/lobsterprogramminglanguage">Facebook</a>
+<a href="https://twitter.com/wvo">Twitter @wvo</a></p>
+</div>
 </body>
 </html>
