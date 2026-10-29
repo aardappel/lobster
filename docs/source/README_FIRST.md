@@ -6,7 +6,7 @@ pagetitle: Lobster Programming Language
 
 <div class="hero-text">
 
-<img src="./lobster.svg" class="hero-logo" />
+<img src="./lobster.svg" class="hero-logo" width="72" height="72" />
 
 Welcome to Lobster!
 ===================
