@@ -127,7 +127,7 @@ About Lobster
 -------------
 
 Lobster was designed and implemented by Wouter van Oortmerssen
-([strlen.com](https://strlen.com), aardappel\ at\ gmail\ dot\ com).
+([strlen.com](https://strlen.com), aardappel at gmail dot com).
 
 It has been released under the Apache v2 open source licence.
 
