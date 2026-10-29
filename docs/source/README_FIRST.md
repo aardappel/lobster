@@ -47,7 +47,7 @@ editors such as [VSCode](vscode_ide.html), [Sublime Text](sublime_ide.html),
 
 </div>
 
-<div class="card">
+<div class="card tall">
 
 ### Learning the language
 
