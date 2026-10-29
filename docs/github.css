@@ -158,15 +158,7 @@ tbody tr:hover { background: var(--surface); }
 =============================================================================*/
 
 .hero {
-  /* wider than the text column, tinted edge to edge */
-  position: relative;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(1120px, calc(100vw - 48px));
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 32px 48px;
+  /* the text column, tinted edge to edge */
   margin: -48px 0 40px;
   padding: 56px 0 48px;
   background: var(--tint);
@@ -175,8 +167,6 @@ tbody tr:hover { background: var(--surface); }
 }
 
 .hero-logo { width: 72px; height: 72px; display: block; }
-
-.hero-text { flex: 1 1 400px; min-width: 0; }
 
 .hero-text > p:first-child { margin: 0 0 16px; }
 
@@ -187,12 +177,6 @@ tbody tr:hover { background: var(--surface); }
 .hero-text p:has(.button) { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0; }
 
 .hero-text p:last-child { font-size: 15px; margin-bottom: 0; }
-
-.hero-code { flex: 1 1 440px; min-width: 0; }
-
-.hero-code pre { margin: 0 0 10px; box-shadow: 0 24px 48px -28px rgba(80, 30, 15, 0.45); }
-
-.hero-code p { margin: 0; font-size: 13px; color: var(--muted); }
 
 a.button {
   display: inline-block;
@@ -217,8 +201,6 @@ a.button.secondary:hover { border-color: var(--link); color: var(--link-hover); 
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
-  align-items: start;
   gap: 16px;
   margin: 24px 0 40px;
 }
@@ -261,6 +243,5 @@ ul.social, .social > p {
   h1 { font-size: 32px; }
   h2 { font-size: 23px; }
   .hero { margin: -32px 0 32px; padding: 40px 0 32px; }
-  .hero { width: calc(100vw - 32px); }
   .hero-logo { width: 56px; height: 56px; }
 }

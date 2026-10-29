@@ -108,35 +108,6 @@ reference</a></p>
 href="https://discord.gg/szJPYdX">Discord</a> or <a
 href="https://gitter.im/lobster_programming_language/community">Gitter</a>.</p>
 </div>
-<div class="hero-code">
-<div class="sourceCode" id="cb1"><pre
-class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> vec</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">color</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> gl</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="bu">fatal</span>(<span class="bu">gl.window</span>(<span class="st">&quot;sierpinski&quot;</span>, <span class="dv">512</span>, <span class="dv">512</span>))</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> directions <span class="op">=</span> [ <span class="cn">float2_0</span>, <span class="cn">float2_x</span>, <span class="cn">float2_y</span> ]</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> poly <span class="op">=</span> <span class="bu">gl.new_poly</span>(directions)</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">sierpinski</span>(depth) <span class="op">-&gt;</span> <span class="dt">void</span>:</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> depth:</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="bu">gl.scale</span> <span class="fl">0.5</span>:</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span>(directions) d:</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>                <span class="bu">gl.translate</span> d:</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>                    sierpinski(depth <span class="op">-</span> <span class="dv">1</span>)</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>        <span class="bu">gl.render_mesh</span>(poly)</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="bu">gl.frame</span>():</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">gl.button</span>(<span class="st">&quot;escape&quot;</span>) <span class="op">==</span> <span class="dv">1</span>: <span class="cf">return</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.clear</span>(<span class="cn">color_black</span>)</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.scale</span>(<span class="dt">float</span>(<span class="bu">gl.window_size</span>()))</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    sierpinski(<span class="dv">7</span>)</span></code></pre></div>
-<p><a
-href="https://github.com/aardappel/lobster/blob/master/samples/sierpinski.lobster">samples/sierpinski.lobster</a>
-draws a Sierpinski triangle.</p>
-</div>
 </div>
 <p>This document is the starting point for all the Lobster
 documentation.</p>
@@ -188,6 +159,34 @@ able to compile, extend or use Lobster for your own C++ projects.</p>
 drawing</a> and many other things.</p>
 </section>
 </div>
+<h2 id="a-small-example">A small example</h2>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> vec</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">color</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> gl</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="bu">fatal</span>(<span class="bu">gl.window</span>(<span class="st">&quot;sierpinski&quot;</span>, <span class="dv">512</span>, <span class="dv">512</span>))</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> directions <span class="op">=</span> [ <span class="cn">float2_0</span>, <span class="cn">float2_x</span>, <span class="cn">float2_y</span> ]</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> poly <span class="op">=</span> <span class="bu">gl.new_poly</span>(directions)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">sierpinski</span>(depth) <span class="op">-&gt;</span> <span class="dt">void</span>:</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> depth:</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="bu">gl.scale</span> <span class="fl">0.5</span>:</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span>(directions) d:</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>                <span class="bu">gl.translate</span> d:</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>                    sierpinski(depth <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>        <span class="bu">gl.render_mesh</span>(poly)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="bu">gl.frame</span>():</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">gl.button</span>(<span class="st">&quot;escape&quot;</span>) <span class="op">==</span> <span class="dv">1</span>: <span class="cf">return</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.clear</span>(<span class="cn">color_black</span>)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.scale</span>(<span class="dt">float</span>(<span class="bu">gl.window_size</span>()))</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    sierpinski(<span class="dv">7</span>)</span></code></pre></div>
+<p><a
+href="https://github.com/aardappel/lobster/blob/master/samples/sierpinski.lobster">samples/sierpinski.lobster</a>
+draws a Sierpinski triangle.</p>
 <h2 id="about-lobster">About Lobster</h2>
 <p>Lobster was designed and implemented by Wouter van Oortmerssen (<a
 href="https://strlen.com">strlen.com</a>,
