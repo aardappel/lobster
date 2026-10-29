@@ -1,266 +1,253 @@
-/* GitHub stylesheet for MarkdownPad */
-/* Author: Nicolas Hery - http://nicolashery.com */
-/* Version: d5e7ce436666e7d4a2eeb12e7f8261dacceb3565 */
-/* Source: https://github.com/nicolahery/markdownpad-github */
+/* Stylesheet for the Lobster docs (Pandoc output, see source/generate_html_docs_from_markdown.sh). */
 
-/* RESET
-=============================================================================*/
-
-html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video {
-  margin: 0;
-  padding: 0;
-  border: 0;
+:root {
+  --ink: #1d2125;
+  --text: #2a3036;
+  --muted: #5b6168;
+  --paper: #fafaf8;
+  --surface: #ffffff;
+  --rule: #e4e2dc;
+  --tint: #fbf0eb;
+  --tint-rule: #f0ddd4;
+  --accent: #e4502f;
+  --link: #b83a1d;
+  --link-hover: #8e2b13;
+  --code-bg: #1e2227;
+  --code-text: #d8dce0;
+  --inline-code-bg: #f0eee9;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
-/* BODY
+/* BASE
 =============================================================================*/
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
 
 body {
-  font-family: Helvetica, arial, freesans, clean, sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #333;
-  background-color: #fff;
-  padding: 20px;
-  max-width: 960px;
   margin: 0 auto;
+  padding: 48px 24px 96px;
+  max-width: 880px;
+  font-family: var(--sans);
+  font-size: 16.5px;
+  line-height: 1.7;
+  color: var(--text);
+  background: var(--paper);
 }
 
-body>*:first-child {
-  margin-top: 0 !important;
-}
+a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { color: var(--link-hover); }
 
-body>*:last-child {
-  margin-bottom: 0 !important;
-}
+img { max-width: 100%; height: auto; }
 
-/* BLOCKS
-=============================================================================*/
+p, ul, ol, dl, table, pre, blockquote { margin: 0 0 16px; }
 
-p, blockquote, ul, ol, dl, table, pre {
-  margin: 15px 0;
-}
+p { text-wrap: pretty; }
 
-/* HEADERS
+ul, ol { padding-left: 1.5em; }
+li { margin: 4px 0; }
+li > p { margin-bottom: 8px; }
+
+hr { border: 0; border-top: 1px solid var(--rule); margin: 40px 0; }
+
+/* HEADINGS
 =============================================================================*/
 
 h1, h2, h3, h4, h5, h6 {
-  margin: 20px 0 10px;
-  padding: 0;
-  font-weight: bold;
-  -webkit-font-smoothing: antialiased;
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  margin: 40px 0 12px;
 }
 
-h1 tt, h1 code, h2 tt, h2 code, h3 tt, h3 code, h4 tt, h4 code, h5 tt, h5 code, h6 tt, h6 code {
-  font-size: inherit;
-}
+h1 { font-size: 40px; letter-spacing: -0.03em; margin-top: 0; }
+h2 { font-size: 27px; letter-spacing: -0.02em; padding-top: 24px; border-top: 1px solid var(--rule); }
+h3 { font-size: 20px; margin-top: 32px; }
+h4 { font-size: 17px; }
+h5, h6 { font-size: 15px; color: var(--muted); }
 
-h1 {
-  font-size: 28px;
-  color: #000;
-}
-
-h2 {
-  font-size: 24px;
-  border-bottom: 1px solid #ccc;
-  color: #000;
-}
-
-h3 {
-  font-size: 18px;
-}
-
-h4 {
-  font-size: 16px;
-}
-
-h5 {
-  font-size: 14px;
-}
-
-h6 {
-  color: #777;
-  font-size: 14px;
-}
-
-body>h2:first-child, body>h1:first-child, body>h1:first-child+h2, body>h3:first-child, body>h4:first-child, body>h5:first-child, body>h6:first-child {
-  margin-top: 0;
-  padding-top: 0;
-}
-
-a:first-child h1, a:first-child h2, a:first-child h3, a:first-child h4, a:first-child h5, a:first-child h6 {
-  margin-top: 0;
-  padding-top: 0;
-}
-
-h1+p, h2+p, h3+p, h4+p, h5+p, h6+p {
-  margin-top: 10px;
-}
-
-/* LINKS
-=============================================================================*/
-
-a {
-  color: #4183C4;
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-/* LISTS
-=============================================================================*/
-
-ul, ol {
-  padding-left: 30px;
-}
-
-ul li > :first-child, 
-ol li > :first-child, 
-ul li ul:first-of-type, 
-ol li ol:first-of-type, 
-ul li ol:first-of-type, 
-ol li ul:first-of-type {
-  margin-top: 0px;
-}
-
-ul ul, ul ol, ol ol, ol ul {
-  margin-bottom: 0;
-}
-
-dl {
-  padding: 0;
-}
-
-dl dt {
-  font-size: 14px;
-  font-weight: bold;
-  font-style: italic;
-  padding: 0;
-  margin: 15px 0 5px;
-}
-
-dl dt:first-child {
-  padding: 0;
-}
-
-dl dt>:first-child {
-  margin-top: 0px;
-}
-
-dl dt>:last-child {
-  margin-bottom: 0px;
-}
-
-dl dd {
-  margin: 0 0 15px;
-  padding: 0 15px;
-}
-
-dl dd>:first-child {
-  margin-top: 0px;
-}
-
-dl dd>:last-child {
-  margin-bottom: 0px;
-}
+header#title-block-header { margin-bottom: 32px; }
+header#title-block-header h1.title { margin: 0; }
 
 /* CODE
 =============================================================================*/
 
-pre, code, tt {
-  font-size: 12px;
-  font-family: Consolas, "Liberation Mono", Courier, monospace;
+code, tt, kbd {
+  font-family: var(--mono);
+  font-size: 0.88em;
 }
 
-code, tt {
-  margin: 0 0px;
-  padding: 0px 0px;
-  white-space: nowrap;
-  border: 1px solid #eaeaea;
-  background-color: #f8f8f8;
-  border-radius: 3px;
-}
-
-pre>code {
-  margin: 0;
-  padding: 0;
-  white-space: pre;
-  border: none;
-  background: transparent;
+:not(pre) > code, tt {
+  background: var(--inline-code-bg);
+  padding: 2px 6px;
+  border-radius: 5px;
 }
 
 pre {
-  background-color: #f8f8f8;
-  border: 1px solid #ccc;
-  font-size: 13px;
-  line-height: 19px;
-  overflow: auto;
-  padding: 6px 10px;
-  border-radius: 3px;
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 16px 20px;
+  border-radius: 10px;
+  overflow-x: auto;
+  line-height: 1.55;
 }
 
-pre code, pre tt {
-  background-color: transparent;
-  border: none;
+pre code {
+  font-size: 13.5px;
+  background: none;
+  padding: 0;
+  color: inherit;
+  white-space: pre;
 }
 
-/* QUOTES
+/* Syntax colours for ~~~~ {.lobster} blocks (Pandoc + source/lobster.xml) */
+
+div.sourceCode { margin: 0 0 16px; overflow: visible; }
+pre.sourceCode { margin: 0; }
+pre > code.sourceCode > span { line-height: inherit; }
+pre code span.kw, pre code span.cf { color: #f08a6e; font-weight: normal; }
+pre code span.dt { color: #8fd0c8; }
+pre code span.cn, pre code span.dv, pre code span.fl, pre code span.bn { color: #e8c27a; }
+pre code span.bu, pre code span.fu { color: #8fb8e8; }
+pre code span.st, pre code span.ch { color: #a8d5b5; }
+pre code span.sc { color: #c9e8b5; }
+pre code span.co { color: #8c939b; font-style: normal; }
+pre code span.op { color: #b5bbc1; }
+
+/* BLOCKQUOTES (used as notes)
 =============================================================================*/
 
 blockquote {
-  border-left: 4px solid #DDD;
-  padding: 0 15px;
-  color: #777;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  color: var(--muted);
 }
 
-blockquote>:first-child {
-  margin-top: 0px;
-}
-
-blockquote>:last-child {
-  margin-bottom: 0px;
-}
-
-/* HORIZONTAL RULES
-=============================================================================*/
-
-hr {
-  clear: both;
-  margin: 15px 0;
-  height: 0px;
-  overflow: hidden;
-  border: none;
-  background: transparent;
-  border-bottom: 4px solid #ddd;
-  padding: 0;
-}
+blockquote > :last-child { margin-bottom: 0; }
 
 /* TABLES
 =============================================================================*/
 
-table th {
-  font-weight: bold;
+table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 15px;
 }
 
-table th, table td {
-  border: 1px solid #ccc;
-  padding: 6px 13px;
+th, td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
 }
 
-table tr {
-  border-top: 1px solid #ccc;
-  background-color: #fff;
-}
+th { color: var(--ink); font-weight: 600; border-bottom-color: #cfccc4; }
 
-table tr:nth-child(2n) {
-  background-color: #f8f8f8;
-}
+tbody tr:hover { background: var(--surface); }
 
-/* IMAGES
+/* FRONT PAGE (README_FIRST.md)
 =============================================================================*/
 
-.markdown-body img {
-  max-width: 100%
+.hero {
+  /* the text column, tinted edge to edge */
+  margin: -48px 0 40px;
+  padding: 56px 0 48px;
+  background: var(--tint);
+  box-shadow: 0 0 0 100vmax var(--tint);
+  clip-path: inset(0 -100vmax);
+}
+
+.hero-logo { width: 72px; height: 72px; display: block; }
+
+.hero-text > p:first-child { margin: 0 0 16px; }
+
+.hero-text h1 { margin: 0 0 16px; font-size: clamp(34px, 5vw, 44px); line-height: 1.05; }
+
+.hero-text p { color: #4a5056; }
+
+.hero-text p:has(.button) { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0; }
+
+.hero-text p:last-child { font-size: 15px; margin-bottom: 0; }
+
+a.button {
+  display: inline-block;
+  padding: 11px 20px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 500;
+  text-decoration: none;
+  line-height: 1.3;
+}
+
+a.button:hover { background: #000; color: #fff; }
+
+a.button.secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid #d9c6bd;
+}
+
+a.button.secondary:hover { border-color: var(--link); color: var(--link-hover); }
+
+.cards {
+  display: grid;
+  gap: 16px;
+  margin: 24px 0 40px;
+}
+
+/* two columns where there's room, the last card across both when it's on its own */
+@media (min-width: 760px) {
+  .cards { grid-template-columns: 1fr 1fr; }
+  .card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 20px 24px 8px;
+}
+
+.card h3 { margin-top: 0; }
+
+ul.social, .social > p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 24px 0 0;
+}
+
+.social a {
+  display: inline-block;
+  padding: 8px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.social a:hover { border-color: var(--link); color: var(--link-hover); }
+
+/* SMALL SCREENS
+=============================================================================*/
+
+@media (max-width: 600px) {
+  body { padding: 32px 16px 64px; font-size: 16px; }
+  h1 { font-size: 32px; }
+  h2 { font-size: 23px; }
+  .hero { margin: -32px 0 32px; padding: 40px 0 32px; }
+  .hero-logo { width: 56px; height: 56px; }
 }
