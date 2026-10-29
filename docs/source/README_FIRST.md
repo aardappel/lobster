@@ -47,7 +47,7 @@ editors such as [VSCode](vscode_ide.html), [Sublime Text](sublime_ide.html),
 
 </div>
 
-<div class="card tall">
+<div class="card">
 
 ### Learning the language
 
@@ -61,6 +61,12 @@ Useful for reference: [all builtin functions](builtin_functions_reference.html)
 
 Tutorials: How to [build a 2D shooter](shooter_tutorial.html) step by step in
 Lobster.
+
+</div>
+
+<div class="card">
+
+### Learning more in depth
 
 To learn the language more in-depth: The [language
 reference](language_reference.html). Check out the [style

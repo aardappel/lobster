@@ -205,10 +205,10 @@ a.button.secondary:hover { border-color: var(--link); color: var(--link-hover); 
   margin: 24px 0 40px;
 }
 
-/* two columns where there's room: the long card down the right, the short ones stacked on the left */
+/* two columns where there's room, the last card across both when it's on its own */
 @media (min-width: 760px) {
-  .cards { grid-template-columns: 1fr 1fr; align-items: start; }
-  .card.tall { grid-column: 2; grid-row: span 3; }
+  .cards { grid-template-columns: 1fr 1fr; }
+  .card:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 
 .card {
