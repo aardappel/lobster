@@ -9,6 +9,7 @@ import * as path from 'path';
 import { LobsterSettings } from './lsp';
 import { parseMessages } from './lobster';
 import { Programs } from './program';
+import { findNative } from './natives';
 
 const settings: LobsterSettings = {
 	executable: path.join('..', '..', 'bin', 'lobster'),
@@ -107,4 +108,11 @@ console.log("Finding programs");
 	queryDefinition(settings, staged.main, 'sub/helper.lobster', 0, 'shared', staged)
 		.then(result => assert(staged.real(path.resolve(staged.cwd, result.declartionLocation?.file ?? ""))
 			== found[0].main, "Not found in the real main file?", result));
+}
+
+console.log("Finding builtins");
+{
+	const location = findNative(path.resolve('..', '..'), 'gl.window');
+	assert(location?.file.endsWith(path.join('dev', 'src', 'graphics.cpp')), "Not found?", location);
+	assert(findNative(path.resolve('..', '..'), 'print')?.file.endsWith('builtins.cpp'), "Not found?");
 }

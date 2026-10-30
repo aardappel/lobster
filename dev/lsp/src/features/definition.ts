@@ -2,6 +2,7 @@ import { Location, uinteger } from "vscode-languageserver";
 import { getWordOnCursor } from "../utils";
 import { LobsterDocument } from "../document";
 import { LSPInstance } from "../lsp";
+import { findNative } from "../natives";
 import { URI } from "vscode-uri";
 
 export default function setupFeature(lsp: LSPInstance) {
@@ -20,7 +21,9 @@ export default function setupFeature(lsp: LSPInstance) {
         if (!word) return [];
 
         const result = await lsp.queryDefinition(uri, params.position.line, word);
-        const location = result.declartionLocation;
+        // A builtin has no Lobster source, but may have its C++ one in the checkout.
+        const location = result.declartionLocation ?? (result.signature &&
+            findNative(lsp.programs.lobsterDir, result.signature.name));
         if (location) {
             return [
                 {
