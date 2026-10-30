@@ -278,7 +278,7 @@ string Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
     }
     TypeChecker tc(parser, st, opts);
     if (opts.query) {
-        // The typechecker did not come across the location.
+        // Answered once the whole program is typechecked.
         if (!tc.ProcessQuery()) return "query_unknown_ident: " + opts.query->iden;
         return tc.query_result;
     }

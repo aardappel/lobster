@@ -17,6 +17,15 @@
 
 namespace lobster {
 
+// The first and last line of an overload, from its declaration to the end of its body.
+inline pair<int, int> Lines(const Overload &ov) {
+    auto last = ov.declared_at.line;
+    ov.gbody->Iterate([&](Node *n) {
+        if (n->line.fileidx == ov.declared_at.fileidx) last = std::max(last, n->line.line);
+    });
+    return { ov.declared_at.line, last };
+}
+
 struct TypeCheckQuery : virtual TypeCheckBase {
     TypeCheckQuery() {}
 
@@ -54,6 +63,26 @@ struct TypeCheckQuery : virtual TypeCheckBase {
             }
         }
         return TypeRef(nullptr);
+    }
+
+    // The innermost function whose lines span the queried one (those of a function value are
+    // not part of the function it is in), or null at file scope.
+    Overload *QueryOverload() {
+        auto &q = query->qloc;
+        Overload *best = nullptr;
+        auto span = INT_MAX;
+        for (auto f : st.functiontable) {
+            if (f == st.toplevel->parent) continue;
+            for (auto ov : f->overloads) {
+                if (!ov->gbody || ov->declared_at.fileidx != q.fileidx) continue;
+                auto [first, last] = Lines(*ov);
+                if (first <= q.line && q.line <= last && last - first < span) {
+                    span = last - first;
+                    best = ov;
+                }
+            }
+        }
+        return best;
     }
 
     bool ProcessDefinition(GUDT *parent, string full_iden, SubFunction *sf) {
@@ -128,12 +157,19 @@ struct TypeCheckQuery : virtual TypeCheckBase {
     bool ProcessQuery() override {
         if (!query_result.empty()) return true;
         if (query->kind == "definition") {
-            // The top scope includes a list of free vars so should be able to resolve any var
-            // at the given location.. if no scopes, use top fun.
-            auto sf = scopes.empty() ? st.toplevel : scopes.back().sf;
+            // In the function the queried line is in, whose variables have types if a call of
+            // it was typechecked.
+            auto ov = QueryOverload();
+            auto sf = ov ? ov->Typechecked() : st.toplevel;
+            if (!sf) sf = ov->sf;
             FindVar(sf->args);
             FindVar(sf->locals);
             FindVar(sf->freevars);
+            // An untypechecked function has no freevars: look in its lexical parents.
+            for (auto lp = sf->lexical_parent; lp && lp->sf; lp = lp->sf->lexical_parent) {
+                FindVar(lp->sf->args);
+                FindVar(lp->sf->locals);
+            }
             return ProcessDefinition(nullptr, query->iden, sf);
         } else {
             query_result = "query_unknown_kind: " + query->kind;
