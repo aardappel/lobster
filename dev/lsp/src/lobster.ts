@@ -128,6 +128,7 @@ export async function parseLobster(
         },
         "--errors", "99",
         "--compile-only",
+        "--warn-unused",
         main
     ));
 }

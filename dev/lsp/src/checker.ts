@@ -1,4 +1,4 @@
-import { Diagnostic } from "vscode-languageserver";
+import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import * as path from 'path';
 import { toDiagnostics } from "./diagnostics";
 import { QueryDefinitionResult, parseLobster, queryDefinition } from "./lobster";
@@ -23,6 +23,8 @@ export class Checker {
     private publishDiagnostics: (file: string, diagnostics: Diagnostic[]) => void;
     // By main file.
     private compiled = new Map<string, Compiled>();
+    // Of each file checked to the end, all the programs it is part of, by their main file.
+    private checked = new Map<string, string[]>();
     // Compiles run one at a time, as programs share files.
     private queue: Promise<unknown> = Promise.resolve();
     // Counts the checks of each file, so a newer one stops an older one.
@@ -49,6 +51,8 @@ export class Checker {
             if (i && this.generations.get(file) != generation) return;
             await this.enqueue(() => this.compile(program, settings));
         }
+        this.checked.set(file, programs.map(p => p.main));
+        this.publish(file);
     }
 
     // What `identifier` at `line` of `file` refers to, in `program`.
@@ -90,12 +94,22 @@ export class Checker {
         }
     }
 
-    // Publishes a file's diagnostics, from all programs it is part of.
+    // Publishes a file's diagnostics, from all programs it is part of. What one program doesn't
+    // use, another may: that is only shown for a file all of whose programs were compiled, when
+    // all of them say so (which they don't with errors).
     private publish(file: string) {
         const shown = new Map<string, Diagnostic>();
         for (const { diagnostics } of this.compiled.values()) {
-            for (const d of diagnostics.get(file) ?? []) shown.set(key(d), d);
+            for (const d of diagnostics.get(file) ?? []) {
+                if (d.severity != DiagnosticSeverity.Hint || this.unusedInAll(file, d)) shown.set(key(d), d);
+            }
         }
         this.publishDiagnostics(file, [...shown.values()]);
+    }
+
+    private unusedInAll(file: string, hint: Diagnostic): boolean {
+        const mains = this.checked.get(file) ?? [];
+        return mains.length > 0 && mains.every(main =>
+            this.compiled.get(main)?.diagnostics.get(file)?.some(d => key(d) == key(hint)));
     }
 }

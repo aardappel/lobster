@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticSeverity, uinteger } from "vscode-languageserver";
+import { Diagnostic, DiagnosticSeverity, DiagnosticTag, uinteger } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import { LobsterOutput } from "./lobster";
 import { Program } from "./program";
@@ -19,9 +19,13 @@ export function toDiagnostics(
     const add = (file: string, diagnostic: Diagnostic) => getOrSet(found, file, () => []).push(diagnostic);
     for (const m of messages) {
         const file = locate(m.file);
+        // What nothing uses is shown faded, but variables, which the compiler always warns
+        // about, as warnings too.
+        const unused = m.message.match(/^unused (variable|function|global|import)/)?.[1];
         add(file, {
             range: wholeLine(m.line),
-            severity: m.severity,
+            severity: unused && unused != "variable" ? DiagnosticSeverity.Hint : m.severity,
+            tags: unused ? [DiagnosticTag.Unnecessary] : [],
             source: "lobster",
             message: [m.message, ...m.context.map(c => `in ${c.file}(${c.line + 1}): ${c.text}`)]
                 .join("\n"),
