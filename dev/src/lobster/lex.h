@@ -44,6 +44,8 @@ struct LoadedFile : Line {
     struct Tok {
         TType t = T_NONE;
         string_view a;
+        // Pushed by the parser to read again, rather than made by Next: not new.
+        bool reread = false;
     };
 
     vector<Tok> gentokens;
@@ -87,9 +89,15 @@ struct Lex : LoadedFile {
     size_t token_count = 0;
     size_t last_error_token = (size_t)-1;
 
+    // When set, the tokens the lexer gives the parser of the main file are appended to it, each
+    // once (see Log), and where the parser looks at whitespace.
+    string *parselog = nullptr;
+    // Whether the current token is one the parser pushed back.
+    bool reread = false;
+
     Lex(string_view fn, vector<pair<string, string>> &fns, const vector<string_view> &extra_namespaces,
-        string_view _ss, int max_errors)
-        : LoadedFile(fn, fns, _ss), filenames(fns), max_errors(max_errors) {
+        string_view _ss, int max_errors, string *parselog = nullptr)
+        : LoadedFile(fn, fns, _ss), filenames(fns), max_errors(max_errors), parselog(parselog) {
         for (auto s : extra_namespaces) namespaces.insert(s);
         allsources.push_back(source);
         if (!fn.empty()) allfiles.insert(string(fn));
@@ -109,8 +117,9 @@ struct Lex : LoadedFile {
     }
 
     void FirstToken() {
-        Next();
-        if (token == T_LINEFEED) Next();
+        NextUnlogged();
+        if (token == T_LINEFEED) NextUnlogged();
+        if (Logging()) Log();
     }
 
     // Returns false if this file was already included elsewhere, in which case
@@ -158,10 +167,11 @@ struct Lex : LoadedFile {
         parentfiles.pop_back();
     }
 
-    void Push(TType t, string_view a = {}) {
+    void Push(TType t, string_view a = {}, bool reread = true) {
         Tok tok;
         tok.t = t;
         if (a.data()) tok.a = a;
+        tok.reread = reread;
         gentokens.push_back(tok);
     }
 
@@ -174,13 +184,51 @@ struct Lex : LoadedFile {
     }
 
     void Next() {
+        NextUnlogged();
+        if (Logging() && !reread) Log();
+    }
+
+    // Whether this is the main file and what the parser reads of it is wanted.
+    bool Logging() { return parselog && parentfiles.empty(); }
+
+    // The token, with its text where that varies: one line of `parselog`. The line breaks of a
+    // multi-line string are escaped (as are backslashes, which it has no escapes of), and the CRs
+    // it ignores dropped.
+    void Log() {
+        append(*parselog, TName(token));
+        switch (token) {
+            case T_IDENT: case T_INT: case T_FLOAT: case T_STR: case T_STR_INT_START:
+            case T_STR_INT_MIDDLE: case T_STR_INT_END:
+                parselog->push_back(' ');
+                for (auto c : sattr) {
+                    if (c == '\n') parselog->append("\\n");
+                    else if (c == '\\') parselog->append("\\\\");
+                    else if (c != '\r') parselog->push_back(c);
+                }
+                break;
+            default:
+                break;
+        }
+        parselog->push_back('\n');
+    }
+
+    // Whether there was whitespace before the token, which some parses depend on (and so
+    // `parselog` records).
+    bool WhitespaceBefore() {
+        if (Logging()) append(*parselog, "whitespace ", whitespacebefore > 0, "\n");
+        return whitespacebefore > 0;
+    }
+
+    void NextUnlogged() {
         token_count++;
         if (gentokens.size()) {
             token = gentokens.back().t;
             sattr = gentokens.back().a;
+            reread = gentokens.back().reread;
             gentokens.pop_back();
             return;
         }
+        reread = false;
         bool lastcont = cont;
         cont = false;
         prevtokenstart = tokenstart;
@@ -209,20 +257,21 @@ struct Lex : LoadedFile {
                     indentstack.push_back({ indent, true });
                 return;
             }
-            PushCur();
+            // Tokens made here, unlike those the parser pushes back, are new.
+            Push(token, sattr, false);
             tryagain:
             if (indent != indentstack.back().first) {
                 if (indent > indentstack.back().first) {
                     indentstack.push_back({ indent, false });
-                    Push(T_INDENT);
+                    Push(T_INDENT, {}, false);
                 } else {
                     bool iscont = false;
                     while (indentstack.back().first > indent) {
                         iscont = indentstack.back().second;
                         indentstack.pop_back();
                         if (!iscont) {
-                            Push(T_LINEFEED);
-                            Push(T_DEDENT);
+                            Push(T_LINEFEED, {}, false);
+                            Push(T_DEDENT, {}, false);
                         }
                     }
                     if (iscont) goto tryagain;
@@ -231,9 +280,9 @@ struct Lex : LoadedFile {
                     if (indent != indentstack.back().first) Report("inconsistent dedent");
                 }
             } else {
-                Push(T_LINEFEED);
+                Push(T_LINEFEED, {}, false);
             }
-            Next();
+            NextUnlogged();
         }
     }
 
@@ -839,7 +888,7 @@ struct Lex : LoadedFile {
         if (num_errors) return;
         auto warning = Location(ln ? *ln : *this) + ": warning: " + msg;
         auto [_it, was_inserted] = all_warnings.insert(warning);
-        if (was_inserted) LOG_WARN(warning);
+        if (was_inserted && !parselog) LOG_WARN(warning);
     }
 };
 
