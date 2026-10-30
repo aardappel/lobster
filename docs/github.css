@@ -52,6 +52,35 @@ li > p { margin-bottom: 8px; }
 
 hr { border: 0; border-top: 1px solid var(--rule); margin: 40px 0; }
 
+/* NAV (source/nav.html, on every page)
+=============================================================================*/
+
+.topnav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 20px;
+  margin: -48px 0 40px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.topnav a { color: var(--muted); text-decoration: none; }
+.topnav a:hover { color: var(--link-hover); }
+
+.topnav a.topnav-home {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.topnav + .hero { margin-top: -40px; }
+
 /* HEADINGS
 =============================================================================*/
 
@@ -247,6 +276,8 @@ ul.social, .social > p {
 
 @media (max-width: 600px) {
   body { padding: 32px 16px 64px; font-size: 16px; }
+  .topnav { margin-top: -32px; gap: 6px 16px; font-size: 14px; }
+  .topnav a.topnav-home { flex-basis: 100%; }
   h1 { font-size: 32px; }
   h2 { font-size: 23px; }
   .hero { margin: -32px 0 32px; padding: 40px 0 32px; }
