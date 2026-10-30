@@ -22,6 +22,16 @@ export function toDiagnostics(
         // What nothing uses is shown faded, but variables, which the compiler always warns
         // about, as warnings too.
         const unused = m.message.match(/^unused (variable|function|global|import)/)?.[1];
+        // An error in a standard module is also shown where the program got to it from.
+        const from = !program.files.has(file) && m.context.find(c => program.files.has(locate(c.file)));
+        if (from) {
+            add(locate(from.file), {
+                range: wholeLine(from.line),
+                severity: m.severity,
+                source: "lobster",
+                message: `${m.message}\nin ${m.file}(${m.line + 1})`
+            });
+        }
         add(file, {
             range: wholeLine(m.line),
             severity: unused && unused != "variable" ? DiagnosticSeverity.Hint : m.severity,
