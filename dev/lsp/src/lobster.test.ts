@@ -20,7 +20,7 @@ parseLobster(settings, 'testFixture/valid.lobster')
 console.log("Parsing invalid.lobster");
 parseLobster(settings, 'testFixture/invalid.lobster')
 	.then(result => {
-		assert(result.length == 1);
+		assert(result.length == 2, "Incorrect amount of errors?", result);
 
 		assert(result[0].message == "variable a is constant",
 			"Message is not the same?", result);
@@ -28,6 +28,8 @@ parseLobster(settings, 'testFixture/invalid.lobster')
 			"Incorrect line?", result[0].range.start.line);
 		assert(result[0].range.end.line == 13,
 			"Incorrect line?", result[0].range.end.line);
+		assert(result[1].range.start.line == 17,
+			"Incorrect line?", result[1].range.start.line);
 	});
 
 console.log("Querying valid.lobster");

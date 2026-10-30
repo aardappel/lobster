@@ -53,7 +53,6 @@ function callLobster(
     execFile(settings.executable, args, { maxBuffer: MAX_OUTPUT }, (error, stdout, stderr) => {
         if (stderr) {
             console.error(`Lobster (${settings.executable}) returned with output: ${stderr}`);
-            return;
         }
 
         output(stdout);
