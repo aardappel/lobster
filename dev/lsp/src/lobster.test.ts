@@ -277,3 +277,52 @@ console.log("Finding words");
 	assert(docComment(["// a", "", "def f():"], 2) === undefined, "A blank line ends a description?");
 	assert(docComment(["    // a", "    //b", "    def f():"], 2) == "a\nb", "Indented description?");
 }
+
+console.log("Warning about what nothing uses");
+{
+	const dir = path.resolve('testFixture/unused');
+	const warnings = (main: string) =>
+		parseLobster(settings, path.join(dir, main), path.resolve('out', `unused-${main}.json`))
+			.then(r => r.messages.map(m => `${m.file}:${m.line + 1}: ${m.message}`).sort());
+	warnings('functions.lobster').then(w => assert(w.join("\n") ==
+		"functions.lobster:3: unused global `never`\n" +
+		"functions.lobster:6: unused function `uncalled`", "Unused functions and globals?", w));
+	warnings('imports.lobster').then(w => assert(w.join("\n") ==
+		"imports.lobster:2: unused import of `unused.lobster`: nothing it declares is used\n" +
+		"unused.lobster:1: unused function `unused_fn`", "Unused imports?", w));
+	// The import is used, by a function value nothing calls.
+	warnings('lambda.lobster').then(w => assert(!w.some(m => m.includes("unused import")),
+		"Import used by an uncalled function value?", w));
+}
+
+console.log("Querying functions and their parameters");
+{
+	const main = path.resolve('testFixture/unused/functions.lobster');
+	const query = (line: number, name: string) =>
+		queryDefinition(settings, main, 'functions.lobster', line, name);
+	query(13, 'uncalled').then(r => assert(r.declartionLocation?.line == 5 &&
+		(r.signature as LobsterFunctionSignature).parameters.map(p => `${p.name}:${p.type}`).join() == "b:any,c:string",
+		"Declared signature, at the def?", r));
+	query(13, 'called').then(r => assert((r.signature as LobsterFunctionSignature).returns?.join() == "int",
+		"Signature of a called function?", r));
+	query(4, 'a').then(r => assert(r.signature && 'type' in r.signature && r.signature.type == "int",
+		"Parameter of a called function?", r));
+	query(6, 'c').then(r => assert(r.declartionLocation?.line == 6, "Parameter of an uncalled function?", r));
+}
+
+console.log("Indexing definitions");
+{
+	const dir = path.resolve('testFixture/unused');
+	const indexFile = path.resolve('out', 'functions-index.json');
+	parseLobster(settings, path.join(dir, 'functions.lobster'), indexFile).then(() => {
+		const programIndex = ProgramIndex.read(indexFile, name => path.join(dir, name))!;
+		const def = (kind: string, name: string) => programIndex.defs.find(d => d.kind == kind && d.name == name);
+		assert(def('function', 'called')?.type == "called(a:int) -> int", "Declared signature?", def('function', 'called'));
+		assert(def('function', 'uncalled')?.line == 5 && def('function', 'uncalled')?.end == 7,
+			"Lines of a function?", def('function', 'uncalled'));
+		assert(def('var', 'shown')?.uses.some(u => u.line == 4), "Use of a global?", def('var', 'shown'));
+		assert(def('enumval', 'high')?.line == 11 && def('enumval', 'high')?.container?.name == "level",
+			"Enum value's line and enum?", def('enumval', 'high'));
+		assert(def('var', 'c')?.container?.name == "uncalled", "Local of its function?", def('var', 'c'));
+	});
+}
