@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, integer, uinteger } from 'vscode-languageserver';
 import { LobsterSettings } from './lsp';
 import { Location } from 'vscode';
@@ -39,19 +39,18 @@ export interface QueryDefinitionResult {
     signature?: LobsterSignature
 }
 
+// More than execFile's default of 1 MB, which a large program's messages can take.
+const MAX_OUTPUT = 64 * 1024 * 1024;
+
 function callLobster(
     settings: LobsterSettings,
     output: (output: string) => void,
     ...params: string[]
 ) {
-    const command =
-        settings.executable + " " +
-        settings.imports.map(i => "--import " + i).join(" ") + " " +
-        params.join(" ");
+    const args = [...settings.imports.flatMap(i => ["--import", i]), ...params];
 
-
-    console.debug(command);
-    exec(command, (error, stdout, stderr) => {
+    console.debug(settings.executable, ...args);
+    execFile(settings.executable, args, { maxBuffer: MAX_OUTPUT }, (error, stdout, stderr) => {
         if (stderr) {
             console.error(`Lobster (${settings.executable}) returned with output: ${stderr}`);
             return;
