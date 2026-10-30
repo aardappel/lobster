@@ -117,7 +117,7 @@ struct TypeCheckQuery : virtual TypeCheckBase {
             }
             if (ov->gbody) {  // FIXME: ignores function types. Now fixed (or not?)
                 auto tsf = ov->Typechecked();
-                LocationQuery(ov->gbody->line, tsf ? Signature(*tsf) : DeclSignature(*ov));
+                LocationQuery(ov->declared_at, tsf ? Signature(*tsf) : DeclSignature(*ov));
             }
         }
         auto fld = st.FieldUse(full_iden);
