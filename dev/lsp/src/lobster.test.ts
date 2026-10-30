@@ -46,6 +46,11 @@ parseLobster(settings, 'testFixture/invalid.lobster', path.resolve('out', 'inval
 		assert(result[1].line == 17, "Incorrect line?", result[1].line);
 	});
 
+console.log("Compiling without a compiler");
+parseLobster({ ...settings, executable: 'no-such-lobster' }, 'testFixture/valid.lobster',
+	path.resolve('out', 'missing-index.json'))
+	.then(result => assert(result.other.startsWith("can't run no-such-lobster"), "Not shown?", result));
+
 console.log("Querying valid.lobster");
 queryDefinition(settings, 'testFixture/valid.lobster', 'valid.lobster', 5, 'b')
 	.then(result => {

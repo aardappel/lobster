@@ -48,12 +48,8 @@ export interface LobsterRun {
 // More than execFile's default of 1 MB, which a large program's messages can take.
 const MAX_OUTPUT = 64 * 1024 * 1024;
 
-function callLobster(
-    settings: LobsterSettings,
-    run: LobsterRun,
-    output: (output: string) => void,
-    ...params: string[]
-) {
+// What the compiler writes to stdout. Fails only when it can't run to the end.
+function callLobster(settings: LobsterSettings, run: LobsterRun, ...params: string[]): Promise<string> {
     // Paths are relative to where the LSP runs, not `run.cwd`.
     const executable = settings.executable.includes('/') || settings.executable.includes('\\')
         ? path.resolve(settings.executable)
@@ -62,12 +58,15 @@ function callLobster(
     const args = [...imports.flatMap(i => ["--import", i]), ...params];
 
     console.debug(executable, ...args);
-    execFile(executable, args, { cwd: run.cwd, maxBuffer: MAX_OUTPUT }, (error, stdout, stderr) => {
-        if (stderr) {
-            console.error(`Lobster (${executable}) returned with output: ${stderr}`);
-        }
-
-        output(stdout);
+    return new Promise((resolve, reject) => {
+        execFile(executable, args, { cwd: run.cwd, maxBuffer: MAX_OUTPUT }, (error, stdout, stderr) => {
+            if (stderr) {
+                console.error(`Lobster (${executable}) returned with output: ${stderr}`);
+            }
+            // With errors in the program it exits with 1.
+            if (error && typeof error.code != 'number') reject(error);
+            else resolve(stdout);
+        });
     });
 }
 
@@ -83,7 +82,7 @@ export interface LobsterMessage {
 }
 
 // What a compile says: its messages, and what isn't about a place in a file, such as that the
-// main file can't be read.
+// main file can't be read, or the compiler can't be run.
 export interface LobsterOutput {
     messages: LobsterMessage[],
     other: string
@@ -120,19 +119,12 @@ export async function parseLobster(
     index: string,
     run: LobsterRun = {}
 ): Promise<LobsterOutput> {
-    return new Promise(back => callLobster(
-        settings,
-        run,
-        stdout => {
-            const messages = parseMessages(stdout);
-            back({ messages, other: messages.length ? "" : stdout.trim() });
-        },
-        "--errors", "99",
-        "--compile-only",
-        "--warn-unused",
-        "--index", index,
-        main
-    ));
+    return callLobster(settings, run,
+        "--errors", "99", "--compile-only", "--warn-unused", "--index", index, main
+    ).then(stdout => {
+        const messages = parseMessages(stdout);
+        return { messages, other: messages.length ? "" : stdout.trim() };
+    }, error => ({ messages: [], other: `can't run ${settings.executable}: ${error.message}` }));
 }
 
 export async function getBuiltinsDoc(
@@ -143,9 +135,7 @@ export async function getBuiltinsDoc(
         return parsedData;
     }
 
-    return new Promise<LobsterBuiltinsDoc[]>((back) =>
-        callLobster(settings, {}, (i) => back(parseOutput(i)), "--gen-builtins-json"),
-    );
+    return callLobster(settings, {}, "--gen-builtins-json").then(parseOutput);
 }
 
 // A signature as the compiler writes it, as in `f(x:int, y) -> int`, or the type of `identifier`.
@@ -226,21 +216,18 @@ export async function queryDefinition(
         };
     }
 
-    return new Promise((back) =>
-        callLobster(
-            settings,
-            run,
-            (i) => back(parseOutput(i)),
-            // Errors elsewhere in the program don't stop the query.
-            "--errors", "99",
-            main,
-            "--query",
-            "definition",
-            file,
-            (line + 1).toString(),
-            identifier,
-        ),
-    );
+    return callLobster(
+        settings,
+        run,
+        // Errors elsewhere in the program don't stop the query.
+        "--errors", "99",
+        main,
+        "--query",
+        "definition",
+        file,
+        (line + 1).toString(),
+        identifier,
+    ).then(parseOutput);
 }
 
 // Splits at the separators that aren't inside a type's brackets, as in `dictionary<K, V>` or
