@@ -307,6 +307,22 @@ void AddDataDir(string_view path) {
     write_dirs.push_back(fpath);
 }
 
+void WithMainFile(string_view mainfile, const function<void()> &f) {
+    struct Restore {
+        vector<string> data_dirs = ::data_dirs, write_dirs = ::write_dirs;
+        string projectdir = ::projectdir;
+        ~Restore() {
+            ::data_dirs = std::move(data_dirs);
+            ::write_dirs = std::move(write_dirs);
+            ::projectdir = std::move(projectdir);
+        }
+    } restore;
+    projectdir = StripFilePart(SanitizePath(mainfile));
+    std::erase(data_dirs, restore.projectdir);
+    data_dirs.insert(data_dirs.begin(), projectdir);
+    f();
+}
+
 string GetMainWriteDir() {
     return write_dirs.empty() ? "" : write_dirs[0];
 }
