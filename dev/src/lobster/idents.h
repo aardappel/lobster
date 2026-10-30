@@ -783,6 +783,8 @@ struct Overload {
     ~Overload();
 
     int NumSubf();
+    // The first specialization that was typechecked, none if nothing calls it.
+    SubFunction *Typechecked();
 };
 
 struct SubFunction {
@@ -851,6 +853,11 @@ int Overload::NumSubf() {
     int sum = 0;
     for (auto csf = sf; csf; csf = csf->next) sum++;
     return sum;
+}
+
+SubFunction *Overload::Typechecked() {
+    for (auto csf = sf; csf; csf = csf->next) if (csf->typechecked) return csf;
+    return nullptr;
 }
 
 struct Function : Named {
@@ -2291,6 +2298,24 @@ inline string Signature(const SubFunction &sf, int depth = 0) {
         r += " -> ";
         r += TypeName(sf.returntype, false, depth + 1);
     }
+    return r;
+}
+
+// The signature an overload was declared with. Unlike Signature() this uses the given types,
+// so it is also usable before it has been typechecked.
+inline string DeclSignature(const Overload &ov) {
+    string r = ov.sf->parent->name;
+    r += "(";
+    for (auto [i, arg] : enumerate(ov.sf->args)) {
+        UnTypeRef t = ov.givenargs[i];
+        // An arg without a declared type got an implicit generic, which is
+        // not something the user wrote, so don't show it as its type.
+        if (t->t == V_TYPEVAR && !ov.sf->explicit_generics) t = type_any;
+        FormatArg(r, arg.sid->id->name, i, t);
+    }
+    r += ")";
+    auto &rt = ov.sf->returngiventype;
+    if (!rt.Null() && rt->t != V_VOID) r += " -> " + TypeName(rt);
     return r;
 }
 

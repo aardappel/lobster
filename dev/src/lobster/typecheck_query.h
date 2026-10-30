@@ -38,7 +38,10 @@ struct TypeCheckQuery : virtual TypeCheckBase {
     void FindVar(vector<Arg> &vars) {
         for (auto &var : vars) {
             if (QueryNameMatches(var.sid->id->name, query->iden)) {
-                LocationQuery(var.sid->id->line, TypeName(var.sid->type));
+                // A function nothing calls has no types.
+                auto &type = var.sid->type;
+                LocationQuery(var.sid->id->line,
+                              type.Null() || type->t == V_UNDEFINED ? "" : TypeName(type));
             }
         }
     }
@@ -84,7 +87,8 @@ struct TypeCheckQuery : virtual TypeCheckBase {
                 }
             }
             if (ov->gbody) {  // FIXME: ignores function types. Now fixed (or not?)
-                LocationQuery(ov->gbody->line, ov->sf ? Signature(*ov->sf) : "");
+                auto tsf = ov->Typechecked();
+                LocationQuery(ov->gbody->line, tsf ? Signature(*tsf) : DeclSignature(*ov));
             }
         }
         auto fld = st.FieldUse(full_iden);
