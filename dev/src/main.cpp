@@ -136,7 +136,9 @@ int main(int argc, char* argv[]) {
             "--no-crash-dialog       Exit silently on a crash rather than popping up a dialog.\n"
             "--wait                  Wait for input before exiting.\n"
             "--query QUERY_ARGS      Queries about definitions in the program being compiled.\n"
-            "--errors N              Output up to N errors (default 10).\n";
+            "--errors N              Output up to N errors (default 10).\n"
+            "--warn-unused           Also warn about functions, globals and imports of the\n"
+            "                        program's own files (not modules/) that nothing uses.\n";
             int arg = 1;
         for (; arg < argc; arg++) {
             if (argv[arg][0] == '-') {
@@ -164,6 +166,7 @@ int main(int argc, char* argv[]) {
                 else if (a == "--gen-builtins-names") { dump_names = true; }
                 else if (a == "--compile-only") { ropts.compile_only = true; }
                 else if (a == "--full-error") { opts.full_error = true; }
+                else if (a == "--warn-unused") { opts.warn_unused = true; }
                 #if LOBSTER_ENGINE
                 else if (a == "--non-interactive-test") {
                     // Quits after the requested frames, with whatever that left alive.

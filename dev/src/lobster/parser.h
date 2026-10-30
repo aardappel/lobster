@@ -23,6 +23,8 @@ struct Parser {
     vector<GUDT *> gudtstack;
     bool call_noparens = false;
     set<string> pakfiles;
+    // Each file imported, where it was first imported, and its fileidx.
+    vector<pair<Line, int>> imports;
     struct BlockScope {
         Block *block;
         int for_nargs;
@@ -330,6 +332,7 @@ struct Parser {
                 if (st.scopelevels.size() != 1)
                     Error("import must be used at file scope");
                 lex.Next();
+                Line import_at = lex;
                 auto from = IsNext(T_FROM);
                 string fn;
                 bool relative = false;
@@ -376,7 +379,10 @@ struct Parser {
                 if (!AtEndOfFile()) Expect(T_LINEFEED);
                 // A file already imported elsewhere is not included again,
                 // and thus also has no T_ENDOFINCLUDE to close a scope with.
-                if (lex.Include(fn, true, relative)) st.StartOfInclude();
+                if (lex.Include(fn, true, relative)) {
+                    imports.push_back({ import_at, lex.fileidx });
+                    st.StartOfInclude();
+                }
                 // Parses the first statement of the included file, or, if
                 // there was none, the next statement of the current one.
                 if (!AtEndOfFile()) ParseTopExp(list);
@@ -532,6 +538,8 @@ struct Parser {
                     cid->isprivate = true;
                     cid->giventype = { type_int };
                     cid->Assign(lex);
+                    // Not written by the user, so not reported as unused.
+                    cid->Read();
                     cid->cursid->used_as_freevar = true;
                     auto cdef = new Define(lex, new IntConstant(lex, 0));
                     cdef->tsids.push_back({ cid->cursid, { type_int } });

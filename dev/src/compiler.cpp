@@ -243,6 +243,64 @@ void SpecializationStats(SymbolTable &st, vector<pair<string, string>> &filename
     }
 }
 
+// With --warn-unused: what the program's own files (not those in a modules/ directory) declare
+// that nothing uses.
+static void WarnUnused(Parser &parser, SymbolTable &st) {
+    auto &lex = parser.lex;
+    auto &filenames = lex.filenames;
+    auto own = [&](int fileidx) {
+        auto [name, path] = filenames[fileidx];
+        for (auto &c : path) if (c == '\\') c = '/';
+        auto suffix = "modules/" + name;
+        return path.size() < suffix.size() ||
+               path.compare(path.size() - suffix.size(), suffix.size(), suffix) != 0;
+    };
+    // Per file: whether something it declares is used, whether it has what isn't tracked
+    // (types, code of its own to run), and whether it has a function nothing calls, whose
+    // uses aren't known.
+    auto n = filenames.size();
+    vector<bool> used(n), untracked(n), uncalled(n);
+    vector<pair<Line, string>> warnings;
+    for (auto f : st.functiontable) {
+        if (f->istype) continue;
+        for (auto ov : f->overloads) {
+            if (!ov->gbody) continue;
+            auto &line = ov->declared_at;
+            auto called = ov->Typechecked() != nullptr;
+            if (!called) uncalled[line.fileidx] = true;
+            if (f->anonymous) continue;
+            if (called) used[line.fileidx] = true;
+            else if (own(line.fileidx))
+                warnings.push_back({ line, cat("unused function ", Q(f->name)) });
+        }
+    }
+    for (auto id : st.identtable) {
+        if (id->scopelevel != 1) continue;
+        if (id->read) used[id->line.fileidx] = true;
+        else if (own(id->line.fileidx) && id->name[0] != '_')
+            warnings.push_back({ id->line, cat("unused global ", Q(id->name)) });
+    }
+    for (auto c : st.toplevel->sbody->children)
+        if (!Is<FunRef>(c) && !Is<Define>(c)) untracked[c->line.fileidx] = true;
+    // A file is needed for what the files it imports declare too. These come after it, in the
+    // order the parser went thru them.
+    for (auto i = parser.imports.size(); i--;) {
+        auto &[at, fileidx] = parser.imports[i];
+        used[at.fileidx] = used[at.fileidx] || used[fileidx];
+        untracked[at.fileidx] = untracked[at.fileidx] || untracked[fileidx];
+    }
+    for (auto &[at, fileidx] : parser.imports) {
+        if (!own(at.fileidx) || !own(fileidx) || used[fileidx] || untracked[fileidx] ||
+            uncalled[at.fileidx])
+            continue;
+        warnings.push_back({ at, cat("unused import of ", Q(filenames[fileidx].first),
+                                     ": nothing it declares is used") });
+    }
+    std::stable_sort(warnings.begin(), warnings.end(),
+                     [](auto &a, auto &b) { return a.first < b.first; });
+    for (auto &[line, warning] : warnings) lex.Warn(warning, &line);
+}
+
 string Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
                const CompileOptions &opts, string &c_codegen,
                string *parsedump, string *pakfile) {
@@ -285,6 +343,7 @@ string Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
     // The typechecker leaves placeholders in the tree that the passes after it can't work
     // with (see TypeChecker::Error), so those never run with errors.
     if (lex.num_errors) return lex.errors;
+    if (opts.warn_unused) WarnUnused(parser, st);
     // Optimizer is not optional, must always run, since TypeChecker and CodeGen
     // rely on it culling const if-thens and other things.
     Optimizer opt(st, tc, opts.runtime_checks);

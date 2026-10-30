@@ -80,6 +80,10 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
 
 -   `--errors N` : the maximum amount of errors to output, default 10.
 
+-   `--warn-unused` : also warn about functions (each overload), global variables and imports
+    of the program's own files (not those found in a `modules/` directory) that nothing in the
+    program uses. Unused local variables are always warned about.
+
 -   `--full-error` : Lobster is able to generate _compile time stack traces_ when
     the typechecker fails, but those can get long, so by default they get truncated,
     and only shown for the first error.
