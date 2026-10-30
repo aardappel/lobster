@@ -54,6 +54,9 @@ connection.onInitialize((params: InitializeParams) => {
 				resolveProvider: false,
 				triggerCharacters: ['.']
 			},
+			signatureHelpProvider: {
+				triggerCharacters: ['(', ',']
+			},
 			referencesProvider: true,
 			renameProvider: { prepareProvider: true },
 			documentSymbolProvider: true,
@@ -109,6 +112,7 @@ import registerCompletion from './features/completion';
 import registerDefinition from './features/definition';
 import registerHover from './features/hover';
 import registerReferences from './features/references';
+import registerSignature from './features/signature';
 import registerSymbols from './features/symbols';
 
 registerCodeAction(instance);
@@ -116,6 +120,7 @@ registerCompletion(instance);
 registerDefinition(instance);
 registerHover(instance);
 registerReferences(instance);
+registerSignature(instance);
 registerSymbols(instance);
 
 // Listen on the connection
