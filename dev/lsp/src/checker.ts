@@ -4,6 +4,7 @@ import { toDiagnostics } from "./diagnostics";
 import { QueryDefinitionResult, parseLobster, queryDefinition } from "./lobster";
 import { LobsterSettings } from "./lsp";
 import { Program, Programs } from "./program";
+import { memo } from "./utils";
 
 // What a program last compiled said: its diagnostics, by file.
 interface Compiled {
@@ -115,7 +116,7 @@ export class Checker {
         const output = await parseLobster(settings, staged.main, staged);
         const locate = (name: string) =>
             staged.real(this.programs.locate(program, name) ?? path.join(staged.cwd, name));
-        const diagnostics = toDiagnostics(output, program, locate);
+        const diagnostics = toDiagnostics(output, program, locate, memo(file => this.programs.lines(file)));
         const before = this.compiled.get(program.main);
         if (output.other || output.messages.some(m => m.severity == DiagnosticSeverity.Error)) {
             keepWarnings(diagnostics, before?.diagnostics ?? new Map());

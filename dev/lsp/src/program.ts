@@ -92,6 +92,12 @@ export class Programs {
         this.cache.clear();
     }
 
+    // The lines of a file: an open document's text, else what is saved.
+    lines(file: string): string[] {
+        const text = this.contents(file) ?? (isFile(file) ? fs.readFileSync(file, 'utf8') : '');
+        return text.split(/\r?\n/);
+    }
+
     isModule(file: string): boolean {
         return !!this.lobsterDir && inside(path.join(this.lobsterDir, 'modules'), file);
     }
