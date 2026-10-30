@@ -161,7 +161,7 @@ function parseDefinition(
     definition: string,
 ): LobsterSignature {
     let signature: LobsterSignature;
-    const [def, ret] = definition.split(/ ?-> ?/);
+    const [def, ret] = splitList(definition, "->").map(s => s.trim());
     const defmatch = def.match(/^(.+)\((.*)\)$/);
     if (defmatch) {
         const parameters = readParameters(defmatch[2]);
@@ -169,7 +169,7 @@ function parseDefinition(
             name: defmatch[1],
             parameters,
             returns: ret
-                ? ret.replace(" ", "").replace(/[()]/g, "").split(",")
+                ? splitList(ret.replace(/^\((.*)\)$/, "$1")).map(r => r.trim())
                 : undefined,
         };
     } else {
@@ -250,8 +250,30 @@ export async function queryDefinition(
     );
 }
 
+// Splits at the separators that aren't inside a type's brackets, as in `dictionary<K, V>` or
+// `function(x:int) -> int`.
+export function splitList(input: string, separator = ","): string[] {
+    const parts: string[] = [];
+    let depth = 0, start = 0;
+    for (let i = 0; i < input.length; i++) {
+        if (depth == 0 && input.startsWith(separator, i)) {
+            parts.push(input.substring(start, i));
+            start = i + separator.length;
+            i = start - 1;
+        } else if (input.startsWith("->", i)) {
+            i++;
+        } else if ("<([{".includes(input[i])) {
+            depth++;
+        } else if (">)]}".includes(input[i])) {
+            depth--;
+        }
+    }
+    parts.push(input.substring(start));
+    return parts;
+}
+
 function readParameters(input: string): LobsterSignatureParameter[] {
-    const parameters = input == '' ? [] : input.split(',')
+    const parameters = input == '' ? [] : splitList(input)
         .map(i => i.trim().match(/^([^:]+)(?::(.+))?$/) || [])
         .map(i => ({ name: i[1], type: i[2] || "any" }));
 

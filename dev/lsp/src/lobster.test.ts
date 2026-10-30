@@ -2,7 +2,8 @@ import { assert } from 'console';
 import {
 	LobsterFunctionSignature,
 	parseLobster,
-	queryDefinition
+	queryDefinition,
+	splitList
 } from './lobster';
 import * as path from 'path';
 import { LobsterSettings } from './lsp';
@@ -70,3 +71,9 @@ queryDefinition(settings, 'testFixture/valid.lobster', 12, 'print')
 		assert(signature.parameters[0].type == 'string',
 			"Incorrect type for parameter?", signature.parameters[0]);
 	});
+
+console.log("Splitting signatures");
+assert(splitList("d:dictionary<K, V>, f:function(x:int, y:int) -> int").length == 2,
+	"Split inside brackets?");
+assert(splitList("f(g:function(x:int) -> int) -> [int]", "->")[1] == " [int]",
+	"Split at an inner ->?");
