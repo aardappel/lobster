@@ -30,7 +30,7 @@ Unless noted explicitly in this document, the style to follow is that of the
 samples in the Lobster documentation and distribution. Let's look at a typical
 example:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ lobster
 def qsort(xs, lt):
     if xs.length <= 1:
         xs

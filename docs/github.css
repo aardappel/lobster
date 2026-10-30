@@ -110,9 +110,9 @@ div.sourceCode { margin: 0 0 16px; overflow: visible; }
 pre.sourceCode { margin: 0; overflow-x: auto; }
 pre > code.sourceCode > span { line-height: inherit; }
 pre code span.kw, pre code span.cf { color: #f08a6e; font-weight: normal; }
-pre code span.dt { color: #8fd0c8; }
+pre code span.dt, pre code span.at, pre code span.va { color: #8fd0c8; }
 pre code span.cn, pre code span.dv, pre code span.fl, pre code span.bn { color: #e8c27a; }
-pre code span.bu, pre code span.fu { color: #8fb8e8; }
+pre code span.bu, pre code span.fu, pre code span.ex { color: #8fb8e8; }
 pre code span.st, pre code span.ch { color: #a8d5b5; }
 pre code span.sc { color: #c9e8b5; }
 pre code span.co { color: #8c939b; font-style: normal; }

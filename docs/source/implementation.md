@@ -72,7 +72,7 @@ You can build with CMake on Linux:
 This requires a C++17 compiler, and the mesa dev files
 should be installed (`apt-get install mesa-common-dev`).
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ bash
 cd dev
 cmake -DCMAKE_BUILD_TYPE=Release && make -j8
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -271,7 +271,7 @@ location without declarations needed elsewhere. To learn how to write your own
 
 Here's a simple example of a Lobster extension:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ cpp
 #include "lobster/stdafx.h"
 
 #include "lobster/natreg.h"
