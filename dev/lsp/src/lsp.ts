@@ -25,8 +25,8 @@ export class LSPInstance {
     builtinsDoc: LobsterBuiltinsDoc[] = [];
 
     readonly documents: TextDocuments<LobsterDocument> = new TextDocuments(LobsterDocument);
-    // Cached per document settings
-    readonly documentSettings: Map<URI, Thenable<LobsterSettings>> = new Map();
+    // Cached per document settings, by URI.
+    readonly documentSettings: Map<string, Thenable<LobsterSettings>> = new Map();
 
     hasConfigurationCapability = false;
 
@@ -36,7 +36,7 @@ export class LSPInstance {
         this.documents.listen(this.connection);
 
         this.documents.onDidClose(e => {
-            this.documentSettings.delete(URI.parse(e.document.uri));
+            this.documentSettings.delete(e.document.uri);
         });
 
         this.documents.onDidChangeContent(change => {
@@ -77,7 +77,7 @@ export class LSPInstance {
             });
         });
 
-        this.documentSettings.set(uri, config);
+        this.documentSettings.set(uri.toString(), config);
         return config;
     }
 
@@ -86,7 +86,7 @@ export class LSPInstance {
             return Promise.resolve(this.globalSettings);
         }
 
-        let result = this.documentSettings.get(uri);
+        let result = this.documentSettings.get(uri.toString());
         if (!result) {
             result = this.readConfiguration(uri);
         }

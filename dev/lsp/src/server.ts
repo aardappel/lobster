@@ -90,7 +90,7 @@ connection.onDidChangeConfiguration(change => {
 	}
 
 	// Revalidate all open text documents
-	instance.documents.all().forEach(instance.validateDocument);
+	instance.documents.all().forEach(d => instance.validateDocument(d));
 });
 
 
