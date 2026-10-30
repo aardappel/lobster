@@ -24,6 +24,9 @@ string GetMainDirFromExePath(string_view argv_0);
 extern bool InitPlatform(string maindir, string_view auxfilepath, bool from_bundle,
                              FileLoader loader);
 extern void AddDataDir(string_view path);  // Any additional dirs besides the above.
+// Runs f with files loaded as if mainfile were the one compiled: from its directory rather than
+// the project's, and without keeping the dirs it adds.
+extern void WithMainFile(string_view mainfile, const function<void()> &f);
 extern string_view ProjectDir();
 extern string_view MainDir();
 

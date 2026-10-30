@@ -2254,7 +2254,7 @@ struct Parser {
         vector<UnTypeRef> specializers;
         // Check for function call with generic params.
         // This is not a great way to distinguish from < operator exps, but best we can do?
-        if (likely_named_function && lex.whitespacebefore == 0 && IsNext(T_LT)) {
+        if (likely_named_function && lex.token == T_LT && !lex.WhitespaceBefore() && IsNext(T_LT)) {
             ParseSpecializerList([&]() { specializers.push_back(ParseType(false)); });
         }
         return specializers;
@@ -2347,7 +2347,7 @@ struct Parser {
         auto nf = natreg.FindNative(idname);
         auto f = st.FindFunction(idname);
         auto e = st.EnumLookup(idname, false);
-        if (lex.token == T_LEFTPAREN && lex.whitespacebefore == 0) {
+        if (lex.token == T_LEFTPAREN && !lex.WhitespaceBefore()) {
             if (e && !f && !nf) {
                 lex.Next();
                 auto ec = new EnumCoercion(lex, ParseExp(), e);
@@ -2402,8 +2402,8 @@ struct Parser {
         if (!id &&
             !field &&
             (nf || f) &&
-            lex.whitespacebefore > 0 &&
-            lex.token != T_LINEFEED) {
+            lex.token != T_LINEFEED &&
+            lex.WhitespaceBefore()) {
             return ParseFunctionCall(lex, f, idname, nullptr, true, nullptr);
         }
         // Check for enum value.

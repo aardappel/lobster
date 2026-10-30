@@ -257,16 +257,18 @@ string Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
         } slabreset;
     #endif
     string mainsource;
-    if (stringsource.empty()) {
+    // When only parsing, an empty source is the source.
+    if (stringsource.empty() && !opts.parselog) {
         if (LoadFile(cat("modules/", fn), &mainsource) < 0 && LoadFile(fn, &mainsource) < 0)
             return cat("can't open file: ", fn);
         stringsource = mainsource;
     }
     vector<pair<string, string>> filenames;
-    Lex lex(fn, filenames, nfr.namespaces, stringsource, opts.max_errors);
+    Lex lex(fn, filenames, nfr.namespaces, stringsource, opts.max_errors, opts.parselog);
     SymbolTable st(lex);
     Parser parser(nfr, lex, st);
     parser.Parse();
+    if (opts.parselog) return lex.errors;
     // Each pass recovers from its errors and collects them (see Lex::Report), and assumes
     // the ones before it had none.
     if (lex.num_errors) return lex.errors;
@@ -521,6 +523,25 @@ BUILTIN(compile_run_file, "filename,args", "SS]", "SS?",
     "same as compile_run_code(), only now you pass a filename.")
 (VM &vm, LString **result, LString *filename, LVector *args) {
     return CompileRun(vm, result, filename, false, ValueToVectorOfStrings(args), 1);
+}
+
+BUILTIN(parsed_tokens, "filename,source", "SS", "SS?",
+    "parses lobster source as the compiler does, as if it were the file filename (whose"
+    " directory its imports are found from), and returns the tokens of it the parser reads, in"
+    " the order it reads them and one per line, including where it looks at whether whitespace"
+    " came before one: two sources for which these are the same parse the same, which is what"
+    " a formatter needs to know. the second return value is the parser's errors, or nil if"
+    " there were none.")
+(VM &vm, LString **tokens, LString *filename, LString *source) {
+    string log, err, c_codegen;
+    CompileOptions opts;
+    opts.parselog = &log;
+    WithMainFile(filename->strv(), [&]() {
+        err = Compile(vm.vma.nfr, filename->strv(), source->strv(), opts, c_codegen, nullptr,
+                      nullptr);
+    });
+    *tokens = vm.NewString(log);
+    return err.empty() ? nullptr : vm.NewString(err);
 }
 
 BUILTIN(compile_run_c_code, "code,input", "SS", "S?S?",
