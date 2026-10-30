@@ -1,7 +1,7 @@
-import { exec } from 'child_process';
-import { Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, integer, uinteger } from 'vscode-languageserver';
+import { execFile } from 'child_process';
+import * as path from 'path';
+import { DiagnosticSeverity, integer } from 'vscode-languageserver';
 import { LobsterSettings } from './lsp';
-import { Location } from 'vscode';
 
 export interface LobsterLocation {
     file: string,
@@ -39,110 +39,92 @@ export interface QueryDefinitionResult {
     signature?: LobsterSignature
 }
 
-function callLobster(
-    settings: LobsterSettings,
-    output: (output: string) => void,
-    ...params: string[]
-) {
-    const command =
-        settings.executable + " " +
-        settings.imports.map(i => "--import " + i).join(" ") + " " +
-        params.join(" ");
+// Where to run the compiler, and the directories to look for imports in after it.
+export interface LobsterRun {
+    cwd?: string,
+    imports?: string[]
+}
 
+// More than execFile's default of 1 MB, which a large program's messages can take.
+const MAX_OUTPUT = 64 * 1024 * 1024;
 
-    console.debug(command);
-    exec(command, (error, stdout, stderr) => {
-        if (stderr) {
-            console.error(`Lobster (${settings.executable}) returned with output: ${stderr}`);
-            return;
-        }
+// What the compiler writes to stdout. Fails only when it can't run to the end.
+function callLobster(settings: LobsterSettings, run: LobsterRun, ...params: string[]): Promise<string> {
+    // Paths are relative to where the LSP runs, not `run.cwd`.
+    const executable = settings.executable.includes('/') || settings.executable.includes('\\')
+        ? path.resolve(settings.executable)
+        : settings.executable;
+    const imports = [...settings.imports, ...run.imports ?? []].map(i => path.resolve(i));
+    const args = [...imports.flatMap(i => ["--import", i]), ...params];
 
-        output(stdout);
+    console.debug(executable, ...args);
+    return new Promise((resolve, reject) => {
+        execFile(executable, args, { cwd: run.cwd, maxBuffer: MAX_OUTPUT }, (error, stdout, stderr) => {
+            if (stderr) {
+                console.error(`Lobster (${executable}) returned with output: ${stderr}`);
+            }
+            // With errors in the program it exits with 1.
+            if (error && typeof error.code != 'number') reject(error);
+            else resolve(stdout);
+        });
     });
 }
 
+// A warning or error, in the file the compiler names (relative to the main file's directory,
+// or absolute), at a zero based line.
+export interface LobsterMessage {
+    file: string,
+    line: integer,
+    severity: DiagnosticSeverity,
+    message: string,
+    // Where it was reached from, as in "in game.lobster(2061): bake() -> int".
+    context: (LobsterLocation & { text: string })[]
+}
+
+// What a compile says: its messages, and what isn't about a place in a file, such as that the
+// main file can't be read, or the compiler can't be run.
+export interface LobsterOutput {
+    messages: LobsterMessage[],
+    other: string
+}
+
+export function parseMessages(input: string): LobsterMessage[] {
+    const regex = /^(.*?)\((\d+)\): (warning|error): (.*)((?:\n[ \t]+.*)*)/gm;
+    const regexInner = /^\s*in (.*?)\((\d+)\): ?(.*)$/;
+    const output: LobsterMessage[] = [];
+    let match;
+    while ((match = regex.exec(input))) {
+        const context: LobsterMessage['context'] = [];
+        const details: string[] = [];
+        for (const line of match[5].split("\n").slice(1)) {
+            const inner = line.match(regexInner);
+            if (inner) context.push({ file: inner[1], line: parseInt(inner[2]) - 1, text: inner[3] });
+            else details.push(line.trim());
+        }
+        output.push({
+            file: match[1],
+            line: parseInt(match[2]) - 1,
+            severity: match[3] == "warning" ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error,
+            message: [match[4].trim(), ...details].join("\n"),
+            context
+        });
+    }
+    return output;
+}
+
+// Compiles `main`, writing its index (see index.ts) to `index`.
 export async function parseLobster(
     settings: LobsterSettings,
-    file: string,
-    ...args: string[]
-): Promise<Diagnostic[]> {
-    function parseOutput(input: string): Diagnostic[] {
-        if (input.length == 0) return [];
-
-        if (input.startsWith("can't open file")) {
-            return []; // TODO make "can't open file" a normal error instead of an unformatted error
-        }
-
-        const regex = /^(.*?)\((\d+)\): (warning|error): (.*)((\s+ .*)*)/gm;
-        const regexInner = /^\s*?in (.*)\((\d+)\):.*/gm;
-        let match, innerMatch;
-        const output: Diagnostic[] = [];
-
-        function scanLine(at: string, thisLine: integer, relInfo: DiagnosticRelatedInformation[]): integer | undefined {
-            let result: integer | undefined = undefined;
-            if (file.endsWith(at)) {
-                result = thisLine;
-            } else {
-                //Push link to related source from another file
-                relInfo.push({
-                    message: "source",
-                    location: {
-                        uri: settings.imports[0] + "/" + at,
-                        range: {
-                            start: { line: thisLine, character: 0 },
-                            end: { line: thisLine, character: uinteger.MAX_VALUE }
-                        }
-                    }
-                });
-            }
-            return result;
-        }
-
-
-        while ((match = regex.exec(input))) {
-            const relInfo: DiagnosticRelatedInformation[] = [];
-            let line = scanLine(match[1], parseInt(match[2]) - 1, relInfo);
-            const innerMsg = match[5];
-            if (innerMsg && !line) {
-                while ((innerMatch = regexInner.exec(innerMsg))) {
-                    line ||= scanLine(innerMatch[1], parseInt(innerMatch[2]) - 1, relInfo);
-                }
-            }
-
-            line = line || uinteger.MAX_VALUE;
-
-            const messageType = match[3].trim();
-            const message = match[4].trim() + (innerMsg ? innerMsg.replace(regexInner, "") : "");
-
-            const severity = messageType == "warning" ?
-                DiagnosticSeverity.Warning :
-                DiagnosticSeverity.Error;
-
-            output.push({
-                range: {
-                    start: { line, character: 0 },
-                    end: { line, character: uinteger.MAX_VALUE }
-                },
-                relatedInformation: relInfo.length ? relInfo : undefined,
-                message,
-                severity
-            });
-        }
-
-        if (output.length == 0) throw new Error("Invalid output from lobster: " + input);
-
-        return output;
-    }
-
-
-    return new Promise<Diagnostic[]>(back => callLobster(
-        settings,
-        i => back(parseOutput(i)),
-        "--errors", "99",
-        "--compile-only",
-        file,
-        ...args
-    ));
+    main: string,
+    index: string,
+    run: LobsterRun = {}
+): Promise<LobsterOutput> {
+    return callLobster(settings, run,
+        "--errors", "99", "--compile-only", "--warn-unused", "--index", index, main
+    ).then(stdout => {
+        const messages = parseMessages(stdout);
+        return { messages, other: messages.length ? "" : stdout.trim() };
+    }, error => ({ messages: [], other: `can't run ${settings.executable}: ${error.message}` }));
 }
 
 export async function getBuiltinsDoc(
@@ -153,17 +135,16 @@ export async function getBuiltinsDoc(
         return parsedData;
     }
 
-    return new Promise<LobsterBuiltinsDoc[]>((back) =>
-        callLobster(settings, (i) => back(parseOutput(i)), "--gen-builtins-json"),
-    );
+    return callLobster(settings, {}, "--gen-builtins-json").then(parseOutput);
 }
 
-function parseDefinition(
+// A signature as the compiler writes it, as in `f(x:int, y) -> int`, or the type of `identifier`.
+export function parseDefinition(
     identifier: string,
     definition: string,
 ): LobsterSignature {
     let signature: LobsterSignature;
-    const [def, ret] = definition.split(/ ?-> ?/);
+    const [def, ret] = splitList(definition, "->").map(s => s.trim());
     const defmatch = def.match(/^(.+)\((.*)\)$/);
     if (defmatch) {
         const parameters = readParameters(defmatch[2]);
@@ -171,7 +152,7 @@ function parseDefinition(
             name: defmatch[1],
             parameters,
             returns: ret
-                ? ret.replace(" ", "").replace(/[()]/g, "").split(",")
+                ? splitList(ret.replace(/^\((.*)\)$/, "$1")).map(r => r.trim())
                 : undefined,
         };
     } else {
@@ -183,12 +164,15 @@ function parseDefinition(
     return signature;
 }
 
+// What `identifier` at `line` of `file` (named as the compiler names it) refers to, in the
+// program compiled from `main`.
 export async function queryDefinition(
     settings: LobsterSettings,
+    main: string,
     file: string,
     line: integer,
     identifier: string,
-    ...args: string[]
+    run: LobsterRun = {}
 ): Promise<QueryDefinitionResult> {
     function parseOutput(input: string): QueryDefinitionResult {
         if (input.length == 0) return {};
@@ -232,28 +216,44 @@ export async function queryDefinition(
         };
     }
 
-    const fileName = file.split(/\\|\//).pop();
-    if (!fileName) throw new Error("Invalid file name");
+    return callLobster(
+        settings,
+        run,
+        // Errors elsewhere in the program don't stop the query.
+        "--errors", "99",
+        main,
+        "--query",
+        "definition",
+        file,
+        (line + 1).toString(),
+        identifier,
+    ).then(parseOutput);
+}
 
-    return new Promise((back) =>
-        callLobster(
-            settings,
-            (i) => back(parseOutput(i)),
-            // Errors elsewhere in the program don't stop the query.
-            "--errors", "99",
-            file,
-            "--query",
-            "definition",
-            fileName,
-            (line + 1).toString(),
-            identifier,
-            ...args,
-        ),
-    );
+// Splits at the separators that aren't inside a type's brackets, as in `dictionary<K, V>` or
+// `function(x:int) -> int`.
+export function splitList(input: string, separator = ","): string[] {
+    const parts: string[] = [];
+    let depth = 0, start = 0;
+    for (let i = 0; i < input.length; i++) {
+        if (depth == 0 && input.startsWith(separator, i)) {
+            parts.push(input.substring(start, i));
+            start = i + separator.length;
+            i = start - 1;
+        } else if (input.startsWith("->", i)) {
+            i++;
+        } else if ("<([{".includes(input[i])) {
+            depth++;
+        } else if (">)]}".includes(input[i])) {
+            depth--;
+        }
+    }
+    parts.push(input.substring(start));
+    return parts;
 }
 
 function readParameters(input: string): LobsterSignatureParameter[] {
-    const parameters = input == '' ? [] : input.split(',')
+    const parameters = input == '' ? [] : splitList(input)
         .map(i => i.trim().match(/^([^:]+)(?::(.+))?$/) || [])
         .map(i => ({ name: i[1], type: i[2] || "any" }));
 

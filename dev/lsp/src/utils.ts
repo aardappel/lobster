@@ -12,21 +12,39 @@ export function getWordOnCursor(text: string, character: number): [string | null
 	];
 }
 
-export function markupSignature(signature: LobsterSignature): MarkupContent {
-	if ('parameters' in signature) return {
-		kind: MarkupKind.PlainText,
-		value:
-			signature.name +
+// A signature as code, with what describes it (markdown) under it.
+export function markupSignature(signature: LobsterSignature, doc?: string): MarkupContent {
+	const value = 'parameters' in signature
+		? signature.name +
 			'(' + signature.parameters.map(p => `${p.name}: ${p.type}`).join(', ') + ')' +
 			(signature.returns ? " -> " + signature.returns.join(", ") : "")
+		: signature.name + ': ' + signature.type;
+	return {
+		kind: MarkupKind.Markdown,
+		value: '```lobster\n' + value + '\n```' + (doc ? '\n\n' + doc : '')
 	};
+}
 
-	if ('type' in signature) return {
-		kind: MarkupKind.PlainText,
-		value: signature.name + ': ' + signature.type
-	};
+// What the definition at `line` of `lines` is described with: the `//` lines directly above it,
+// as in Go, without their `//`.
+export function docComment(lines: string[], line: number): string | undefined {
+	let start = line;
+	while (start > 0 && lines[start - 1]?.trimStart().startsWith('//')) start--;
+	if (start == line) return undefined;
+	return lines.slice(start, line).map(l => l.trimStart().replace(/^\/\/ ?/, '')).join('\n');
+}
 
-	throw new Error("Unknown signature type");
+// What `map` has for `key`, set to `make()` first if it has nothing.
+export function getOrSet<K, V>(map: Map<K, V>, key: K, make: () => V): V {
+	let value = map.get(key);
+	if (value === undefined) map.set(key, value = make());
+	return value;
+}
+
+// `f`, reading what it gives for each file once.
+export function memo<T>(f: (file: string) => T): (file: string) => T {
+	const results = new Map<string, T>();
+	return file => getOrSet(results, file, () => f(file));
 }
 
 export function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
@@ -61,4 +79,62 @@ export function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
 		data[i++] = right[rightIdx++];
 	}
 	return data;
+}
+
+const WORD = /[A-Za-z0-9_]/;
+
+// The length of `line` without its comment.
+export function codeLength(line: string): number {
+	for (let i = 0; i < line.length; i++) {
+		const c = line[i];
+		if (c == '/' && line[i + 1] == '/') return i;
+		if (c == '"' || c == "'") i = stringEnd(line, i);
+	}
+	return line.length;
+}
+
+// Where the string or character constant starting at `start` of `line` ends, at its quote.
+function stringEnd(line: string, start: number): number {
+	let i = start + 1;
+	for (; i < line.length && line[i] != line[start]; i++) if (line[i] == '\\') i++;
+	return i;
+}
+
+// Where `name` is in `text` (one line) as a whole word outside strings and comments, as
+// [start, end) columns: all of them, or with `dot` only those after a dot (true) or not (false).
+export function occurrences(text: string, name: string, dot?: boolean): [number, number][] {
+	const result: [number, number][] = [];
+	const end = codeLength(text);
+	for (let i = 0; i < end; i++) {
+		const c = text[i];
+		if (c == '"' || c == "'") {
+			i = stringEnd(text, i);
+			continue;
+		}
+		if (!WORD.test(c) || (i > 0 && WORD.test(text[i - 1]))) continue;
+		let j = i;
+		while (j < end && WORD.test(text[j])) j++;
+		if (text.substring(i, j) == name && (dot === undefined || dot == afterDot(text, i))) {
+			result.push([i, j]);
+		}
+		i = j - 1;
+	}
+	return result;
+}
+
+// Whether what starts at `start` in `text` follows a dot (but not `..`).
+function afterDot(text: string, start: number): boolean {
+	let k = start - 1;
+	while (k >= 0 && (text[k] == ' ' || text[k] == '\t')) k--;
+	return k >= 0 && text[k] == '.' && text[k - 1] != '.';
+}
+
+// The identifier at `character` in `text`, with its columns and whether a dot precedes it.
+export function wordAt(text: string, character: number):
+	{ word: string, start: number, end: number, dot: boolean } | undefined {
+	let start = character, end = character;
+	while (start > 0 && WORD.test(text[start - 1])) start--;
+	while (end < text.length && WORD.test(text[end])) end++;
+	if (start == end || /[0-9]/.test(text[start])) return undefined;
+	return { word: text.substring(start, end), start, end, dot: afterDot(text, start) };
 }

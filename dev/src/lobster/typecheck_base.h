@@ -169,13 +169,6 @@ struct TypeCheckBase {
         }
         // Check if we need to do any lifetime adjustments.
         AdjustLifetime(n, recip, idents);
-        // Check for queries.
-        if (query && query_result.empty()) {
-            if ((reqret==0 && n->line == query->qloc) //reqret usually in the end of line
-             || (n->line.line > query->qloc.line && n->line.fileidx==query->qloc.fileidx)) { //If above missed
-                ProcessQuery();
-            }
-        }
     }
 
     void TypeCheckList(List *n, Lifetime lt, TypeRef parent_bound = {}) {
