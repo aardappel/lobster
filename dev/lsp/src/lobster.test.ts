@@ -10,9 +10,13 @@ import { parseMessages } from './lobster';
 import { Programs } from './program';
 import { findNative } from './natives';
 import { ProgramIndex } from './index';
-import { locationsOf } from './features/references';
+import { locationsOf, resolve } from './features/references';
 import * as fs from 'fs';
-import { docComment } from './utils';
+import { docComment, occurrences, wordAt } from './utils';
+import { toDiagnostics } from './diagnostics';
+import { callAt } from './features/signature';
+import { programItems } from './features/completion';
+import { DiagnosticSeverity, DiagnosticTag } from 'vscode-languageserver';
 
 // Unlike console.assert, which only logs, a failed assertion also fails the run.
 function assert(condition: unknown, ...data: unknown[]) {
@@ -161,4 +165,115 @@ console.log("Reading doc comments");
 				assert(found == doc, "Incorrect doc comment?", name, found);
 			});
 	}
+}
+
+console.log("Making diagnostics");
+{
+	const lines: { [file: string]: string[] } = {
+		"/p/main.lobster": ["import lib", "def unused_fn(): return 1", "    let x = 1", "print helper(unknown)"],
+		"/p/lib.lobster": ["def helper(a): return a"],
+		"/l/modules/std.lobster": ["def map(xs, f): return f(xs)"],
+	};
+	const locate = (name: string) => name.startsWith("std") ? `/l/modules/${name}` : `/p/${name}`;
+	const messages = parseMessages(
+		"main.lobster(2): warning: unused function `unused_fn`\n" +
+		"main.lobster(3): warning: unused variable `x`\n" +
+		"main.lobster(4): error: unknown identifier `unknown`\n" +
+		"std.lobster(1): error: `f` requires type `int`\n" +
+		"  in main.lobster(4): helper(a)\n");
+	const program = {
+		main: "/p/main.lobster",
+		files: new Map([["/p/main.lobster", "main.lobster"], ["/p/lib.lobster", "lib.lobster"]]),
+		dirs: []
+	};
+	const found = toDiagnostics({ messages, other: "" }, program, locate, file => lines[file] ?? []);
+	const main = found.get("/p/main.lobster")!;
+	const fn = main.find(d => d.message.startsWith("unused function"))!;
+	assert(fn.severity == DiagnosticSeverity.Hint && fn.tags?.includes(DiagnosticTag.Unnecessary),
+		"Unused function not faded?", fn);
+	assert(fn.range.start.character == 4 && fn.range.end.character == 13, "Not the quoted name?", fn.range);
+	const x = main.find(d => d.message.startsWith("unused variable"))!;
+	assert(x.severity == DiagnosticSeverity.Warning && x.tags?.includes(DiagnosticTag.Unnecessary),
+		"Unused variable not a faded warning?", x);
+	const unknown = main.find(d => d.message.startsWith("unknown identifier"))!;
+	assert(unknown.range.start.character == 13, "Not the quoted name?", unknown.range);
+	assert(main.some(d => d.range.start.line == 3 && d.message.includes("in std.lobster(1)")),
+		"Module error not shown where the program got to it?", main);
+	assert(found.get("/l/modules/std.lobster")?.length == 1, "Module error not in the module?", found);
+	const other = toDiagnostics({ messages: [], other: "can't open file: main.lobster" }, program, locate,
+		() => []);
+	assert(other.get("/p/main.lobster")?.[0].range.start.line == 0, "Other output not on the main file?", other);
+	const quoted = toDiagnostics({ messages: parseMessages("main.lobster(1): warning: unused variable `x`\n"), other: "" },
+		program, locate, () => ['let s = "x" + y; let x = 1']);
+	assert(quoted.get("/p/main.lobster")?.[0].range.start.character == 21, "Underlined in a string?", quoted);
+}
+
+console.log("Resolving names");
+{
+	// class point: x:int / def len(): return x / let x = 1 / print p.x + x / let c:point
+	const index = new ProgramIndex({
+		files: ["a.lobster"],
+		defs: [
+			{ k: "class", n: "point", f: 0, l: 1 },
+			{ k: "field", n: "x", f: 0, l: 2, t: "int", c: 0 },
+			{ k: "function", n: "len", f: 0, l: 3, e: 3, t: "len(this:point) -> int", c: 0 },
+			{ k: "var", n: "x", f: 0, l: 4, t: "int" },
+		],
+		refs: [[0, 3, 1], [0, 5, 1], [0, 5, 3]]
+	}, name => "/" + name);
+	const at = (line: number, text: string, character: number) =>
+		resolve(index, "/a.lobster", line, text, character);
+	assert(at(4, "print p.x + x", 8)?.kind == "field", "Not the field after a dot?");
+	assert(at(4, "print p.x + x", 12)?.kind == "var", "Not the variable without a dot?");
+	assert(at(2, "    def len(): return x", 22)?.kind == "field", "Not the field used bare in a method?");
+	assert(at(6, "let c:point", 7)?.kind == "class", "Not the type in an annotation?");
+	assert(at(4, "print p.x + x", 3) === undefined, "Resolved what isn't defined?");
+	index.shift("/a.lobster", line => line >= 4 ? line + 1 : line);
+	assert(at(5, "print p.x + x", 12)?.kind == "var", "Not moved along with an edit?");
+}
+
+console.log("Finding the call being typed");
+{
+	const call = (text: string) => callAt(text, text.length);
+	assert(call("f(a, g(b, c), ")?.commas == 2, "Commas outside the inner call?", call("f(a, g(b, c), "));
+	assert(call("f(\"a, b\", ")?.commas == 1, "Commas in a string?", call("f(\"a, b\", "));
+	assert(call("f('\\'', ")?.commas == 1, "Escaped quote?", call("f('\\'', "));
+	assert(call("let v = [ a, ") === undefined, "A vector isn't a call?");
+	assert(call("f(x) + y") === undefined, "Outside a call?");
+	assert(call("f(a, // don't (\nb, ")?.commas == 2, "Brackets in a comment?", call("f(a, // don't (\nb, "));
+}
+
+console.log("Completing what the program declares");
+{
+	// class point: x:int / def outer(p:point): let inner = 1 ... / let global = 1
+	const index = new ProgramIndex({
+		files: ["a.lobster"],
+		defs: [
+			{ k: "class", n: "point", f: 0, l: 1 },
+			{ k: "field", n: "x", f: 0, l: 2, t: "int", c: 0 },
+			{ k: "function", n: "outer", f: 0, l: 3, e: 6, t: "outer(p:point)" },
+			{ k: "var", n: "p", f: 0, l: 3, t: "point", c: 2 },
+			{ k: "var", n: "inner", f: 0, l: 4, t: "int", c: 2 },
+			{ k: "var", n: "global", f: 0, l: 8, t: "int" },
+			{ k: "function", n: "unrelated", f: 0, l: 9, e: 9, t: "unrelated(s:string)" },
+		],
+		refs: []
+	}, name => "/" + name);
+	const labels = (line: number, typed: string) =>
+		programItems([index], "/a.lobster", { line, character: 20 }, typed, () => []).map(i => i.label).sort();
+	// A function whose first parameter is a point is a method of it.
+	assert(labels(4, "p.").join() == "outer,x", "Fields and methods of the receiver's class?", labels(4, "p."));
+	assert(labels(4, "in").join() == "inner", "Locals in scope?", labels(4, "in"));
+	assert(labels(8, "in").join() == "", "Locals out of scope?", labels(8, "in"));
+	assert(labels(8, "o").join() == "outer", "Functions?", labels(8, "o"));
+}
+
+console.log("Finding words");
+{
+	assert(occurrences('x = "x" + x.x // x', "x").length == 3, "Not outside strings and comments?");
+	assert(occurrences("a.b + b", "b", true).join() == "2,3", "Not after a dot?");
+	assert(occurrences("a..b", "b", true).length == 0, "A range isn't a dot?");
+	assert(wordAt("foo.bar", 5)?.word == "bar" && wordAt("foo.bar", 5)?.dot, "Word after a dot?");
+	assert(docComment(["// a", "", "def f():"], 2) === undefined, "A blank line ends a description?");
+	assert(docComment(["    // a", "    //b", "    def f():"], 2) == "a\nb", "Indented description?");
 }

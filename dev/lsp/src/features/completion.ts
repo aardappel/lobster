@@ -78,8 +78,8 @@ function ownerOf(def: Def): string | undefined {
 // after a dot the fields and methods of the variable before it (all of them if its type isn't
 // known), otherwise the variables in scope and everything declared outside functions. Functions
 // are described by the comment above them in `lines`.
-function programItems(indexes: ProgramIndex[], file: string, position: Position, typed: string,
-                      lines: (file: string) => string[]): CompletionItem[] {
+export function programItems(indexes: ProgramIndex[], file: string, position: Position, typed: string,
+                             lines: (file: string) => string[]): CompletionItem[] {
   const dot = typed.lastIndexOf('.');
   const prefix = typed.substring(dot + 1);
   const range = Range.create({ line: position.line, character: position.character - prefix.length }, position);

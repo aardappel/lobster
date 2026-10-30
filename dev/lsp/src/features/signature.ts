@@ -25,7 +25,7 @@ function signature(label: string): SignatureInformation {
 
 // The call whose arguments `offset` in `text` is in: the unmatched `(` before it, and the
 // commas between at its level.
-function callAt(text: string, offset: number): { open: number, commas: number } | undefined {
+export function callAt(text: string, offset: number): { open: number, commas: number } | undefined {
     // Comments are blanked out, keeping offsets.
     const code = text.substring(0, offset).split("\n")
         .map(line => line.substring(0, codeLength(line)).padEnd(line.length)).join("\n");
