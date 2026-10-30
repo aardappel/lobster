@@ -51,7 +51,8 @@ connection.onInitialize((params: InitializeParams) => {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
 			// Tell the client that this server supports code completion.
 			completionProvider: {
-				resolveProvider: false
+				resolveProvider: false,
+				triggerCharacters: ['.']
 			},
 			referencesProvider: true,
 			renameProvider: { prepareProvider: true },

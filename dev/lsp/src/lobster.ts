@@ -148,7 +148,8 @@ export async function getBuiltinsDoc(
     );
 }
 
-function parseDefinition(
+// A signature as the compiler writes it, as in `f(x:int, y) -> int`, or the type of `identifier`.
+export function parseDefinition(
     identifier: string,
     definition: string,
 ): LobsterSignature {
