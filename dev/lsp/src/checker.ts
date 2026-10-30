@@ -84,11 +84,15 @@ export class Checker {
         });
     }
 
+    indexes(): ProgramIndex[] {
+        const indexes: ProgramIndex[] = [];
+        for (const { index } of this.compiled.values()) if (index) indexes.push(index);
+        return indexes;
+    }
+
     // The indexes of the programs a file is part of.
     indexesFor(file: string): ProgramIndex[] {
-        const indexes: ProgramIndex[] = [];
-        for (const { index } of this.compiled.values()) if (index?.files.has(file)) indexes.push(index);
-        return indexes;
+        return this.indexes().filter(i => i.files.has(file));
     }
 
     // Moves what was said about a file along with an edit that replaced its lines `start` to `end`

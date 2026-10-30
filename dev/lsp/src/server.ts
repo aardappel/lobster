@@ -55,6 +55,8 @@ connection.onInitialize((params: InitializeParams) => {
 			},
 			referencesProvider: true,
 			renameProvider: { prepareProvider: true },
+			documentSymbolProvider: true,
+			workspaceSymbolProvider: true,
 
 			codeActionProvider: hasCodeActionLiteralSupportCapability,
 			definitionProvider: true,
@@ -106,12 +108,14 @@ import registerCompletion from './features/completion';
 import registerDefinition from './features/definition';
 import registerHover from './features/hover';
 import registerReferences from './features/references';
+import registerSymbols from './features/symbols';
 
 registerCodeAction(instance);
 registerCompletion(instance);
 registerDefinition(instance);
 registerHover(instance);
 registerReferences(instance);
+registerSymbols(instance);
 
 // Listen on the connection
 connection.listen();
