@@ -34,6 +34,11 @@ function checkoutOf(executable: string): string {
     return found ? path.dirname(path.dirname(fs.realpathSync(found))) : '';
 }
 
+// The line breaks in `text`, as an editor counts them.
+function lineBreaks(text: string): number {
+    return text.match(/\r\n|\r|\n/g)?.length ?? 0;
+}
+
 export class LSPInstance {
     connection: Connection;
     tempDir: string;
@@ -41,7 +46,19 @@ export class LSPInstance {
     errorState: ErroredState = ErroredState.None;
     builtinsDoc: LobsterBuiltinsDoc[] = [];
 
-    readonly documents: TextDocuments<LobsterDocument> = new TextDocuments(LobsterDocument);
+    readonly documents: TextDocuments<LobsterDocument> = new TextDocuments({
+        create: LobsterDocument.create,
+        update: (document, changes, version) => {
+            // What the document's lines were said to have moves along with them.
+            const file = URI.parse(document.uri).fsPath;
+            for (const change of changes) {
+                if (!('range' in change)) continue;
+                this.checker.shift(file, change.range.start.line, change.range.end.line,
+                                   lineBreaks(change.text));
+            }
+            return LobsterDocument.update(document, changes, version);
+        }
+    });
     // Cached per document settings, by URI.
     readonly documentSettings: Map<string, Thenable<LobsterSettings>> = new Map();
 

@@ -16,6 +16,17 @@ function key(d: Diagnostic): string {
     return `${d.range.start.line} ${d.severity} ${d.message}`;
 }
 
+// With errors the compiler stops warning, so what it said `before` stays, moved along with the
+// edits since (see Checker.shift).
+function keepWarnings(diagnostics: Map<string, Diagnostic[]>, before: Map<string, Diagnostic[]>) {
+    for (const [file, old] of before) {
+        const now = diagnostics.get(file) ?? [];
+        const said = new Set(now.map(key));
+        const kept = old.filter(d => d.severity != DiagnosticSeverity.Error && !said.has(key(d)));
+        if (kept.length) diagnostics.set(file, [...now, ...kept]);
+    }
+}
+
 // Compiles programs, and gives what they say to `publish`, for each of their files.
 export class Checker {
     private programs: Programs;
@@ -68,6 +79,24 @@ export class Checker {
         });
     }
 
+    // Moves what was said about a file along with an edit that replaced its lines `start` to `end`
+    // with ones with `added` line breaks, dropping the diagnostics on lines it removed.
+    shift(file: string, start: number, end: number, added: number) {
+        const delta = added - (end - start);
+        if (!delta) return;
+        const removed = (line: number) => delta < 0 && start < line && line <= end;
+        const move = (line: number) => line <= start ? line : removed(line) ? start : line + delta;
+        for (const { diagnostics } of this.compiled.values()) {
+            const old = diagnostics.get(file);
+            if (!old) continue;
+            diagnostics.set(file, old.filter(d => !removed(d.range.start.line)).map(d => ({
+                ...d,
+                range: { start: { ...d.range.start, line: move(d.range.start.line) },
+                         end: { ...d.range.end, line: move(d.range.end.line) } }
+            })));
+        }
+    }
+
     // Runs `job` once the compiles before it are done.
     private enqueue<T>(job: () => Promise<T>): Promise<T> {
         const result = this.queue.then(job);
@@ -88,6 +117,9 @@ export class Checker {
             staged.real(this.programs.locate(program, name) ?? path.join(staged.cwd, name));
         const diagnostics = toDiagnostics(output, program, locate);
         const before = this.compiled.get(program.main);
+        if (output.other || output.messages.some(m => m.severity == DiagnosticSeverity.Error)) {
+            keepWarnings(diagnostics, before?.diagnostics ?? new Map());
+        }
         this.compiled.set(program.main, { program, diagnostics });
         for (const file of new Set([...before?.diagnostics.keys() ?? [], ...diagnostics.keys()])) {
             this.publish(file);
