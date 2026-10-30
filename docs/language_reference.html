@@ -21,11 +21,82 @@
       vertical-align: middle;
     }
     .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
   </style>
   <link rel="stylesheet" href="github.css" />
   <link rel="icon" type="image/svg" href="lobster.svg" />
 </head>
 <body>
+<nav class="topnav">
+<a class="topnav-home" href="README_FIRST.html"><img src="lobster.svg" width="24" height="24" alt="" />Lobster</a>
+<a href="getting_started.html">Getting started</a>
+<a href="language_reference.html">Reference</a>
+<a href="builtin_functions_reference.html">Builtins</a>
+<a href="https://github.com/aardappel/lobster">GitHub</a>
+</nav>
 <header id="title-block-header">
 <h1 class="title">Lobster Language Reference</h1>
 </header>
@@ -208,12 +279,13 @@ observed from each).</p>
 <h2 id="user-defined-types">User Defined Types</h2>
 <p>The <code>class</code> and <code>struct</code> keywords allow you to
 define a user defined type. For example:</p>
-<pre><code>struct int2:
-    x:int
-    y:int
-
-struct int3 : int2
-    z:int</code></pre>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> <span class="dt">int2</span>:</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    x:<span class="dt">int</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    y:<span class="dt">int</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> <span class="dt">int3</span> : <span class="dt">int2</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    z:<span class="dt">int</span></span></code></pre></div>
 <p>You can use either <code>class</code> to define these (which defines
 a dynamically allocated object copied by reference) or
 <code>struct</code> (stored in-inline in their parent and copied by
@@ -227,13 +299,14 @@ extension of the former.</p>
 <p>A field of type <code>int</code>, <code>float</code> or an enum can
 be given a storage width behind its type, which makes the struct or
 class it is in smaller:</p>
-<pre><code>struct pixel:
-    r:int&lt;8&gt;
-    g:int&lt;8&gt;
-    b:int&lt;8&gt;
-    a:int&lt;8&gt;
-    depth:float&lt;32&gt;
-    visible:bool&lt;8&gt;</code></pre>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> pixel:</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    r:<span class="dt">int</span><span class="op">&lt;</span><span class="dv">8</span><span class="op">&gt;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    g:<span class="dt">int</span><span class="op">&lt;</span><span class="dv">8</span><span class="op">&gt;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    b:<span class="dt">int</span><span class="op">&lt;</span><span class="dv">8</span><span class="op">&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    a:<span class="dt">int</span><span class="op">&lt;</span><span class="dv">8</span><span class="op">&gt;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    depth:<span class="dt">float</span><span class="op">&lt;</span><span class="dv">32</span><span class="op">&gt;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    visible:<span class="dt">bool</span><span class="op">&lt;</span><span class="dv">8</span><span class="op">&gt;</span></span></code></pre></div>
 <p>This only affects storage: reading such a field gives a plain
 <code>int</code> / <code>float</code> / enum value like any other field
 (an int is sign extended from its bits, so <code>int&lt;8&gt;</code>
@@ -256,27 +329,31 @@ struct.</p>
 <h3 id="generic-udts">Generic UDTs</h3>
 <p>The above example uses ints directly, but you can also define types
 more generically, and then define named specializations of them:</p>
-<pre><code>struct vec2&lt;T&gt;:
-    x:T
-    y:T
-
-struct int2 = vec2&lt;int&gt;
-struct float2 = vec2&lt;float&gt;</code></pre>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> vec2<span class="op">&lt;</span>T<span class="op">&gt;</span>:</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    x:T</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    y:T</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> <span class="dt">int2</span> <span class="op">=</span> vec2<span class="op">&lt;</span><span class="dt">int</span><span class="op">&gt;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> <span class="dt">float2</span> <span class="op">=</span> vec2<span class="op">&lt;</span><span class="dt">float</span><span class="op">&gt;</span></span></code></pre></div>
 <h3 id="constructors">Constructors</h3>
 <p>You construct values of these types you use a similar syntax:</p>
-<pre><code>let v = int2 { 1, 0 }</code></pre>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> v <span class="op">=</span> <span class="dt">int2</span> { <span class="dv">1</span>, <span class="dv">0</span> }</span></code></pre></div>
 <p>(Or use <code>float2 { 1, 0 }</code> /
 <code>vec2&lt;bool&gt; { true, false }</code> to explicitly pick a
 different specialization).</p>
-<pre><code>struct float2:
-    x = 0.0
-    y = 0.0</code></pre>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> <span class="dt">float2</span>:</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    y <span class="op">=</span> <span class="fl">0.0</span></span></code></pre></div>
 <p>Additionally, you may specify default values, if these are given,
 then these values are not arguments to the constructor, e.g.
 <code>float2 {}</code>.</p>
 <p>For more complex structs, you can use field names as "tags" in a
 constructor call, for example:</p>
-<pre><code>float2 { x: 1.0, y: 2.0 }</code></pre>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">float2</span> { x: <span class="fl">1.0</span>, y: <span class="fl">2.0</span> }</span></code></pre></div>
 <p>Besides being more readable, it allows you to specify the fields in
 any order, and to override fields that have defaults.</p>
 <p>The constructor type may also be omitted, in contexts where that type
@@ -296,13 +373,15 @@ unions</h3>
 <p>To declare a type whose only purpose is to serve as a superclass for
 other types and is not to be instantiated, declare it with
 <code>abstract</code>:</p>
-<pre><code>abstract class Node</code></pre>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">abstract</span> <span class="kw">class</span> Node</span></code></pre></div>
 <p>These are great for the "discriminated union" use cases: if you
 <code>switch</code> on a type like this you'll get errors if not all
 sub-classes are covered.</p>
 <p>Similarly, you can do the same with structs, if you want an in-line
 copied discriminated union:</p>
-<pre><code>abstract struct Value</code></pre>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">abstract</span> <span class="kw">struct</span> Value</span></code></pre></div>
 <p>This kind of <code>struct</code> automatically includes a type field
 that is inaccessible to the programmer but allows it to participate in
 <code>switch</code> and <code>is</code> constructs, and function dynamic
@@ -318,15 +397,17 @@ treat it like a class with sub-classes
 (<code>attribute serializable</code> is allowed on the sub-structs).</p>
 <p><code>union class</code> is syntactic sugar for a compact declaration
 of this discriminated union use case, instead of writing:</p>
-<pre><code>abstract class Foo
-class Bar : Foo
-    b:int
-class Baz : Foo
-    f:float</code></pre>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">abstract</span> <span class="kw">class</span> Foo</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Bar : Foo</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    b:<span class="dt">int</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Baz : Foo</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    f:<span class="dt">float</span></span></code></pre></div>
 <p>You can also write the equivalent:</p>
-<pre><code>union class Foo:
-    Bar(b:int)
-    Baz(f:float)</code></pre>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">union</span> <span class="kw">class</span> Foo:</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    Bar(b:<span class="dt">int</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    Baz(f:<span class="dt">float</span>)</span></code></pre></div>
 <p>Similarly, <code>union struct</code> declares an
 <code>abstract struct</code> with its sub-structs.</p>
 <h2 id="operators">Operators</h2>
@@ -338,17 +419,20 @@ fast.</p>
 <h3 id="assignment-and-definition">Assignment and Definition</h3>
 <p>The assignment operators simply copies the value on the right hand
 side into the variable or vector index on the left hand side:</p>
-<pre><code>a = 1
-v[0] = 1
-v.x = 1</code></pre>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>v[<span class="dv">0</span>] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>v.x <span class="op">=</span> <span class="dv">1</span></span></code></pre></div>
 <p>All variables must already have been declared, or this will result in
 an error. <code>var</code> defines and assigns in one go, and requires
 the variable to not have been declared yet in this scope.
 <code>let</code> does the same for variables which cannot be modified
 afterwards:</p>
-<pre><code>var a = 1
-let b = 1</code></pre>
-<pre><code>var d, e = 1, 2</code></pre>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> a <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> b <span class="op">=</span> <span class="dv">1</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> d, e <span class="op">=</span> <span class="dv">1</span>, <span class="dv">2</span></span></code></pre></div>
 <p>As you can see in the last 2 lines, all of these operators also allow
 multiple values to be assigned at once (see also multiple return values
 below).</p>
@@ -357,9 +441,10 @@ below).</p>
 similarly <code>.</code> can dereference fields of a <code>class</code>
 or <code>struct</code>. These may be chained arbitrarily.</p>
 <p>You may even use a vector as index, e.g.</p>
-<pre><code>let mat = [ [ 1, 2 ],  [ 3, 4 ] ]
-let pos = int2 { 0, 1 }
-print mat[pos]</code></pre>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> mat <span class="op">=</span> [ [ <span class="dv">1</span>, <span class="dv">2</span> ],  [ <span class="dv">3</span>, <span class="dv">4</span> ] ]</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> pos <span class="op">=</span> <span class="dt">int2</span> { <span class="dv">0</span>, <span class="dv">1</span> }</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> mat[pos]</span></code></pre></div>
 <p>This prints <code>3</code>, and is a convenient shortcut for
 <code>mat[pos.y][pos.x]</code>. Note how it uses the last element to
 index with first, this is because in code and other places 2d arrays are
@@ -371,7 +456,8 @@ usually most naturally thought of as row-major.</p>
 They also work on structs containing ints or floats with either another
 struct or a single int or float. These structs must be the same
 type.</p>
-<pre><code>int2 { 1, 2 } * int2 { 4, 5 }  // results in int2 { 4, 10 }</code></pre>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int2</span> { <span class="dv">1</span>, <span class="dv">2</span> } <span class="op">*</span> <span class="dt">int2</span> { <span class="dv">4</span>, <span class="dv">5</span> }  <span class="co">// results in int2 { 4, 10 }</span></span></code></pre></div>
 <p>All 5 also have have a combined assignment operator version,
 <code>+= -= *= /= %=</code>, which are implemented to have exactly the
 same effect as their expanded form, e.g. <code>a += 1</code> is always
@@ -421,7 +507,8 @@ values</em>.</p>
 <h3 id="named-functions">Named Functions</h3>
 <p>Named functions can be declared at any scope level (may be local),
 like so:</p>
-<pre><code>def name(arg1, arg2): body</code></pre>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">name</span>(arg1, arg2): body</span></code></pre></div>
 <p><code>body</code> can either be a single expression, or, most
 commonly, an indentation (start of code on the next line further than
 the previous line, in this case the <code>def</code> keyword), and then
@@ -429,9 +516,10 @@ any number of expressions on their own line separated by linefeeds,
 until a de-dedentation occurs (return to the indentation level of the
 parent, in this case again the <code>def</code> keyword). It is an error
 to de-dedent less than the parent level. For example:</p>
-<pre><code>def name(arg1, arg2):
-    exp1
-    exp2</code></pre>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">name</span>(arg1, arg2):</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    exp1</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    exp2</span></code></pre></div>
 <p>The return value of a function is determined by its
 <code>return</code> statements (see below) or <code>void</code> (no
 return value) otherwise, except for anonymous functions, which don't
@@ -449,13 +537,15 @@ system</a>).</p>
 <p>You can use :: instead of : for typed class/struct arguments, which
 allows you to access all fields / functions of that object directly,
 without having to prefix them with the argument name, e.g.:</p>
-<pre><code>def magnitude(v::float2): return sqrt(x * x + y * y)</code></pre>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">magnitude</span>(v::<span class="dt">float2</span>): <span class="cf">return</span> <span class="bu">sqrt</span>(x <span class="op">*</span> x <span class="op">+</span> y <span class="op">*</span> y)</span></code></pre></div>
 <p>You can also leave out the <code>v::float2</code> entirely if you
 define this function as part of a <code>class</code> /
 <code>struct</code> definition of type <code>float2</code> (see above).
 Both types of definition are equivalent.</p>
 <p>You can specify an explicit return type, like so:</p>
-<pre><code>def f(a:int, b:int) -&gt; float: return a + b</code></pre>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">f</span>(a:<span class="dt">int</span>, b:<span class="dt">int</span>) <span class="op">-&gt;</span> <span class="dt">float</span>: <span class="cf">return</span> a <span class="op">+</span> b</span></code></pre></div>
 <p>This is typically not necessary, but may be helpful when coercing to
 a more general type.</p>
 <h3 id="function-calls">Function calls</h3>
@@ -479,9 +569,11 @@ call syntax.</p>
 <h3 id="function-values">Function Values</h3>
 <p>You can also create anonymous (nameless) functions as values. In the
 most general case, this has the syntax:</p>
-<pre><code>let f = fn(a:type, n:type): body</code></pre>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> f <span class="op">=</span> <span class="kw">fn</span>(a:type, n:type): body</span></code></pre></div>
 <p>Or, if you are not specifying any types:</p>
-<pre><code>let f = fn a, b: body</code></pre>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> f <span class="op">=</span> <span class="kw">fn</span> a, b: body</span></code></pre></div>
 <p>You call these just like any other function, e.g.
 <code>f(1, 2)</code>. You currently must call them using a variable (not
 any expression, not even a field).</p>
@@ -491,14 +583,16 @@ Lobster has a special syntax for this situation that is meant to mimic
 control structures in other languages. Any function call may be followed
 by one or more function values, where the <code>fn</code> keyword is
 omitted:</p>
-<pre><code>g(10) i: print(i)</code></pre>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>g(<span class="dv">10</span>) i: <span class="bu">print</span>(i)</span></code></pre></div>
 <p>Here, the function <code>g</code> is called with 2 arguments, the
 first is <code>10</code>, and the second is the function value
 <code>fn i: print(i)</code> (as before, we left out the the
 <code>()</code> around the arguments). Lobster allows yet further
 simplification of the syntax:</p>
-<pre><code>g(10): print(_)
-g 10: print _</code></pre>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>g(<span class="dv">10</span>): <span class="bu">print</span>(_)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>g <span class="dv">10</span>: <span class="bu">print</span> _</span></code></pre></div>
 <p>You may use anonymous arguments, which are variable names starting
 with an <code>_</code> that will automatically be declared as arguments
 for you. If you use multiple such arguments (e.g. <code>_a</code> and
@@ -522,10 +616,11 @@ see "Explicit Returns" below.</p>
 <p>Though not recommend (as readability suffers), it is even possible to
 pass multiple function values to a function, but then every function
 value except the first can't omit the <code>fn</code> keyword:</p>
-<pre><code>g(10) i:
-    print i
-fn:
-    print &quot;reached the end&quot;</code></pre>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>g(<span class="dv">10</span>) i:</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span> i</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="kw">fn</span>:</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span> <span class="st">&quot;reached the end&quot;</span></span></code></pre></div>
 <p>For example, to pass an additional function to do something special
 at the end of an iteration.</p>
 <p>Writing your own functions that take function values is the key to
@@ -534,12 +629,14 @@ any code into something that has no redundancy yet is easy to create,
 use and modify.</p>
 <p>Typically, to write a function that takes a function value argument,
 simply use an argument with no type:</p>
-<pre><code>def twice(f):
-    for(2): f()</code></pre>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">twice</span>(f):</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(<span class="dv">2</span>): f()</span></code></pre></div>
 <p>Sometimes, you may want to be explicit about the function type. You
 can declare new function types, and then use them as a type:</p>
-<pre><code>def function_type(i:int) -&gt; int
-def g(f:function_type): return 1 + f(2)</code></pre>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">function_type</span>(i:<span class="dt">int</span>) <span class="op">-&gt;</span> <span class="dt">int</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">g</span>(f:function_type): <span class="cf">return</span> <span class="dv">1</span> <span class="op">+</span> f(<span class="dv">2</span>)</span></code></pre></div>
 <p>Besides enforcing the type of function that can be passed (which
 makes for more readable errors when it fails), it also forces the
 function passed to not be inlined (which may reduce code-bloat if
@@ -565,11 +662,12 @@ shouldn't be using those in game-like contexts anyway ;)</p>
 <h3 id="explicit-returns">Explicit Returns</h3>
 <p>Using <code>return</code> you return from the closest lexically
 enclosing named function, e.g.:</p>
-<pre><code>def find(list, x):
-    for list:
-        if x == _:
-            return true
-    return false</code></pre>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">find</span>(list, x):</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> list:</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> x <span class="op">==</span> _:</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="cn">true</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="cn">false</span></span></code></pre></div>
 <p><code>find</code>'s return value is <code>false</code> unless the
 nested <code>return</code> gets evaluated, and then it becomes
 <code>true</code>. Importantly, <code>return true</code> is an
@@ -596,8 +694,9 @@ instead.</p>
 <h3 id="multiple-return-values">Multiple Return Values</h3>
 <p>return can specify more than one value to be returned, which can then
 be received by the multiple assignment syntax introduced above:</p>
-<pre><code>def m(): return 1, 2
-let a, b = m()</code></pre>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">m</span>(): <span class="cf">return</span> <span class="dv">1</span>, <span class="dv">2</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> a, b <span class="op">=</span> m()</span></code></pre></div>
 <p>All return statements for any function must all return the same
 number of return values.</p>
 <p>When <code>m</code> returns multiple values, they get assigned to
@@ -608,7 +707,8 @@ variables than there are return values, this is an error.</p>
 expressions can return multiple values in other contexts too, but there
 may need to be placed in parentheses to disambiguate them from other
 uses of <code>,</code>:</p>
-<pre><code>let x, y = if foo: m() else: (1, 2)</code></pre>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> x, y <span class="op">=</span> <span class="cf">if</span> foo: m() <span class="cf">else</span>: (<span class="dv">1</span>, <span class="dv">2</span>)</span></code></pre></div>
 <h3 id="scope">Scope</h3>
 <p>Functions and variables declared there-in always obey lexical scope:
 any use of a variable always refers to the closest enclosing definition
@@ -629,21 +729,23 @@ to regular functions and variables.</p>
 <h3 id="explicit-free-variables">Explicit Free Variables</h3>
 <p>You can access free variables outside of their natural scope by
 declaring them explicitly, for example:</p>
-<pre><code>def foo(a, b) [c, d]:
-    c = a
-    d = b
-def bar():
-    var c = 0
-    var d = &quot;&quot;
-    foo(1, &quot;hello&quot;)</code></pre>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">foo</span>(a, b) [c, d]:</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    c <span class="op">=</span> a</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    d <span class="op">=</span> b</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">bar</span>():</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">var</span> c <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">var</span> d <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>    foo(<span class="dv">1</span>, <span class="st">&quot;hello&quot;</span>)</span></code></pre></div>
 <p>Which is pretty much identical to the more familiar:</p>
-<pre><code>def bar():
-    var c = 0
-    var d = &quot;&quot;
-    def foo(a, b):
-        c = a
-        d = b
-    foo(1, &quot;hello&quot;)</code></pre>
+<div class="sourceCode" id="cb31"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">bar</span>():</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">var</span> c <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">var</span> d <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">foo</span>(a, b):</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>        c <span class="op">=</span> a</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>        d <span class="op">=</span> b</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>    foo(<span class="dv">1</span>, <span class="st">&quot;hello&quot;</span>)</span></code></pre></div>
 <p>With the only difference that the former is of course more flexible
 in code structure, as <code>foo</code> can be used from more contexts.
 You may refer to both variables and members that are in scope in the
@@ -660,10 +762,11 @@ compile time or runtime.</p>
 <p>You can define these overloads anywhere, either as part of a class,
 or outside of them, regardless of whether you wrote the original class.
 For example:</p>
-<pre><code>def f(a::A): return 1
-def f(b::B): return 2
-def f(c::C): return 3
-def f(i:int): return 4</code></pre>
+<div class="sourceCode" id="cb32"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">f</span>(a::A): <span class="cf">return</span> <span class="dv">1</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">f</span>(b::B): <span class="cf">return</span> <span class="dv">2</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">f</span>(c::C): <span class="cf">return</span> <span class="dv">3</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">f</span>(i:<span class="dt">int</span>): <span class="cf">return</span> <span class="dv">4</span></span></code></pre></div>
 <p>(as we note above, using <code>::</code> instead of <code>:</code>
 merely means all fields of that type become directly available, saving
 you having to type <code>a.</code>, but is otherwise equivalent.)</p>
@@ -686,8 +789,9 @@ less calls result in dynamic dispatch than in other languages.</p>
 since they don't have a sub-class relation to any other type.</p>
 <p>Defining these functions can also be done "in line" in a class
 declaration, like so:</p>
-<pre><code>class A:
-    def f(): return 1</code></pre>
+<div class="sourceCode" id="cb33"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> A:</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">f</span>(): <span class="cf">return</span> <span class="dv">1</span></span></code></pre></div>
 <p>This definition of <code>f</code> for <code>A</code> is entirely
 equivalent to the one above, except the name of the first argument is
 now <code>this</code> instead of <code>a</code> above.</p>
@@ -707,28 +811,31 @@ specialization (see <a href="type_checker.html">type system</a>),
 meaning you can generate multiple versions of a polymorphic call that do
 different things. Simply leave out the type of any arguments beyond the
 first:</p>
-<pre><code>class A:
-    def g(c): return c + 1
-class B : A
-    def g(c): return c + 2
-x : A = B {}  // Type is A, but dynamic value is a B!
-assert x.g(&quot;hi&quot;) == &quot;hi2&quot;
-assert x.g(3) == 5</code></pre>
+<div class="sourceCode" id="cb34"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> A:</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">g</span>(c): <span class="cf">return</span> c <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> B : A</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">g</span>(c): <span class="cf">return</span> c <span class="op">+</span> <span class="dv">2</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>x : A <span class="op">=</span> B {}  <span class="co">// Type is A, but dynamic value is a B!</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a><span class="bu">assert</span> x.g(<span class="st">&quot;hi&quot;</span>) <span class="op">==</span> <span class="st">&quot;hi2&quot;</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a><span class="bu">assert</span> x.g(<span class="dv">3</span>) <span class="op">==</span> <span class="dv">5</span></span></code></pre></div>
 <p>Here, the call to <code>g</code> is dynamically dispatched for
 <code>A</code> or <code>B</code>, but choosing the <code>int</code> or
 <code>string</code> specialization is entirely static.</p>
 <p>You can force calling a superclass method with the <code>super</code>
 keyword:</p>
-<pre><code>class B : A
-    def f(): return 1 + super f()</code></pre>
+<div class="sourceCode" id="cb35"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> B : A</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">f</span>(): <span class="cf">return</span> <span class="dv">1</span> <span class="op">+</span> <span class="cf">super</span> f()</span></code></pre></div>
 <p>That <code>f()</code> is statically dispatched to call
 <code>A</code>'s version of <code>f</code> (or its superclass, if it
 doesn't have one).</p>
 <p>You can also "dynamic dispatch" with <code>switch</code> ! You can
 use class names as switch cases:</p>
-<pre><code>switch x:
-    case A: print x.field_in_a
-    case B: print x.field_in_b</code></pre>
+<div class="sourceCode" id="cb36"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="cf">switch</span> x:</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">case</span> A: <span class="bu">print</span> x.field_in_a</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">case</span> B: <span class="bu">print</span> x.field_in_b</span></code></pre></div>
 <p>As you can see, the type of variable switched on will be "upgraded"
 to the type matched, so you can access its fields.</p>
 <p>switches on types are "exhaustive", meaning if you don't use a
@@ -761,9 +868,10 @@ statically.</p>
 <p>Functions can even have default arguments, as long as the default
 arguments don't cause ambiguity with other functions of the same
 name:</p>
-<pre><code>def da(a:X, b, c = x + 1): return c
-def da(a:Y, b, c = x + 1): return c
-def da(a): return a</code></pre>
+<div class="sourceCode" id="cb37"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">da</span>(a:X, b, c <span class="op">=</span> x <span class="op">+</span> <span class="dv">1</span>): <span class="cf">return</span> c</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">da</span>(a:Y, b, c <span class="op">=</span> x <span class="op">+</span> <span class="dv">1</span>): <span class="cf">return</span> c</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">da</span>(a): <span class="cf">return</span> a</span></code></pre></div>
 <p>This defines 2 complete separate functions, one that has 3 arguments
 (and can be called with 2, since it has one default argument), and one
 with 1 argument. As you can see, since there is no overlap in number of
@@ -778,12 +886,13 @@ these default arguments, as long as they're in scope when called.</p>
 <p>You can overload what operators do on <code>class</code> and
 <code>struct</code> types, by writing a function that defines what the
 <code>operator</code> should do:</p>
-<pre><code>struct A:
-    x:int
-    def operator+(o:A): return A { x + o.x }
-    def operator-(): return A { -x }
-
-print - A { 2 } + A { 3 }  // A { 1 }</code></pre>
+<div class="sourceCode" id="cb38"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> A:</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>    x:<span class="dt">int</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">operator</span><span class="op">+</span>(o:A): <span class="cf">return</span> A { x <span class="op">+</span> o.x }</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">operator</span><span class="op">-</span>(): <span class="cf">return</span> A { <span class="op">-</span>x }</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> <span class="op">-</span> A { <span class="dv">2</span> } <span class="op">+</span> A { <span class="dv">3</span> }  <span class="co">// A { 1 }</span></span></code></pre></div>
 <p>You may currently overload: <code>+</code> <code>-</code>
 <code>*</code> <code>/</code> <code>%</code> <code>++</code>
 <code>--</code> <code>==</code> <code>!=</code> <code>&lt;</code>
@@ -812,20 +921,22 @@ and Class member variables with function scope.</h3>
 <p>You may declare a (what appears to be) a local variable with the
 <code>member</code> keyword instead of <code>let</code>, which
 automatically stores it in the surrounding class:</p>
-<pre><code>class Foo:
-    a = 1
-    def bar():
-        member b = 2
-        b += a
-        return b</code></pre>
+<div class="sourceCode" id="cb39"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Foo:</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>    a <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">bar</span>():</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>        <span class="kw">member</span> b <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>        b <span class="op">+=</span> a</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> b</span></code></pre></div>
 <p>Calling <code>bar</code> will give different results each time, it
 really is almost the same as writing:</p>
-<pre><code>class Foo:
-    a = 1
-    b = 2
-    def bar():
-        b += a
-        return b</code></pre>
+<div class="sourceCode" id="cb40"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Foo:</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>    a <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">bar</span>():</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>        b <span class="op">+=</span> a</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> b</span></code></pre></div>
 <p>The difference is that <code>b</code> is not available outside of
 <code>bar</code>, trying to access it will result in an error.</p>
 <p>But why would you want to do this, if it so similar? A small example
@@ -845,17 +956,19 @@ that is declared inside a class (not a struct), restrictions that may be
 lifted in the future.</p>
 <p>You can do the same for functions outside of classes with the keyword
 <code>static</code>:</p>
-<pre><code>let a = 1
-def bar():
-    static b = 2
-    b += a
-    return b</code></pre>
+<div class="sourceCode" id="cb41"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> a <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">bar</span>():</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">static</span> b <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>    b <span class="op">+=</span> a</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> b</span></code></pre></div>
 <p>Which again is pretty much the same as writing:</p>
-<pre><code>let a = 1
-var b = 2
-def bar():
-    b += a
-    return b</code></pre>
+<div class="sourceCode" id="cb42"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> a <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> b <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">bar</span>():</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    b <span class="op">+=</span> a</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> b</span></code></pre></div>
 <p>With again the main difference being that in the former,
 <code>b</code>'s scope is restricted to <code>bar</code>. This is not as
 useful as <code>member</code> because there is only ever one instance
@@ -869,18 +982,19 @@ variable. Or rather, their state is persisted as long as frames keep
 using the state. It's like "immediate mode", but for state. For example
 using <code>static_frame</code> (<code>member_frame</code> works the
 same other than where the variable is stored):</p>
-<pre><code>def foo():
-    static_frame b = 0
-    print b++
-
-gl.window(&quot;foo&quot;, 100, 100)
-while gl.frame():
-    static a = 0
-    a++
-    if a % 4:
-        foo()
-    else:
-        print &quot;/&quot;</code></pre>
+<div class="sourceCode" id="cb43"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">foo</span>():</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">static_frame</span> b <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span> b<span class="op">++</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a><span class="bu">gl.window</span>(<span class="st">&quot;foo&quot;</span>, <span class="dv">100</span>, <span class="dv">100</span>)</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="bu">gl.frame</span>():</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">static</span> a <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>    a<span class="op">++</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> a <span class="op">%</span> <span class="dv">4</span>:</span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>        foo()</span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span> <span class="st">&quot;/&quot;</span></span></code></pre></div>
 <p>This will print an endless sequence of
 <code>0 1 2 / 0 1 2 / 0 1 2 / ..</code> until you close the window. Why
 is this special? Notice that <code>foo</code> didn't need to be told
@@ -906,8 +1020,9 @@ want to do additional processing on the inputs where the mapping from
 inputs to fields in not 1:1.</p>
 <p>In that case you can declare a function with the keyword
 <code>constructor</code> instead of <code>def</code>:</p>
-<pre><code>constructor Foo(n:int):
-    return Foo { map(n): 0, map(n): 1 }</code></pre>
+<div class="sourceCode" id="cb44"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="kw">constructor</span> <span class="fu">Foo</span>(n:<span class="dt">int</span>):</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> Foo { <span class="cf">map</span>(n): <span class="dv">0</span>, <span class="cf">map</span>(n): <span class="dv">1</span> }</span></code></pre></div>
 <p>This function behaves like a normal function, except that it marks
 type <code>Foo</code> as having a constructor, and hence forth doesn't
 allow code outside of this function to be constructed using a plain
@@ -943,10 +1058,11 @@ anything -&gt; <code>string</code>)</p></li>
 <p>For more detail, see the <a href="type_checker.html">type
 system</a>.</p>
 <h2 id="enums">Enums</h2>
-<pre><code>enum example:
-    foo = 1
-    bar
-    baz</code></pre>
+<div class="sourceCode" id="cb45"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="kw">enum</span> example:</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>    foo <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>    bar</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    baz</span></code></pre></div>
 <p>An <code>enum</code> defines a "strongly typed alias" for the
 <code>int</code> type. What this means is that these values are fully
 compatible with <code>int</code> in any use, but a regular
@@ -969,9 +1085,10 @@ test all values of an enum (if there is no default case).</p>
 <h3 id="booleans">Booleans</h3>
 <p>A bool is not a built-in type, rather it is defined as an
 <code>enum</code> in <code>stdtype.lobster</code>:</p>
-<pre><code>enum bool:
-    false
-    true</code></pre>
+<div class="sourceCode" id="cb46"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="kw">enum</span> <span class="dt">bool</span>:</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>    <span class="cn">false</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>    <span class="cn">true</span></span></code></pre></div>
 <p>Because they are enums, they have the same typing rules: a
 <code>bool</code> can be used anywhere an <code>int</code> is expected,
 but not the other way around. Similarly, you can use e.g.
@@ -982,7 +1099,8 @@ expressions on separate lines, defined by a single file, the main file
 of your program. At this top level of a file, you can additionally use
 the <code>import</code> keyword to bring additional code into your
 program:</p>
-<pre><code>import std</code></pre>
+<div class="sourceCode" id="cb47"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> std</span></code></pre></div>
 <p>The contents of that file will be merged into your main file at the
 location of the <code>import</code> for the purpose of compilation. If
 you import the same file twice, the second occurrence will be
@@ -1020,13 +1138,14 @@ analysis" algorithm, details <a
 href="memory_management.html">here</a>.</p>
 <p>Reference counting has one problem, which is that it can't deallocate
 cycles. For example, this code:</p>
-<pre><code>class rec:
-    r:rec?
-
-var x = nil
-x = rec { nil }
-x.r = x
-x = nil</code></pre>
+<div class="sourceCode" id="cb48"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> rec:</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>    r:rec?</span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> x <span class="op">=</span> <span class="cn">nil</span></span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> rec { <span class="cn">nil</span> }</span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>x.r <span class="op">=</span> x</span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> <span class="cn">nil</span></span></code></pre></div>
 <p>will cause a memory leak, since initially the object that
 <code>x</code> points at has a reference count of 1, then that count
 increases to 2 because it now points to itself, and then when the count
@@ -1058,14 +1177,15 @@ specially by the language.</p>
 <h3 id="if">if</h3>
 <p><code>if</code> may be followed by multiple <code>elif</code> blocks
 and a single <code>else</code> block:</p>
-<pre><code>if a &lt; 0:
-    print &quot;negativity not allowed!&quot;
-elif a &lt; 10:
-    print &quot;single digit!&quot;
-elif a &lt; 100:
-    print &quot;double digit!&quot;
-else:
-    print &quot;way too big!&quot;</code></pre>
+<div class="sourceCode" id="cb49"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> a <span class="op">&lt;</span> <span class="dv">0</span>:</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span> <span class="st">&quot;negativity not allowed!&quot;</span></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="cf">elif</span> a <span class="op">&lt;</span> <span class="dv">10</span>:</span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span> <span class="st">&quot;single digit!&quot;</span></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a><span class="cf">elif</span> a <span class="op">&lt;</span> <span class="dv">100</span>:</span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span> <span class="st">&quot;double digit!&quot;</span></span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
+<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span> <span class="st">&quot;way too big!&quot;</span></span></code></pre></div>
 <p><code>elif</code> is simply short for writing <code>else: if</code>.
 You can also write these on a single line, which is only recommended
 when very short, e.g. <code>if a &lt; 0: 0 else: a</code></p>
@@ -1075,8 +1195,9 @@ arguments to the block: the element being iterated over, and iteration
 index.</p>
 <p>We can iterate over vectors (each element), strings (each byte), or
 integers (values 0..N-1):</p>
-<pre><code>for(&quot;hello&quot;) a, i:
-    print &quot;{i}: {a}&quot;</code></pre>
+<div class="sourceCode" id="cb50"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(<span class="st">&quot;hello&quot;</span>) a, i:</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span> <span class="st">&quot;{i}: {a}&quot;</span></span></code></pre></div>
 <p>Here <code>a</code> will contain the 5 characters and <code>i</code>
 will be just <code>0</code> to <code>4</code>.</p>
 <p>The module <code>std</code> contains further useful loop constructs
@@ -1085,14 +1206,16 @@ and <code>exists</code> etc.</p>
 <h3 id="while">while</h3>
 <p><code>while</code> is an odd function, since it is an exception to
 the rule of Lobster syntax:</p>
-<pre><code>while a &lt; 10: a++</code></pre>
+<div class="sourceCode" id="cb51"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> a <span class="op">&lt;</span> <span class="dv">10</span>: a<span class="op">++</span></span></code></pre></div>
 <p>That looks perfectly normal, but one thing should stand out: while
 takes not one, but 2 function values. Normally, in Lobster, this would
 make more sense:</p>
-<pre><code>while():
-    a &lt; 10
-do:
-    a++</code></pre>
+<div class="sourceCode" id="cb52"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span>():</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>    a <span class="op">&lt;</span> <span class="dv">10</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>do:</span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>    a<span class="op">++</span></span></code></pre></div>
 <p>but since people are so used to the way while loops work from other
 languages, the first argument has a special type that automatically
 converts an expression into a function value. When you think about it,
@@ -1121,13 +1244,14 @@ previous transform afterwards.</p>
 <h3 id="switch">switch</h3>
 <p><code>switch</code> has special syntax, since it does a lot of things
 different:</p>
-<pre><code>var st = switch i:
-        case 1: &quot;no&quot;
-        case 2, 3:
-            var x = i
-            &quot;yes{x}&quot;
-        case 4..6, 8: &quot;maybe&quot;
-        default: &quot;what?&quot;</code></pre>
+<div class="sourceCode" id="cb53"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> st <span class="op">=</span> <span class="cf">switch</span> i:</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> <span class="dv">1</span>: <span class="st">&quot;no&quot;</span></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> <span class="dv">2</span>, <span class="dv">3</span>:</span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>            <span class="kw">var</span> x <span class="op">=</span> i</span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;yes{x}&quot;</span></span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> <span class="fl">4..6</span>, <span class="dv">8</span>: <span class="st">&quot;maybe&quot;</span></span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">default</span>: <span class="st">&quot;what?&quot;</span></span></code></pre></div>
 <p>The value you switch on may be int, enum, float, string or class
 instance. Cases may test for multiple values, even ranges (which are
 inclusive). When testing for class instances, the cases are types which
@@ -1140,10 +1264,11 @@ not have a default case.</p>
 <code>exception.lobster</code> is built on ordinary control flow), so to
 handle such a value instead of dying on it, give the switch an
 <code>out_of_range</code> case:</p>
-<pre><code>var name = switch c:
-        case red: &quot;red&quot;
-        case green: &quot;green&quot;
-        out_of_range: &quot;unknown color {c}&quot;</code></pre>
+<div class="sourceCode" id="cb54"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> name <span class="op">=</span> <span class="cf">switch</span> c:</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> red: <span class="st">&quot;red&quot;</span></span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> green: <span class="st">&quot;green&quot;</span></span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">out_of_range</span>: <span class="st">&quot;unknown color {c}&quot;</span></span></code></pre></div>
 <p>It takes the exact place of that error, so it costs nothing, and it
 runs only for values that aren't in the enum definition. Unlike
 <code>default</code> it doesn't make the switch exhaustive: leaving out
@@ -1159,14 +1284,16 @@ in the switch, use <code>type_enum_value_valid</code>.</p>
 <h3 id="guard">guard</h3>
 <p><code>guard</code> is a special variant of <code>if</code> for
 writing code in "early-out" style:</p>
-<pre><code>guard a &gt;= 0:
-    print &quot;error: a is negative!&quot;
-imagine_10_lines_of_code_processing_a_here()</code></pre>
+<div class="sourceCode" id="cb55"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="cf">guard</span> a <span class="op">&gt;=</span> <span class="dv">0</span>:</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span> <span class="st">&quot;error: a is negative!&quot;</span></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>imagine_10_lines_of_code_processing_a_here()</span></code></pre></div>
 <p>Is equivalent to:</p>
-<pre><code>if a &gt;= 0:
-    imagine_10_lines_of_code_processing_a_here()
-else:
-    print &quot;error: a is negative!&quot;</code></pre>
+<div class="sourceCode" id="cb56"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> a <span class="op">&gt;=</span> <span class="dv">0</span>:</span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>    imagine_10_lines_of_code_processing_a_here()</span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span> <span class="st">&quot;error: a is negative!&quot;</span></span></code></pre></div>
 <p>Why would you want this over a traditional if-else? The idea that
 code becomes easier to read if it is written in a more linear style,
 dealing with all cases where the code does not apply first, before
@@ -1179,18 +1306,21 @@ the problem that it only works at the top level of a function.
 extra <code>return</code> statement.</p>
 <p>If there is no code to run in the error/exceptional case, you may
 even shorten it to:</p>
-<pre><code>guard a &gt;= 0
-imagine_10_lines_of_code_processing_a_here()</code></pre>
+<div class="sourceCode" id="cb57"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="cf">guard</span> a <span class="op">&gt;=</span> <span class="dv">0</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>imagine_10_lines_of_code_processing_a_here()</span></code></pre></div>
 <p>Is equivalent to:</p>
-<pre><code>if a &gt;= 0:
-    imagine_10_lines_of_code_processing_a_here()</code></pre>
+<div class="sourceCode" id="cb58"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> a <span class="op">&gt;=</span> <span class="dv">0</span>:</span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>    imagine_10_lines_of_code_processing_a_here()</span></code></pre></div>
 <p>That reads like an <code>assert</code> except instead of aborting the
 program, it skips the rest of the block.</p>
 <h3 id="assert">assert</h3>
 <p><code>assert</code> simply passes thru any expression, excepts halts
 the program with an error if the value is <code>nil</code> (or
 <code>0</code> / <code>0.0</code> / <code>false</code>):</p>
-<pre><code>let a = assert b</code></pre>
+<div class="sourceCode" id="cb59"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> a <span class="op">=</span> <span class="bu">assert</span> b</span></code></pre></div>
 <p><code>a</code> will always be assigned a non-nil value, or execution
 will never get there. <code>assert</code> also changes the type of value
 <code>b</code> from nillable to non-nillable for the current scope, so
@@ -1202,18 +1332,21 @@ you can use it in contexts that require a non-nil value.</p>
 assigned, then tested, and are only available inside the scope of the
 construct. As before, the type of the variable will always be
 non-nil.</p>
-<pre><code>if let a = maybe_nil():
-    // Here a is never nil.
-// Here a is not in scope.</code></pre>
+<div class="sourceCode" id="cb60"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">let</span> a <span class="op">=</span> maybe_nil():</span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Here a is never nil.</span></span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Here a is not in scope.</span></span></code></pre></div>
 <p>Which is similar to, but better than:</p>
-<pre><code>let a = maybe_nil()
-if a:
-    // Here a is never nil.
-// Here a is still in scope!</code></pre>
+<div class="sourceCode" id="cb61"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> a <span class="op">=</span> maybe_nil()</span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> a:</span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Here a is never nil.</span></span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Here a is still in scope!</span></span></code></pre></div>
 <p>To do this with multiple variables, just use <code>and</code>:</p>
-<pre><code>if let a = maybe_nil() and let b = also_maybe_nil():
-    // Here a and b are never nil.
-// Here a and b are not in scope.</code></pre>
+<div class="sourceCode" id="cb62"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">let</span> a <span class="op">=</span> maybe_nil() <span class="kw">and</span> <span class="kw">let</span> b <span class="op">=</span> also_maybe_nil():</span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Here a and b are never nil.</span></span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Here a and b are not in scope.</span></span></code></pre></div>
 <h2 id="modules-and-name-spaces">Modules and Name Spaces</h2>
 <p>A module is simply a single <code>.lobster</code> file, that can be
 imported into another using the <code>import</code> keyword. You can
@@ -1223,12 +1356,13 @@ compiled once.</p>
 cause it not be available to users of the module.</p>
 <p>Lobster has a namespacing mechanism that uses <code>.</code> for
 separating namespaces:</p>
-<pre><code>namespace foo
-
-class bar:
-    x = 1
-
-def baz(): return bar {}</code></pre>
+<div class="sourceCode" id="cb63"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="kw">namespace</span> foo</span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> bar:</span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">baz</span>(): <span class="cf">return</span> bar {}</span></code></pre></div>
 <p>Names <code>bar</code> and <code>baz</code> can be used as-is inside
 this module, but must be referred to as <code>foo.bar</code> and
 <code>foo.baz</code> outside of this module. Non-top level items like
@@ -1253,20 +1387,22 @@ triggers a lot of use of these types) only after all have been
 declared.</p>
 <p>This is not always possible, so there are ways to declare things
 ahead of definition, for example:</p>
-<pre><code>class Monster</code></pre>
+<div class="sourceCode" id="cb64"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Monster</span></code></pre></div>
 <p>(note the lack of <code>:</code> introducing the definition)
 pre-declares this type, so it can be referred to by types defined before
 <code>Monster</code> is finally defined. This allows for circular
 dependencies.</p>
 <p>Similarly, you may declare variables before you define them:</p>
-<pre><code>class World
-var world:World
-
-// Lots of types that may want to access `world` as a global in their methods goes here.
-// Then finally `World` gets defined based on the earlier types.
-
-var world:World = World {}
-world.init()</code></pre>
+<div class="sourceCode" id="cb65"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> World</span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> world:World</span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Lots of types that may want to access `world` as a global in their methods goes here.</span></span>
+<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a><span class="co">// Then finally `World` gets defined based on the earlier types.</span></span>
+<span id="cb65-6"><a href="#cb65-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-7"><a href="#cb65-7" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> world:World <span class="op">=</span> World {}</span>
+<span id="cb65-8"><a href="#cb65-8" aria-hidden="true" tabindex="-1"></a>world.init()</span></code></pre></div>
 <p>It is an error to access <code>world</code> by code in between its
 declaration and definition. Typically, all code accessing
 <code>world</code> in any methods in between only gets called below, so
@@ -1282,14 +1418,16 @@ reference</a>.</p>
 string conversion inline in the string, instead of endless amounts of
 <code>" + "</code> separators, which tends to be less readable for
 longer sequences.</p>
-<pre><code>&quot;a = {a} and b = {b}&quot;  // Same as: &quot;a = &quot; + a + &quot; and b = &quot; + b
-&quot;a = {f(a) + 1}&quot;       // Same as: &quot;a = &quot; + (f(a) + 1)
-&quot;{a}&quot;                  // Same as: string(a)</code></pre>
+<div class="sourceCode" id="cb66"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;a = {a} and b = {b}&quot;</span>  <span class="co">// Same as: &quot;a = &quot; + a + &quot; and b = &quot; + b</span></span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;a = {f(a) + 1}&quot;</span>       <span class="co">// Same as: &quot;a = &quot; + (f(a) + 1)</span></span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;{a}&quot;</span>                  <span class="co">// Same as: string(a)</span></span></code></pre></div>
 <p>Because of this feature, if you actually want to put <code>{</code>
 or <code>}</code> in a string constant, they must be escaped (by using 2
 of them, or prefixing with a <code>\</code>), e.g.</p>
-<pre><code>let a = 42
-print &quot;\{ {a} \}&quot;  // Prints: &quot;{ 42 }&quot;</code></pre>
+<div class="sourceCode" id="cb67"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> a <span class="op">=</span> <span class="dv">42</span></span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> <span class="st">&quot;</span><span class="sc">\{</span><span class="st"> {a} </span><span class="sc">\}</span><span class="st">&quot;</span>  <span class="co">// Prints: &quot;{ 42 }&quot;</span></span></code></pre></div>
 <h2 id="multi-threading">Multi-threading</h2>
 <p>Lobster has built-in multi-threading functionality, that is in its
 early stages.</p>
