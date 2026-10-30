@@ -10,6 +10,9 @@ import { LobsterSettings } from './lsp';
 import { parseMessages } from './lobster';
 import { Programs } from './program';
 import { findNative } from './natives';
+import { ProgramIndex } from './index';
+import { locationsOf } from './features/references';
+import * as fs from 'fs';
 
 const settings: LobsterSettings = {
 	executable: path.join('..', '..', 'bin', 'lobster'),
@@ -18,11 +21,11 @@ const settings: LobsterSettings = {
 };
 
 console.log("Parsing valid.lobster");
-parseLobster(settings, 'testFixture/valid.lobster')
+parseLobster(settings, 'testFixture/valid.lobster', path.resolve('out', 'valid-index.json'))
 	.then(result => assert(result.messages.length == 0 && result.other == ""));
 
 console.log("Parsing invalid.lobster");
-parseLobster(settings, 'testFixture/invalid.lobster')
+parseLobster(settings, 'testFixture/invalid.lobster', path.resolve('out', 'invalid-index.json'))
 	.then(({ messages: result }) => {
 		assert(result.length == 2, "Incorrect amount of errors?", result);
 
@@ -97,12 +100,12 @@ console.log("Finding programs");
 	assert(found.length == 1 && found[0].main == path.resolve('testFixture/program/main.lobster'),
 		"Not found as part of its program?", found.map(p => p.main));
 	assert(found[0].files.get(helper) == "sub/helper.lobster", "Incorrect name?", found[0].files);
-	parseLobster(settings, found[0].main)
+	parseLobster(settings, found[0].main, path.resolve('out', 'program-index.json'))
 		.then(result => assert(result.messages.length == 0 && result.other == "",
 			"Program doesn't compile?", result));
 	const editing = new Programs(file => file == helper ? "def helper(): return shared + 2\n" : undefined);
 	const staged = editing.stage(found[0], path.resolve('out', 'staged'));
-	parseLobster(settings, staged.main, staged)
+	parseLobster(settings, staged.main, path.resolve('out', 'staged-index.json'), staged)
 		.then(result => assert(result.messages.length == 0 && result.other == "",
 			"Staged program doesn't compile?", result));
 	queryDefinition(settings, staged.main, 'sub/helper.lobster', 0, 'shared', staged)
@@ -115,4 +118,20 @@ console.log("Finding builtins");
 	const location = findNative(path.resolve('..', '..'), 'gl.window');
 	assert(location?.file.endsWith(path.join('dev', 'src', 'graphics.cpp')), "Not found?", location);
 	assert(findNative(path.resolve('..', '..'), 'print')?.file.endsWith('builtins.cpp'), "Not found?");
+}
+
+console.log("Finding references");
+{
+	const file = path.resolve('testFixture/references.lobster');
+	const indexFile = path.resolve('out', 'references-index.json');
+	parseLobster(settings, file, indexFile).then(() => {
+		const programIndex = ProgramIndex.read(indexFile, name => path.resolve('testFixture', name))!;
+		const lines = (f: string) => fs.readFileSync(f, 'utf8').split('\n');
+		const at = (kind: string, name: string) =>
+			locationsOf(programIndex.defs.find(d => d.kind == kind && d.name == name)!, [programIndex], lines)
+				.map(l => `${l.location.range.start.line}:${l.location.range.start.character}`);
+		assert(at('field', 'count').join() == "1:4,3:8,11:8", "Field uses?", at('field', 'count'));
+		assert(at('enumval', 'green').join() == "7:4,12:6", "Enum value uses?", at('enumval', 'green'));
+		assert(at('function', 'bump').join() == "2:8,10:2", "Method uses?", at('function', 'bump'));
+	});
 }

@@ -113,10 +113,11 @@ export function parseMessages(input: string): LobsterMessage[] {
     return output;
 }
 
-// Compiles `main`.
+// Compiles `main`, writing its index (see index.ts) to `index`.
 export async function parseLobster(
     settings: LobsterSettings,
     main: string,
+    index: string,
     run: LobsterRun = {}
 ): Promise<LobsterOutput> {
     return new Promise(back => callLobster(
@@ -129,6 +130,7 @@ export async function parseLobster(
         "--errors", "99",
         "--compile-only",
         "--warn-unused",
+        "--index", index,
         main
     ));
 }

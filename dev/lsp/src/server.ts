@@ -53,6 +53,8 @@ connection.onInitialize((params: InitializeParams) => {
 			completionProvider: {
 				resolveProvider: false
 			},
+			referencesProvider: true,
+			renameProvider: { prepareProvider: true },
 
 			codeActionProvider: hasCodeActionLiteralSupportCapability,
 			definitionProvider: true,
@@ -103,11 +105,13 @@ import registerCodeAction from './features/code_action';
 import registerCompletion from './features/completion';
 import registerDefinition from './features/definition';
 import registerHover from './features/hover';
+import registerReferences from './features/references';
 
 registerCodeAction(instance);
 registerCompletion(instance);
 registerDefinition(instance);
 registerHover(instance);
+registerReferences(instance);
 
 // Listen on the connection
 connection.listen();

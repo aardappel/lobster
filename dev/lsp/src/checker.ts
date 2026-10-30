@@ -1,15 +1,19 @@
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
+import * as fs from 'fs';
 import * as path from 'path';
 import { toDiagnostics } from "./diagnostics";
+import { ProgramIndex } from "./index";
 import { QueryDefinitionResult, parseLobster, queryDefinition } from "./lobster";
 import { LobsterSettings } from "./lsp";
 import { Program, Programs } from "./program";
 import { memo } from "./utils";
 
-// What a program last compiled said: its diagnostics, by file.
+// What a program last compiled said: its diagnostics, by file, and its definitions and their
+// uses, from the last compile that got far enough to write them.
 interface Compiled {
     program: Program,
-    diagnostics: Map<string, Diagnostic[]>
+    diagnostics: Map<string, Diagnostic[]>,
+    index?: ProgramIndex
 }
 
 // The same diagnostic, from different programs.
@@ -80,6 +84,13 @@ export class Checker {
         });
     }
 
+    // The indexes of the programs a file is part of.
+    indexesFor(file: string): ProgramIndex[] {
+        const indexes: ProgramIndex[] = [];
+        for (const { index } of this.compiled.values()) if (index?.files.has(file)) indexes.push(index);
+        return indexes;
+    }
+
     // Moves what was said about a file along with an edit that replaced its lines `start` to `end`
     // with ones with `added` line breaks, dropping the diagnostics on lines it removed.
     shift(file: string, start: number, end: number, added: number) {
@@ -87,7 +98,8 @@ export class Checker {
         if (!delta) return;
         const removed = (line: number) => delta < 0 && start < line && line <= end;
         const move = (line: number) => line <= start ? line : removed(line) ? start : line + delta;
-        for (const { diagnostics } of this.compiled.values()) {
+        for (const { diagnostics, index } of this.compiled.values()) {
+            index?.shift(file, move);
             const old = diagnostics.get(file);
             if (!old) continue;
             diagnostics.set(file, old.filter(d => !removed(d.range.start.line)).map(d => ({
@@ -113,7 +125,9 @@ export class Checker {
 
     private async compile(program: Program, settings: LobsterSettings) {
         const staged = this.programs.stage(program, this.tempDir);
-        const output = await parseLobster(settings, staged.main, staged);
+        const indexFile = path.join(this.tempDir, `index-${program.main.replace(/\W/g, '_')}.json`);
+        fs.rmSync(indexFile, { force: true });
+        const output = await parseLobster(settings, staged.main, indexFile, staged);
         const locate = (name: string) =>
             staged.real(this.programs.locate(program, name) ?? path.join(staged.cwd, name));
         const diagnostics = toDiagnostics(output, program, locate, memo(file => this.programs.lines(file)));
@@ -121,7 +135,8 @@ export class Checker {
         if (output.other || output.messages.some(m => m.severity == DiagnosticSeverity.Error)) {
             keepWarnings(diagnostics, before?.diagnostics ?? new Map());
         }
-        this.compiled.set(program.main, { program, diagnostics });
+        const index = ProgramIndex.read(indexFile, locate) ?? before?.index;
+        this.compiled.set(program.main, { program, diagnostics, index });
         for (const file of new Set([...before?.diagnostics.keys() ?? [], ...diagnostics.keys()])) {
             this.publish(file);
         }

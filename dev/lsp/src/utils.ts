@@ -123,3 +123,13 @@ function afterDot(text: string, start: number): boolean {
 	while (k >= 0 && (text[k] == ' ' || text[k] == '\t')) k--;
 	return k >= 0 && text[k] == '.' && text[k - 1] != '.';
 }
+
+// The identifier at `character` in `text`, with its columns and whether a dot precedes it.
+export function wordAt(text: string, character: number):
+	{ word: string, start: number, end: number, dot: boolean } | undefined {
+	let start = character, end = character;
+	while (start > 0 && WORD.test(text[start - 1])) start--;
+	while (end < text.length && WORD.test(text[end])) end++;
+	if (start == end || /[0-9]/.test(text[start])) return undefined;
+	return { word: text.substring(start, end), start, end, dot: afterDot(text, start) };
+}
