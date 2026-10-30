@@ -1,6 +1,4 @@
 import {
-	Diagnostic,
-	DiagnosticSeverity,
 	DocumentUri,
 	Position,
 	Range,
@@ -10,10 +8,6 @@ import {
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { URI } from 'vscode-uri';
 import { mergeSort } from './utils';
-import * as path from 'path';
-import * as fs from 'fs';
-import { parseLobster } from './lobster';
-import { LSPInstance } from './lsp';
 
 
 // Based of https://github.com/microsoft/vscode-languageserver-node/blob/main/textDocument/src/main.ts
@@ -33,7 +27,6 @@ export class LobsterDocument implements TextDocument {
 	private _content: string;
 	private _lineOffsets: number[] | undefined;
 	private _state: LobsterDocumentState = LobsterDocumentState.NoErrors;
-	private _relative: string | undefined;
 
 	public constructor(uri: URI, languageId: string, version: number, content: string) {
 		this._uri = uri;
@@ -59,6 +52,10 @@ export class LobsterDocument implements TextDocument {
 		return this._state;
 	}
 
+	public set state(state: LobsterDocumentState) {
+		this._state = state;
+	}
+
 	public getText(range?: Range): string {
 		if (range) {
 			const start = this.offsetAt(range.start);
@@ -66,93 +63,6 @@ export class LobsterDocument implements TextDocument {
 			return this._content.substring(start, end);
 		}
 		return this._content;
-	}
-
-	public async getRelative(lsp: LSPInstance): Promise<string> {
-		if (this._relative) return this._relative;
-
-		const folders = await lsp.getWorkspaceFolders();
-		const folder = folders?.filter(
-			(folder) => this._uri.fsPath.startsWith(URI.parse(folder.uri).fsPath)
-		)[0];
-
-		return this._relative = path.relative(
-			URI.parse(folder?.uri || '').fsPath,
-			this._uri.fsPath
-		);
-	}
-
-	public async writeToTmp(lsp: LSPInstance): Promise<string> {
-		if (lsp.errored()) throw "LSP has errored";
-
-		const relative = await this.getRelative(lsp);
-		const join = path.join(lsp.tempDir, relative);
-		const reldir = path.parse(relative).dir;
-
-		if (reldir.length != 0) {
-			await new Promise(
-				(resolve, fail) => fs.mkdir(path.join(lsp.tempDir, reldir), { recursive: true },
-					(err, path) => {
-						if (err) {
-							console.error(err);
-							fail(err);
-						} else {
-							resolve(path);
-						}
-					})
-			);
-		}
-
-		await new Promise((resolve, fail) => {
-			fs.open(join, 'w', (err, fd) => {
-				if (err) {
-					fail(err);
-					return;
-				} else {
-					fs.writeFile(fd, this._content, (err) => {
-						if (err) {
-							fs.close(fd, (err) => err && console.error(err));
-							fail(err);
-							return;
-						} else {
-							fs.close(fd, (err) => {
-								if (err) {
-									fail(err);
-									return;
-								} else {
-									resolve(null);
-								}
-							});
-						}
-					});
-				}
-			});
-		});
-
-		return join;
-	}
-
-	public async parse(lsp: LSPInstance|undefined): Promise<Diagnostic[] | null> {
-        if(lsp == undefined) { //Not ready
-            return null;
-        }
-		const settings = await lsp.getDocumentSettings(this._uri);
-		if (lsp.errored()) return [];
-
-		const temp = await this.writeToTmp(lsp);
-		const result = await parseLobster(settings, temp);
-
-		this._state = LobsterDocumentState.NoErrors;
-		result.forEach((diag) => {
-			if (diag.severity === DiagnosticSeverity.Warning &&
-				this._state === LobsterDocumentState.NoErrors) {
-				this._state = LobsterDocumentState.HasWarnings;
-			} else if (diag.severity === DiagnosticSeverity.Error) {
-				this._state = LobsterDocumentState.HasErrors;
-			}
-		});
-
-		return result;
 	}
 
 	public update(changes: TextDocumentContentChangeEvent[], version: number): void {

@@ -29,6 +29,13 @@ export function markupSignature(signature: LobsterSignature): MarkupContent {
 	throw new Error("Unknown signature type");
 }
 
+// What `map` has for `key`, set to `make()` first if it has nothing.
+export function getOrSet<K, V>(map: Map<K, V>, key: K, make: () => V): V {
+	let value = map.get(key);
+	if (value === undefined) map.set(key, value = make());
+	return value;
+}
+
 export function mergeSort<T>(data: T[], compare: (a: T, b: T) => number): T[] {
 	if (data.length <= 1) {
 		// sorted

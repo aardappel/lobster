@@ -95,8 +95,8 @@ connection.onDidChangeConfiguration(change => {
 
 
 connection.onDidChangeWatchedFiles(_change => {
-	// Monitored files have change in VSCode
-	connection.console.log('We received an file change event');
+	// Files created or deleted may change what imports what.
+	instance.programs.rescan();
 });
 
 import registerCodeAction from './features/code_action';
