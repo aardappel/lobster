@@ -81,6 +81,7 @@ code, tt, kbd {
 }
 
 :not(pre) > code, tt {
+  overflow-wrap: anywhere;
   background: var(--inline-code-bg);
   padding: 2px 6px;
   border-radius: 5px;
@@ -106,7 +107,7 @@ pre code {
 /* Syntax colours for ~~~~ {.lobster} blocks (Pandoc + source/lobster.xml) */
 
 div.sourceCode { margin: 0 0 16px; overflow: visible; }
-pre.sourceCode { margin: 0; }
+pre.sourceCode { margin: 0; overflow-x: auto; }
 pre > code.sourceCode > span { line-height: inherit; }
 pre code span.kw, pre code span.cf { color: #f08a6e; font-weight: normal; }
 pre code span.dt { color: #8fd0c8; }
