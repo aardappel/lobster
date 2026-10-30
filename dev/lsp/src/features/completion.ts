@@ -4,12 +4,14 @@ import {
   CompletionItem,
   CompletionItemKind,
   Range,
-  Position
+  Position,
+  MarkupKind
 } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import { Def, ProgramIndex, shortName } from "../index";
 import { LobsterFunctionSignature, parseDefinition } from "../lobster";
 import { LSPInstance } from "../lsp";
+import { docComment, memo } from "../utils";
 const isAlphaNumeric = (str: string) => /^[a-z0-9]*$/gi.test(str);
 
 export default function setupFeature(lsp: LSPInstance) {
@@ -44,7 +46,8 @@ export default function setupFeature(lsp: LSPInstance) {
         });
 
       const file = URI.parse(document.uri).fsPath;
-      items.push(...programItems(lsp.checker.indexesFor(file), file, _textDocumentPosition.position, tgtText));
+      items.push(...programItems(lsp.checker.indexesFor(file), file, _textDocumentPosition.position, tgtText,
+                                 memo(f => lsp.programs.lines(f))));
       return CompletionList.create(items, true);
     },
   );
@@ -73,8 +76,10 @@ function ownerOf(def: Def): string | undefined {
 
 // What the programs a file is part of declare that fits `typed`, the text before `position`:
 // after a dot the fields and methods of the variable before it (all of them if its type isn't
-// known), otherwise the variables in scope and everything declared outside functions.
-function programItems(indexes: ProgramIndex[], file: string, position: Position, typed: string): CompletionItem[] {
+// known), otherwise the variables in scope and everything declared outside functions. Functions
+// are described by the comment above them in `lines`.
+function programItems(indexes: ProgramIndex[], file: string, position: Position, typed: string,
+                      lines: (file: string) => string[]): CompletionItem[] {
   const dot = typed.lastIndexOf('.');
   const prefix = typed.substring(dot + 1);
   const range = Range.create({ line: position.line, character: position.character - prefix.length }, position);
@@ -82,10 +87,12 @@ function programItems(indexes: ProgramIndex[], file: string, position: Position,
   const add = (def: Def, label = shortName(def)) => {
     const key = `${label} ${def.kind}`;
     if (!label.startsWith(prefix) || items.has(key)) return;
+    const doc = def.kind == "function" ? docComment(lines(def.file), def.line) : undefined;
     items.set(key, {
       label,
       kind: def.kind == "function" && dot >= 0 ? CompletionItemKind.Method : kinds[def.kind],
       labelDetails: { detail: def.type && " " + def.type },
+      documentation: doc && { kind: MarkupKind.Markdown, value: doc },
       textEdit: { range, newText: label + (def.kind == "function" ? "(" : "") }
     });
   };

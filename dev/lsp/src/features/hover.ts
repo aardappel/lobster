@@ -1,6 +1,6 @@
 import { URI } from "vscode-uri";
 import { LSPInstance } from "../lsp";
-import { getWordOnCursor, markupSignature } from "../utils";
+import { docComment, getWordOnCursor, markupSignature } from "../utils";
 import { LobsterSignature } from "../lobster";
 import { uinteger } from "vscode-languageserver";
 
@@ -28,8 +28,13 @@ export default function setupFeature(lsp: LSPInstance) {
           result.signature ?? lsp.getFunctionSignature(word);
 
         if (signature) {
+          // Functions are described by the comment above their def, builtins by their docs.
+          const location = result.declartionLocation;
+          const doc = location
+            ? docComment(lsp.programs.lines(location.file), location.line)
+            : lsp.builtinsDoc.find((d) => d.funcname == signature.name)?.doc;
           return {
-            contents: markupSignature(signature),
+            contents: markupSignature(signature, doc),
             range: {
               start: {
                 line: params.position.line,

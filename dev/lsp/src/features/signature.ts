@@ -1,9 +1,9 @@
-import { ParameterInformation, SignatureHelp, SignatureInformation } from "vscode-languageserver";
+import { MarkupKind, ParameterInformation, SignatureHelp, SignatureInformation } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import { shortName } from "../index";
 import { splitList } from "../lobster";
 import { LSPInstance } from "../lsp";
-import { codeLength } from "../utils";
+import { codeLength, docComment, memo } from "../utils";
 
 // The name a call before its `(` is made with, as in `f`, `x.f` or `f<int>`.
 const CALLEE = /([A-Za-z_][A-Za-z0-9_.]*)\s*(?:<[^<>()]*>)?$/;
@@ -56,22 +56,27 @@ export default function setupFeature(lsp: LSPInstance) {
         if (!name) return null;
         const word = name.substring(name.lastIndexOf('.') + 1);
 
-        const labels = new Set<string>();
+        // Each signature, with what describes it.
+        const labels = new Map<string, string | undefined>();
         const file = URI.parse(params.textDocument.uri).fsPath;
         const indexes = lsp.checker.indexesFor(file);
+        const lines = memo(f => lsp.programs.lines(f));
         for (const index of indexes) {
             for (const def of index.defs) {
-                if (def.kind == "function" && shortName(def) == word) labels.add(def.type!);
+                if (def.kind == "function" && shortName(def) == word && !labels.has(def.type!)) {
+                    labels.set(def.type!, docComment(lines(def.file), def.line));
+                }
             }
         }
         for (const doc of lsp.builtinsDoc) {
             if (doc.funcname == name || doc.funcname == word) {
                 const args = doc.args.map(a => a.type ? `${a.name}:${a.type}` : a.name).join(", ");
                 const returns = doc.returns?.length ? " -> " + doc.returns.join(", ") : "";
-                labels.add(`${doc.funcname}(${args})${returns}`);
+                labels.set(`${doc.funcname}(${args})${returns}`, doc.doc);
             }
         }
-        const signatures = [...labels].map(signature);
+        const signatures = [...labels].map(([label, doc]) =>
+            ({ ...signature(label), documentation: doc && { kind: MarkupKind.Markdown, value: doc } }));
         if (!signatures.length) return null;
         // `x.f(a)` passes x as the first argument, unless x is a namespace.
         const namespaced = lsp.builtinsDoc.some(d => d.funcname == name) ||

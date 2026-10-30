@@ -13,6 +13,7 @@ import { findNative } from './natives';
 import { ProgramIndex } from './index';
 import { locationsOf } from './features/references';
 import * as fs from 'fs';
+import { docComment } from './utils';
 
 const settings: LobsterSettings = {
 	executable: path.join('..', '..', 'bin', 'lobster'),
@@ -134,4 +135,24 @@ console.log("Finding references");
 		assert(at('enumval', 'green').join() == "7:4,12:6", "Enum value uses?", at('enumval', 'green'));
 		assert(at('function', 'bump').join() == "2:8,10:2", "Method uses?", at('function', 'bump'));
 	});
+}
+
+console.log("Reading doc comments");
+{
+	const lines = fs.readFileSync('testFixture/doc.lobster', 'utf8').split(/\r?\n/);
+	const expected: [number, string, string | undefined][] = [
+		[18, 'inc', "Returns x plus one.\nNever less."],
+		[19, 'count', "The count so far."],
+		[20, 'hidden', "Only for this file."],
+		[21, 'bare', undefined],
+	];
+	for (const [line, name, doc] of expected) {
+		queryDefinition(settings, 'testFixture/doc.lobster', 'doc.lobster', line, name)
+			.then(result => {
+				const location = result.declartionLocation;
+				assert(location, "No declaration location?", name, result);
+				const found = location && docComment(lines, location.line);
+				assert(found == doc, "Incorrect doc comment?", name, found);
+			});
+	}
 }

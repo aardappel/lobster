@@ -12,21 +12,26 @@ export function getWordOnCursor(text: string, character: number): [string | null
 	];
 }
 
-export function markupSignature(signature: LobsterSignature): MarkupContent {
-	if ('parameters' in signature) return {
-		kind: MarkupKind.PlainText,
-		value:
-			signature.name +
+// A signature as code, with what describes it (markdown) under it.
+export function markupSignature(signature: LobsterSignature, doc?: string): MarkupContent {
+	const value = 'parameters' in signature
+		? signature.name +
 			'(' + signature.parameters.map(p => `${p.name}: ${p.type}`).join(', ') + ')' +
 			(signature.returns ? " -> " + signature.returns.join(", ") : "")
+		: signature.name + ': ' + signature.type;
+	return {
+		kind: MarkupKind.Markdown,
+		value: '```lobster\n' + value + '\n```' + (doc ? '\n\n' + doc : '')
 	};
+}
 
-	if ('type' in signature) return {
-		kind: MarkupKind.PlainText,
-		value: signature.name + ': ' + signature.type
-	};
-
-	throw new Error("Unknown signature type");
+// What the definition at `line` of `lines` is described with: the `//` lines directly above it,
+// as in Go, without their `//`.
+export function docComment(lines: string[], line: number): string | undefined {
+	let start = line;
+	while (start > 0 && lines[start - 1]?.trimStart().startsWith('//')) start--;
+	if (start == line) return undefined;
+	return lines.slice(start, line).map(l => l.trimStart().replace(/^\/\/ ?/, '')).join('\n');
 }
 
 // What `map` has for `key`, set to `make()` first if it has nothing.
