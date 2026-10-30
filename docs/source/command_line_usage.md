@@ -84,6 +84,10 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
     of the program's own files (not those found in a `modules/` directory) that nothing in the
     program uses. Unused local variables are always warned about.
 
+-   `--index FILE` : write the program's definitions (functions, variables, types, fields,
+    enums) and where each is used to `FILE`, as JSON, for editors. It is written even when
+    the program has errors. The format is described in `dev/src/lobster/index.h`.
+
 -   `--full-error` : Lobster is able to generate _compile time stack traces_ when
     the typechecker fails, but those can get long, so by default they get truncated,
     and only shown for the first error.

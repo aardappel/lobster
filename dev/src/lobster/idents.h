@@ -171,6 +171,7 @@ struct EnumVal : Named {
     bool isprivate = false;
     int64_t val = 0;
     Enum *e = nullptr;
+    Line line { 0, 0 };
 
     EnumVal(string_view _name, int _idx) : Named(_name, _idx) {}
 };

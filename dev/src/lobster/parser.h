@@ -436,6 +436,7 @@ struct Parser {
                     // A line holds one or more values.
                     do {
                         auto evname = st.MaybeMakeNameSpace(ExpectId(), true);
+                        Line evline = lex;
                         if (IsNext(T_ASSIGN)) {
                             auto e = ParseExp();
                             VTValue val;
@@ -450,6 +451,7 @@ struct Parser {
                         ev->isprivate = isprivate;
                         ev->val = cur;
                         ev->e = def;
+                        ev->line = evline;
                         for (auto &prev : def->vals) {
                             if (prev->val == cur) {
                                 Error("enum value ", Q(evname), " has the same value as ",

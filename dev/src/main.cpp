@@ -138,7 +138,9 @@ int main(int argc, char* argv[]) {
             "--query QUERY_ARGS      Queries about definitions in the program being compiled.\n"
             "--errors N              Output up to N errors (default 10).\n"
             "--warn-unused           Also warn about functions, globals and imports of the\n"
-            "                        program's own files (not modules/) that nothing uses.\n";
+            "                        program's own files (not modules/) that nothing uses.\n"
+            "--index FILE            Write the program's definitions and their uses to FILE\n"
+            "                        as JSON, for editors.\n";
             int arg = 1;
         for (; arg < argc; arg++) {
             if (argv[arg][0] == '-') {
@@ -205,6 +207,10 @@ int main(int argc, char* argv[]) {
                 } else if (a == "--") {
                     arg++;
                     break;
+                } else if (a == "--index") {
+                    arg++;
+                    if (arg >= argc) THROW_OR_ABORT("missing index file");
+                    opts.index_file = argv[arg];
                 } else if (a == "--errors") {
                     arg++;
                     if (arg >= argc) THROW_OR_ABORT("missing error count");

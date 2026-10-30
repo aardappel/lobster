@@ -30,6 +30,7 @@
 #include "lobster/optimizer.h"
 #include "lobster/tonative.h"
 #include "lobster/codegen.h"
+#include "lobster/index.h"
 
 namespace lobster {
 
@@ -340,6 +341,10 @@ string Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
         if (!tc.ProcessQuery()) return "query_unknown_ident: " + opts.query->iden;
         return tc.query_result;
     }
+    // Written despite errors, which the typechecker recovers from.
+    if (!opts.index_file.empty() &&
+        !WriteFile(opts.index_file, false, Indexer(st, filenames).Index(), true))
+        return cat("cannot write index: ", opts.index_file);
     // The typechecker leaves placeholders in the tree that the passes after it can't work
     // with (see TypeChecker::Error), so those never run with errors.
     if (lex.num_errors) return lex.errors;
