@@ -21,11 +21,82 @@
       vertical-align: middle;
     }
     .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
   </style>
   <link rel="stylesheet" href="github.css" />
   <link rel="icon" type="image/svg" href="lobster.svg" />
 </head>
 <body>
+<nav class="topnav">
+<a class="topnav-home" href="README_FIRST.html"><img src="lobster.svg" width="24" height="24" alt="" />Lobster</a>
+<a href="getting_started.html">Getting started</a>
+<a href="language_reference.html">Reference</a>
+<a href="builtin_functions_reference.html">Builtins</a>
+<a href="https://github.com/aardappel/lobster">GitHub</a>
+</nav>
 <header id="title-block-header">
 <h1 class="title">Learn Lobster: Let's create a 2D shooter!</h1>
 </header>
@@ -46,14 +117,15 @@ help.</p>
 like this:</p>
 <p><img src="screenshots/shooter/tut1.jpg" /></p>
 <p>Impressively... empty.</p>
-<pre><code>import vec
-import color
-import gl
-
-fatal(gl.window(&quot;Shooter Tutorial&quot;, 640, 480))
-
-while gl.frame() and gl.button(&quot;escape&quot;) != 1:
-    gl.clear(color_black)</code></pre>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> vec</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">color</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> gl</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="bu">fatal</span>(<span class="bu">gl.window</span>(<span class="st">&quot;Shooter Tutorial&quot;</span>, <span class="dv">640</span>, <span class="dv">480</span>))</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="bu">gl.frame</span>() <span class="kw">and</span> <span class="bu">gl.button</span>(<span class="st">&quot;escape&quot;</span>) <span class="op">!=</span> <span class="dv">1</span>:</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.clear</span>(<span class="cn">color_black</span>)</span></code></pre></div>
 <p><code>gl.window</code> is our graphics initialization routine, and is
 the first thing we need to do before we can access any other graphics
 functionality. We specify a title and a size, though note that these are
@@ -87,21 +159,22 @@ where and how we want to draw:</p>
 <p><img src="screenshots/shooter/tut2.jpg" /></p>
 <p>Look at that! This is starting to look impressive! Check out those
 polygons!</p>
-<pre><code>import std
-import vec
-import color
-import gl
-
-fatal(gl.window(&quot;Shooter Tutorial&quot;, 640, 480))
-
-let worldsize = 20.0
-
-while gl.frame() and gl.button(&quot;escape&quot;) != 1:
-    gl.clear(color_black)
-    gl.color(color_white)
-    gl.translate(float(gl.window_size()) / 2.0)
-    gl.scale(gl.window_size().y / worldsize)
-    gl.circle(1.0, 6)</code></pre>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> std</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> vec</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">color</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> gl</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="bu">fatal</span>(<span class="bu">gl.window</span>(<span class="st">&quot;Shooter Tutorial&quot;</span>, <span class="dv">640</span>, <span class="dv">480</span>))</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> worldsize <span class="op">=</span> <span class="fl">20.0</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="bu">gl.frame</span>() <span class="kw">and</span> <span class="bu">gl.button</span>(<span class="st">&quot;escape&quot;</span>) <span class="op">!=</span> <span class="dv">1</span>:</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.clear</span>(<span class="cn">color_black</span>)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.color</span>(<span class="cn">color_white</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.translate</span>(<span class="dt">float</span>(<span class="bu">gl.window_size</span>()) <span class="op">/</span> <span class="fl">2.0</span>)</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.scale</span>(<span class="bu">gl.window_size</span>().y <span class="op">/</span> worldsize)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.circle</span>(<span class="fl">1.0</span>, <span class="dv">6</span>)</span></code></pre></div>
 <p>Before we can actually draw, we have to talk about coordinate
 systems. By default, coordinates in Lobster correspond directly to
 pixels, with (0,0) in the upper left corner (a left-handed coordinate
@@ -147,33 +220,34 @@ supposed to be... <em>interactive</em></p>
 Collision</h3>
 <p><img src="screenshots/shooter/tut3.jpg" /></p>
 <p>It moved! I swear!</p>
-<pre><code>import std
-import vec
-import color
-import gl
-
-fatal(gl.window(&quot;Shooter Tutorial&quot;, 640, 480))
-
-let worldsize = 20.0
-var playerpos = float2_0
-let playerspeed = 10
-
-while gl.frame() and gl.button(&quot;escape&quot;) != 1:
-    gl.clear(color_black)
-    gl.color(color_white)
-
-    gl.translate(float(gl.window_size()) / 2.0)
-    let scale = gl.window_size().y / worldsize
-    gl.scale(scale)
-
-    let dir = float2 { (gl.button(&quot;d&quot;) &gt;= 1) - (gl.button(&quot;a&quot;) &gt;= 1),
-                     (gl.button(&quot;s&quot;) &gt;= 1) - (gl.button(&quot;w&quot;) &gt;= 1) }
-    let newpos = playerpos + normalize(dir) * gl.delta_time() * playerspeed
-    if not any(abs(newpos) &gt; float(gl.window_size()) / scale / 2.0):
-        playerpos = newpos
-
-    gl.translate playerpos:
-        gl.circle(1.0, 6)</code></pre>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> std</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> vec</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">color</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> gl</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="bu">fatal</span>(<span class="bu">gl.window</span>(<span class="st">&quot;Shooter Tutorial&quot;</span>, <span class="dv">640</span>, <span class="dv">480</span>))</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> worldsize <span class="op">=</span> <span class="fl">20.0</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> playerpos <span class="op">=</span> <span class="cn">float2_0</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> playerspeed <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="bu">gl.frame</span>() <span class="kw">and</span> <span class="bu">gl.button</span>(<span class="st">&quot;escape&quot;</span>) <span class="op">!=</span> <span class="dv">1</span>:</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.clear</span>(<span class="cn">color_black</span>)</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.color</span>(<span class="cn">color_white</span>)</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.translate</span>(<span class="dt">float</span>(<span class="bu">gl.window_size</span>()) <span class="op">/</span> <span class="fl">2.0</span>)</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> scale <span class="op">=</span> <span class="bu">gl.window_size</span>().y <span class="op">/</span> worldsize</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.scale</span>(scale)</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> dir <span class="op">=</span> <span class="dt">float2</span> { (<span class="bu">gl.button</span>(<span class="st">&quot;d&quot;</span>) <span class="op">&gt;=</span> <span class="dv">1</span>) <span class="op">-</span> (<span class="bu">gl.button</span>(<span class="st">&quot;a&quot;</span>) <span class="op">&gt;=</span> <span class="dv">1</span>),</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>                     (<span class="bu">gl.button</span>(<span class="st">&quot;s&quot;</span>) <span class="op">&gt;=</span> <span class="dv">1</span>) <span class="op">-</span> (<span class="bu">gl.button</span>(<span class="st">&quot;w&quot;</span>) <span class="op">&gt;=</span> <span class="dv">1</span>) }</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> newpos <span class="op">=</span> playerpos <span class="op">+</span> <span class="bu">normalize</span>(dir) <span class="op">*</span> <span class="bu">gl.delta_time</span>() <span class="op">*</span> playerspeed</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> <span class="dt">any</span>(<span class="bu">abs</span>(newpos) <span class="op">&gt;</span> <span class="dt">float</span>(<span class="bu">gl.window_size</span>()) <span class="op">/</span> scale <span class="op">/</span> <span class="fl">2.0</span>):</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>        playerpos <span class="op">=</span> newpos</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.translate</span> playerpos:</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>        <span class="bu">gl.circle</span>(<span class="fl">1.0</span>, <span class="dv">6</span>)</span></code></pre></div>
 <p>To make our player move, we added 2 new variables:
 <code>playerpos</code> and <code>playerspeed</code>. We initialize the
 former with a vector constant from <code>vec.lobster</code>:
@@ -240,64 +314,65 @@ it.</p>
 <p><img src="screenshots/shooter/tut4.jpg" /></p>
 <p>What happens as I move the mouse cursor in a clockwise arc around the
 player from 12 to 3.</p>
-<pre><code>import std
-import vec
-import color
-import gl
-
-fatal(gl.window(&quot;Shooter Tutorial&quot;, 640, 480))
-
-let worldsize = 20.0
-
-var playerpos = float2_0
-let playerspeed = 10
-
-class bullet:
-    pos:float2
-    dir:float2
-
-let firerate = 0.1
-let bulletspeed = 15
-var bullets = []
-var lastbullet = gl.time()
-
-while gl.frame() and gl.button(&quot;escape&quot;) != 1:
-    gl.clear(color_black)
-    gl.color(color_white)
-
-    gl.translate(float(gl.window_size()) / 2.0)
-    let scale = gl.window_size().y / worldsize
-    gl.scale(scale)
-
-    let dir = float2 { (gl.button(&quot;d&quot;) &gt;= 1) - (gl.button(&quot;a&quot;) &gt;= 1),
-                     (gl.button(&quot;s&quot;) &gt;= 1) - (gl.button(&quot;w&quot;) &gt;= 1) }
-    let newpos = playerpos + normalize(dir) * gl.delta_time() * playerspeed
-    if not any(abs(newpos) &gt; float(gl.window_size()) / scale / 2.0):
-        playerpos = newpos
-
-    let tomouse = normalize(gl.local_mouse_pos(0) - playerpos)
-
-    if lastbullet &lt; gl.time():
-        bullets.push(bullet { playerpos, tomouse })
-        lastbullet += firerate
-
-    for(bullets) b:
-        b.pos += b.dir * gl.delta_time() * bulletspeed
-        gl.translate b.pos:
-            gl.color color_yellow:
-                gl.circle(0.2, 20)
-
-    bullets = filter(bullets) b:
-        magnitude(b.pos) &lt; worldsize * 2.0
-
-    gl.translate gl.local_mouse_pos(0):
-        gl.line_mode 1:
-            gl.color color_grey:
-                gl.circle(0.5, 20)
-
-    gl.translate playerpos:
-        gl.rotate_z tomouse:
-            gl.polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])</code></pre>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> std</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> vec</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">color</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> gl</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="bu">fatal</span>(<span class="bu">gl.window</span>(<span class="st">&quot;Shooter Tutorial&quot;</span>, <span class="dv">640</span>, <span class="dv">480</span>))</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> worldsize <span class="op">=</span> <span class="fl">20.0</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> playerpos <span class="op">=</span> <span class="cn">float2_0</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> playerspeed <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> bullet:</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    pos:<span class="dt">float2</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    dir:<span class="dt">float2</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> firerate <span class="op">=</span> <span class="fl">0.1</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> bulletspeed <span class="op">=</span> <span class="dv">15</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> bullets <span class="op">=</span> []</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> lastbullet <span class="op">=</span> <span class="bu">gl.time</span>()</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="bu">gl.frame</span>() <span class="kw">and</span> <span class="bu">gl.button</span>(<span class="st">&quot;escape&quot;</span>) <span class="op">!=</span> <span class="dv">1</span>:</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.clear</span>(<span class="cn">color_black</span>)</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.color</span>(<span class="cn">color_white</span>)</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.translate</span>(<span class="dt">float</span>(<span class="bu">gl.window_size</span>()) <span class="op">/</span> <span class="fl">2.0</span>)</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> scale <span class="op">=</span> <span class="bu">gl.window_size</span>().y <span class="op">/</span> worldsize</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.scale</span>(scale)</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> dir <span class="op">=</span> <span class="dt">float2</span> { (<span class="bu">gl.button</span>(<span class="st">&quot;d&quot;</span>) <span class="op">&gt;=</span> <span class="dv">1</span>) <span class="op">-</span> (<span class="bu">gl.button</span>(<span class="st">&quot;a&quot;</span>) <span class="op">&gt;=</span> <span class="dv">1</span>),</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>                     (<span class="bu">gl.button</span>(<span class="st">&quot;s&quot;</span>) <span class="op">&gt;=</span> <span class="dv">1</span>) <span class="op">-</span> (<span class="bu">gl.button</span>(<span class="st">&quot;w&quot;</span>) <span class="op">&gt;=</span> <span class="dv">1</span>) }</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> newpos <span class="op">=</span> playerpos <span class="op">+</span> <span class="bu">normalize</span>(dir) <span class="op">*</span> <span class="bu">gl.delta_time</span>() <span class="op">*</span> playerspeed</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> <span class="dt">any</span>(<span class="bu">abs</span>(newpos) <span class="op">&gt;</span> <span class="dt">float</span>(<span class="bu">gl.window_size</span>()) <span class="op">/</span> scale <span class="op">/</span> <span class="fl">2.0</span>):</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>        playerpos <span class="op">=</span> newpos</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> tomouse <span class="op">=</span> <span class="bu">normalize</span>(<span class="bu">gl.local_mouse_pos</span>(<span class="dv">0</span>) <span class="op">-</span> playerpos)</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> lastbullet <span class="op">&lt;</span> <span class="bu">gl.time</span>():</span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>        bullets.push(bullet { playerpos, tomouse })</span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>        lastbullet <span class="op">+=</span> firerate</span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(bullets) b:</span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>        b.pos <span class="op">+=</span> b.dir <span class="op">*</span> <span class="bu">gl.delta_time</span>() <span class="op">*</span> bulletspeed</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>        <span class="bu">gl.translate</span> b.pos:</span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>            <span class="bu">gl.color</span> <span class="cn">color_yellow</span>:</span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>                <span class="bu">gl.circle</span>(<span class="fl">0.2</span>, <span class="dv">20</span>)</span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>    bullets <span class="op">=</span> <span class="cf">filter</span>(bullets) b:</span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>        <span class="bu">magnitude</span>(b.pos) <span class="op">&lt;</span> worldsize <span class="op">*</span> <span class="fl">2.0</span></span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.translate</span> <span class="bu">gl.local_mouse_pos</span>(<span class="dv">0</span>):</span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>        <span class="bu">gl.line_mode</span> <span class="dv">1</span>:</span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>            <span class="bu">gl.color</span> <span class="cn">color_grey</span>:</span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>                <span class="bu">gl.circle</span>(<span class="fl">0.5</span>, <span class="dv">20</span>)</span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.translate</span> playerpos:</span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>        <span class="bu">gl.rotate_z</span> tomouse:</span>
+<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>            <span class="bu">gl.polygon</span>([ <span class="dt">float2</span> { <span class="op">-</span><span class="fl">0.5</span>, <span class="fl">0.5</span> }, <span class="cn">float2_x</span>, <span class="dt">float2</span> { <span class="op">-</span><span class="fl">0.5</span>, <span class="op">-</span><span class="fl">0.5</span> } ])</span></code></pre></div>
 <p>To be able to shoot, first we have to worry about giving our player
 an orientation. We compute that in the vector <code>tomouse</code> which
 we get by subtracting the player position from the mouse position (what
@@ -377,42 +452,45 @@ It even translates to 3D.</p>
 <p><img src="screenshots/shooter/tut5.jpg" /></p>
 <p>Since the code is getting long, let's continue, talking purely in
 terms of modifications to the existing code:</p>
-<pre><code>def renderpointytriangle(pos, dir):
-    gl.translate pos:
-        gl.rotate_z dir:
-            gl.polygon([ float2 { -0.5, 0.5 }, float2_x, float2 { -0.5, -0.5 } ])</code></pre>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">renderpointytriangle</span>(pos, dir):</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.translate</span> pos:</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">gl.rotate_z</span> dir:</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>            <span class="bu">gl.polygon</span>([ <span class="dt">float2</span> { <span class="op">-</span><span class="fl">0.5</span>, <span class="fl">0.5</span> }, <span class="cn">float2_x</span>, <span class="dt">float2</span> { <span class="op">-</span><span class="fl">0.5</span>, <span class="op">-</span><span class="fl">0.5</span> } ])</span></code></pre></div>
 <p>First, let's take the code for rendering the player and put it in its
 own function, since we'll be needing it for enemies too. Call instead of
 the original code with
 <code>renderpointytriangle(playerpos, tomouse)</code></p>
-<pre><code>class enemy:
-    pos:float2
-    hp:int
-
-var enemyrate = 1.0
-let enemyspeed = 3
-let enemymaxhp = 5
-var enemies = []
-var lastenemy = gl.time()</code></pre>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> enemy:</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    pos:<span class="dt">float2</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    hp:<span class="dt">int</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> enemyrate <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> enemyspeed <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> enemymaxhp <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> enemies <span class="op">=</span> []</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> lastenemy <span class="op">=</span> <span class="bu">gl.time</span>()</span></code></pre></div>
 <p>We can set up enemies analogous to bullets. Of course, we could share
 some of this functionality between them, but let's not complicate
 matters for now. Add this to the declarations.</p>
-<pre><code>    if lastenemy &lt; gl.time():
-        enemies.push(enemy { sincos(rnd(360)) * worldsize * 2.0, enemymaxhp })
-        lastenemy += enemyrate
-        enemyrate *= 0.999
-
-    for(enemies) e:
-        let playerdir = normalize(playerpos - e.pos)
-        e.pos += playerdir * gl.delta_time() * enemyspeed
-        for(bullets) b:
-            if magnitude(b.pos - e.pos) &lt; 1.0:
-                e.hp = max(e.hp - 1, 0)
-                b.pos = float2_x * worldsize * 10.0
-        gl.color lerp(color_red, color_blue, div(e.hp, enemymaxhp)):
-            renderpointytriangle(e.pos, playerdir)
-
-    enemies = filter enemies: _.hp</code></pre>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> lastenemy <span class="op">&lt;</span> <span class="bu">gl.time</span>():</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>        enemies.push(enemy { <span class="bu">sincos</span>(<span class="bu">rnd</span>(<span class="dv">360</span>)) <span class="op">*</span> worldsize <span class="op">*</span> <span class="fl">2.0</span>, enemymaxhp })</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        lastenemy <span class="op">+=</span> enemyrate</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        enemyrate <span class="op">*=</span> <span class="fl">0.999</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(enemies) e:</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        <span class="kw">let</span> playerdir <span class="op">=</span> <span class="bu">normalize</span>(playerpos <span class="op">-</span> e.pos)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        e.pos <span class="op">+=</span> playerdir <span class="op">*</span> <span class="bu">gl.delta_time</span>() <span class="op">*</span> enemyspeed</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span>(bullets) b:</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="bu">magnitude</span>(b.pos <span class="op">-</span> e.pos) <span class="op">&lt;</span> <span class="fl">1.0</span>:</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>                e.hp <span class="op">=</span> <span class="bu">max</span>(e.hp <span class="op">-</span> <span class="dv">1</span>, <span class="dv">0</span>)</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>                b.pos <span class="op">=</span> <span class="cn">float2_x</span> <span class="op">*</span> worldsize <span class="op">*</span> <span class="fl">10.0</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>        <span class="bu">gl.color</span> <span class="bu">lerp</span>(<span class="cn">color_red</span>, <span class="cn">color_blue</span>, <span class="bu">div</span>(e.hp, enemymaxhp)):</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>            renderpointytriangle(e.pos, playerdir)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    enemies <span class="op">=</span> <span class="cf">filter</span> enemies: _.hp</span></code></pre></div>
 <p>During the frame, we use the above code to deal with enemies, which
 is very similar to bullets yet again. We spawn new enemies initially
 once per second. To compute a spawn location, take a random angle,
@@ -456,51 +534,56 @@ and give him a start / game over screen in-between sessions.</p>
 <p>To do that, we will have to be able to render text. First step
 towards doing that is loading up a font, right after
 <code>gl.window</code>:</p>
-<pre><code>check(gl.set_font_name(&quot;data/fonts/US101/US101.ttf&quot;) and gl.set_font_size(32), &quot;can\&#39;t load font!&quot;)</code></pre>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="bu">check</span>(<span class="bu">gl.set_font_name</span>(<span class="st">&quot;data/fonts/US101/US101.ttf&quot;</span>) <span class="kw">and</span> <span class="bu">gl.set_font_size</span>(<span class="dv">32</span>), <span class="st">&quot;can</span><span class="sc">\&#39;</span><span class="st">t load font!&quot;</span>)</span></code></pre></div>
 <p><code>check</code> is another useful function much like fatal, that
 ensures the first argument is true, and if not, exits the program with
 the given message.</p>
 <p>To implement the functionality, we start with some new variables:</p>
-<pre><code>var playerhealth = 0.0
-var score = 0
-var highscore = 0
-var playing = false</code></pre>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> playerhealth <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> score <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> highscore <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> playing <span class="op">=</span> <span class="cn">false</span></span></code></pre></div>
 <p>inside our frame, we then test our <code>playing</code> variable, and
 when true, run the game code we were running before, and if false,
 display the in-between screen, which simply says:</p>
-<pre><code>        let msg = &quot;press space to play!&quot;
-        gl.translate (gl.window_size() - gl.text_size(msg)) / 2:
-            gl.text(msg)
-        if gl.button(&quot;space&quot;) == 1:
-            score = 0
-            playerhealth = 100.0
-            playerpos = float2_0
-            bullets = []
-            lastbullet = gl.time()
-            enemyrate = 1.0
-            enemies = []
-            lastenemy = gl.time()
-            playing = true</code></pre>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>        <span class="kw">let</span> msg <span class="op">=</span> <span class="st">&quot;press space to play!&quot;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>        <span class="bu">gl.translate</span> (<span class="bu">gl.window_size</span>() <span class="op">-</span> <span class="bu">gl.text_size</span>(msg)) <span class="op">/</span> <span class="dv">2</span>:</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>            <span class="bu">gl.text</span>(msg)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">gl.button</span>(<span class="st">&quot;space&quot;</span>) <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>            score <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>            playerhealth <span class="op">=</span> <span class="fl">100.0</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>            playerpos <span class="op">=</span> <span class="cn">float2_0</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>            bullets <span class="op">=</span> []</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>            lastbullet <span class="op">=</span> <span class="bu">gl.time</span>()</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>            enemyrate <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>            enemies <span class="op">=</span> []</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>            lastenemy <span class="op">=</span> <span class="bu">gl.time</span>()</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>            playing <span class="op">=</span> <span class="cn">true</span></span></code></pre></div>
 <p>The <code>gl.translate</code> centers our text using the handy
 <code>gl.text_size</code> which tell us the size of a string in pixels
 before we've even rendered it. <code>gl.text</code> then draws it. We
 then reset the game state when the game starts, and next frame the game
 will be playing.</p>
 <p>To show the current state to the player, we use the simple:</p>
-<pre><code>    gl.text(&quot;health: {ceiling(playerhealth)} - score: {score} - highscore: {highscore}&quot;)</code></pre>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>    <span class="bu">gl.text</span>(<span class="st">&quot;health: {ceiling(playerhealth)} - score: {score} - highscore: {highscore}&quot;</span>)</span></code></pre></div>
 <p>We call this as the very last thing in the frame, so it is visible
 regardless of whether the player is in-game or not, for simplicity.
 <code>ceiling</code> is useful since we'll be calculating the player's
 health in float, but want to show only the whole numbers.
 <code>ceiling</code> here is better than <code>truncate</code>, since we
 only want to show <code>0</code> when the player is truely dead.</p>
-<pre><code>                let playervec = playerpos - e.pos
-                if magnitude(playervec) &lt; 1.0:
-                    playerhealth -= gl.delta_time() * 50.0
-                    if playerhealth &lt;= 0.0:
-                        playerhealth = 0.0
-                        highscore = max(highscore, score)
-                        playing = false</code></pre>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>                <span class="kw">let</span> playervec <span class="op">=</span> playerpos <span class="op">-</span> e.pos</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="bu">magnitude</span>(playervec) <span class="op">&lt;</span> <span class="fl">1.0</span>:</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                    playerhealth <span class="op">-=</span> <span class="bu">gl.delta_time</span>() <span class="op">*</span> <span class="fl">50.0</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">if</span> playerhealth <span class="op">&lt;=</span> <span class="fl">0.0</span>:</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>                        playerhealth <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>                        highscore <span class="op">=</span> <span class="bu">max</span>(highscore, score)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>                        playing <span class="op">=</span> <span class="cn">false</span></span></code></pre></div>
 <p>Then finally, inside our <code>for(enemies) e:</code> loop, we add
 this bit of code which checks if this particular enemy is "touching" the
 player. If so, we subtract health for how long he is touching. If the

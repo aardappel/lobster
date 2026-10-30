@@ -23,7 +23,7 @@ Let's start by creating a blank canvas for us to draw on. Something like this:
 
 Impressively... empty.
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ lobster
 import vec
 import color
 import gl
@@ -69,7 +69,7 @@ how we want to draw:
 
 Look at that! This is starting to look impressive! Check out those polygons!
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ lobster
 import std
 import vec
 import color
@@ -137,7 +137,7 @@ up, let's move our player around. Because games are supposed to be...
 
 It moved! I swear!
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ lobster
 import std
 import vec
 import color
@@ -232,7 +232,7 @@ games programming, but it is also rather powerful once you get the hang of it.
 What happens as I move the mouse cursor in a clockwise arc around the player
 from 12 to 3.
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ lobster
 import std
 import vec
 import color
@@ -378,7 +378,7 @@ But for now... target practice!
 Since the code is getting long, let's continue, talking purely in terms of
 modifications to the existing code:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ lobster
 def renderpointytriangle(pos, dir):
     gl.translate pos:
         gl.rotate_z dir:
@@ -389,7 +389,7 @@ First, let's take the code for rendering the player and put it in its own
 function, since we'll be needing it for enemies too. Call instead of the
 original code with `renderpointytriangle(playerpos, tomouse)`
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ lobster
 class enemy:
     pos:float2
     hp:int
@@ -405,7 +405,7 @@ We can set up enemies analogous to bullets. Of course, we could share some of
 this functionality between them, but let's not complicate matters for now. Add
 this to the declarations.
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ lobster
     if lastenemy < gl.time():
         enemies.push(enemy { sincos(rnd(360)) * worldsize * 2.0, enemymaxhp })
         lastenemy += enemyrate
@@ -474,7 +474,7 @@ keep track of the player health and score (and highscore), and give him a start
 To do that, we will have to be able to render text. First step towards doing
 that is loading up a font, right after `gl.window`:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ lobster
 check(gl.set_font_name("data/fonts/US101/US101.ttf") and gl.set_font_size(32), "can\'t load font!")
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -483,7 +483,7 @@ argument is true, and if not, exits the program with the given message.
 
 To implement the functionality, we start with some new variables:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ lobster
 var playerhealth = 0.0
 var score = 0
 var highscore = 0
@@ -494,7 +494,7 @@ inside our frame, we then test our `playing` variable, and when true, run the
 game code we were running before, and if false, display the in-between screen,
 which simply says:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ lobster
         let msg = "press space to play!"
         gl.translate (gl.window_size() - gl.text_size(msg)) / 2:
             gl.text(msg)
@@ -517,7 +517,7 @@ game will be playing.
 
 To show the current state to the player, we use the simple:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ lobster
     gl.text("health: {ceiling(playerhealth)} - score: {score} - highscore: {highscore}")
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -527,7 +527,7 @@ we'll be calculating the player's health in float, but want to show only the
 whole numbers. `ceiling` here is better than `truncate`, since we only want to
 show `0` when the player is truely dead.
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ lobster
                 let playervec = playerpos - e.pos
                 if magnitude(playervec) < 1.0:
                     playerhealth -= gl.delta_time() * 50.0

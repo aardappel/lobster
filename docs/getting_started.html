@@ -21,11 +21,82 @@
       vertical-align: middle;
     }
     .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
   </style>
   <link rel="stylesheet" href="github.css" />
   <link rel="icon" type="image/svg" href="lobster.svg" />
 </head>
 <body>
+<nav class="topnav">
+<a class="topnav-home" href="README_FIRST.html"><img src="lobster.svg" width="24" height="24" alt="" />Lobster</a>
+<a href="getting_started.html">Getting started</a>
+<a href="language_reference.html">Reference</a>
+<a href="builtin_functions_reference.html">Builtins</a>
+<a href="https://github.com/aardappel/lobster">GitHub</a>
+</nav>
 <header id="title-block-header">
 <h1 class="title">Quick Getting Started Guide.</h1>
 </header>
@@ -34,7 +105,7 @@
 <h3 id="latest-version-from-ci">Latest version from CI</h3>
 <p>If you don't want to deal with building it yourself, go to <a
 href="https://github.com/aardappel/lobster/actions?query=workflow%3ACI">github
-CI</a> (click on the latest succesful run to get a list of binaries at
+CI</a> (click on the latest successful run to get a list of binaries at
 the bottom). These are 64-bit for all platforms.</p>
 <p>Note: if you're NOT seeing a list of artifacts at the bottom of each
 run, that may be because you're not logged in to github.</p>
@@ -51,12 +122,13 @@ the most recent builds above, so not recommended.</p>
 <h3 id="linux">Linux</h3>
 <p>Pre-Requirements: Git, CMake, a C++17 compiler, Mesa dev files
 (<code>apt-get install mesa-common-dev</code>).</p>
-<pre><code>git clone https://github.com/aardappel/lobster.git
-cd lobster/dev
-cmake -DCMAKE_BUILD_TYPE=Release
-make -j8
-cd ..
-bin/lobster samples/pythtree.lobster</code></pre>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/aardappel/lobster.git</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> lobster/dev</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cmake</span> <span class="at">-DCMAKE_BUILD_TYPE</span><span class="op">=</span>Release</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> <span class="at">-j8</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ..</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ex">bin/lobster</span> samples/pythtree.lobster</span></code></pre></div>
 <h3 id="windows">Windows</h3>
 <p>Pre-Requirements: VS2022 Community edition or better, C++ desktop
 tools installed.</p>
@@ -78,7 +150,8 @@ tools installed.</p>
 build), then close if no errors.</p>
 <p>Alternatively from the terminal from the <code>xcode-cmake</code>
 folder:</p>
-<p><code>xcodebuild -toolchain clang -configuration Release -target lobster</code></p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">xcodebuild</span> <span class="at">-toolchain</span> clang <span class="at">-configuration</span> Release <span class="at">-target</span> lobster</span></code></pre></div>
 <h2 id="running-it">Running it</h2>
 <p>You now have a <code>lobster</code> executable in your
 <code>bin</code> folder. You can run this with any Lobster file as

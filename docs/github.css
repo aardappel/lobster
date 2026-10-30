@@ -52,6 +52,35 @@ li > p { margin-bottom: 8px; }
 
 hr { border: 0; border-top: 1px solid var(--rule); margin: 40px 0; }
 
+/* NAV (source/nav.html, on every page)
+=============================================================================*/
+
+.topnav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 20px;
+  margin: -48px 0 40px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.topnav a { color: var(--muted); text-decoration: none; }
+.topnav a:hover { color: var(--link-hover); }
+
+.topnav a.topnav-home {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.topnav + .hero { margin-top: -40px; }
+
 /* HEADINGS
 =============================================================================*/
 
@@ -81,6 +110,7 @@ code, tt, kbd {
 }
 
 :not(pre) > code, tt {
+  overflow-wrap: anywhere;
   background: var(--inline-code-bg);
   padding: 2px 6px;
   border-radius: 5px;
@@ -103,15 +133,32 @@ pre code {
   white-space: pre;
 }
 
+/* The grammar in language_reference.md */
+
+.grammar {
+  margin: 0 0 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 13.5px;
+  overflow-x: auto;
+}
+
+.grammar p { margin: 0 0 12px; padding-left: 2ch; text-indent: -2ch; }
+.grammar p:last-child { margin: 0; }
+.grammar code { padding: 0; background: none; font-size: inherit; font-weight: 600; color: var(--link); }
+
 /* Syntax colours for ~~~~ {.lobster} blocks (Pandoc + source/lobster.xml) */
 
 div.sourceCode { margin: 0 0 16px; overflow: visible; }
-pre.sourceCode { margin: 0; }
+pre.sourceCode { margin: 0; overflow-x: auto; }
 pre > code.sourceCode > span { line-height: inherit; }
 pre code span.kw, pre code span.cf { color: #f08a6e; font-weight: normal; }
-pre code span.dt { color: #8fd0c8; }
+pre code span.dt, pre code span.at, pre code span.va { color: #8fd0c8; }
 pre code span.cn, pre code span.dv, pre code span.fl, pre code span.bn { color: #e8c27a; }
-pre code span.bu, pre code span.fu { color: #8fb8e8; }
+pre code span.bu, pre code span.fu, pre code span.ex { color: #8fb8e8; }
 pre code span.st, pre code span.ch { color: #a8d5b5; }
 pre code span.sc { color: #c9e8b5; }
 pre code span.co { color: #8c939b; font-style: normal; }
@@ -246,6 +293,8 @@ ul.social, .social > p {
 
 @media (max-width: 600px) {
   body { padding: 32px 16px 64px; font-size: 16px; }
+  .topnav { margin-top: -32px; gap: 6px 16px; font-size: 14px; }
+  .topnav a.topnav-home { flex-basis: 100%; }
   h1 { font-size: 32px; }
   h2 { font-size: 23px; }
   .hero { margin: -32px 0 32px; padding: 40px 0 32px; }
