@@ -56,6 +56,8 @@ Grammar
 Below, `...` indicates a loop with exit point at that scope level (ex. `(ident ... ,)` -> `(ident (, ident)*)`, * meaning optionaly repeating),
 and `||` is like `|` except indicates a precedence level difference. `[rule]` Means optional.
 
+<div class="grammar">
+
 program = stats end\_of\_file
 
 stats = topexp … linefeed
@@ -124,6 +126,8 @@ attrdef = `attribute` ident [ `=` ( string\_constant \| numeric\_constant \| ide
 indlist(e) = indent list(e) [ linefeed ] dedent linefeed
 
 list(e) = e ... `,`
+
+</div>
 
 Types
 -----

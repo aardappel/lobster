@@ -146,6 +146,7 @@ scope level (ex. <code>(ident ... ,)</code> -&gt;
 <code>(ident (, ident)*)</code>, * meaning optionaly repeating), and
 <code>||</code> is like <code>|</code> except indicates a precedence
 level difference. <code>[rule]</code> Means optional.</p>
+<div class="grammar">
 <p>program = stats end_of_file</p>
 <p>stats = topexp … linefeed</p>
 <p>topexp = <code>namespace</code> ident |<code>import</code> [
@@ -209,6 +210,7 @@ functionargsbody | ident [ call ]</p>
 string_constant | numeric_constant | ident ) ]</p>
 <p>indlist(e) = indent list(e) [ linefeed ] dedent linefeed</p>
 <p>list(e) = e ... <code>,</code></p>
+</div>
 <h2 id="types">Types</h2>
 <p>Lobster is statically typed, and any variable, argument or vector
 element can be a value of one of the following types:</p>

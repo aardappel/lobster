@@ -133,6 +133,23 @@ pre code {
   white-space: pre;
 }
 
+/* The grammar in language_reference.md */
+
+.grammar {
+  margin: 0 0 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 13.5px;
+  overflow-x: auto;
+}
+
+.grammar p { margin: 0 0 12px; padding-left: 2ch; text-indent: -2ch; }
+.grammar p:last-child { margin: 0; }
+.grammar code { padding: 0; background: none; font-size: inherit; font-weight: 600; color: var(--link); }
+
 /* Syntax colours for ~~~~ {.lobster} blocks (Pandoc + source/lobster.xml) */
 
 div.sourceCode { margin: 0 0 16px; overflow: visible; }
