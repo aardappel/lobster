@@ -1,4 +1,3 @@
-import { assert } from 'console';
 import {
 	LobsterFunctionSignature,
 	parseLobster,
@@ -14,6 +13,13 @@ import { ProgramIndex } from './index';
 import { locationsOf } from './features/references';
 import * as fs from 'fs';
 import { docComment } from './utils';
+
+// Unlike console.assert, which only logs, a failed assertion also fails the run.
+function assert(condition: unknown, ...data: unknown[]) {
+	if (condition) return;
+	console.error("Assertion failed:", ...data);
+	process.exitCode = 1;
+}
 
 const settings: LobsterSettings = {
 	executable: path.join('..', '..', 'bin', 'lobster'),
