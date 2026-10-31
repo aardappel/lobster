@@ -167,6 +167,7 @@ void OpenGLFrameStart(const int2 &ssize) {
 }
 
 void OpenGLFrameEnd() {
+    ResetStreamBuffers();
     //uint8_t pixel[4];
     //glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
     //glFlush();

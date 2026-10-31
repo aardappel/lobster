@@ -71,56 +71,52 @@ Surface::~Surface() {
     GL_CALL(glDeleteBuffers(1, (GLuint *)&ibo));
 }
 
-void Geometry::Init(string_view name, const void *verts) {
-    vbo = GenBO_(name, GL_ARRAY_BUFFER, vertsize * nverts, verts, false);
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-    GL_CALL(glGenVertexArrays(1, (GLuint *)&vao));
-    GL_CALL(glBindVertexArray(vao));
+// Points the attributes of the bound vertex array at vertices of this format in the bound buffer.
+static void SetAttribs(string_view fmt, size_t vertsize) {
     size_t offset = 0;
     size_t tc = 0;
     for (auto attr : fmt) {
+        auto set = [&](int idx, int comps, GLenum type, bool norm, size_t size) {
+            GL_CALL(glEnableVertexAttribArray(idx));
+            GL_CALL(glVertexAttribPointer(idx, comps, type, norm, (GLsizei)vertsize,
+                                          (void *)offset));
+            offset += size;
+        };
         switch (attr) {
-            #define SETATTRIB(idx, comps, type, norm, size) \
-                GL_CALL(glEnableVertexAttribArray(idx)); \
-                GL_CALL(glVertexAttribPointer(idx, comps, type, norm, (GLsizei)vertsize, (void *)offset)); \
-                offset += size; \
-                break;
-            case 'P': {
-                for (size_t i = 0; i < nverts; i++) {
-                    auto p = (float3 *)(vertsize * i + offset + (char *)verts);
-                    vmin = geom::min(vmin, *p);
-                    vmax = geom::max(vmax, *p);
-                }
-                SETATTRIB(VATRR_POS, 3, GL_FLOAT, false, 12)
-            }
-            case 'p': {
-                for (size_t i = 0; i < nverts; i++) {
-                    auto p = (float2 *)(vertsize * i + offset + (char *)verts);
-                    vmin = geom::min(vmin, float3(*p, 0.0f));
-                    vmax = geom::max(vmax, float3(*p, 0.0f));
-                }
-                SETATTRIB(VATRR_POS, 2, GL_FLOAT, false, 8)
-            }
-            case 'N':
-                SETATTRIB(VATRR_NOR, 3, GL_FLOAT, false, 12)
-            case 'n':
-                SETATTRIB(VATRR_NOR, 2, GL_FLOAT, false, 8)
-            case 'C':
-                SETATTRIB(VATRR_COL, 4, GL_UNSIGNED_BYTE, true, 4)
-            case 'W':
-                SETATTRIB(VATRR_WEI, 4, GL_UNSIGNED_BYTE, true, 4)
-            case 'I':
-                SETATTRIB(VATRR_IDX, 4, GL_UNSIGNED_BYTE, false, 4)
-            case 'T': {
-                auto attr = tc++ ? VATRR_TC2 : VATRR_TC1;
-                SETATTRIB(attr, 2, GL_FLOAT, false, 8)
-            }
+            case 'P': set(VATRR_POS, 3, GL_FLOAT, false, 12); break;
+            case 'p': set(VATRR_POS, 2, GL_FLOAT, false, 8); break;
+            case 'N': set(VATRR_NOR, 3, GL_FLOAT, false, 12); break;
+            case 'n': set(VATRR_NOR, 2, GL_FLOAT, false, 8); break;
+            case 'C': set(VATRR_COL, 4, GL_UNSIGNED_BYTE, true, 4); break;
+            case 'W': set(VATRR_WEI, 4, GL_UNSIGNED_BYTE, true, 4); break;
+            case 'I': set(VATRR_IDX, 4, GL_UNSIGNED_BYTE, false, 4); break;
+            case 'T': set(tc++ ? VATRR_TC2 : VATRR_TC1, 2, GL_FLOAT, false, 8); break;
             default:
                 LOG_ERROR("unknown attribute type: ", string() + attr);
                 assert(false);
         }
     }
+}
+
+void Geometry::Init(string_view name, const void *verts) {
+    vbo = GenBO_(name, GL_ARRAY_BUFFER, vertsize * nverts, verts, false);
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+    GL_CALL(glGenVertexArrays(1, (GLuint *)&vao));
+    GL_CALL(glBindVertexArray(vao));
+    SetAttribs(fmt, vertsize);
     GL_CALL(glBindVertexArray(0));
+    size_t offset = 0;
+    for (auto attr : fmt) {
+        if (attr == 'P' || attr == 'p') {
+            for (size_t i = 0; i < nverts; i++) {
+                auto p = (float *)(vertsize * i + offset + (char *)verts);
+                auto v = float3(p[0], p[1], attr == 'P' ? p[2] : 0.0f);
+                vmin = geom::min(vmin, v);
+                vmax = geom::max(vmax, v);
+            }
+        }
+        offset += AttribsSize(string_view(&attr, 1));
+    }
 }
 
 void Geometry::RenderSetup() {
@@ -275,6 +271,50 @@ void SetPointSprite(float scale) {
         #endif
         GL_CALL(glEnable(GL_VERTEX_PROGRAM_POINT_SIZE));
     #endif
+}
+
+// Buffers for vertices of one format, refilled for each draw, see RenderArrayStream.
+struct StreamBuffers {
+    int vbo = 0, ibo = 0, vao = 0;
+};
+
+// Per vertex format, the buffers made so far and how many of them this frame has used.
+static map<string, pair<vector<StreamBuffers>, size_t>, std::less<>> stream_pool;
+
+void RenderArrayStream(Primitive prim, string_view fmt, size_t vertsize, const void *verts,
+                       size_t nverts, span<int> ibuf) {
+    LOBSTER_FRAME_PROFILE_GPU;
+    auto it = stream_pool.find(fmt);
+    if (it == stream_pool.end())
+        it = stream_pool.emplace(string(fmt), make_pair(vector<StreamBuffers>(), 0)).first;
+    auto &[bufs, used] = it->second;
+    if (used == bufs.size()) {
+        StreamBuffers sb;
+        GL_CALL(glGenBuffers(1, (GLuint *)&sb.vbo));
+        GL_CALL(glGenBuffers(1, (GLuint *)&sb.ibo));
+        GL_CALL(glGenVertexArrays(1, (GLuint *)&sb.vao));
+        GL_CALL(glBindVertexArray(sb.vao));
+        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, sb.vbo));
+        SetAttribs(fmt, vertsize);
+        bufs.push_back(sb);
+    }
+    auto &sb = bufs[used++];
+    GL_CALL(glBindVertexArray(sb.vao));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, sb.vbo));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, vertsize * nverts, verts, GL_STREAM_DRAW));
+    auto glprim = GetPrimitive(prim);
+    if (ibuf.empty()) {
+        GL_CALL(glDrawArrays(glprim, 0, (GLsizei)nverts));
+    } else {
+        GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sb.ibo));
+        GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, ibuf.size_bytes(), ibuf.data(),
+                             GL_STREAM_DRAW));
+        GL_CALL(glDrawElements(glprim, (GLsizei)ibuf.size(), GL_UNSIGNED_INT, 0));
+    }
+}
+
+void ResetStreamBuffers() {
+    for (auto &[fmt, pool] : stream_pool) pool.second = 0;
 }
 
 void RenderArray(Primitive prim, Geometry *geom, int ibo, size_t tcount) {
