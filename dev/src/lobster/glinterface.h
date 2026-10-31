@@ -319,6 +319,8 @@ extern void FreeImageFromFile(uint8_t *img);
 
 extern uint8_t *ReadPixels(const int2 &pos, const int2 &size);
 
+// How many GPU buffers GenBO_ and RenderArrayStream have made, see gl.buffers_made.
+extern size_t buffers_made;
 extern int GenBO_(string_view name, int type, size_t bytesize, const void *data, bool dyn);
 template<typename T> int GenBO(string_view name, int type, span<T> d, bool dyn) {
     return GenBO_(name, type, sizeof(T) * d.size(), d.data(), dyn);

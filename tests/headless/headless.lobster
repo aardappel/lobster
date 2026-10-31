@@ -78,6 +78,16 @@ for(2):
             assert im.add_font("data/fonts/Droid_Sans_Mono/DroidSansMono.ttf", 24.0)
     im.cleanup()
 
+// Immediate draws refill pooled buffers, so only the first frame makes any.
+gl.set_shader("color")
+for(3) frame:
+    assert gl.frame()
+    let made = gl.buffers_made()
+    let tri = [ float2 { 0.0, 0.0 }, float2 { 1.0, 0.0 }, float2 { 0.0, 1.0 } ]
+    gl.draw_mesh("P", map(tri): float3 { _.x, _.y, 0.0 }, [], [], [], [], [ 0, 1, 2 ])
+    gl.polygon(tri)
+    if frame: assert gl.buffers_made() == made
+
 if not display:
     // Frames report the fixed delta time whether they are stretched to real time or not.
     let dt = 1.0 / 50.0
