@@ -119,6 +119,26 @@ Format: `lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]`
 Lobster source code may start with a shebang `#!` so you can embed the command-line in
 a Lobster script.
 
+Formatting
+----------
+
+Format: `lobster fmt [ -l ] [ -w ] PATH ...`
+
+Formats Lobster source in the layout of the [style guide](style_guide.html), with no options,
+like `gofmt`: only the whitespace between tokens changes, and code the compiler would read
+differently once formatted is refused. A directory stands for the `.lobster` files in it,
+recursively.
+
+-   By default the formatted files are printed.
+
+-   `-l` : list the files whose formatting differs instead.
+
+-   `-w` : write the result to the files instead.
+
+It exits with 2 if a file can't be formatted safely. The binary does the same when it is named
+`lobsterfmt` (a symlink to it will do), as `lobsterfmt [ -l ] [ -w ] PATH ...`. It runs
+`tools/lobsterfmt`.
+
 Default directories
 -------------------
 

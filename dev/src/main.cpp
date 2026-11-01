@@ -103,6 +103,9 @@ int main(int argc, char* argv[]) {
         string helptext = "Usage:\n"
             "lobster [ OPTIONS ] [ FILE ] [ -- ARGS ]\n"
             "Compile & run FILE, or omit FILE to load default.lpak\n"
+            "lobster fmt [ -l ] [ -w ] PATH ...\n"
+            "Format the .lobster files PATH stands for, see tools/lobsterfmt (or run lobster\n"
+            "as lobsterfmt to do the same)\n"
             "--help                  This help.\n"
             "--cpp                   Compile to C++ code, don't run (see implementation.md!).\n"
             "--pak                   Generate lpak file, don't run.\n"
@@ -137,7 +140,17 @@ int main(int argc, char* argv[]) {
             "--wait                  Wait for input before exiting.\n"
             "--query QUERY_ARGS      Queries about definitions in the program being compiled.\n"
             "--errors N              Output up to N errors (default 10).\n";
-            int arg = 1;
+        int arg = 1;
+        // `lobster fmt ARGS`, or this binary named lobsterfmt, runs tools/lobsterfmt with ARGS,
+        // its paths made absolute since Lobster reads relative ones from the program's dir.
+        auto exename = StripDirPart(SanitizePath(argv[0]));
+        auto asfmt = exename == "lobsterfmt" || exename == "lobsterfmt.exe";
+        if (asfmt || (argc > 1 && strcmp(argv[1], "fmt") == 0)) {
+            fn = GetMainDirFromExePath(argv[0]) +
+                 SanitizePath("tools/lobsterfmt/lobsterfmt.lobster");
+            for (arg = asfmt ? 1 : 2; arg < argc; arg++)
+                program_args.push_back(argv[arg][0] == '-' ? argv[arg] : AbsolutePath(argv[arg]));
+        }
         for (; arg < argc; arg++) {
             if (argv[arg][0] == '-') {
                 string a = argv[arg];

@@ -54,6 +54,8 @@ extern bool FileExists(string_view filename, bool allow_absolute);
 extern bool FileDelete(string_view relfilename);
 extern string SanitizePath(string_view path);
 extern bool IsAbsolute(string_view filename);
+// path made absolute against the working directory, or path itself if that fails.
+extern string AbsolutePath(string_view path);
 // The primary dir relative files get written to (ends in a path separator), or empty.
 extern string GetMainWriteDir();
 

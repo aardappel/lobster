@@ -172,6 +172,20 @@ bool IsAbsolute(string_view filename) {
     return filename.size() > 1 && (filename[0] == '/' || filename[0] == '\\' || filename[1] == ':');
 }
 
+string AbsolutePath(string_view path) {
+    #ifndef PLATFORM_ES3
+        std::error_code ec;
+        auto abs = std::filesystem::absolute(std::filesystem::path(path), ec);
+        if (ec) return string(path);
+        auto r = SanitizePath(abs.lexically_normal().string());
+        // "dir/." normalizes to "dir/".
+        if (r.size() > 1 && r.back() == FILESEP) r.pop_back();
+        return r;
+    #else
+        return string(path);
+    #endif
+}
+
 string GetMainDirFromExePath(string_view argv_0) {
     string md = SanitizePath(argv_0);
     #ifdef _WIN32

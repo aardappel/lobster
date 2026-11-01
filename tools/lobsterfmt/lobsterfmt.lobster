@@ -1,10 +1,11 @@
 // lobsterfmt: formats Lobster source files, like gofmt.
 //
+//     lobster fmt [-l] [-w] path ...
 //     lobster tools/lobsterfmt/lobsterfmt.lobster -- [-l] [-w] path ...
 //
-// A directory stands for the .lobster files in it, recursively. Paths must be absolute
-// (`"$PWD/file.lobster"`), since Lobster reads relative ones from where this program is. By
-// default the formatted files are printed:
+// A directory stands for the .lobster files in it, recursively. Run directly, paths must be
+// absolute (`"$PWD/file.lobster"`), since Lobster reads relative ones from where this program is;
+// `lobster fmt` makes them so. By default the formatted files are printed:
 //     -l  list the files whose formatting differs instead
 //     -w  write the result to the files instead
 // Exits with 2 if a file can't be formatted safely.
