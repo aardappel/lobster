@@ -5465,7 +5465,9 @@ static int loop_licm (gen_ctx_t gen_ctx, loop_node_t loop) {
     insn = bb_insn->insn;
     FOREACH_OUT_INSN_VAR (gen_ctx, iter, insn, var, op_num) {
       for (se = insn->ops[op_num].data; se != NULL; se = se->next_use) {
-        if (loop_invariant_p (gen_ctx, loop, se->use, loop_invariant_bb_insn_bitmap)
+        /* Only uses inside the loop: one after it can't move up to the preheader. */
+        if (se->use->bb->loop_node->parent == loop
+            && loop_invariant_p (gen_ctx, loop, se->use, loop_invariant_bb_insn_bitmap)
             && bitmap_set_bit_p (loop_invariant_bb_insn_bitmap, se->use->index))
           VARR_PUSH (bb_insn_t, loop_invariant_bb_insns, se->use);
       }
