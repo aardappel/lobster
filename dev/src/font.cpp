@@ -34,6 +34,7 @@ OutlineFont *curface = nullptr;
 string curfacename;
 
 void CullFonts() {
+    FlushText();
     for(auto it = fontcache.begin(); it != fontcache.end(); ) {
         if (it->second->usedcount) {
             it->second->usedcount = 0;
@@ -47,6 +48,7 @@ void CullFonts() {
 }
 
 void FontCleanup() {
+    FlushText();
     for (auto e : fontcache) delete e.second;
     fontcache.clear();
     curfont = nullptr;
@@ -58,7 +60,7 @@ void FontCleanup() {
 }
 
 void SetDefaultFontShader() {
-    gs->fonttexturedshader = LookupShader("textured");
+    gs->fonttexturedshader = LookupShader("textured_color");
 }
 
 extern void TestGL(VM &vm);
@@ -94,7 +96,8 @@ BUILTIN(set_font_size, "size,outlinesize,outlinecolor", "IF?F}:4?", "B",
     "sets the font for rendering into this fontsize (in pixels). caches into a texture first"
     " time this size is used, flushes from cache if this size is not used an entire frame. font"
     " rendering will look best if using 1:1 pixels (careful with gl.scale/gl.translate)."
-    " an optional outlinesize will give the font an outline."
+    " an optional outlinesize will give the font an outline in outlinecolor (default black),"
+    " baked into its glyphs, so outlined text batches like any other."
     " make sure to call this every frame."
     " returns true if success")
 (VM &vm, iint size_, double outlinesize_, double4 outlinecolor) {
@@ -140,7 +143,9 @@ BUILTIN(get_outline_size, "", "", "F",
 (VM &) { return curoutlinesize; }
 
 BUILTIN(text, "text", "S", "Sb",
-    "renders a text with the current font (at the current coordinate origin)")
+    "renders a text with the current font (at the current coordinate origin)."
+    " consecutive calls with the default font shader are batched into one draw, so many"
+    " labels a frame are cheap")
 (VM &vm, LString *s) {
     auto f = curfont;
     if (!f) vm.BuiltinError("gl.text: no font / font size set");
@@ -149,10 +154,12 @@ BUILTIN(text, "text", "S", "Sb",
         otransforms.push();
         otransforms.append_object2view(scaling(curfontsize / float(maxfontsize)));
     }
-    SetTexture(0, f->tex);
-    if (gs->fonttexturedshader.get_or_nil()) gs->fonttexturedshader->Set();
-    else gs->currentshader->Set();
-    f->RenderText(s->strv());
+    if (auto sh = gs->fonttexturedshader.get_or_nil()) {
+        f->RenderText(s->strv(), sh);
+    } else {
+        gs->currentshader->Set();
+        f->RenderText(s->strv(), nullptr);
+    }
     if (curfontsize > maxfontsize) {
         otransforms.pop();
     }
@@ -185,8 +192,9 @@ BUILTIN(get_char_code, "name", "S", "I",
 }
 
 BUILTIN(use_default_font_shader, "on", "B", "",
-    "by default set_font_name sets the use of the \"textured\" shader."
-    " With this function you can turn that on/off to use a current shader instead.")
+    "by default set_font_name sets the use of the \"textured_color\" shader."
+    " With this function you can turn that on/off to use a current shader instead"
+    " (text drawn with it is not batched).")
 (VM &vm, iint on) {
     TestGL(vm);
     if ((on != 0))  {

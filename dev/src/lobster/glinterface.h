@@ -319,6 +319,11 @@ extern void FreeImageFromFile(uint8_t *img);
 
 extern uint8_t *ReadPixels(const int2 &pos, const int2 &size);
 
+// Draws the text gl.text has batched; called before anything else draws or changes GL state.
+extern void FlushText();
+// How many draw calls have been made, see gl.draw_calls.
+extern size_t draw_calls;
+
 extern int GenBO_(string_view name, int type, size_t bytesize, const void *data, bool dyn);
 template<typename T> int GenBO(string_view name, int type, span<T> d, bool dyn) {
     return GenBO_(name, type, sizeof(T) * d.size(), d.data(), dyn);

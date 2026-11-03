@@ -46,6 +46,23 @@ environment</h2>
 <p>After you call <code>gl.window</code> you are left with a default
 black background, a white drawing color, and the <code>color</code>
 shader set.</p>
+<h2 id="text">Text</h2>
+<p><code>gl.set_font_name</code> and <code>gl.set_font_size</code> pick
+a font, and <code>gl.text</code> draws a string at the current origin,
+in the current color. Consecutive <code>gl.text</code> calls are
+batched: their glyphs collect into one draw, which happens when anything
+else draws or changes state. So hundreds of labels a frame take one draw
+per font, and <code>gl.draw_calls</code> lets you check how many draws a
+frame takes (see <code>samples/textlabels.lobster</code>).</p>
+<p>For outlined text, give <code>gl.set_font_size</code> an outline size
+and color: <code>gl.set_font_size(20, 2.0, color_black)</code>. The
+outline is baked into the font's glyphs, so outlined text batches like
+any other.</p>
+<p>If you draw a lot of text that rarely changes, you can also draw each
+label once into a texture (<code>gl.switch_to_framebuffer</code>) and
+draw that texture as a quad from then on. Key the textures by string,
+size and color, and free the ones not used for a while, so a label that
+changes doesn't leave its old textures behind.</p>
 <h2 id="shaders">Shaders</h2>
 <p>All basic shaders, including <code>color</code>, can be found in
 <code>data/shaders/default.materials</code>.</p>

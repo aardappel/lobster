@@ -53,7 +53,8 @@ struct BitmapFont {
     ~BitmapFont();
     BitmapFont(OutlineFont *_font, int _size, float _osize, byte4 _ocol);
 
-    void RenderText(string_view text);
+    // With a shader, adds the text to the batch FlushText draws, otherwise draws it now.
+    void RenderText(string_view text, Shader *batchshader);
     const int2 TextSize(string_view text);
 
     bool CacheChars(string_view text);

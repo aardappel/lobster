@@ -63,6 +63,7 @@ void SetFilterClampWrap(int tf, unsigned textype) {
 
 Texture CreateTexture(string_view name, const uint8_t *buf, int3 dim, int tf) {
     LOBSTER_FRAME_PROFILE_THIS_SCOPE;
+    FlushText();
     int id;
     GL_CALL(glGenTextures(1, (GLuint *)&id));
     assert(id);
@@ -320,6 +321,7 @@ std::array<unsigned, MAX_TEXTURE_UNITS_BOUND> currently_bound{};
 int max_texture_unit = -1;
 
 void SetTexture(int textureunit, const Texture &tex) {
+    FlushText();
     GL_CALL(glActiveTexture(GL_TEXTURE0 + textureunit));
     glBindTexture(tex.type, tex.id);
     if (textureunit < MAX_TEXTURE_UNITS_BOUND) {
@@ -329,6 +331,7 @@ void SetTexture(int textureunit, const Texture &tex) {
 }
 
 void UnbindAllTextures() {
+    FlushText();
     for (int i = 0; i <= max_texture_unit; i++) {
         auto &type = currently_bound[i];
         if (type) {
@@ -341,12 +344,14 @@ void UnbindAllTextures() {
 }
 
 void GenerateTextureMipMap(const Texture &tex) {
+    FlushText();
     GL_CALL(glBindTexture(tex.type, tex.id));
     GL_CALL(glGenerateMipmap(tex.type));
     GL_CALL(glBindTexture(tex.type, 0));
 }
 
 uint8_t *ReadTexture(const Texture &tex) {
+    FlushText();
     #ifndef PLATFORM_ES3
         // Buffer size below assumes 2D, other texture types not supported atm.
         if (tex.type != GL_TEXTURE_2D) return nullptr;
@@ -360,6 +365,7 @@ uint8_t *ReadTexture(const Texture &tex) {
 }
 
 bool SaveTexture(const Texture &tex, string_view_nt filename, bool flip) {
+    FlushText();
     #ifndef PLATFORM_ES3
         // Buffer size below assumes 2D, other texture types not supported atm.
         if (tex.type != GL_TEXTURE_2D) return false;
@@ -426,6 +432,7 @@ int2 GetFrameBufferSize(const int2 &screensize) {
 bool SwitchToFrameBuffer(const Texture &tex, int2 orig_screensize, bool depth, int tf,
                          const Texture &resolvetex, const Texture &depthtex) {
     LOBSTER_FRAME_PROFILE_THIS_SCOPE;
+    FlushText();
 	#ifdef PLATFORM_WINNIX
 		if (!glGenRenderbuffers)
 			return false;

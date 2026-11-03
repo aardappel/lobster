@@ -44,6 +44,8 @@ bool BitmapFont::CacheChars(string_view text) {
     font->EnsureCharsPresent(text);
     if (positions.size() == font->unicodetable.size())
         return true;
+    // The batch may hold quads from the atlas about to be rebuilt.
+    FlushText();
     DeleteTexture(tex);
     positions.clear();
     if (FT_Set_Pixel_Sizes((FT_Face)font->fthandle, 0, font_height))
@@ -144,7 +146,36 @@ bool BitmapFont::CacheChars(string_view text) {
     return true;
 }
 
-void BitmapFont::RenderText(string_view text) {
+// Glyph quads of consecutive gl.text calls, in view space and with their color, drawn in one
+// call by FlushText.
+struct TextVert { float3 pos; float2 tc; byte4 col; };
+static vector<TextVert> textverts;
+static vector<int> textindices;
+static Texture texttex;
+static Shader *textshader = nullptr;
+static bool flushingtext = false;
+
+void FlushText() {
+    if (textindices.empty() || flushingtext) return;
+    // Drawing sets state, which would flush again.
+    flushingtext = true;
+    auto oldcolor = curcolor;
+    curcolor = float4_1;
+    otransforms.push();
+    otransforms.set_object2view(float4x4_1);
+    SetTexture(0, texttex);
+    textshader->Set();
+    if (!Is2DMode()) CullFace(false);
+    RenderArraySlow("RenderText", PRIM_TRIS, span(textverts), "PTC", span(textindices));
+    if (!Is2DMode()) CullFace(true);
+    otransforms.pop();
+    curcolor = oldcolor;
+    textverts.clear();
+    textindices.clear();
+    flushingtext = false;
+}
+
+void BitmapFont::RenderText(string_view text, Shader *batchshader) {
     if (!CacheChars(text))
         return;
     struct PT { float2 p; float2 t; };
@@ -176,6 +207,21 @@ void BitmapFont::RenderText(string_view text) {
         ibuf[idx++] = j + 3;
         ibuf[idx++] = j + 0;
         x += glyph.advance;
+    }
+    if (batchshader) {
+        if (tex.id != texttex.id || batchshader != textshader) {
+            FlushText();
+            texttex = tex;
+            textshader = batchshader;
+        }
+        auto &o2v = otransforms.object2view();
+        auto col = byte4(clamp(curcolor, 0.0f, 1.0f) * 255.0f + 0.5f);
+        auto base = (int)textverts.size();
+        for (auto &v : vbuf) {
+            textverts.push_back({ (o2v * float4(float3(v.p, 0.0f), 1.0f)).xyz(), v.t, col });
+        }
+        for (auto i : ibuf) textindices.push_back(base + i);
+        return;
     }
     SetTexture(0, tex);
     if (!Is2DMode()) CullFace(false);

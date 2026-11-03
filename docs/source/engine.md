@@ -21,6 +21,23 @@ Default rendering environment
 After you call `gl.window` you are left with a default black background,
 a white drawing color, and the `color` shader set.
 
+Text
+----
+`gl.set_font_name` and `gl.set_font_size` pick a font, and `gl.text` draws a string at the
+current origin, in the current color. Consecutive `gl.text` calls are batched: their glyphs
+collect into one draw, which happens when anything else draws or changes state. So hundreds of
+labels a frame take one draw per font, and `gl.draw_calls` lets you check how many draws a frame
+takes (see `samples/textlabels.lobster`).
+
+For outlined text, give `gl.set_font_size` an outline size and color:
+`gl.set_font_size(20, 2.0, color_black)`. The outline is baked into the font's glyphs, so
+outlined text batches like any other.
+
+If you draw a lot of text that rarely changes, you can also draw each label once into a texture
+(`gl.switch_to_framebuffer`) and draw that texture as a quad from then on. Key the textures by
+string, size and color, and free the ones not used for a while, so a label that changes doesn't
+leave its old textures behind.
+
 Shaders
 -------
 All basic shaders, including `color`, can be found in `data/shaders/default.materials`.
