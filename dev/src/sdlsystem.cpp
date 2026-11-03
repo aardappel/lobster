@@ -677,10 +677,10 @@ bool SDLFrame() {
         #endif
     }
 
-    // Opt-in headless timing. Simulation receives exactly one fixed step per frame, whatever
-    // the frame took: it is stretched to fixed_frame_pace of wall time, which is no stretching
-    // at all when that is 0. A slow frame does not cause a catch-up burst. Keep the existing
-    // display timing path intact.
+    // Opt-in fixed timing, for headless mode or a window recording a simulation. Simulation
+    // receives exactly one fixed step per frame, whatever the frame took: it is stretched to
+    // fixed_frame_pace of wall time, which is no stretching at all when that is 0. A slow frame
+    // does not cause a catch-up burst. Keep the existing display timing path intact.
     if (fixed_frametime > 0.0) {
         auto remaining = fixed_frame_pace - (GetSeconds() - lasttime);
         if (remaining > 0.0) SDL_DelayPrecise((uint64_t)(remaining * 1000000000.0));
