@@ -59,3 +59,41 @@ static inline int target_fixed_hard_reg_p (MIR_reg_t hard_reg) {
 static int target_locs_num (MIR_reg_t loc, MIR_type_t type) {
   return loc > MAX_HARD_REG && type == MIR_T_LD ? 2 : 1;
 }
+
+/* Backported from upstream MIR: https://github.com/vnmakarov/mir/commit/079a47da (vnmakarov/mir#477).
+   Homogeneous floating-point aggregates (AAPCS64 HFAs): block arg types
+   MIR_T_BLK + 1, + 2 and + 3 are HFAs of floats, doubles and long doubles
+   (long doubles are doubles where they are 8 bytes, as on Apple targets).
+   The member count is the block size divided by the member size and must
+   be 1..4; anything else is passed as an ordinary block.  An HFA goes in
+   consecutive FP argument registers if enough are left, otherwise all the
+   remaining FP argument registers are given up and it is copied to the stack
+   in its memory layout (aligned to 8, or 16 for long double members) - never
+   passed by reference, whatever its size.  Plain MIR_T_BLK keeps the
+   general rule: up to 16 bytes in integer registers or on the stack, larger
+   blocks by reference.  */
+static inline MIR_type_t target_hfa_el_type (MIR_type_t type) {
+  return (type == MIR_T_BLK + 1                                    ? MIR_T_F
+          : type == MIR_T_BLK + 2 || __SIZEOF_LONG_DOUBLE__ == 8 ? MIR_T_D
+                                                                   : MIR_T_LD);
+}
+
+static inline size_t target_hfa_el_size (MIR_type_t type) {
+  MIR_type_t el_type = target_hfa_el_type (type);
+  return el_type == MIR_T_F ? 4 : el_type == MIR_T_D ? 8 : 16;
+}
+
+/* Return the number of HFA members if TYPE/SIZE is an HFA block, 0 otherwise.  */
+static inline size_t target_hfa_members (MIR_type_t type, size_t size) {
+  size_t el_size, n;
+
+  if (type < MIR_T_BLK + 1 || type > MIR_T_BLK + 3) return 0;
+  el_size = target_hfa_el_size (type);
+  n = size / el_size;
+  return size % el_size == 0 && 1 <= n && n <= 4 ? n : 0;
+}
+
+/* Size an HFA takes on the stack (its alignment is the same).  */
+static inline size_t target_hfa_stack_size (MIR_type_t type, size_t size) {
+  return target_hfa_el_size (type) == 16 ? (size + 15) / 16 * 16 : (size + 7) / 8 * 8;
+}
