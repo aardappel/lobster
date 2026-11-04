@@ -35,7 +35,7 @@ Or, build it yourself!
 Pre-Requirements: Git, CMake, a C++17 compiler, Mesa dev files
 (`apt-get install mesa-common-dev`).
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ bash
 git clone https://github.com/aardappel/lobster.git
 cd lobster/dev
 cmake -DCMAKE_BUILD_TYPE=Release
@@ -70,7 +70,9 @@ build), then close if no errors.
 
 Alternatively from the terminal from the `xcode-cmake` folder:
 
-`xcodebuild -toolchain clang -configuration Release -target lobster`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ bash
+xcodebuild -toolchain clang -configuration Release -target lobster
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Running it
 ----------

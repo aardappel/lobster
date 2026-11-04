@@ -171,7 +171,7 @@ cannot modify x while y borrows it
 
 Consider code like:
 
-~~~~
+~~~~ lobster
 var x = "hello"
 def f(y):
     x = "world"
@@ -298,7 +298,7 @@ would have to pick one, and let the others be suboptimal. Not only does this
 produce unnecessary reference counting, it reduces the amount of code that
 could otherwise work error-free in the context of strict ownership. For example:
 
-~~~~
+~~~~ lobster
 def f(x): print x
 f([ 1, 2, 3 ])
 f(a)

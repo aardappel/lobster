@@ -21,11 +21,82 @@
       vertical-align: middle;
     }
     .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
   </style>
   <link rel="stylesheet" href="github.css" />
   <link rel="icon" type="image/svg" href="lobster.svg" />
 </head>
 <body>
+<nav class="topnav">
+<a class="topnav-home" href="README_FIRST.html"><img src="lobster.svg" width="24" height="24" alt="" />Lobster</a>
+<a href="getting_started.html">Getting started</a>
+<a href="language_reference.html">Reference</a>
+<a href="builtin_functions_reference.html">Builtins</a>
+<a href="https://github.com/aardappel/lobster">GitHub</a>
+</nav>
 <header id="title-block-header">
 <h1 class="title">Memory Management in Lobster</h1>
 </header>
@@ -187,11 +258,12 @@ This has not been implemented at the time of writing, however.</p>
 analysis, though all of them have proven to be very rare.</p>
 <pre><code>cannot modify x while y borrows it</code></pre>
 <p>Consider code like:</p>
-<pre><code>var x = &quot;hello&quot;
-def f(y):
-    x = &quot;world&quot;
-    print y
-f(x)</code></pre>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> x <span class="op">=</span> <span class="st">&quot;hello&quot;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">f</span>(y):</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> <span class="st">&quot;world&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span> y</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>f(x)</span></code></pre></div>
 <p>Here, <code>y</code> borrows <code>x</code>, then <code>f</code>
 overwrites <code>x</code> while it is still borrowed, which would
 deallocate <code>"hello"</code> while <code>y</code> is still pointing
@@ -309,9 +381,10 @@ one, and let the others be suboptimal. Not only does this produce
 unnecessary reference counting, it reduces the amount of code that could
 otherwise work error-free in the context of strict ownership. For
 example:</p>
-<pre><code>def f(x): print x
-f([ 1, 2, 3 ])
-f(a)</code></pre>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="fu">f</span>(x): <span class="bu">print</span> x</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>f([ <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span> ])</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>f(a)</span></code></pre></div>
 <p>If <code>x</code> had been fixed to own because of the first call,
 the second call would have been less efficient, or even an error. Now
 they both get to be maximally efficient because of specialization. Now

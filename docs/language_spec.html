@@ -26,6 +26,13 @@
   <link rel="icon" type="image/svg" href="lobster.svg" />
 </head>
 <body>
+<nav class="topnav">
+<a class="topnav-home" href="README_FIRST.html"><img src="lobster.svg" width="24" height="24" alt="" />Lobster</a>
+<a href="getting_started.html">Getting started</a>
+<a href="language_reference.html">Reference</a>
+<a href="builtin_functions_reference.html">Builtins</a>
+<a href="https://github.com/aardappel/lobster">GitHub</a>
+</nav>
 <header id="title-block-header">
 <h1 class="title">Lobster Language Specification</h1>
 </header>
@@ -379,8 +386,11 @@ gets a warning suggesting <code>let</code>.</p>
 scope; not directly at file scope). Declares a variable with program
 lifetime, private to its file, initialized once, immediately before the
 top-level statement that (lexically) contains the declaring function
-executes; the initializer is evaluated in the top-level context. Its
-type is the given type or the initializer's type.
+executes; the initializer is evaluated in the top-level context, so it
+may not use the variables of the functions it is in (their locals and
+parameters, or fields through <code>this</code> or <code>::</code>),
+except inside a function value it creates, as that runs where it is
+called. Its type is the given type or the initializer's type.
 <code>static_frame</code> additionally re-evaluates the initializer and
 stores its value each time the statement is executed after a frame has
 passed since its previous execution (frames are counted by the engine's
@@ -392,14 +402,16 @@ body) of a class that is not a struct and has no subclasses yet.
 Declares an additional field of the class, with the initializer as its
 default value (evaluated like any field default: at every construction
 site, so it may not refer to fields, locals of the method, or anything
-declared by the method), and the annotation or the initializer's type as
-its type. The field is accessible by its unqualified name only lexically
-inside the declaring method (including nested functions), and only after
-the <code>member</code> statement in the method body; it is not
-accessible through <code>obj.name</code>. <code>member_frame</code>
-re-runs the initializer and assigns the field, per object, each time the
-statement executes after a frame has passed since it last executed for
-that object.</p>
+declared by the method, except that a function value it creates may use
+the method's locals and fields, as that runs where it is called), and
+the annotation or the initializer's type as its type. The field is
+accessible by its unqualified name only lexically inside the declaring
+method (including nested functions), and only after the
+<code>member</code> statement in the method body; it is not accessible
+through <code>obj.name</code>. <code>member_frame</code> re-runs the
+initializer and assigns the field, per object, each time the statement
+executes after a frame has passed since it last executed for that
+object.</p>
 <h3 id="nonlocal">nonlocal</h3>
 <p><code>nonlocal var/let x = e</code> declares <code>x</code> normally
 and marks it as preferred when binding explicit free variables (see
@@ -991,14 +1003,15 @@ other a plain <code>int</code> or a different enum, both operands are
 converted to <code>bool</code> (<code>1</code>/<code>0</code> by truth)
 and the result is <code>bool</code>. Thus <code>n or 1</code> with
 <code>n:string?</code> is <code>true</code> of type <code>bool</code>,
-as is <code>1 or nil</code>, and <code>0 or 2.5</code> is
-<code>true</code>. A bare <code>nil</code> (or a variable initialized
-from an untyped <code>nil</code>) has an unbound element type, which
-unifies with the other operand's type; when that type cannot be nilable
-this is an error (<code>nil or 1</code>, see Conversions).
-<code>not a</code> yields <code>bool</code>: <code>true</code> when
-<code>a</code> is false. A condition whose type is a non-nilable
-reference type gets a warning (it is always true).</p>
+as is <code>1 or nil</code>, <code>0 or 2.5</code> is <code>true</code>,
+and <code>true and 5</code> is <code>true</code> (not <code>5</code>). A
+bare <code>nil</code> (or a variable initialized from an untyped
+<code>nil</code>) has an unbound element type, which unifies with the
+other operand's type; when that type cannot be nilable this is an error
+(<code>nil or 1</code>, see Conversions). <code>not a</code> yields
+<code>bool</code>: <code>true</code> when <code>a</code> is false. A
+condition whose type is a non-nilable reference type gets a warning (it
+is always true).</p>
 <h3 id="field-access-and-indexing">Field access and indexing</h3>
 <p><code>e.f</code> reads field <code>f</code> of a class or struct
 value <code>e</code> (an error if <code>e</code>'s type has no such
@@ -1152,11 +1165,28 @@ that cannot otherwise be made nilable (so <code>1.5 is float?</code> is
 <code>1.5 is float</code>). For values of scalar, string, vector and
 (non-family) struct types the result is decided at compile time from the
 static types (<code>x is T</code> with <code>x:T?</code> being a nil
-check at run time). For class and family struct values it is a runtime
-test against the dynamic type: true if that type is <code>T</code> or a
-subclass of <code>T</code>. If the static type makes the result certain,
-the test folds to a constant (side effects of <code>e</code> are kept).
+check at run time). A scalar is of its static type only: an enum
+converts to <code>int</code> but <code>e is int</code> is false for an
+enum value <code>e</code>, and <code>e is E</code> for an enum
+<code>E</code> is false for an <code>int</code> value <code>e</code>
+(such as <code>a | b</code> on a plain <code>enum</code>) and for a
+value of another enum. For class and family struct values it is a
+runtime test against the dynamic type: true if that type is
+<code>T</code> or a subclass of <code>T</code>. If the static type makes
+the result certain, the test folds to the constant <code>true</code> or
+<code>false</code> (side effects of <code>e</code> are kept).
 <code>e</code> is not evaluated more than once.</p>
+<p>Unlike a conversion (see Conversions), the test never binds an
+inference variable, which would make it true by construction. Where the
+static type of <code>e</code>, or <code>T</code>, still has one, the
+result is decided as above only if no type the variable could be bound
+to later changes it, and is an error ("<code>is</code> cannot test a
+value whose type is not known yet") otherwise. So after
+<code>let n = nil</code>, before any use determines its type,
+<code>n is int</code> is false and <code>n is int?</code> is a nil
+check, since <code>int?</code> never exists, but
+<code>n is string</code> is an error, as is <code>v[0] is int</code>
+after <code>let v = []</code>.</p>
 <p><code>typeof x</code> for a variable <code>x</code>, or
 <code>typeof T</code> for a type, is an <code>int</code> typeid
 identifying the type in the program's type table
@@ -1434,22 +1464,25 @@ select one by generic count, it is chosen, else the call is ambiguous
 family struct and any overload's first parameter type is a strict
 subtype of it, the call is a dynamic dispatch (below) instead.</li>
 </ol>
-<p>Builtin calls: a builtin may have several overloads, tried in
-declaration order; the first whose parameters all accept the arguments
-(with the builtin conversion rules: <code>int</code> to
-<code>float</code> coercion, numeric to nilable, a numeric struct
-argument for a struct parameter of the right element type and arity, any
-vector for a generic vector parameter, any reference type for a generic
-reference parameter, any value for a parameter declared as converting to
-string (as <code>print</code> and <code>string</code> do), and enum
-conversions) is called; missing optional arguments take the builtin's
-default. Some builtins are typed by their arguments (the return type is
-that of an argument, or the element type of a vector argument, or the
-result of a function argument). A builtin's numeric struct parameter of
-unspecified arity requires a struct argument that is one of the
-prelude's <code>intN</code>/<code>floatN</code> types or a struct of the
-same element type and a specified arity ("cannot deduce struct type"
-otherwise).</p>
+<p>Builtin calls: a builtin may have several overloads, tried with the
+one declared first and then the rest in reverse declaration order; the
+first whose parameters all accept the arguments (with the builtin
+conversion rules: <code>int</code> to <code>float</code> coercion,
+numeric to nilable, a numeric struct argument for a struct parameter of
+the right element type and arity, any vector for a generic vector
+parameter, any reference type for a generic reference parameter, any
+value for a parameter declared as converting to string (as
+<code>print</code> and <code>string</code> do), and enum conversions) is
+called; missing optional arguments take the builtin's default. Some
+builtins are typed by their arguments (the return type is that of an
+argument, or the element type of a vector argument, or the result of a
+function argument). The arity of a struct argument is the slots it
+takes, so a struct field counts for as many as it has and not for one. A
+builtin's numeric struct parameter of a specified arity is one of 1 to
+4, so a wider struct fits no overload; one of unspecified arity takes a
+struct of any arity that is one of the prelude's
+<code>intN</code>/<code>floatN</code> types or has the same element type
+("cannot deduce struct type" otherwise).</p>
 <h3 id="dynamic-dispatch">Dynamic dispatch</h3>
 <p>When a call dispatches dynamically on its first argument (a class or
 family struct value with static type <code>C</code>), the implementation
@@ -1468,10 +1501,11 @@ dispatch requires declared return types). The set of subtypes is that of
 the whole program as declared; a specialization of a generic class
 created (by first use) after a dispatch on its superclass was type
 checked is an error ("already used in dynamic dispatch ... before it has
-been declared"). A <code>super f(...)</code> call resolves statically to
-the implementation for the superclass of the enclosing method's class.
-Methods of related types declared in different scopes cannot dispatch
-together (error).</p>
+been declared"), except where only a function that is never called
+creates it (see Specialization). A <code>super f(...)</code> call
+resolves statically to the implementation for the superclass of the
+enclosing method's class. Methods of related types declared in different
+scopes cannot dispatch together (error).</p>
 <h3 id="default-arguments">Default arguments</h3>
 <p>A default is evaluated at the call site each time it is used, after
 the explicit arguments, in the caller's context (it may read variables
