@@ -300,6 +300,7 @@ string OpenGLInit(int samples, bool srgb) {
 }
 
 void OpenGLCleanup() {
+    FreeStreamBuffers();
     if (geomcache) delete geomcache;
     geomcache = nullptr;
 }

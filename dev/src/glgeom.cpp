@@ -18,10 +18,7 @@
 #include "lobster/glinterface.h"
 #include "lobster/glincludes.h"
 
-size_t buffers_made = 0;
-
 int GenBO_(string_view name, int type, size_t bytesize, const void *data, bool dyn) {
-    buffers_made++;
     int bo;
     GL_CALL(glGenBuffers(1, (GLuint *)&bo));
     GL_CALL(glBindBuffer(type, bo));
@@ -74,26 +71,49 @@ Surface::~Surface() {
     GL_CALL(glDeleteBuffers(1, (GLuint *)&ibo));
 }
 
-// Points the attributes of the bound vertex array at vertices of this format in the bound buffer.
-static void SetAttribs(string_view fmt, size_t vertsize) {
+// Points the bound vertex array's attributes at this format in the bound buffer, and takes the
+// bounds of any vertices given.
+static void SetAttribs(string_view fmt, size_t vertsize, const void *verts, size_t nverts,
+                       float3 &vmin, float3 &vmax) {
     size_t offset = 0;
     size_t tc = 0;
     for (auto attr : fmt) {
-        auto set = [&](int idx, int comps, GLenum type, bool norm, size_t size) {
-            GL_CALL(glEnableVertexAttribArray(idx));
-            GL_CALL(glVertexAttribPointer(idx, comps, type, norm, (GLsizei)vertsize,
-                                          (void *)offset));
-            offset += size;
-        };
         switch (attr) {
-            case 'P': set(VATRR_POS, 3, GL_FLOAT, false, 12); break;
-            case 'p': set(VATRR_POS, 2, GL_FLOAT, false, 8); break;
-            case 'N': set(VATRR_NOR, 3, GL_FLOAT, false, 12); break;
-            case 'n': set(VATRR_NOR, 2, GL_FLOAT, false, 8); break;
-            case 'C': set(VATRR_COL, 4, GL_UNSIGNED_BYTE, true, 4); break;
-            case 'W': set(VATRR_WEI, 4, GL_UNSIGNED_BYTE, true, 4); break;
-            case 'I': set(VATRR_IDX, 4, GL_UNSIGNED_BYTE, false, 4); break;
-            case 'T': set(tc++ ? VATRR_TC2 : VATRR_TC1, 2, GL_FLOAT, false, 8); break;
+            #define SETATTRIB(idx, comps, type, norm, size) \
+                GL_CALL(glEnableVertexAttribArray(idx)); \
+                GL_CALL(glVertexAttribPointer(idx, comps, type, norm, (GLsizei)vertsize, (void *)offset)); \
+                offset += size; \
+                break;
+            case 'P': {
+                for (size_t i = 0; i < nverts; i++) {
+                    auto p = (float3 *)(vertsize * i + offset + (char *)verts);
+                    vmin = geom::min(vmin, *p);
+                    vmax = geom::max(vmax, *p);
+                }
+                SETATTRIB(VATRR_POS, 3, GL_FLOAT, false, 12)
+            }
+            case 'p': {
+                for (size_t i = 0; i < nverts; i++) {
+                    auto p = (float2 *)(vertsize * i + offset + (char *)verts);
+                    vmin = geom::min(vmin, float3(*p, 0.0f));
+                    vmax = geom::max(vmax, float3(*p, 0.0f));
+                }
+                SETATTRIB(VATRR_POS, 2, GL_FLOAT, false, 8)
+            }
+            case 'N':
+                SETATTRIB(VATRR_NOR, 3, GL_FLOAT, false, 12)
+            case 'n':
+                SETATTRIB(VATRR_NOR, 2, GL_FLOAT, false, 8)
+            case 'C':
+                SETATTRIB(VATRR_COL, 4, GL_UNSIGNED_BYTE, true, 4)
+            case 'W':
+                SETATTRIB(VATRR_WEI, 4, GL_UNSIGNED_BYTE, true, 4)
+            case 'I':
+                SETATTRIB(VATRR_IDX, 4, GL_UNSIGNED_BYTE, false, 4)
+            case 'T': {
+                auto attr = tc++ ? VATRR_TC2 : VATRR_TC1;
+                SETATTRIB(attr, 2, GL_FLOAT, false, 8)
+            }
             default:
                 LOG_ERROR("unknown attribute type: ", string() + attr);
                 assert(false);
@@ -106,20 +126,8 @@ void Geometry::Init(string_view name, const void *verts) {
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
     GL_CALL(glGenVertexArrays(1, (GLuint *)&vao));
     GL_CALL(glBindVertexArray(vao));
-    SetAttribs(fmt, vertsize);
+    SetAttribs(fmt, vertsize, verts, nverts, vmin, vmax);
     GL_CALL(glBindVertexArray(0));
-    size_t offset = 0;
-    for (auto attr : fmt) {
-        if (attr == 'P' || attr == 'p') {
-            for (size_t i = 0; i < nverts; i++) {
-                auto p = (float *)(vertsize * i + offset + (char *)verts);
-                auto v = float3(p[0], p[1], attr == 'P' ? p[2] : 0.0f);
-                vmin = geom::min(vmin, v);
-                vmax = geom::max(vmax, v);
-            }
-        }
-        offset += AttribsSize(string_view(&attr, 1));
-    }
 }
 
 void Geometry::RenderSetup() {
@@ -281,7 +289,9 @@ struct StreamBuffers {
     int vbo = 0, ibo = 0, vao = 0;
 };
 
-// Per vertex format, the buffers made so far and how many of them this frame has used.
+// Per vertex format, the buffers made so far and the next one to use. Past the limit draws wrap
+// around: refilling a buffer in use orphans its old storage, so it needs no sync.
+static const size_t max_stream_buffers = 256;
 static map<string, pair<vector<StreamBuffers>, size_t>, std::less<>> stream_pool;
 
 void RenderArrayStream(Primitive prim, string_view fmt, size_t vertsize, const void *verts,
@@ -290,19 +300,20 @@ void RenderArrayStream(Primitive prim, string_view fmt, size_t vertsize, const v
     auto it = stream_pool.find(fmt);
     if (it == stream_pool.end())
         it = stream_pool.emplace(string(fmt), make_pair(vector<StreamBuffers>(), 0)).first;
-    auto &[bufs, used] = it->second;
-    if (used == bufs.size()) {
+    auto &[bufs, next] = it->second;
+    if (next == max_stream_buffers) next = 0;
+    if (next == bufs.size()) {
         StreamBuffers sb;
-        buffers_made += 2;
         GL_CALL(glGenBuffers(1, (GLuint *)&sb.vbo));
         GL_CALL(glGenBuffers(1, (GLuint *)&sb.ibo));
         GL_CALL(glGenVertexArrays(1, (GLuint *)&sb.vao));
         GL_CALL(glBindVertexArray(sb.vao));
         GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, sb.vbo));
-        SetAttribs(fmt, vertsize);
+        float3 vmin = float3_0, vmax = float3_0;
+        SetAttribs(fmt, vertsize, nullptr, 0, vmin, vmax);
         bufs.push_back(sb);
     }
-    auto &sb = bufs[used++];
+    auto &sb = bufs[next++];
     GL_CALL(glBindVertexArray(sb.vao));
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, sb.vbo));
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, vertsize * nverts, verts, GL_STREAM_DRAW));
@@ -319,6 +330,17 @@ void RenderArrayStream(Primitive prim, string_view fmt, size_t vertsize, const v
 
 void ResetStreamBuffers() {
     for (auto &[fmt, pool] : stream_pool) pool.second = 0;
+}
+
+void FreeStreamBuffers() {
+    for (auto &[fmt, pool] : stream_pool) {
+        for (auto &sb : pool.first) {
+            GL_CALL(glDeleteBuffers(1, (GLuint *)&sb.vbo));
+            GL_CALL(glDeleteBuffers(1, (GLuint *)&sb.ibo));
+            GL_CALL(glDeleteVertexArrays(1, (GLuint *)&sb.vao));
+        }
+    }
+    stream_pool.clear();
 }
 
 void RenderArray(Primitive prim, Geometry *geom, int ibo, size_t tcount) {

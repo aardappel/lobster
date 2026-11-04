@@ -506,13 +506,6 @@ BUILTIN(delta_time, "", "", "F",
     return SDLDeltaTime();
 }
 
-BUILTIN(buffers_made, "", "", "I",
-    "how many GPU buffers have been made so far (by meshes, and the pool gl.text and the"
-    " other immediate draws refill), to check that frames make none")
-(VM &) {
-    return (iint)buffers_made;
-}
-
 BUILTIN(delta_time_rolling, "n", "I", "F",
     "seconds since the last frame, updated only once per frame, as a rolling average over the last N frames (max 64)")
 (VM &, iint n) {
@@ -895,11 +888,16 @@ BUILTIN(new_poly, "positions", "F}]", "R:mesh",
     return vm.NewResource(&mesh_type, m);
 }
 
-// Packs the vertices of gl.new_mesh and gl.draw_mesh in the format's layout, returns the vertex
-// size.
-static size_t MeshVerts(VM &vm, LString *format, LVector *positions, LVector *colors,
-                        LVector *normals, LVector *texcoords1, LVector *texcoords2,
-                        LVector *indices, vector<uint8_t> &verts, vector<int> &idxs) {
+BUILTIN(new_mesh, "format,positions,colors,normals,texcoords1,texcoords2,indices", "SF}:3]F}:4]F}:3]F}:2]F}:2]I]?", "R:mesh",
+    "creates a new vertex buffer and returns an integer id (1..) for it."
+    " format must be made up of characters P (position), C (color), T (texcoord), N (normal)."
+    " indices may be []. positions is obligatory."
+    " you may specify [] for any of the other attributes if not required by format,"
+    " or to get defaults for colors (white) / texcoords (position x & y) /"
+    " normals (generated from adjacent triangles).")
+(VM &vm, LString *format, LVector *positions, LVector *colors, LVector *normals,
+ LVector *texcoords1, LVector *texcoords2, LVector *indices) {
+    TestGL(vm);
     auto nattr = format->len;
     if (nattr < 1 || nattr > 10)
         vm.BuiltinError("newmesh: illegal format/attributes size");
@@ -908,6 +906,7 @@ static size_t MeshVerts(VM &vm, LString *format, LVector *positions, LVector *co
         vm.BuiltinError("newmesh: illegal format characters (only PCTN allowed), P must be"
                            " first");
     iint nverts = positions->len;
+    vector<int> idxs;
     if ((indices != nullptr)) {
         if (indices->len % 3)
             vm.BuiltinError("newmesh: number of indices must be a multiple of 3");
@@ -920,7 +919,7 @@ static size_t MeshVerts(VM &vm, LString *format, LVector *positions, LVector *co
     }
     size_t vsize = AttribsSize(fmt);
     size_t normal_offset = 0;
-    verts.resize(nverts * vsize);
+    auto verts = new uint8_t[nverts * vsize];
     for (iint i = 0; i < nverts; i++) {
         auto start = &verts[i * vsize];
         auto p = start;
@@ -962,45 +961,13 @@ static size_t MeshVerts(VM &vm, LString *format, LVector *positions, LVector *co
     }
     if (normal_offset) {
         // if no normals were specified, generate them.
-        normalize_mesh(span(idxs), verts.data(), nverts, vsize, normal_offset);
+        normalize_mesh(span(idxs), verts, nverts, vsize, normal_offset);
     }
-    return vsize;
-}
-
-BUILTIN(new_mesh, "format,positions,colors,normals,texcoords1,texcoords2,indices", "SF}:3]F}:4]F}:3]F}:2]F}:2]I]?", "R:mesh",
-    "creates a new vertex buffer and returns an integer id (1..) for it."
-    " format must be made up of characters P (position), C (color), T (texcoord), N (normal)."
-    " indices may be []. positions is obligatory."
-    " you may specify [] for any of the other attributes if not required by format,"
-    " or to get defaults for colors (white) / texcoords (position x & y) /"
-    " normals (generated from adjacent triangles).")
-(VM &vm, LString *format, LVector *positions, LVector *colors, LVector *normals,
- LVector *texcoords1, LVector *texcoords2, LVector *indices) {
-    TestGL(vm);
-    vector<uint8_t> verts;
-    vector<int> idxs;
-    auto vsize = MeshVerts(vm, format, positions, colors, normals, texcoords1, texcoords2, indices,
-                           verts, idxs);
-    auto m = new Mesh(new Geometry("gl.new_mesh_verts", span(verts), format->strv(), vsize),
+    auto m = new Mesh(new Geometry("gl.new_mesh_verts", span(verts, nverts * vsize), fmt, vsize),
                       (indices != nullptr) ? PRIM_TRIS : PRIM_POINT);
     if (idxs.size()) m->surfs.push_back(new Surface("gl.new_mesh_idxs", span(idxs)));
+    delete[] verts;
     return vm.NewResource(&mesh_type, m);
-}
-
-BUILTIN(draw_mesh, "format,positions,colors,normals,texcoords1,texcoords2,indices",
-        "SF}:3]F}:4]F}:3]F}:2]F}:2]I]", "",
-    "renders the triangles gl.new_mesh would make of the same arguments (indices required) with"
-    " the current shader, without making a mesh: for shapes that change every frame.")
-(VM &vm, LString *format, LVector *positions, LVector *colors, LVector *normals,
- LVector *texcoords1, LVector *texcoords2, LVector *indices) {
-    TestGL(vm);
-    vector<uint8_t> verts;
-    vector<int> idxs;
-    auto vsize = MeshVerts(vm, format, positions, colors, normals, texcoords1, texcoords2, indices,
-                           verts, idxs);
-    if (idxs.empty()) return;
-    gs->currentshader->Set();
-    RenderArrayStream(PRIM_TRIS, format->strv(), vsize, verts.data(), positions->len, span(idxs));
 }
 
 BUILTIN(new_mesh_iqm, "filename", "S", "R:mesh?",
