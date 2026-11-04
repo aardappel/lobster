@@ -200,23 +200,30 @@ def qsort<T>(xs:[T], lt) -> [T]:
                             qsort(f2, lt))
 
 def qsort_in_place(xs, lt):
+    // Partitions round the middle element, stopping at equal ones from both sides so runs of
+    // them split evenly, and recurses only into the smaller side, so at most log2(n) deep.
     def rec(s, e) -> void:
-        let l = e - s
-        guard l > 1
-        let pivot = xs[s]
-        var sp = s + 1
-        var ep = e
-        while sp < ep:
-            let c = xs[sp]
-            if lt(c, pivot):
-                xs[sp - 1] = xs[sp]
-                sp++
+        var l = s
+        var r = e
+        while r - l > 1:
+            let pivot = xs[(l + r) / 2]
+            var i = l
+            var j = r - 1
+            while i <= j:
+                while lt(xs[i], pivot): i++
+                while lt(pivot, xs[j]): j--
+                if i <= j:
+                    let c = xs[i]
+                    xs[i] = xs[j]
+                    xs[j] = c
+                    i++
+                    j--
+            if j + 1 - l < r - i:
+                rec(l, j + 1)
+                l = i
             else:
-                xs[sp] = xs[--ep]
-                xs[ep] = c
-        xs[--sp] = pivot
-        rec(s, sp)
-        rec(ep, e)
+                rec(i, r)
+                r = j + 1
     rec(0, xs.length)
 
 def insertion_sort(xs, lt):

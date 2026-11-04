@@ -114,6 +114,15 @@ def std_tests():
     let sone = [ 1 ]
     sone.qsort_in_place(): _a < _b
     test_seq(sone, [ 1 ])
+    // Many equal or nearly sorted elements neither recurse deep nor take quadratic time.
+    let same = map(100000): 1
+    same.qsort_in_place(): _a < _b
+    test_eq(same[0] + same[99999], 2)
+    let nearly = map(100000) i: i
+    nearly[10] = 20
+    nearly[20] = 10
+    nearly.qsort_in_place(): _a < _b
+    test_seq(nearly, map(100000) i: i)
     let sempty = []::int
     sempty.insertion_sort(): _a < _b
     test_seq(sempty, []::int)

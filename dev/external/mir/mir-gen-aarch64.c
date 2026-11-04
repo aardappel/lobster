@@ -237,7 +237,7 @@ static void machinize_call (gen_ctx_t gen_ctx, MIR_insn_t call_insn) {
   MIR_func_t func = curr_func_item->u.func;
   MIR_proto_t proto = call_insn->ops[0].u.ref->u.proto;
   size_t nargs, nops = MIR_insn_nops (ctx, call_insn), start = proto->nres + 2;
-  size_t int_arg_num = 0, fp_arg_num = 0, mem_size = 0, blk_offset = 0, qwords;
+  size_t int_arg_num = 0, fp_arg_num = 0, mem_size = 0, blk_offset = 0, qwords, hfa_n;
   MIR_type_t type, mem_type;
   MIR_op_mode_t mode;
   MIR_var_t *arg_vars = NULL;
@@ -286,7 +286,17 @@ static void machinize_call (gen_ctx_t gen_ctx, MIR_insn_t call_insn) {
 #if defined(__APPLE__)                              /* all varargs are passed on stack */
     if (i - start == nargs) int_arg_num = fp_arg_num = 8;
 #endif
-    if (MIR_blk_type_p (type) && (qwords = (call_insn->ops[i].u.var_mem.disp + 7) / 8) <= 2) {
+    /* HFA args: backported from upstream MIR, https://github.com/vnmakarov/mir/commit/079a47da */
+    if ((hfa_n = target_hfa_members (type, call_insn->ops[i].u.var_mem.disp)) != 0) {
+      if (fp_arg_num + hfa_n <= 8) {
+        fp_arg_num += hfa_n;
+      } else { /* on the stack in memory layout: */
+        fp_arg_num = 8;
+        if (target_hfa_el_size (type) == 16) blk_offset = (blk_offset + 15) / 16 * 16;
+        blk_offset += target_hfa_stack_size (type, call_insn->ops[i].u.var_mem.disp);
+      }
+    } else if (MIR_blk_type_p (type)
+               && (qwords = (call_insn->ops[i].u.var_mem.disp + 7) / 8) <= 2) {
       if (int_arg_num + qwords > 8) blk_offset += qwords * 8;
       int_arg_num += qwords;
     } else if (get_arg_reg (type, &int_arg_num, &fp_arg_num, &new_insn_code) == MIR_NON_VAR) {
@@ -328,6 +338,36 @@ static void machinize_call (gen_ctx_t gen_ctx, MIR_insn_t call_insn) {
       gen_mov (gen_ctx, call_insn, MIR_MOV, arg_reg_op,
                _MIR_new_var_op (ctx, arg_op.u.var_mem.base));
       call_insn->ops[i] = arg_reg_op;
+      continue;
+    } else if ((hfa_n = target_hfa_members (type, arg_op.u.var_mem.disp)) != 0) {
+      MIR_type_t el_type = target_hfa_el_type (type);
+      size_t el_size = target_hfa_el_size (type);
+
+      if (fp_arg_num + hfa_n <= 8) { /* members in consecutive FP arg regs: */
+        new_insn_code = el_type == MIR_T_F ? MIR_FMOV : el_type == MIR_T_D ? MIR_DMOV : MIR_LDMOV;
+        for (size_t n = 0; n < hfa_n; n++) {
+          arg_reg = V0_HARD_REG + fp_arg_num++;
+          new_insn = MIR_new_insn (ctx, new_insn_code, _MIR_new_var_op (ctx, arg_reg),
+                                   _MIR_new_var_mem_op (ctx, el_type, n * el_size,
+                                                        arg_op.u.var_mem.base, MIR_NON_VAR, 1));
+          gen_add_insn_before (gen_ctx, call_insn, new_insn);
+          setup_call_hard_reg_args (gen_ctx, call_insn, arg_reg);
+        }
+        call_insn->ops[i].u.var_mem.base = MIR_NON_VAR; /* not used anymore */
+      } else { /* give up the FP arg regs and copy it to the stack in memory layout: */
+        size_t stack_size = target_hfa_stack_size (type, arg_op.u.var_mem.disp);
+
+        fp_arg_num = 8;
+        if (el_size == 16) mem_size = (mem_size + 15) / 16 * 16;
+        gen_blk_mov (gen_ctx, call_insn, mem_size, SP_HARD_REG, 0, arg_op.u.var_mem.base,
+                     stack_size / 8, int_arg_num);
+        call_insn->ops[i]
+          = _MIR_new_var_mem_op (ctx, MIR_T_UNDEF,
+                                 mem_size, /* we don't care about valid mem disp here */
+                                 SP_HARD_REG, MIR_NON_VAR, 1);
+        mem_size += stack_size;
+        blk_offset += stack_size;
+      }
       continue;
     } else if (MIR_blk_type_p (type)) {
       qwords = (arg_op.u.var_mem.disp + 7) / 8;
@@ -768,7 +808,7 @@ static void target_machinize (gen_ctx_t gen_ctx) {
   MIR_var_t var;
   MIR_reg_t ret_reg, arg_reg;
   MIR_op_t ret_reg_op, arg_reg_op, mem_op, temp_op;
-  size_t i, int_arg_num, fp_arg_num, mem_size, qwords;
+  size_t i, int_arg_num, fp_arg_num, mem_size, qwords, hfa_n;
 
   assert (curr_func_item->item_type == MIR_func_item);
   func = curr_func_item->u.func;
@@ -783,6 +823,38 @@ static void target_machinize (gen_ctx_t gen_ctx) {
     if (type == MIR_T_RBLK && i == 0) { /* hidden arg */
       arg_reg_op = _MIR_new_var_op (ctx, R8_HARD_REG);
       gen_mov (gen_ctx, anchor, MIR_MOV, _MIR_new_var_op (ctx, i + MAX_HARD_REG + 1), arg_reg_op);
+      continue;
+    } else if ((hfa_n = target_hfa_members (type, var.size)) != 0) {
+      MIR_type_t el_type = target_hfa_el_type (type);
+      size_t el_size = target_hfa_el_size (type);
+
+      if (fp_arg_num + hfa_n <= 8) { /* store the FP arg regs into a block in the frame: */
+        small_aggregate_save_area = (small_aggregate_save_area + var.size + 15) / 16 * 16;
+        new_insn = MIR_new_insn (ctx, MIR_SUB, _MIR_new_var_op (ctx, i + MAX_HARD_REG + 1),
+                                 _MIR_new_var_op (ctx, FP_HARD_REG),
+                                 MIR_new_int_op (ctx, small_aggregate_save_area));
+        gen_add_insn_before (gen_ctx, anchor, new_insn);
+        new_insn_code = el_type == MIR_T_F ? MIR_FMOV : el_type == MIR_T_D ? MIR_DMOV : MIR_LDMOV;
+        for (size_t n = 0; n < hfa_n; n++)
+          gen_mov (gen_ctx, anchor, new_insn_code,
+                   _MIR_new_var_mem_op (ctx, el_type, n * el_size, i + MAX_HARD_REG + 1,
+                                        MIR_NON_VAR, 1),
+                   _MIR_new_var_op (ctx, V0_HARD_REG + fp_arg_num++));
+      } else { /* on the stack in memory layout: */
+        fp_arg_num = 8;
+        if (!block_arg_func_p) {
+          block_arg_func_p = TRUE;
+          gen_mov (gen_ctx, anchor, MIR_MOV, _MIR_new_var_op (ctx, R8_HARD_REG),
+                   _MIR_new_var_mem_op (ctx, MIR_T_I64, 16, FP_HARD_REG, MIR_NON_VAR, 1));
+        }
+        if (el_size == 16) mem_size = (mem_size + 15) / 16 * 16;
+        gen_add_insn_before (gen_ctx, anchor,
+                             MIR_new_insn (ctx, MIR_ADD,
+                                           _MIR_new_var_op (ctx, i + MAX_HARD_REG + 1),
+                                           _MIR_new_var_op (ctx, R8_HARD_REG),
+                                           MIR_new_int_op (ctx, mem_size)));
+        mem_size += target_hfa_stack_size (type, var.size);
+      }
       continue;
     } else if (MIR_blk_type_p (type) && (qwords = (var.size + 7) / 8) <= 2) {
       if (int_arg_num + qwords <= 8) {
