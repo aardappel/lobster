@@ -939,8 +939,16 @@ KeyState &keymap_lookup(string_view name) {
 }
 
 pair<int64_t, int64_t> GetKS(string_view name) {
-    // Touch too: a finger's position is set with its press (updatedragpos), so gl_hit sees it on the same frame.
-    return keymap_lookup(name).State();
+    auto &ks = keymap_lookup(name);
+    #ifdef PLATFORM_TOUCH
+        // delayed results by one frame, that way they get 1 frame over finger hovering over target,
+        // which makes gl_hit work correctly
+        // FIXME: this causes more lag on mobile, instead, set a flag that this is the first frame we're touching,
+        // and make that into a special case inside gl_hit
+        return ks.Prev();
+    #else
+        return ks.State();
+    #endif
 }
 
 const char *GetUserKey(string_view_nt name) {
