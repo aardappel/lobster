@@ -355,7 +355,23 @@ uint8_t *ReadTexture(const Texture &tex) {
         GL_CALL(glGetTexImage(tex.type, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
         return pixels;
     #else
-        return nullptr;
+        if (tex.type != GL_TEXTURE_2D) return nullptr;
+        GLint was = 0;
+        GL_CALL(glGetIntegerv(GL_FRAMEBUFFER_BINDING, &was));
+        GLuint fb = 0;
+        GL_CALL(glGenFramebuffers(1, &fb));
+        GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, fb));
+        GL_CALL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex.id, 0));
+        uint8_t *pixels = nullptr;
+        // Depth and integer textures can't be read back as RGBA.
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) {
+            pixels = new uint8_t[tex.size.x * tex.size.y * 4];
+            GL_CALL(glPixelStorei(GL_PACK_ALIGNMENT, 1));
+            GL_CALL(glReadPixels(0, 0, tex.size.x, tex.size.y, GL_RGBA, GL_UNSIGNED_BYTE, pixels));
+        }
+        GL_CALL(glBindFramebuffer(GL_FRAMEBUFFER, (GLuint)was));
+        GL_CALL(glDeleteFramebuffers(1, &fb));
+        return pixels;
     #endif
 }
 
