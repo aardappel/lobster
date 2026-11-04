@@ -4,6 +4,25 @@ import std
 // Control structures: if/elif/else, for, while, break, continue, guard,
 // switch, assert, and conditional declarations.
 
+// A mutable global read again after a return from inside nested loops (MIR's loop invariant
+// motion used to hoist that read above the loop).
+var gridw = 0
+gridw = 4
+let grid = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7 ]
+
+def first_near(cx, cy):
+    for(3) r:
+        var dy = -r
+        while dy <= r:
+            var dx = -r
+            while dx <= r:
+                let x = cx + dx
+                let y = cy + dy
+                if x >= 0 and y >= 0 and grid[y * gridw + x] != 0: return grid[y * gridw + x]
+                dx++
+            dy++
+    return 0
+
 def control_tests():
     suite("control")
 
@@ -382,5 +401,6 @@ def control_tests():
     // separator, not as a multi-assign.
     def two_args(f, v): return f(1) + v
     test_eq(two_args(fn i: i + ma, 2), 13)
+    test_eq(first_near(2, 0), 7)
 
 control_tests()
