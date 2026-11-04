@@ -18,8 +18,6 @@
 #include "lobster/glinterface.h"
 #include "lobster/glincludes.h"
 
-size_t draw_calls = 0;
-
 int GenBO_(string_view name, int type, size_t bytesize, const void *data, bool dyn) {
     int bo;
     GL_CALL(glGenBuffers(1, (GLuint *)&bo));
@@ -67,7 +65,6 @@ void Surface::Render(Shader *sh) {
     sh->SetTextures(textures);
     GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
     GL_CALL(glDrawElements(GetPrimitive(prim), (GLsizei)numidx, GL_UNSIGNED_INT, 0));
-    draw_calls++;
 }
 
 Surface::~Surface() {
@@ -175,7 +172,6 @@ void Mesh::Render(Shader *sh) {
         for (auto s : surfs) s->Render(sh);
     } else {
         GL_CALL(glDrawArrays(GetPrimitive(prim), 0, (GLsizei)geom->nverts));
-        draw_calls++;
     }
 }
 
@@ -291,7 +287,6 @@ void RenderArray(Primitive prim, Geometry *geom, int ibo, size_t tcount) {
     } else {
         GL_CALL(glDrawArrays(glprim, 0, (GLsizei)geom->nverts));
     }
-    draw_calls++;
 }
 
 void GeometryCache::RenderUnitSquare(Shader *sh, Primitive prim, bool centered) {

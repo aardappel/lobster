@@ -219,7 +219,6 @@ void NPop(VM &vm, Nesting n) {
         switch (tn) {
             case N_FRAME:
                 ImGui::Render();
-                FlushText();
                 if (SDLHasDisplay()) ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
                 else IMGUIHeadlessTextures();
                 // FIXME: this seems buggy.

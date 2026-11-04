@@ -45,7 +45,6 @@ int max_ssbo = 0, max_ubo = 0;
 BlendMode SetBlendMode(BlendMode mode) {
     static BlendMode curblendmode = BLEND_NONE;
     if (mode == curblendmode) return curblendmode;
-    FlushText();
     switch (mode) {
         case BLEND_NONE:
             GL_CALL(glDisable(GL_BLEND));
@@ -77,13 +76,11 @@ BlendMode SetBlendMode(BlendMode mode) {
 }
 
 void ClearFrameBuffer(const float4 &c) {
-    FlushText();
     GL_CALL(glClearColor(c.x, c.y, c.z, c.w));
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }
 
 void SetScissorRect(int2 topleft, int2 size, pair<int2, int2>& prev) {
-    FlushText();
     int2 scrnsz = GetFrameBufferSize(GetScreenSize());
     GLboolean enabled;
 
@@ -104,9 +101,7 @@ void SetScissorRect(int2 topleft, int2 size, pair<int2, int2>& prev) {
     }
 }
 
-// Set2DMode and the 3D modes start here, so batched text is drawn before view2clip changes.
 void DepthTest(bool on) {
-    FlushText();
     if (on)
         GL_CALL(glEnable(GL_DEPTH_TEST));
     else
@@ -145,12 +140,10 @@ void Set3DMode(float fovy, int2 fbo, int2 fbs, float znear, float zfar, bool nod
 }
 
 void CullFace(bool on) {
-    FlushText();
     GL_CALL(if (on) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE));
 }
 
 void CullFront(bool on) {
-    FlushText();
     GL_CALL(glCullFace(on ? GL_FRONT : GL_BACK));
 }
 
@@ -158,7 +151,6 @@ bool Is2DMode() { return mode2d; }
 bool IsSRGBAwareMode() { return mode_srgb; }
 
 uint8_t *ReadPixels(const int2 &pos, const int2 &size) {
-    FlushText();
     auto pixels = new uint8_t[size.x * size.y * 3];
     for (int y = 0; y < size.y; y++)
         GL_CALL(glReadPixels(pos.x, pos.y + size.y - y - 1, size.x, 1, GL_RGB, GL_UNSIGNED_BYTE,

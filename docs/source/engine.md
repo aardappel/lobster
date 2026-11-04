@@ -24,19 +24,19 @@ a white drawing color, and the `color` shader set.
 Text
 ----
 `gl.set_font_name` and `gl.set_font_size` pick a font, and `gl.text` draws a string at the
-current origin, in the current color. Consecutive `gl.text` calls are batched: their glyphs
-collect into one draw, which happens when anything else draws or changes state. So hundreds of
-labels a frame take one draw per font, and `gl.draw_calls` lets you check how many draws a frame
-takes (see `samples/textlabels.lobster`).
+current origin, in the current color. Each `gl.text` is a draw call of its own. That is fine for
+a few strings, but for many labels a frame use `gl.text_list`, which draws them all in one call:
 
-For outlined text, give `gl.set_font_size` an outline size and color:
-`gl.set_font_size(20, 2.0, color_black)`. The outline is baked into the font's glyphs, so
-outlined text batches like any other.
+```lobster
+let names = map(units): _.name
+let places = map(units): _.pos
+gl.color(color_white):
+    gl.text_list(names, places)
+```
 
-If you draw a lot of text that rarely changes, you can also draw each label once into a texture
-(`gl.switch_to_framebuffer`) and draw that texture as a quad from then on. Key the textures by
-string, size and color, and free the ones not used for a while, so a label that changes doesn't
-leave its old textures behind.
+All texts in a list share the font and color. For several colors make a list per color, for
+several sizes a list per `gl.set_font_size`. An outline (`gl.set_font_size(20, 2.0, color_black)`)
+is part of the font, so outlined text needs no list of its own.
 
 Shaders
 -------

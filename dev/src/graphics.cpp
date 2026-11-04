@@ -290,12 +290,6 @@ BUILTIN(frame_counter, "delta", "I", "",
     vm.FrameStart(delta);
 }
 
-BUILTIN(draw_calls, "", "", "I",
-    "how many draw calls have been made so far, to see how many a frame takes")
-(VM &) {
-    return (iint)draw_calls;
-}
-
 BUILTIN(shutdown, "", "", "",
     "shuts down the OpenGL window. you only need to call this function if you wish to close it"
     " before the end of the program")
@@ -900,9 +894,7 @@ BUILTIN(new_mesh, "format,positions,colors,normals,texcoords1,texcoords2,indices
     " indices may be []. positions is obligatory."
     " you may specify [] for any of the other attributes if not required by format,"
     " or to get defaults for colors (white) / texcoords (position x & y) /"
-    " normals (generated from adjacent triangles)."
-    " a mesh is meant to last: making one every frame is slow, as each makes and frees GPU"
-    " buffers.")
+    " normals (generated from adjacent triangles).")
 (VM &vm, LString *format, LVector *positions, LVector *colors, LVector *normals,
  LVector *texcoords1, LVector *texcoords2, LVector *indices) {
     TestGL(vm);

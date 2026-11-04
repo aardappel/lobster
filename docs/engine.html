@@ -21,6 +21,71 @@
       vertical-align: middle;
     }
     .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
   </style>
   <link rel="stylesheet" href="github.css" />
   <link rel="icon" type="image/svg" href="lobster.svg" />
@@ -49,20 +114,19 @@ shader set.</p>
 <h2 id="text">Text</h2>
 <p><code>gl.set_font_name</code> and <code>gl.set_font_size</code> pick
 a font, and <code>gl.text</code> draws a string at the current origin,
-in the current color. Consecutive <code>gl.text</code> calls are
-batched: their glyphs collect into one draw, which happens when anything
-else draws or changes state. So hundreds of labels a frame take one draw
-per font, and <code>gl.draw_calls</code> lets you check how many draws a
-frame takes (see <code>samples/textlabels.lobster</code>).</p>
-<p>For outlined text, give <code>gl.set_font_size</code> an outline size
-and color: <code>gl.set_font_size(20, 2.0, color_black)</code>. The
-outline is baked into the font's glyphs, so outlined text batches like
-any other.</p>
-<p>If you draw a lot of text that rarely changes, you can also draw each
-label once into a texture (<code>gl.switch_to_framebuffer</code>) and
-draw that texture as a quad from then on. Key the textures by string,
-size and color, and free the ones not used for a while, so a label that
-changes doesn't leave its old textures behind.</p>
+in the current color. Each <code>gl.text</code> is a draw call of its
+own. That is fine for a few strings, but for many labels a frame use
+<code>gl.text_list</code>, which draws them all in one call:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode lobster"><code class="sourceCode lobster"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> names <span class="op">=</span> <span class="cf">map</span>(units): _.name</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> places <span class="op">=</span> <span class="cf">map</span>(units): _.pos</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="bu">gl.color</span>(<span class="cn">color_white</span>):</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    gl.text_list(names, places)</span></code></pre></div>
+<p>All texts in a list share the font and color. For several colors make
+a list per color, for several sizes a list per
+<code>gl.set_font_size</code>. An outline
+(<code>gl.set_font_size(20, 2.0, color_black)</code>) is part of the
+font, so outlined text needs no list of its own.</p>
 <h2 id="shaders">Shaders</h2>
 <p>All basic shaders, including <code>color</code>, can be found in
 <code>data/shaders/default.materials</code>.</p>

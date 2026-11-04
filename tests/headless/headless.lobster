@@ -55,37 +55,25 @@ let copy = assert gl.update_buffer_object("\x00\x00\x00\x00", true, -1, nil, fal
 gl.copy_buffer_object(buf, copy, 4, 0, 4)
 let tq = gl.create_time_query()
 
-// Consecutive gl.text calls draw as one batch per font, and look as they did one call at a time.
+// gl.text_list looks the same as a gl.text per string.
 check(gl.set_font_name("data/fonts/Droid_Sans/DroidSans.ttf"), "can\'t load font")
-let batched = gl.create_blank_texture(int3 { 64, 64, 0 }, texture_format_nomipmap)
-let unbatched = gl.create_blank_texture(int3 { 64, 64, 0 }, texture_format_nomipmap)
-def labels(target):
-    assert gl.switch_to_framebuffer(target)
-    gl.clear(color_black)
-    gl.set_font_size(12)
-    for(20) i:
-        gl.translate(float2 { i % 4 * 16.0, i / 4 * 10.0 }):
-            gl.color(if i % 2: color_yellow else: color_white):
-                gl.text("{i}")
-    gl.set_font_size(16, 2.0, color_red)
-    gl.translate(float2 { 0.0, 40.0 }):
-        gl.text("Ok")
-    assert gl.switch_to_framebuffer(nil)
+let textone = gl.create_blank_texture(int3 { 64, 64, 0 }, texture_format_nomipmap)
+let textall = gl.create_blank_texture(int3 { 64, 64, 0 }, texture_format_nomipmap)
+let labels = map(20) i: "{i}"
+let labelpos = map(20) i: float2 { i % 4 * 16.0, i / 4 * 10.0 }
 assert gl.frame()
-labels(batched)
-let draws = gl.draw_calls()
-labels(batched)
-assert gl.draw_calls() - draws == 2
-gl.use_default_font_shader(false)
-gl.set_shader("textured")
-labels(unbatched)
-gl.use_default_font_shader(true)
+gl.set_font_size(12)
+assert gl.switch_to_framebuffer(textone)
+gl.clear(color_black)
+for(labels) l, i:
+    gl.translate(labelpos[i]):
+        gl.text(l)
+assert gl.switch_to_framebuffer(textall)
+gl.clear(color_black)
+gl.text_list(labels, labelpos)
+assert gl.switch_to_framebuffer(nil)
 if display:
-    let pixels = assert gl.read_texture(batched)
-    assert pixels == assert gl.read_texture(unbatched)
-    // Only the outline is red.
-    let outlined = exists(pixels.length / 4) i: pixels[i * 4] > 200 and pixels[i * 4 + 1] < 50
-    assert outlined
+    assert (assert gl.read_texture(textone)) == assert gl.read_texture(textall)
 
 // Font replacement and complete ImGui recreation exercise its CPU texture lifecycle.
 for(2):

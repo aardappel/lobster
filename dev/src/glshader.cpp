@@ -442,8 +442,6 @@ string Shader::Link(string_view name) {
 }
 
 Shader::~Shader() {
-    // Batched text may still need this shader.
-    FlushText();
     if (program) GL_CALL(glDeleteProgram(program));
     if (ps) GL_CALL(glDeleteShader(ps));
     if (vs) GL_CALL(glDeleteShader(vs));
@@ -459,8 +457,6 @@ void ResetProgram() {
 }
 
 void Shader::Activate() {
-    // Anything that draws or sets uniforms comes here first.
-    FlushText();
     if (program != last_program) {
         GL_CALL(glUseProgram(program));
         last_program = program;

@@ -53,8 +53,12 @@ struct BitmapFont {
     ~BitmapFont();
     BitmapFont(OutlineFont *_font, int _size, float _osize, byte4 _ocol);
 
-    // With a shader, adds the text to the batch FlushText draws, otherwise draws it now.
-    void RenderText(string_view text, Shader *batchshader);
+    struct PT { float2 p; float2 t; };
+
+    // Adds the quads of a text at pos, its chars must be in the atlas already (CacheChars).
+    void AddText(string_view text, float2 pos, vector<PT> &vbuf, vector<int> &ibuf);
+    void RenderQuads(span<PT> vbuf, span<int> ibuf);
+    void RenderText(string_view text);
     const int2 TextSize(string_view text);
 
     bool CacheChars(string_view text);
