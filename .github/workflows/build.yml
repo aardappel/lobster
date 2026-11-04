@@ -101,6 +101,9 @@ jobs:
       run: xcodebuild -toolchain clang -configuration Release -target lobster
     - name: test
       run: bin/lobster tests/unittest.lobster
+    - name: test under --mir
+      if: matrix.use-x86 == 'OFF'
+      run: bin/lobster --mir tests/unittest.lobster
     - name: test lsp
       run: |
         cd dev/lsp
