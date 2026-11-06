@@ -44,3 +44,19 @@ head_on_block(1)
 def default_value(v, g = fn(w): w + 1): return g(v)
 
 default_value(1)
+
+class big : square
+    extra:int
+
+class later
+
+class sooner : later
+    own:int
+
+class later:
+    top:int
+
+let bg = big { 5, 6, 7 }
+let so = sooner { 8, 9 }
+print bg.area + bg.side + bg.extra
+print so.top + so.own
