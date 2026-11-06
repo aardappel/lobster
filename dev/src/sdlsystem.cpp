@@ -236,27 +236,11 @@ float GetControllerAxis(int i) {
 }
 
 int updatedragpos(SDL_TouchFingerEvent &e, Uint32 et) {
-    int num_touch_fingers;
-    auto *touch_fingers = SDL_GetTouchFingers(e.touchID, &num_touch_fingers);
-    //assert(num_touch_fingers && e.fingerID < num_touch_fingers);
-    for (int i = 0; i < num_touch_fingers; i++) {
-        auto *finger = touch_fingers[i];
-        if (finger->id == e.fingerID) {
-            // this is a bit clumsy as SDL has a list of fingers and so do we, but they work a bit differently
-            int j = findfinger(e.fingerID, et == SDL_EVENT_FINGER_UP);
-            auto &f = fingers[j];
-            auto ep = double2(e.x, e.y);
-            auto ed = double2(e.dx, e.dy);
-            auto xy = ep * double2(screensize);
-
-            // FIXME: converting back to int coords even though touch theoretically may have higher res
-            f.mousepos = xy * inputscale;
-            f.mousedelta += ed * double2(screensize);
-            return j;
-        }
-    }
-    //assert(0);
-    return 0;
+    int j = findfinger(e.fingerID, et == SDL_EVENT_FINGER_UP);
+    auto &f = fingers[j];
+    f.mousepos = double2(e.x, e.y) * double2(screensize) * inputscale;
+    f.mousedelta += double2(e.dx, e.dy) * double2(screensize);
+    return j;
 }
 
 string dropped_file;
@@ -767,7 +751,7 @@ bool SDLFrame() {
             }
             case SDL_EVENT_FINGER_UP: {
                 if (nomousekeyb.first) break;
-                int i = findfinger(event.tfinger.fingerID, true);
+                int i = updatedragpos(event.tfinger, event.type);
                 updatemousebutton(1, i, false);
                 break;
             }
