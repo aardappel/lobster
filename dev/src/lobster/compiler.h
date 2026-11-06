@@ -52,6 +52,8 @@ struct CompileOptions {
     Query *query = nullptr;
     // Count executed reference count operations per site that emits them, see --rcstats.
     bool rcstats = false;
+    // Only parse, appending what the parser reads to this, see Lex::parselog.
+    string *parselog = nullptr;
 };
 
 // Compiles the source in `stringsource`, or the file `fn` when that is empty, into the

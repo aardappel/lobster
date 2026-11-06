@@ -24,6 +24,9 @@ string GetMainDirFromExePath(string_view argv_0);
 extern bool InitPlatform(string maindir, string_view auxfilepath, bool from_bundle,
                              FileLoader loader);
 extern void AddDataDir(string_view path);  // Any additional dirs besides the above.
+// Runs f with files loaded as if mainfile were the one compiled: from its directory rather than
+// the project's, and without keeping the dirs it adds.
+extern void WithMainFile(string_view mainfile, const function<void()> &f);
 extern string_view ProjectDir();
 extern string_view MainDir();
 
@@ -51,6 +54,8 @@ extern bool FileExists(string_view filename, bool allow_absolute);
 extern bool FileDelete(string_view relfilename);
 extern string SanitizePath(string_view path);
 extern bool IsAbsolute(string_view filename);
+// path made absolute against the working directory, or path itself if that fails.
+extern string AbsolutePath(string_view path);
 // The primary dir relative files get written to (ends in a path separator), or empty.
 extern string GetMainWriteDir();
 

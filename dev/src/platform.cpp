@@ -172,6 +172,20 @@ bool IsAbsolute(string_view filename) {
     return filename.size() > 1 && (filename[0] == '/' || filename[0] == '\\' || filename[1] == ':');
 }
 
+string AbsolutePath(string_view path) {
+    #ifndef PLATFORM_ES3
+        std::error_code ec;
+        auto abs = std::filesystem::absolute(std::filesystem::path(path), ec);
+        if (ec) return string(path);
+        auto r = SanitizePath(abs.lexically_normal().string());
+        // "dir/." normalizes to "dir/".
+        if (r.size() > 1 && r.back() == FILESEP) r.pop_back();
+        return r;
+    #else
+        return string(path);
+    #endif
+}
+
 string GetMainDirFromExePath(string_view argv_0) {
     string md = SanitizePath(argv_0);
     #ifdef _WIN32
@@ -305,6 +319,22 @@ void AddDataDir(string_view path) {
     // setting these from import dirs.
     for (auto &dir : write_dirs) if (dir == fpath) return;
     write_dirs.push_back(fpath);
+}
+
+void WithMainFile(string_view mainfile, const function<void()> &f) {
+    struct Restore {
+        vector<string> data_dirs = ::data_dirs, write_dirs = ::write_dirs;
+        string projectdir = ::projectdir;
+        ~Restore() {
+            ::data_dirs = std::move(data_dirs);
+            ::write_dirs = std::move(write_dirs);
+            ::projectdir = std::move(projectdir);
+        }
+    } restore;
+    projectdir = StripFilePart(SanitizePath(mainfile));
+    std::erase(data_dirs, restore.projectdir);
+    data_dirs.insert(data_dirs.begin(), projectdir);
+    f();
 }
 
 string GetMainWriteDir() {
