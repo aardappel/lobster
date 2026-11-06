@@ -40,3 +40,7 @@ def head_on_block(v): apply(v) y:
 
 ends_in_block(1)
 head_on_block(1)
+
+def default_value(v, g = fn(w): w + 1): return g(v)
+
+default_value(1)

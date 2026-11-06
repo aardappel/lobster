@@ -75,7 +75,7 @@ struct TypeCheckQuery : virtual TypeCheckBase {
     }
 
     // The innermost function whose lines span the queried one, or null at file scope. A function
-    // value can span the same lines as the function it is in, which comes first.
+    // value can span the same lines as the function it is in, and wins that tie.
     Overload *QueryOverload() {
         auto &q = query->qloc;
         Overload *best = nullptr;
@@ -85,7 +85,8 @@ struct TypeCheckQuery : virtual TypeCheckBase {
             for (auto ov : f->overloads) {
                 if (!ov->gbody || ov->declared_at.fileidx != q.fileidx) continue;
                 auto [first, last] = Lines(*ov);
-                if (first <= q.line && q.line <= last && last - first <= span) {
+                if (first <= q.line && q.line <= last &&
+                    (last - first < span || (last - first == span && f->anonymous))) {
                     span = last - first;
                     best = ov;
                 }

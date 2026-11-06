@@ -163,6 +163,8 @@ console.log("Finding references");
 			"Local in scope in a block ending its function?");
 		queryDefinition(settings, file, 'references.lobster', 38, 'y')
 			.then(r => assert(r.declartionLocation?.line == 36, "Block argument, on the line of its function?", r));
+		queryDefinition(settings, file, 'references.lobster', 43, 'w')
+			.then(r => assert(r.declartionLocation?.line == 43, "Argument of a default argument's function value?", r));
 	});
 }
 
