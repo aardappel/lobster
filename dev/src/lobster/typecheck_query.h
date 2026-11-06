@@ -22,9 +22,7 @@ namespace lobster {
 inline int LastLine(Node *body, int fileidx, int last) {
     body->Iterate([&](Node *n) {
         if (n->line.fileidx == fileidx) last = std::max(last, n->line.line);
-        if (auto fr = Is<FunRef>(n)) {
-            if (auto gbody = fr->sf->overload->gbody) last = LastLine(gbody, fileidx, last);
-        }
+        if (auto fr = Is<FunRef>(n)) last = LastLine(fr->sf->overload->gbody, fileidx, last);
     });
     return last;
 }

@@ -21,7 +21,7 @@
 //
 // Kinds are "function" (one per overload, with "e" the last line of its body, "t" its declared
 // signature and "c" the class it is a method of), "lambda" (a function value, with "e"), "var"
-// ("t" its type, "c" the function or lambda it is local to, none for a global), "class",
+// ("t" its type, "c" the function or lambda it is local to, none for a global), "class" and
 // "struct" ("s" the class it inherits from), "field" ("c" the class declaring it, "t" its type),
 // "enum" and "enumval" ("c" its enum). Lines are 1 based. Uses only have lines: an editor finds
 // the name on the line.
