@@ -106,6 +106,12 @@ console.log("Parsing messages");
 	assert(messages[0].file == "lib/a.lobster" && messages[0].line == 2, "Incorrect location?", messages[0]);
 	assert(messages[1].context.length == 1 && messages[1].context[0].file == "main.lobster" &&
 		messages[1].context[0].line == 4, "Incorrect context?", messages[1]);
+	const crlf = parseMessages(
+		"b.lobster(10): error: no such overload\r\n" +
+		"  declared: f(x:int)\r\n" +
+		"  in main.lobster(5): g() -> int\r\n");
+	assert(crlf[0].context.length == 1 && crlf[0].context[0].text == "g() -> int", "Context with CRLF?", crlf[0]);
+	assert(crlf[0].message == "no such overload\ndeclared: f(x:int)", "Details with CRLF?", crlf[0]);
 }
 
 console.log("Finding programs");

@@ -89,11 +89,13 @@ export interface LobsterOutput {
 }
 
 export function parseMessages(input: string): LobsterMessage[] {
+    // The compiler's stdout has CRLF line endings on Windows.
+    const text = input.replace(/\r\n?/g, "\n");
     const regex = /^(.*?)\((\d+)\): (warning|error): (.*)((?:\n[ \t]+.*)*)/gm;
     const regexInner = /^\s*in (.*?)\((\d+)\): ?(.*)$/;
     const output: LobsterMessage[] = [];
     let match;
-    while ((match = regex.exec(input))) {
+    while ((match = regex.exec(text))) {
         const context: LobsterMessage['context'] = [];
         const details: string[] = [];
         for (const line of match[5].split("\n").slice(1)) {
