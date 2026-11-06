@@ -25,3 +25,18 @@ let sq = square { 4, 2 }
 let ci = circle { 3, 1 }
 print sq.area + sq.side
 print ci.area + ci.radius
+
+def apply(v, f): return f(v)
+
+def ends_in_block(v):
+    let total = 1
+    apply(v) x:
+        let more = x + total
+        more + 1
+
+def head_on_block(v): apply(v) y:
+    let z = y + 1
+    z + y
+
+ends_in_block(1)
+head_on_block(1)

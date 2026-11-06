@@ -17,13 +17,22 @@
 
 namespace lobster {
 
+// The last line in file `fileidx` of a function's body, with the functions declared in it, whose
+// bodies aren't children of the FunRef. `last` is the line to start from.
+inline int LastLine(Node *body, int fileidx, int last) {
+    body->Iterate([&](Node *n) {
+        if (n->line.fileidx == fileidx) last = std::max(last, n->line.line);
+        if (auto fr = Is<FunRef>(n)) {
+            if (auto gbody = fr->sf->overload->gbody) last = LastLine(gbody, fileidx, last);
+        }
+    });
+    return last;
+}
+
 // The first and last line of an overload, from its declaration to the end of its body.
 inline pair<int, int> Lines(const Overload &ov) {
-    auto last = ov.declared_at.line;
-    ov.gbody->Iterate([&](Node *n) {
-        if (n->line.fileidx == ov.declared_at.fileidx) last = std::max(last, n->line.line);
-    });
-    return { ov.declared_at.line, last };
+    auto &at = ov.declared_at;
+    return { at.line, LastLine(ov.gbody, at.fileidx, at.line) };
 }
 
 struct TypeCheckQuery : virtual TypeCheckBase {
@@ -65,8 +74,8 @@ struct TypeCheckQuery : virtual TypeCheckBase {
         return TypeRef(nullptr);
     }
 
-    // The innermost function whose lines span the queried one (those of a function value are
-    // not part of the function it is in), or null at file scope.
+    // The innermost function whose lines span the queried one, or null at file scope. A function
+    // value can span the same lines as the function it is in, which comes first.
     Overload *QueryOverload() {
         auto &q = query->qloc;
         Overload *best = nullptr;
@@ -76,7 +85,7 @@ struct TypeCheckQuery : virtual TypeCheckBase {
             for (auto ov : f->overloads) {
                 if (!ov->gbody || ov->declared_at.fileidx != q.fileidx) continue;
                 auto [first, last] = Lines(*ov);
-                if (first <= q.line && q.line <= last && last - first < span) {
+                if (first <= q.line && q.line <= last && last - first <= span) {
                     span = last - first;
                     best = ov;
                 }

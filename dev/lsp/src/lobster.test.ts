@@ -158,6 +158,11 @@ console.log("Finding references");
 		assert(programIndex.defs.filter(d => d.name == 'area').length == 1, "Inherited field indexed per class?");
 		assert(at('field', 'area').join() == "15:4,25:9,26:9", "Inherited field uses?", at('field', 'area'));
 		assert(programIndex.defs.find(d => d.name == 'square')?.superclass?.name == "shape", "Superclass?");
+		assert(programIndex.defs.find(d => d.name == 'ends_in_block')?.end == 34, "End of a function ending in a block?");
+		assert(programItems([programIndex], file, { line: 34, character: 10 }, "to", lines).some(i => i.label == "total"),
+			"Local in scope in a block ending its function?");
+		queryDefinition(settings, file, 'references.lobster', 38, 'y')
+			.then(r => assert(r.declartionLocation?.line == 36, "Block argument, on the line of its function?", r));
 	});
 }
 
