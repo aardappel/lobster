@@ -351,16 +351,17 @@ extern bool BindBufferObject(Shader *sh, BufferObject *buf, string_view_nt unifo
 extern bool CopyBufferObjects(BufferObject *src, BufferObject *dst, ptrdiff_t srcoffset,
                                         ptrdiff_t dstoffset, size_t len);
 
+// Draws from buffers pooled per vertex format and reused every frame: creating and deleting a
+// buffer per call makes macOS's GL wait for the GPU on each delete.
+extern void RenderArrayStream(Primitive prim, string_view fmt, size_t vertsize, const void *verts,
+                              size_t nverts, span<int> ibuf);
+extern void ResetStreamBuffers();
+extern void FreeStreamBuffers();
+
 template<typename T, typename U = float>
-void RenderArraySlow(string_view name, Primitive prim, span<T> vbuf1, string_view fmt,
+void RenderArraySlow(string_view /*name*/, Primitive prim, span<T> vbuf1, string_view fmt,
                      span<int> ibuf = span<int>()) {
-    Geometry geom(name, vbuf1, fmt);
-    if (ibuf.empty()) {
-        RenderArray(prim, &geom);
-    } else {
-        Surface surf(name, ibuf, prim);
-        RenderArray(prim, &geom, surf.ibo, ibuf.size());
-    }
+    RenderArrayStream(prim, fmt, sizeof(T), vbuf1.data(), vbuf1.size(), ibuf);
 }
 
 struct GeometryCache {

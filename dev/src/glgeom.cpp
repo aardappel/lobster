@@ -71,11 +71,10 @@ Surface::~Surface() {
     GL_CALL(glDeleteBuffers(1, (GLuint *)&ibo));
 }
 
-void Geometry::Init(string_view name, const void *verts) {
-    vbo = GenBO_(name, GL_ARRAY_BUFFER, vertsize * nverts, verts, false);
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-    GL_CALL(glGenVertexArrays(1, (GLuint *)&vao));
-    GL_CALL(glBindVertexArray(vao));
+// Points the bound vertex array's attributes at this format in the bound buffer, and takes the
+// bounds of any vertices given.
+static void SetAttribs(string_view fmt, size_t vertsize, const void *verts, size_t nverts,
+                       float3 &vmin, float3 &vmax) {
     size_t offset = 0;
     size_t tc = 0;
     for (auto attr : fmt) {
@@ -120,6 +119,14 @@ void Geometry::Init(string_view name, const void *verts) {
                 assert(false);
         }
     }
+}
+
+void Geometry::Init(string_view name, const void *verts) {
+    vbo = GenBO_(name, GL_ARRAY_BUFFER, vertsize * nverts, verts, false);
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+    GL_CALL(glGenVertexArrays(1, (GLuint *)&vao));
+    GL_CALL(glBindVertexArray(vao));
+    SetAttribs(fmt, vertsize, verts, nverts, vmin, vmax);
     GL_CALL(glBindVertexArray(0));
 }
 
@@ -275,6 +282,65 @@ void SetPointSprite(float scale) {
         #endif
         GL_CALL(glEnable(GL_VERTEX_PROGRAM_POINT_SIZE));
     #endif
+}
+
+// Buffers for vertices of one format, refilled for each draw, see RenderArrayStream.
+struct StreamBuffers {
+    int vbo = 0, ibo = 0, vao = 0;
+};
+
+// Per vertex format, the buffers made so far and the next one to use. Past the limit draws wrap
+// around: refilling a buffer in use orphans its old storage, so it needs no sync.
+static const size_t max_stream_buffers = 256;
+static map<string, pair<vector<StreamBuffers>, size_t>, std::less<>> stream_pool;
+
+void RenderArrayStream(Primitive prim, string_view fmt, size_t vertsize, const void *verts,
+                       size_t nverts, span<int> ibuf) {
+    LOBSTER_FRAME_PROFILE_GPU;
+    auto it = stream_pool.find(fmt);
+    if (it == stream_pool.end())
+        it = stream_pool.emplace(string(fmt), make_pair(vector<StreamBuffers>(), 0)).first;
+    auto &[bufs, next] = it->second;
+    if (next == max_stream_buffers) next = 0;
+    if (next == bufs.size()) {
+        StreamBuffers sb;
+        GL_CALL(glGenBuffers(1, (GLuint *)&sb.vbo));
+        GL_CALL(glGenBuffers(1, (GLuint *)&sb.ibo));
+        GL_CALL(glGenVertexArrays(1, (GLuint *)&sb.vao));
+        GL_CALL(glBindVertexArray(sb.vao));
+        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, sb.vbo));
+        float3 vmin = float3_0, vmax = float3_0;
+        SetAttribs(fmt, vertsize, nullptr, 0, vmin, vmax);
+        bufs.push_back(sb);
+    }
+    auto &sb = bufs[next++];
+    GL_CALL(glBindVertexArray(sb.vao));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, sb.vbo));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, vertsize * nverts, verts, GL_STREAM_DRAW));
+    auto glprim = GetPrimitive(prim);
+    if (ibuf.empty()) {
+        GL_CALL(glDrawArrays(glprim, 0, (GLsizei)nverts));
+    } else {
+        GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sb.ibo));
+        GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, ibuf.size_bytes(), ibuf.data(),
+                             GL_STREAM_DRAW));
+        GL_CALL(glDrawElements(glprim, (GLsizei)ibuf.size(), GL_UNSIGNED_INT, 0));
+    }
+}
+
+void ResetStreamBuffers() {
+    for (auto &[fmt, pool] : stream_pool) pool.second = 0;
+}
+
+void FreeStreamBuffers() {
+    for (auto &[fmt, pool] : stream_pool) {
+        for (auto &sb : pool.first) {
+            GL_CALL(glDeleteBuffers(1, (GLuint *)&sb.vbo));
+            GL_CALL(glDeleteBuffers(1, (GLuint *)&sb.ibo));
+            GL_CALL(glDeleteVertexArrays(1, (GLuint *)&sb.vao));
+        }
+    }
+    stream_pool.clear();
 }
 
 void RenderArray(Primitive prim, Geometry *geom, int ibo, size_t tcount) {
