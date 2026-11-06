@@ -74,6 +74,16 @@ function ownerOf(def: Def): string | undefined {
   return signature.parameters[0]?.type;
 }
 
+// A class's name and those of the classes it inherits from.
+function classNames(defs: Def[], name: string): Set<string> {
+  const names = new Set([name]);
+  for (const def of defs) {
+    if (def.name != name || (def.kind != "class" && def.kind != "struct")) continue;
+    for (let sup = def.superclass; sup; sup = sup.superclass) names.add(sup.name);
+  }
+  return names;
+}
+
 // What the programs a file is part of declare that fits `typed`, the text before `position`:
 // after a dot the fields and methods of the variable before it (all of them if its type isn't
 // known), otherwise the variables in scope and everything declared outside functions. Functions
@@ -107,10 +117,11 @@ export function programItems(indexes: ProgramIndex[], file: string, position: Po
   if (dot >= 0) {
     const receiver = typed.substring(0, dot).split('.').pop();
     const type = visible.find(v => v.name == receiver)?.type;
+    const classes = type && classNames(defs, typeName(type));
     for (const def of defs) {
       if (def.kind != "field" && def.kind != "function") continue;
       const owner = ownerOf(def);
-      if (!type || (owner && typeName(owner) == typeName(type))) add(def);
+      if (!classes || (owner && classes.has(typeName(owner)))) add(def);
     }
   } else {
     for (const def of visible) add(def);

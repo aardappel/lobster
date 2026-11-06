@@ -22,8 +22,9 @@
 // Kinds are "function" (one per overload, with "e" the last line of its body, "t" its declared
 // signature and "c" the class it is a method of), "lambda" (a function value, with "e"), "var"
 // ("t" its type, "c" the function or lambda it is local to, none for a global), "class",
-// "struct", "field" ("c" its class, "t" its type), "enum" and "enumval" ("c" its enum). Lines
-// are 1 based. Uses only have lines: an editor finds the name on the line.
+// "struct" ("s" the class it inherits from), "field" ("c" the class declaring it, "t" its type),
+// "enum" and "enumval" ("c" its enum). Lines are 1 based. Uses only have lines: an editor finds
+// the name on the line.
 // FIXME: the body of a function nothing calls isn't typechecked, so in it a call whose overload
 // depends on types refers to the function's first overload, and field accesses aren't known.
 
@@ -86,9 +87,14 @@ struct Indexer {
             } else if (auto d = Is<Dot>(n)) {
                 auto type = d->child->exptype;
                 if (!type.Null() && IsUDT(type->t)) {
-                    auto &g = type->udt->g;
-                    auto fi = g.Has(d->fld);
-                    if (fi >= 0) Ref(n->line, &g.fields[fi]);
+                    // A subclass has copies of the fields it inherits.
+                    auto g = &type->udt->g;
+                    for (auto sup = g; sup && sup->Has(d->fld) >= 0;
+                         sup = GetGUDTAny(sup->gsuperclass)) {
+                        g = sup;
+                    }
+                    auto fi = g->Has(d->fld);
+                    if (fi >= 0) Ref(n->line, &g->fields[fi]);
                 }
             } else if (auto oc = Is<ObjectConstructor>(n)) {
                 auto type = oc->exptype;
@@ -111,8 +117,11 @@ struct Indexer {
         auto toplevel = st.toplevel->overload;
         // Types first: functions and fields refer to them.
         for (auto g : st.gudttable) {
-            auto gid = Def(g, g->is_struct ? "struct" : "class", g->name, g->line);
+            auto sup = GetGUDTAny(g->gsuperclass);
+            auto gid = Def(g, g->is_struct ? "struct" : "class", g->name, g->line,
+                           Field("s", Id(sup)));
             for (auto &f : g->fields) {
+                if (sup && sup->Has(f.id) >= 0) continue;
                 Def(&f, "field", f.id->name, f.defined_in,
                     cat(",\"t\":", Str(TypeName(f.giventype)), Field("c", gid)));
             }

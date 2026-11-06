@@ -17,12 +17,14 @@ export interface Def {
     type?: string,
     // The class of a field or method, the function or lambda of a local, the enum of a value.
     container?: Def,
+    // The class a class inherits from.
+    superclass?: Def,
     uses: { file: string, line: number }[]
 }
 
 interface IndexJson {
     files: string[],
-    defs: { k: DefKind, n: string, f: number, l: number, e?: number, t?: string, c?: number }[],
+    defs: { k: DefKind, n: string, f: number, l: number, e?: number, t?: string, c?: number, s?: number }[],
     refs: [number, number, number][]
 }
 
@@ -48,6 +50,7 @@ export class ProgramIndex {
         }));
         json.defs.forEach((d, i) => {
             if (d.c !== undefined) this.defs[i].container = this.defs[d.c];
+            if (d.s !== undefined) this.defs[i].superclass = this.defs[d.s];
         });
         for (const [f, l, d] of json.refs) {
             const def = this.defs[d];

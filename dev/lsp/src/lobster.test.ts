@@ -149,6 +149,9 @@ console.log("Finding references");
 		assert(at('field', 'count').join() == "1:4,3:8,11:8", "Field uses?", at('field', 'count'));
 		assert(at('enumval', 'green').join() == "7:4,12:6", "Enum value uses?", at('enumval', 'green'));
 		assert(at('function', 'bump').join() == "2:8,10:2", "Method uses?", at('function', 'bump'));
+		assert(programIndex.defs.filter(d => d.name == 'area').length == 1, "Inherited field indexed per class?");
+		assert(at('field', 'area').join() == "15:4,25:9,26:9", "Inherited field uses?", at('field', 'area'));
+		assert(programIndex.defs.find(d => d.name == 'square')?.superclass?.name == "shape", "Superclass?");
 	});
 }
 
@@ -261,6 +264,8 @@ console.log("Completing what the program declares");
 			{ k: "var", n: "inner", f: 0, l: 4, t: "int", c: 2 },
 			{ k: "var", n: "global", f: 0, l: 8, t: "int" },
 			{ k: "function", n: "unrelated", f: 0, l: 9, e: 9, t: "unrelated(s:string)" },
+			{ k: "class", n: "circle", f: 0, l: 10, s: 0 },
+			{ k: "var", n: "c", f: 0, l: 11, t: "circle" },
 		],
 		refs: []
 	}, name => "/" + name);
@@ -271,6 +276,7 @@ console.log("Completing what the program declares");
 	assert(labels(4, "in").join() == "inner", "Locals in scope?", labels(4, "in"));
 	assert(labels(8, "in").join() == "", "Locals out of scope?", labels(8, "in"));
 	assert(labels(8, "o").join() == "outer", "Functions?", labels(8, "o"));
+	assert(labels(11, "c.").join() == "outer,x", "What a class inherits?", labels(11, "c."));
 }
 
 console.log("Finding words");
