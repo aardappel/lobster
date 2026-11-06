@@ -1,8 +1,7 @@
 import { URI } from "vscode-uri";
 import { LSPInstance } from "../lsp";
-import { LobsterDocumentState } from "../document";
-import { getWordOnCursor, markupSignature } from "../utils";
-import { LobsterSignature, queryDefinition } from "../lobster";
+import { docComment, getWordOnCursor, markupSignature } from "../utils";
+import { LobsterSignature } from "../lobster";
 import { uinteger } from "vscode-languageserver";
 
 export default function setupFeature(lsp: LSPInstance) {
@@ -22,27 +21,20 @@ export default function setupFeature(lsp: LSPInstance) {
         );
         if (!word) return null;
 
-        let signature: LobsterSignature | undefined;
-
-        if (document.state === LobsterDocumentState.HasErrors) {
-          signature = lsp.getFunctionSignature(word);
-        } else {
-          const settings = await lsp.getDocumentSettings(uri);
-
-          const temp = await document.writeToTmp(lsp);
-          const result = await queryDefinition(
-            settings,
-            temp,
-            params.position.line,
-            word,
-          );
-
-          signature = result.signature;
-        }
+        // The compiler answers queries despite errors, but may not reach an expression after
+        // one, so builtins have their documentation to fall back on.
+        const result = await lsp.queryDefinition(uri, params.position.line, word);
+        const signature: LobsterSignature | undefined =
+          result.signature ?? lsp.getFunctionSignature(word);
 
         if (signature) {
+          // Functions are described by the comment above their def, builtins by their docs.
+          const location = result.declartionLocation;
+          const doc = location
+            ? docComment(lsp.programs.lines(location.file), location.line)
+            : lsp.builtinsDoc.find((d) => d.funcname == signature.name)?.doc;
           return {
-            contents: markupSignature(signature),
+            contents: markupSignature(signature, doc),
             range: {
               start: {
                 line: params.position.line,

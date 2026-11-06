@@ -51,8 +51,16 @@ connection.onInitialize((params: InitializeParams) => {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
 			// Tell the client that this server supports code completion.
 			completionProvider: {
-				resolveProvider: false
+				resolveProvider: false,
+				triggerCharacters: ['.']
 			},
+			signatureHelpProvider: {
+				triggerCharacters: ['(', ',']
+			},
+			referencesProvider: true,
+			renameProvider: { prepareProvider: true },
+			documentSymbolProvider: true,
+			workspaceSymbolProvider: true,
 
 			codeActionProvider: hasCodeActionLiteralSupportCapability,
 			definitionProvider: true,
@@ -90,24 +98,30 @@ connection.onDidChangeConfiguration(change => {
 	}
 
 	// Revalidate all open text documents
-	instance.documents.all().forEach(instance.validateDocument);
+	instance.documents.all().forEach(d => instance.validateDocument(d));
 });
 
 
 connection.onDidChangeWatchedFiles(_change => {
-	// Monitored files have change in VSCode
-	connection.console.log('We received an file change event');
+	// Files created or deleted may change what imports what.
+	instance.programs.rescan();
 });
 
 import registerCodeAction from './features/code_action';
 import registerCompletion from './features/completion';
 import registerDefinition from './features/definition';
 import registerHover from './features/hover';
+import registerReferences from './features/references';
+import registerSignature from './features/signature';
+import registerSymbols from './features/symbols';
 
 registerCodeAction(instance);
 registerCompletion(instance);
 registerDefinition(instance);
 registerHover(instance);
+registerReferences(instance);
+registerSignature(instance);
+registerSymbols(instance);
 
 // Listen on the connection
 connection.listen();

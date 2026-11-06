@@ -17,6 +17,22 @@
 
 namespace lobster {
 
+// The last line in file `fileidx` of a function's body, with the functions declared in it, whose
+// bodies aren't children of the FunRef. `last` is the line to start from.
+inline int LastLine(Node *body, int fileidx, int last) {
+    body->Iterate([&](Node *n) {
+        if (n->line.fileidx == fileidx) last = std::max(last, n->line.line);
+        if (auto fr = Is<FunRef>(n)) last = LastLine(fr->sf->overload->gbody, fileidx, last);
+    });
+    return last;
+}
+
+// The first and last line of an overload, from its declaration to the end of its body.
+inline pair<int, int> Lines(const Overload &ov) {
+    auto &at = ov.declared_at;
+    return { at.line, LastLine(ov.gbody, at.fileidx, at.line) };
+}
+
 struct TypeCheckQuery : virtual TypeCheckBase {
     TypeCheckQuery() {}
 
@@ -38,7 +54,10 @@ struct TypeCheckQuery : virtual TypeCheckBase {
     void FindVar(vector<Arg> &vars) {
         for (auto &var : vars) {
             if (QueryNameMatches(var.sid->id->name, query->iden)) {
-                LocationQuery(var.sid->id->line, TypeName(var.sid->type));
+                // A function nothing calls has no types.
+                auto &type = var.sid->type;
+                LocationQuery(var.sid->id->line,
+                              type.Null() || type->t == V_UNDEFINED ? "" : TypeName(type));
             }
         }
     }
@@ -51,6 +70,27 @@ struct TypeCheckQuery : virtual TypeCheckBase {
             }
         }
         return TypeRef(nullptr);
+    }
+
+    // The innermost function whose lines span the queried one, or null at file scope. A function
+    // value can span the same lines as the function it is in, and wins that tie.
+    Overload *QueryOverload() {
+        auto &q = query->qloc;
+        Overload *best = nullptr;
+        auto span = INT_MAX;
+        for (auto f : st.functiontable) {
+            if (f == st.toplevel->parent) continue;
+            for (auto ov : f->overloads) {
+                if (!ov->gbody || ov->declared_at.fileidx != q.fileidx) continue;
+                auto [first, last] = Lines(*ov);
+                if (first <= q.line && q.line <= last &&
+                    (last - first < span || (last - first == span && f->anonymous))) {
+                    span = last - first;
+                    best = ov;
+                }
+            }
+        }
+        return best;
     }
 
     bool ProcessDefinition(GUDT *parent, string full_iden, SubFunction *sf) {
@@ -84,7 +124,8 @@ struct TypeCheckQuery : virtual TypeCheckBase {
                 }
             }
             if (ov->gbody) {  // FIXME: ignores function types. Now fixed (or not?)
-                LocationQuery(ov->gbody->line, ov->sf ? Signature(*ov->sf) : "");
+                auto tsf = ov->Typechecked();
+                LocationQuery(ov->declared_at, tsf ? Signature(*tsf) : DeclSignature(*ov));
             }
         }
         auto fld = st.FieldUse(full_iden);
@@ -124,12 +165,19 @@ struct TypeCheckQuery : virtual TypeCheckBase {
     bool ProcessQuery() override {
         if (!query_result.empty()) return true;
         if (query->kind == "definition") {
-            // The top scope includes a list of free vars so should be able to resolve any var
-            // at the given location.. if no scopes, use top fun.
-            auto sf = scopes.empty() ? st.toplevel : scopes.back().sf;
+            // In the function the queried line is in, whose variables have types if a call of
+            // it was typechecked.
+            auto ov = QueryOverload();
+            auto sf = ov ? ov->Typechecked() : st.toplevel;
+            if (!sf) sf = ov->sf;
             FindVar(sf->args);
             FindVar(sf->locals);
             FindVar(sf->freevars);
+            // An untypechecked function has no freevars: look in its lexical parents.
+            for (auto lp = sf->lexical_parent; lp && lp->sf; lp = lp->sf->lexical_parent) {
+                FindVar(lp->sf->args);
+                FindVar(lp->sf->locals);
+            }
             return ProcessDefinition(nullptr, query->iden, sf);
         } else {
             query_result = "query_unknown_kind: " + query->kind;

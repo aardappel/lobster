@@ -25,22 +25,6 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
 
     TypeCheckCalls() {}
 
-    // The signature an overload was declared with. Unlike Signature() this uses
-    // the given types, so it is also usable before it has been typechecked.
-    string DeclSignature(const Overload &ov) {
-        string r = ov.sf->parent->name;
-        r += "(";
-        for (auto [i, arg] : enumerate(ov.sf->args)) {
-            UnTypeRef t = ov.givenargs[i];
-            // An arg without a declared type got an implicit generic, which is
-            // not something the user wrote, so don't show it as its type.
-            if (t->t == V_TYPEVAR && !ov.sf->explicit_generics) t = type_any;
-            FormatArg(r, arg.sid->id->name, i, t);
-        }
-        r += ")";
-        return r;
-    }
-
     // For errors in or about the default value of argument `i` of `f`, which `call` left out:
     // what the call gets is a clone of the one written in the declaration, so they are
     // reported on the declaration's line, which by itself doesn't say what call it was for.
