@@ -87,14 +87,17 @@ struct Indexer {
             } else if (auto d = Is<Dot>(n)) {
                 auto type = d->child->exptype;
                 if (!type.Null() && IsUDT(type->t)) {
-                    // A subclass has copies of the fields it inherits.
                     auto g = &type->udt->g;
-                    for (auto sup = g; sup && sup->Has(d->fld) >= 0;
-                         sup = GetGUDTAny(sup->gsuperclass)) {
-                        g = sup;
-                    }
                     auto fi = g->Has(d->fld);
-                    if (fi >= 0) Ref(n->line, &g->fields[fi]);
+                    if (fi >= 0) {
+                        // A subclass has copies of the fields it inherits, at the same index.
+                        for (auto sup = GetGUDTAny(g->gsuperclass);
+                             sup && fi < int(sup->fields.size());
+                             sup = GetGUDTAny(sup->gsuperclass)) {
+                            g = sup;
+                        }
+                        Ref(n->line, &g->fields[fi]);
+                    }
                 }
             } else if (auto oc = Is<ObjectConstructor>(n)) {
                 auto type = oc->exptype;
@@ -120,8 +123,9 @@ struct Indexer {
             auto sup = GetGUDTAny(g->gsuperclass);
             auto gid = Def(g, g->is_struct ? "struct" : "class", g->name, g->line,
                            Field("s", Id(sup)));
-            for (auto &f : g->fields) {
-                if (sup && sup->Has(f.id) >= 0) continue;
+            // Those it inherits come first.
+            for (size_t i = sup ? sup->fields.size() : 0; i < g->fields.size(); i++) {
+                auto &f = g->fields[i];
                 Def(&f, "field", f.id->name, f.defined_in,
                     cat(",\"t\":", Str(TypeName(f.giventype)), Field("c", gid)));
             }
