@@ -8,13 +8,14 @@ else {
 }
 
 android {
-    compileSdkVersion 26
+    namespace "org.libsdl.app"
+    compileSdk 35
     defaultConfig {
         if (buildAsApplication) {
             applicationId "org.libsdl.app"
         }
-        minSdkVersion 21  // ES3.0
-        targetSdkVersion 26
+        minSdk 21  // ES3.0, SDL3
+        targetSdk 35
         versionCode 1
         versionName "1.0"
         externalNativeBuild {
@@ -33,7 +34,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     if (!project.hasProperty('EXCLUDE_NATIVE_LIBS')) {
@@ -47,7 +48,7 @@ android {
             }
         }
     }
-    lintOptions {
+    lint {
         abortOnError false
     }
 

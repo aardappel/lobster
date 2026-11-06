@@ -564,7 +564,9 @@ struct CodeGenPrologue : virtual CodeGenBase {
         }
         append(sd, "    ", FunName(CODEGEN_SPECIAL_FUNCTION_ID_ENTRY), "(vm);\n}\n\n");
         if (cpp) {
-            sd += "int main(int argc, char *argv[]) {\n";
+            // SDL's Android activity loads the library and calls SDL_main.
+            sd += "#ifdef __ANDROID__\nextern \"C\" __attribute__((visibility(\"default\"))) int SDL_main(int argc, char *argv[]) {\n#else\n";
+            sd += "int main(int argc, char *argv[]) {\n#endif\n";
             sd += "    // This is hard-coded to call compiled_entry_point()\n";
             if (custom_pre_init_name != "nullptr") append(sd, "    void ", custom_pre_init_name, "(lobster::NativeRegistry &);\n");
             sd += "    return RunCompiledCodeMain(argc, argv, ";

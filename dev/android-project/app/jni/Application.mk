@@ -5,8 +5,8 @@ APP_STL := c++_shared
 
 APP_ABI := arm64-v8a # armeabi-v7a x86 x86_64
 
-# Min runtime API level (ES3.0 == 18)
-APP_PLATFORM=android-18
+# Min runtime API level (SDL3 needs 21)
+APP_PLATFORM=android-21
 
 # -Wno-array-bounds because the generated C++ indexes VM::fvars, which is declared as a
 # 1-element array that the VM allocates the real size for.
