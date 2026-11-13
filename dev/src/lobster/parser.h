@@ -1314,14 +1314,17 @@ struct Parser {
 
     // The type specializers (or generic type names) between < and >, `f` parsing each. The >
     // is an operator to the lexer, which would take a line break after it as continuing the
-    // line.
+    // line, and two of them as a shift. The Expect below is what lexes the token after the >,
+    // which for a list nested in another (`A<B<C<int>>>`) is still inside that one, so the
+    // lexer goes back to how the list around this one had it.
     template<typename F> void ParseSpecializerList(F f) {
+        auto outer = lex.allow_shift_right;
         lex.allow_shift_right = false;
         for (;;) {
             f();
             if (lex.token == T_GT || !ListSep(T_COMMA, T_GT)) break;
         }
-        lex.allow_shift_right = true;
+        lex.allow_shift_right = outer;
         lex.OverrideCont(false);
         Expect(T_GT);
     }

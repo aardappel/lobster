@@ -146,6 +146,11 @@ def generics_tests():
     inner_dict.set("k", 1)
     nested_dict.set("foo", inner_dict)
     test_eq((assert nested_dict.get("foo")).get("k", 0), 1)
+    // Three deep, which ends in >>>.
+    let nested3:DGen<DGen<DGen<int>>>? = nil
+    test_true(nested3 == nil)
+    let deep_dict = dictionary<string, dictionary<string, dictionary<string, int>>>(7)
+    test_true(deep_dict.get("foo") == nil)
 
     // Subclassing generics (types declared at top level): pass a type var on,
     // or fix it.
