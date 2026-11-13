@@ -651,10 +651,10 @@ struct LValContext {
         for (auto f : derefs) if (IsElemField(f)) return true;
         return false;
     }
-    bool DerefsEqual(const LValContext &o) const {
-        if (derefs.size() != o.derefs.size()) return false;
-        for (auto &shf : derefs) if (shf != o.derefs[&shf - &derefs[0]]) return false;
-        return true;
+    // Whether this is the same path as `o`: the same variable, and the same fields from it.
+    bool SamePath(const LValContext &o) const {
+        return sid == o.sid &&
+               std::equal(derefs.begin(), derefs.end(), o.derefs.begin(), o.derefs.end());
     }
     // Whether two derefs can be the same location: the same field, or elements unless both are
     // constant indices that differ.
@@ -1010,9 +1010,8 @@ struct SymbolTable {
         string_view alias;
         SharedField *fld = nullptr;
         bool SameObject(const WithStackElem &o) const {
-            if (id != o.id || derefs.size() != o.derefs.size()) return false;
-            for (size_t i = 0; i < derefs.size(); i++) if (derefs[i] != o.derefs[i]) return false;
-            return true;
+            return id == o.id &&
+                   std::equal(derefs.begin(), derefs.end(), o.derefs.begin(), o.derefs.end());
         }
         // The object, as an expression that reads it.
         Node *Object(const Line &line) const;

@@ -134,9 +134,7 @@ struct TypeCheckLocations : virtual TypeCheckBase {
         if (left.now->Numeric() && !left.now->IsEnum()) return left.now;
         for (size_t i = max_flowstack_size; i > 0; i--) {
             auto &flow = flowstack[i - 1];
-            if (flow.sid == left.sid &&	flow.DerefsEqual(left)) {
-                return flow.now;
-            }
+            if (flow.SamePath(left)) return flow.now;
         }
         return left.old;
     }
@@ -153,7 +151,7 @@ struct TypeCheckLocations : virtual TypeCheckBase {
         LValContext lv(*SkipCoercions(&n));
         if (!lv.IsValid() || lv.HasElem()) return {};
         for (auto &flow : reverse(flowstack)) {
-            if (flow.sid != lv.sid || !flow.DerefsEqual(lv)) continue;
+            if (!flow.SamePath(lv)) continue;
             auto d = flow.demoted_by;
             if (!d) return {};
             auto promoted = d->promoted;
@@ -280,7 +278,7 @@ struct TypeCheckLocations : virtual TypeCheckBase {
         size_t keep = 0;
         for (auto &fa : a) {
             for (auto &fb : b) {
-                if (fb.sid != fa.sid || !fb.DerefsEqual(fa)) continue;
+                if (!fb.SamePath(fa)) continue;
                 if (!fa.now->Equal(*fb.now)) {
                     auto u = Union(fa.now, fb.now, "", "", CF_NONE, nullptr);
                     // No common type, or one that is nillable again: no promotion.
@@ -419,7 +417,7 @@ struct TypeCheckLocations : virtual TypeCheckBase {
                     continue;
                 }
                 auto dup = false;
-                for (auto &s : seen) if (s.sid == ev.sid && s.DerefsEqual(ev)) dup = true;
+                for (auto &s : seen) if (s.SamePath(ev)) dup = true;
                 if (dup) continue;
                 seen.push_back(ev);
                 // we could uniqueify this vector, but that would entails comparing `n`
@@ -459,7 +457,7 @@ struct TypeCheckLocations : virtual TypeCheckBase {
         if (!path.IsValid() || (path.sid == &sid && path.derefs.empty())) return;
         for (auto &a : sid.owning_aliases) {
             auto ap = AliasedPath(a, LValContext(a.sid));  // The alias as a path.
-            if (ap.sid == path.sid && ap.DerefsEqual(path)) return;
+            if (ap.SamePath(path)) return;
         }
         LOG_DEBUG("owning alias: ", sid.id->name, " of ", path.Name());
         sid.owning_aliases.push_back({ path.sid, path.derefs });
@@ -480,7 +478,7 @@ struct TypeCheckLocations : virtual TypeCheckBase {
     // of these is a write to `p`, and a borrow or promotion of any of them is one of `p`.
     void ExpandAliases(LValContext p, Paths &out, small_vector<const SpecIdent *, 4> &followed) {
         p.Canonicalize();
-        for (auto &o : out) if (o.sid == p.sid && o.DerefsEqual(p)) return;
+        for (auto &o : out) if (o.SamePath(p)) return;
         out.push_back(p);
         // Only its fields are shared: the variable itself is a location of its own.
         if (p.derefs.empty()) return;
@@ -536,7 +534,7 @@ struct TypeCheckLocations : virtual TypeCheckBase {
 
     Lifetime PushBorrowPath(const LValContext &lv, const Line &line) {
         for (auto &b : reverse(borrowstack)) {
-            if (b.sid == lv.sid && b.DerefsEqual(lv)) {
+            if (b.SamePath(lv)) {
                 b.refc++;
                 return (Lifetime)(&b - &borrowstack[0]);
             }
@@ -663,7 +661,7 @@ struct TypeCheckLocations : virtual TypeCheckBase {
             cb.Canonicalize();
             LValContext clv = lv;
             clv.Canonicalize();
-            auto same = cb.sid == clv.sid && cb.DerefsEqual(clv);
+            auto same = cb.SamePath(clv);
             Error(*n, "cannot modify ", Q(lv.Name()), " while ",
                       same ? string("it is borrowed") : cat(Q(b.Name()), " borrows it"),
                       " at ", parser.lex.Location(b.line));
@@ -800,7 +798,7 @@ struct TypeCheckLocations : virtual TypeCheckBase {
             auto it = sf->IterFreeVar(*fi.sid);
             if (sf->IsFreeVar(it, *fi.sid)) {
                 for(auto &fvfi : sf->freevarflowfields) {
-                    if (fvfi.sid == fi.sid && fvfi.DerefsEqual(fi)) {
+                    if (fvfi.SamePath(fi)) {
                         // If the flow item was already there, a previous call must have added it all the way
                         // to the definition point, so we can stop here.
                         return;
