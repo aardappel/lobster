@@ -294,6 +294,16 @@ def control_tests():
         default: "none"
     test_eq(swover(1), "exact")
     test_eq(swover(5), "range")
+    // A range is one test however many values it has, and one that has none tests nothing.
+    def swbig(x:int): return switch x:
+        case 0..1000000000000: "big"
+        case -5..-9: "never"
+        case -9..-5: "negative"
+        default: "none"
+    test_eq(swbig(1), "big")
+    test_eq(swbig(999999999999), "big")
+    test_eq(swbig(-7), "negative")
+    test_eq(swbig(-1), "none")
     // The sequential (string) version does take the first matching case.
     def swseq(s:string): return switch s:
         case "a": "first"

@@ -373,9 +373,9 @@ struct TypeCheckFlow : virtual TypeCheckLocations {
         ssize_t default_loc = -1;
         ssize_t out_of_range_loc = -1;
         vector<bool> enum_cases;
-        vector<iint> ints_seen;
+        // The values the int cases so far test, a range per pattern.
+        vector<pair<iint, iint>> ints_seen;
         if (ptype->IsEnum()) enum_cases.resize(ptype->e->vals.size());
-        if (ptype->t == V_INT) ints_seen.reserve(64);
         VoidNode(*node.cases);
         FlowBranch merged;
         bool any_fallthrough = false;
@@ -392,33 +392,33 @@ struct TypeCheckFlow : virtual TypeCheckLocations {
                 } else {
                     SubTypeT(c->exptype, ptype, *c, "", "case");
                     DecBorrowers(c->lt, *cas);
-                    auto RegNum = [&](iint vi) {
+                    // The pattern tests the values `lo` to `hi`, however many those are: a
+                    // range is never gone thru a value at a time.
+                    auto RegRange = [&](iint lo, iint hi) {
+                        if (lo > hi) return;  // Tests nothing.
                         if (ptype->IsEnum()) {
-                            assert(c->exptype->IsEnum());
                             for (auto [i, ev] : enumerate(ptype->e->vals)) {
-                                if (ev->val == vi) {
-                                    enum_cases[i] = true;
-                                    break;
-                                }
+                                if (ev->val >= lo && ev->val <= hi) enum_cases[i] = true;
                             }
                         }
-                        for (auto i : ints_seen) {
-                            if (i == vi) Error(*c, "integer value used twice in switch: ", vi);
+                        for (auto [slo, shi] : ints_seen) {
+                            if (lo <= shi && slo <= hi) {
+                                Error(*c, "integer value used twice in switch: ",
+                                      std::max(lo, slo));
+                                break;
+                            }
                         }
-                        ints_seen.push_back(vi);
+                        ints_seen.push_back({ lo, hi });
                     };
                     if (auto r = Is<Range>(c)) {
                         VTValue vs, ve;
-                        if (r->start->ConstVal(this, vs) == V_INT && r->end->ConstVal(this, ve) == V_INT) {
-                            for (auto ei = vs.i; ei <= ve.i; ei++) {
-                                RegNum(ei);
-                            }
+                        if (r->start->ConstVal(this, vs) == V_INT &&
+                            r->end->ConstVal(this, ve) == V_INT) {
+                            RegRange(vs.i, ve.i);
                         }
                     } else {
                         VTValue v;
-                        if (c->ConstVal(this, v) == V_INT) {
-                            RegNum(v.i);
-                        }
+                        if (c->ConstVal(this, v) == V_INT) RegRange(v.i, v.i);
                     }
                 }
             }

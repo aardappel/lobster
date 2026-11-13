@@ -453,6 +453,10 @@ struct CodeGenFlow : virtual CodeGenBase {
                 auto [istart, iend] = get_range(c);
                 if (!istart || !iend || istart->integer > iend->integer)
                     return false;
+                // The table is indexed with an int, and nothing below can overflow within
+                // what fits one.
+                if (istart->integer < INT32_MIN || iend->integer >= INT32_MAX)
+                    return false;
                 num += std::min(max_range_weight, iend->integer - istart->integer + 1);
                 mini = std::min(mini, istart->integer);
                 maxi = std::max(maxi, iend->integer);
@@ -464,10 +468,7 @@ struct CodeGenFlow : virtual CodeGenBase {
         // jump table, typically.
         const int64_t min_load_factor = 5;
         int64_t range = maxi - mini + 1;
-        if (num < min_vals ||
-            range / num > min_load_factor ||
-            mini < INT32_MIN ||
-            maxi >= INT32_MAX)
+        if (num < min_vals || range / num > min_load_factor)
             return false;
         // Emit jump table version.
         TrackUseDef(1, 0);

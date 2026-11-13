@@ -194,6 +194,13 @@ def errors_tests():
 
     // Flow-sensitivity: dereferencing a possibly-nil value.
     expect_error("def f(s:string?) -> int: return s.length\nreturn f(nil)", "error")
+    // A value two cases of a switch both test, also when either is a range.
+    expect_error("let x = 5\nlet r = switch x:\n    case 1: 1\n    case 1: 2\n    default: 3\nreturn r",
+                 "integer value used twice in switch: 1")
+    expect_error("let x = 5\nlet r = switch x:\n    case 1..5: 1\n    case 3..7: 2\n    default: 3\nreturn r",
+                 "integer value used twice in switch: 3")
+    expect_error("let x = 5\nlet r = switch x:\n    case 0..9223372036854775807: 1\n    case 7: 2\n" +
+                 "    default: 3\nreturn r", "integer value used twice in switch: 7")
     // Exhaustive switch on enums enforced at compile time.
     expect_error("enum e:\n    e_a\n    e_b\nlet v = e_a\nlet r = switch v:\n    case e_a: 1\nreturn r", "not tested in switch")
     // `out_of_range` handles values the enum doesn't declare, so unlike `default` it does not
