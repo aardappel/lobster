@@ -896,9 +896,20 @@ struct Parser {
                                 if (value.empty()) {
                                     ++serializable_id_last;
                                 } else {
-                                    serializable_id_last = parse_int<int>(value);
-                                    if (serializable_id_last < 0 || serializable_id_last > 0x10000)
+                                    // An attribute value is kept as written, and may be any
+                                    // kind of constant, or a name.
+                                    auto hex = value.size() > 2 && value[0] == '0' &&
+                                               (value[1] == 'x' || value[1] == 'X');
+                                    std::errc ec;
+                                    auto id = parse_int<int>(hex ? value.substr(2) : value,
+                                                             hex ? 16 : 10, &ec);
+                                    if (ec != std::errc())
+                                        Error("serializable attribute value must be an integer,"
+                                              " found ", Q(value));
+                                    else if (id < 0 || id > 0x10000)
                                         Error("serializable attribute value out of range");
+                                    else
+                                        serializable_id_last = id;
                                 }
                                 udt->serializable_id = serializable_id_last;
                             }

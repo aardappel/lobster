@@ -601,5 +601,29 @@ def abstract_structs_tests():
             x:int
         return 1
         """, [ "serializable attribute only for non-generic non-abstract classes and structs" ])
+    // The id a type is serialized by is an integer in range, however it is written.
+    expect_errors("""
+        class A:
+            attribute serializable = first
+            x:int
+        class B:
+            attribute serializable = "2"
+            x:int
+        class C:
+            attribute serializable = 3.5
+            x:int
+        class D:
+            attribute serializable = 0x20000
+            x:int
+        class E:
+            attribute serializable = 0x20
+            x:int
+        class F:
+            attribute serializable = 33
+            x:int
+        """, [ "serializable attribute value must be an integer, found `first`",
+               "serializable attribute value must be an integer, found `\"2\"`",
+               "serializable attribute value must be an integer, found `3.5`",
+               "serializable attribute value out of range" ])
 
 abstract_structs_tests()
