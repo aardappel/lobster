@@ -491,7 +491,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                         auto sdist = DistanceToSpecializedSuper(ov->method_of, sub);
                         if (sdist >= 0 && (!best || bestdist >= sdist)) {
                             if (bestdist == sdist)
-                                ErrorAlways(call_args, "more than implementation of ",
+                                ErrorAlways(call_args, "more than one implementation of ",
                                             Q(f.name), " applies to ", Q(sub->name),
                                             " in dynamic dispatch");
                             best = ov;

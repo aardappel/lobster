@@ -236,6 +236,7 @@ def errors_tests():
     // Literals that don't fit in 64 bits are lexer errors.
     expect_error("return 9223372036854775808", "int constant overflow")
     expect_error("return 0x10000000000000000", "hex constant overflow")
+    expect_error("return 0x", "hex constant has no digits")
     // Exponents require a "." in the literal; 1e5 lexes as 1 then e5.
     expect_error("return 1e5", "found `e5`")
     // Strings are immutable: indexed writes don't compile.

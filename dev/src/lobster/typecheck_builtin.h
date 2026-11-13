@@ -199,7 +199,7 @@ struct TypeCheckBuiltin : virtual TypeCheckLocations {
                     TT(node.children.back(), 1, LT_ANY);
                 } else {
                     ErrorAlways(node,
-                                   NatCallMsg("wrong number of many arguments for ", node.nf, node));
+                                   NatCallMsg("wrong number of arguments for ", node.nf, node));
                     return GiveUp(node);
                 }
             }

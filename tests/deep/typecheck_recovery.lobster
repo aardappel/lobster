@@ -150,7 +150,7 @@ def typecheck_recovery_tests():
         print(length(1.5) + 1)
         let z:float = "s"
         return 1
-        """, [ "too many arguments for substring", "wrong number of many arguments for substring",
+        """, [ "too many arguments for substring", "wrong number of arguments for substring",
                "arguments match no overloads of length", "requires type `float`, got `string`" ])
     expect_errors("""
         let a = 1

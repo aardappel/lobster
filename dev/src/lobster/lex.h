@@ -556,7 +556,8 @@ struct Lex : LoadedFile {
                         sattr = string_view(tokenstart, p - tokenstart);
                         // Note: unsigned, we allow hex constants to poke into the sign bit.
                         ival = parse_int<uint64_t>(sattr.substr(2), 16, &ec);
-                        if (ec != std::errc()) Report("hex constant overflow");
+                        if (ec == std::errc::result_out_of_range) Report("hex constant overflow");
+                        else if (ec != std::errc()) Report("hex constant has no digits");
                         return T_INT;
                     } else {
                         while (IsDigit(*p)) p++;
@@ -829,7 +830,7 @@ struct Lex : LoadedFile {
         last_error_token = token_count;
         auto err = FormatError(msg, ln);
         if (!reported_errors.insert(err.substr(0, err.find('\n'))).second) return;
-        if (num_errors == max_errors) errors += cat("\n(max errors reached, --error to see more) ");
+        if (num_errors == max_errors) errors += "\n(max errors reached, --errors to see more)";
         if (++num_errors > max_errors) return;
         if (!errors.empty()) errors += "\n";
         errors += err;

@@ -189,7 +189,7 @@ struct TypeCheckFunctions : virtual TypeCheckLocations {
                     if (!fvd->spec.bound.Null()) {
                         if (!ConvertsTo(udt->sfields[i].type, fvd->spec.bound, CF_NONE))
                             Error(context, "explicit free variable ", Q(fvd->name),
-                                " has type ", TypeName(fvd->spec.sid->type));
+                                " has type ", TypeName(udt->sfields[i].type));
                     }
                     return;
                 }
