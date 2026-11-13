@@ -88,10 +88,9 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
                 }
             }
         }
-        // Now that resolution can't fail anymore, transfer the children (but
-        // not ownership of `ac` itself: it may still sit in the tree, and if
-        // typechecking the result throws, it must be the one valid node
-        // there).
+        // Now that resolution can't fail anymore, transfer the children. `ac`
+        // itself is left to the caller: it may still sit in the tree, where it
+        // has to stay while the result is typechecked.
         auto constructor = new ObjectConstructor(ac->line, ctype);
         for (auto [i, e] : enumerate(exps)) {
             if (e) constructor->Add(e);
@@ -419,11 +418,10 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
                         if (tag)
                             Error(node, "type ", Q(TypeName(rt)), " does not have field ",
                                             Q(tag->name));
-                    unique_ptr<ObjectConstructor> oc(new ObjectConstructor(node.line, { rt }));
+                    auto oc = new ObjectConstructor(node.line, { rt });
                     oc->children = node.children;
                     node.children.clear();
                     auto r = oc->TypeCheck(ASTChecker(), reqret, parent_bound);
-                    oc.release();
                     delete &node;
                     return r;
                 }
@@ -441,13 +439,11 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
             g = &pb->udt->g;
             ctype = { &pb->udt->thistype };
         }
-        unique_ptr<ObjectConstructor> constructor(ResolveAutoConstructor(&node, g, ctype, true));
+        auto constructor = ResolveAutoConstructor(&node, g, ctype, true);
         if (!constructor) return give_up();
-        // Our children have been transferred; if typechecking below throws, the
-        // new node owns them and gets deleted, while this node (still in the
-        // tree) is left childless.
+        // Our children have been transferred, so this node, which stays in the tree
+        // while the new one is typechecked, is left childless.
         auto r = constructor->TypeCheck(ASTChecker(), reqret, parent_bound);
-        constructor.release();
         delete &node;
         return r;
     }

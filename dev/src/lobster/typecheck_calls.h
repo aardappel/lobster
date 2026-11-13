@@ -899,7 +899,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
             dc->sf = sf;
             return dc;
         } else {
-            auto c = make_unique<Call>(dc->line, sf);
+            auto c = new Call(dc->line, sf);
             c->children.append(dc->children.data(), dc->children.size());
             dc->children.clear();
             c->exptype =
@@ -907,7 +907,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
             c->lt = LT_KEEP;
             c->sf = sf;
             delete dc;
-            return c.release();
+            return c;
         }
     }
 
@@ -925,13 +925,13 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
         // builtin wins over both.
         if (node.cand_var && !nf && (!ff || node.cand_var->id->scopelevel >= ff->scopelevel)) {
             if (node.super) ErrorAlways(node, "super must precede function call");
-            // This node stays in the tree until the new one has typechecked, since an error
-            // thrown from that leaves the tree to be deleted with this node in it.
-            unique_ptr<DynCall> dc(new DynCall(node.line, nullptr, node.cand_var));
+            // This node stays in the tree while the new one is typechecked, as it does in the
+            // other cases below: what walks the argument lists it may be in meanwhile (see
+            // CheckLvalBorrowed) still finds it there.
+            auto dc = new DynCall(node.line, nullptr, node.cand_var);
             dc->children = node.children;
             node.children.clear();
-            auto r = TypeCheckDynCall(dc.get(), reqret);
-            dc.release();
+            auto r = TypeCheckDynCall(dc, reqret);
             delete &node;
             return r;
         }
@@ -1025,11 +1025,10 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
         };
         auto likely_field_access = fld && node.fromdot && node.noparens;
         if (likely_field_access && udt && udt->g.Has(fld) >= 0) {
-            unique_ptr<Dot> dot(new Dot(fld, node));
+            auto dot = new Dot(fld, node);
             node.children.clear();
             sup_err();
             r = dot->TypeCheck(ASTChecker(), reqret, {});
-            dot.release();
         } else if (likely_field_access && niludt && niludt->g.Has(fld) >= 0) {
             // Specialized error for nil deref, since if we don't, it will try and interpret this as a function call with a nil arg.
             Error(node, "dereferencing nillable type: ", Q(TypeName(type)),
@@ -1137,12 +1136,11 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                                   ? true
                                   : sel->f->nargs() == nargs && sel->f->nargs() > nf->args.size());
             if (nf && !prefer_ff) {
-                unique_ptr<NativeCall> nc(new NativeCall(nf, node.line));
+                auto nc = new NativeCall(nf, node.line);
                 nc->children = node.children;
                 node.children.clear();
                 sup_err();
                 r = nc->TypeCheck(ASTChecker(), reqret, {});
-                nc.release();
             } else if (sel) {
                 auto f = sel->f;
                 SubFunction *usf = sel->rsf;
@@ -1169,12 +1167,11 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                 assert(nargs == f->nargs());
                 if (!usf || !usf->overload->method_of || usf->overload->method_of->gsuperclass->t == V_UNDEFINED)
                     sup_err();
-                unique_ptr<Call> fc(new Call(node, usf && usf->parent == f ? usf : f->overloads[0]->sf));
+                auto fc = new Call(node, usf && usf->parent == f ? usf : f->overloads[0]->sf);
                 fc->children = node.children;
                 fc->num_defaults = num_defaults;
                 node.children.clear();
                 r = fc->TypeCheck(ASTChecker(), reqret, {});
-                fc.release();
             } else if (ff) {
                 string err = cat("no version of function ", Q(node.name), " takes ", nargs,
                                  nargs == 1 ? " argument" : " arguments");
