@@ -218,6 +218,37 @@ def recovery_tests():
         print(f(1) + g(1) + h(int2 { 1, 1 }))
         """, [ "unknown identifier `a`", "unknown identifier `a`", "unknown identifier `b`",
                "unknown identifier `y`" ])
+    // The overloads of a function have the same default arguments, which goes by what is
+    // written: a nil or a vector given a type is not one without, a constructor of one type
+    // not that of another, however many initializers either has.
+    expect_errors("""
+        def f(a:int, b:string? = nil): return a
+        def f(a:string, b:string? = nil::string): return a
+        """, [ "default argument 1 must be same as previous overload" ])
+    expect_errors("""
+        def f(a:int, b:[int] = []::int): return a
+        def f(a:string, b:[int] = []): return a
+        """, [ "default argument 1 must be same as previous overload" ])
+    expect_errors("""
+        def f(a:int, b:int2 = { 1, 2 }): return a
+        def f(a:string, b:int2 = { 1 }): return a
+        """, [ "default argument 1 must be same as previous overload" ])
+    expect_errors("""
+        def f(a:int, b = int2 { 1, 2 }): return a
+        def f(a:string, b = float2 { 1, 2 }): return a
+        """, [ "default argument 1 must be same as previous overload" ])
+    expect_errors("""
+        def f(a:int, b = 0.0): return a
+        def f(a:string, b = -0.0): return a
+        """, [ "default argument 1 must be same as previous overload" ])
+    // A nan is the same default as another one.
+    let nanret, nanerr = compile_run_code("""
+        def f(a:int, b = nan, c:string? = nil, d = []::int): return a
+        def f(a:string, b = nan, c:string? = nil, d = []::int): return a
+        return f(1)
+        """, [], 100)
+    test_eq(nanerr, nil)
+    test_eq(nanret, "1")
 
     // Errors found by the lexer.
     expect_errors("let x = 1)\nprint(z)\n", [ "unmatched \')\'", "unknown identifier `z`" ])

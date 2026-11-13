@@ -80,9 +80,11 @@ struct Node {
         Iterate([&](Node *) { count++; });
         return count;
     }
+    // Whether what this node holds besides its children is the same as that of `o`, which is
+    // a node of the same type with as many children.
     virtual bool EqAttr(const Node *) const { return true; }
     bool Equal(Node *o) {
-        if (typeid(*this) != typeid(*o) || !EqAttr(o) || Arity() != o->Arity()) return false;
+        if (typeid(*this) != typeid(*o) || Arity() != o->Arity() || !EqAttr(o)) return false;
         auto ch = Children();
         auto och = o->Children();
         if (ch) {
@@ -234,12 +236,19 @@ struct NAME : Node { \
     METHODS \
 };
 
+// Whether two types a node was given are the same, where being left out (null) is the same
+// only as being left out.
+inline bool EqualGiven(UnTypeRef a, UnTypeRef b) {
+    if (a.Null() || b.Null()) return a.Null() == b.Null();
+    return a->Equal(*b);
+}
+
 struct TypeAnnotation : Node {
     UnTypeRef giventype;
     TypeAnnotation(const Line &ln, UnTypeRef tr) : Node(ln), giventype(tr) {}
     void Dump(string &sd) const { sd += TypeName(giventype); }
     bool EqAttr(const Node *o) const {
-        return giventype->Equal(*((TypeAnnotation *)o)->giventype);
+        return EqualGiven(giventype, ((TypeAnnotation *)o)->giventype);
     }
     SHARED_SIGNATURE(TypeAnnotation, "type", false)
 };
@@ -355,7 +364,7 @@ struct Nil : Node {
     UnTypeRef giventype;
     Nil(const Line &ln, TypeRef tr) : Node(ln), giventype(tr) {}
     bool EqAttr(const Node *o) const {
-        return giventype->Equal(*((Nil *)o)->giventype);
+        return EqualGiven(giventype, ((Nil *)o)->giventype);
     }
     SHARED_SIGNATURE(Nil, TName(T_NIL), false)
     OPTMETHOD
@@ -397,7 +406,7 @@ struct IntConstant : Node {
     TypeRef CFType() { return from ? &from->e->thistype : type_int; }
     void Dump(string &sd) const { if (from) sd += from->name; else append(sd, integer); }
     bool EqAttr(const Node *o) const {
-        return integer == ((IntConstant *)o)->integer;
+        return integer == ((IntConstant *)o)->integer && from == ((IntConstant *)o)->from;
     }
     SHARED_SIGNATURE(IntConstant, TName(T_INT), false)
     OPTMETHOD
@@ -412,7 +421,9 @@ struct FloatConstant : Node {
     TypeRef CFType() { return type_float; }
     void Dump(string &sd) const { sd += to_string_float(flt); }
     bool EqAttr(const Node *o) const {
-        return flt == ((FloatConstant *)o)->flt;
+        // The same constant rather than an equal value: a nan is the same as itself, and
+        // -0.0 is not 0.0.
+        return memcmp(&flt, &((FloatConstant *)o)->flt, sizeof(flt)) == 0;
     }
     SHARED_SIGNATURE(FloatConstant, TName(T_FLOAT), false)
     OPTMETHOD
@@ -513,7 +524,13 @@ struct GenericCall : List {
         if (spec) specializers = *spec;
     };
     bool EqAttr(const Node *o) const {
-        return name == ((GenericCall *)o)->name && ns == ((GenericCall *)o)->ns;
+        auto gc = (GenericCall *)o;
+        if (name != gc->name || ns != gc->ns || specializers.size() != gc->specializers.size())
+            return false;
+        for (auto [i, s] : enumerate(specializers)) {
+            if (!EqualGiven(s, gc->specializers[i])) return false;
+        }
+        return true;
     }
     SHARED_SIGNATURE(GenericCall, "generic call", true)
 };
@@ -523,7 +540,7 @@ struct VectorConstructor : List {
     VectorConstructor(const Line &ln) : List(ln), giventype((UnType *)nullptr) {};
     bool IsConstInit() const { return ChildrenConstInit(); }
     bool EqAttr(const Node *o) const {
-        return giventype->Equal(*((VectorConstructor *)o)->giventype);
+        return EqualGiven(giventype, ((VectorConstructor *)o)->giventype);
     }
     SHARED_SIGNATURE(VectorConstructor, "vector_constructor", false)
     SIMPLEMETHOD
@@ -552,7 +569,7 @@ struct ObjectConstructor : List {
         return true;
     }
     bool EqAttr(const Node *o) const {
-        return giventype->Equal(*((ObjectConstructor *)o)->giventype);
+        return EqualGiven(giventype, ((ObjectConstructor *)o)->giventype);
     }
     SHARED_SIGNATURE(ObjectConstructor, "object_constructor", false)
     SIMPLEMETHOD
@@ -566,10 +583,12 @@ struct AutoConstructor : List {
     AutoConstructor(const Line &ln) : List(ln) {};
     bool IsConstInit() const { return ChildrenConstInit(); }
     bool EqAttr(const Node *o) const {
+        auto ac = (AutoConstructor *)o;
+        // One tag per child, of which `o` has as many.
         for (auto [i, tag] : enumerate(tags)) {
-            if (tag != ((AutoConstructor *)o)->tags[i]) return false;
+            if (tag != ac->tags[i]) return false;
         }
-        return true;
+        return EqualGiven(giventype, ac->giventype);
     }
     SHARED_SIGNATURE(AutoConstructor, "auto_constructor", false)
     SIMPLEMETHOD
@@ -618,7 +637,7 @@ struct NativeCall : List {
     void Dump(string &sd) const { sd += nf->name; }
     bool EqAttr(const Node *o) const {
         return nf == ((NativeCall *)o)->nf &&
-               nattype->Equal(*((NativeCall *)o)->nattype) &&
+               EqualGiven(nattype, ((NativeCall *)o)->nattype) &&
                natlt == ((NativeCall *)o)->natlt;
     }
     SHARED_SIGNATURE(NativeCall, "native call", true)
@@ -749,7 +768,7 @@ struct IsType : Unary {
         append(sd, Name(), ":", TypeName(giventype), accepts_nil ? "?" : "");
     }
     bool EqAttr(const Node *o) const {
-        return giventype->Equal(*((IsType *)o)->giventype) &&
+        return EqualGiven(giventype, ((IsType *)o)->giventype) &&
                accepts_nil == ((IsType *)o)->accepts_nil;
     }
     SHARED_SIGNATURE(IsType, TName(T_IS), false)
