@@ -786,6 +786,8 @@ struct Overload {
     int NumSubf();
     // The first specialization that was typechecked, none if nothing calls it.
     SubFunction *Typechecked();
+    // Whether this is `outer`, or is declared inside it, however deep.
+    bool LexicallyInside(const Overload *outer) const;
 };
 
 struct SubFunction {
@@ -859,6 +861,11 @@ int Overload::NumSubf() {
 SubFunction *Overload::Typechecked() {
     for (auto csf = sf; csf; csf = csf->next) if (csf->typechecked) return csf;
     return nullptr;
+}
+
+bool Overload::LexicallyInside(const Overload *outer) const {
+    for (auto ov = this; ov; ov = ov->sf->lexical_parent) if (ov == outer) return true;
+    return false;
 }
 
 struct Function : Named {

@@ -274,11 +274,7 @@ struct TypeCheckLval : virtual TypeCheckLocations {
             // A field declared by `member` belongs to the method that declares it:
             // it is in scope there once that statement has been reached, and in
             // anything lexically nested in it, but nowhere else.
-            auto visible = false;
-            for (auto ov = scopes.back().sf->overload; ov; ov = ov->sf->lexical_parent) {
-                if (ov == field.member_of) { visible = true; break; }
-            }
-            if (!visible)
+            if (!scopes.back().sf->overload->LexicallyInside(field.member_of))
                 Error(node, "field ", Q(field.id->name), " was declared by a ", Q("member"),
                                 " in ", Q(field.member_of->sf->parent->name), " (",
                                 parser.lex.Location(field.defined_in),

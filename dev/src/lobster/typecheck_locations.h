@@ -511,11 +511,8 @@ struct TypeCheckLocations : virtual TypeCheckBase {
     // Whether code in `sf` can name `sid`: a variable of its own, or of a function it is
     // lexically inside of.
     bool LexicallyVisible(const SpecIdent *sid, SubFunction *sf) {
-        if (sid->sf_def == sf || sid->sf_def == st.toplevel) return true;
-        for (auto ov = sf->overload; ov; ov = ov->sf->lexical_parent) {
-            if (ov == sid->sf_def->overload) return true;
-        }
-        return false;
+        return sid->sf_def == sf || sid->sf_def == st.toplevel ||
+               sf->overload->LexicallyInside(sid->sf_def->overload);
     }
 
     // Borrows of variables and fields, and the writes that conflict with them.

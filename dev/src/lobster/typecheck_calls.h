@@ -954,11 +954,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
             // in a block that does not contain this call (a different branch of an
             // if, say), and picking it here would make blocks that can never both
             // run share a function.
-            auto encloses_this_call = [&](Overload *decl_scope) {
-                for (auto ov = scopes.back().sf->overload; ov; ov = ov->sf->lexical_parent)
-                    if (ov == decl_scope) return true;
-                return false;
-            };
+            auto this_call = scopes.back().sf->overload;
             bool out_of_block = false;
             auto find_active = [&](string_view fname) -> Function * {
                 auto it = st.functions_by_name.find(fname);
@@ -967,7 +963,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                     for (auto f : it->second) {
                         for (auto ov : f->overloads) {
                             if (ov->sf->lexical_parent != sc.sf->overload) continue;
-                            if (encloses_this_call(ov->sf->lexical_parent)) {
+                            if (this_call->LexicallyInside(ov->sf->lexical_parent)) {
                                 out_of_block = true;
                                 continue;
                             }
@@ -1082,14 +1078,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
             auto find_self_arg = [&](Function *f) -> pair<SymbolTable::WithStackElem *, SubFunction *> {
                 Overload *lex_ov = scopes.back().sf->overload;
                 for (auto &wse : reverse(st.withstack)) {
-                    bool in_lex_scope = false;
-                    for (auto lov = lex_ov; lov; lov = lov->sf->lexical_parent) {
-                        if (lov == wse.sf->overload) {
-                            in_lex_scope = true;
-                            break;
-                        }
-                    }
-                    if (!in_lex_scope || !wse.id) continue;
+                    if (!lex_ov->LexicallyInside(wse.sf->overload) || !wse.id) continue;
                     auto wsf = best_withtype_overload(f, wse.udt_tc);
                     if (wsf) return { &wse, wsf };
                 }
@@ -1199,13 +1188,10 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                     Overload *lex_ov = scopes.back().sf->overload;
                     for (auto &wse : reverse(st.withstack)) {
                         if (!wse.id || !wse.udt_tc) continue;
-                        for (auto lov = lex_ov; lov; lov = lov->sf->lexical_parent) {
-                            if (lov != wse.sf->overload) continue;
-                            auto n = Q(wse.udt_tc->name);
-                            if (selftypes.find(n) == string::npos)
-                                append(selftypes, selftypes.empty() ? "" : " or ", n);
-                            break;
-                        }
+                        if (!lex_ov->LexicallyInside(wse.sf->overload)) continue;
+                        auto n = Q(wse.udt_tc->name);
+                        if (selftypes.find(n) == string::npos)
+                            append(selftypes, selftypes.empty() ? "" : " or ", n);
                     }
                     if (!selftypes.empty())
                         err += cat(", or ", nargs + 1, " with ", selftypes,
