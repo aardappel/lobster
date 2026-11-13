@@ -30,27 +30,31 @@ struct CodeGenTypeTable : virtual CodeGenBase {
 
     CodeGenTypeTable() {}
 
+    // Where in the type table the entries from `begin` to `end` are, which go at its end the
+    // first time they are asked for, `lookup` remembering where by `key`. Only for what comes
+    // after the types the table starts with, since offset 0 is what says it is not there yet.
+    template<typename M, typename K, typename I>
+    type_elem_t Intern(M &lookup, const K &key, I begin, I end) {
+        auto &it = lookup[key];
+        if (!it) {
+            it = (type_elem_t)type_table.size();
+            type_table.insert(type_table.end(), begin, end);
+        }
+        return it;
+    }
+
     type_elem_t PushDefaultValue(ValueType vt, VTValue val) {
+        // Either is its 64 bits as the entries they take.
         switch (vt) {
             case V_INT: {
                 auto iv = val.i;
-                auto &it = default_ints_lookup[iv];
-                if (!it) {
-                    it = (type_elem_t)type_table.size();
-                    type_table.insert(type_table.end(), (type_elem_t *)&iv,
-                                      (type_elem_t *)(&iv + 1));
-                }
-                return it;
+                return Intern(default_ints_lookup, iv, (type_elem_t *)&iv,
+                              (type_elem_t *)(&iv + 1));
             }
             case V_FLOAT: {
                 auto fv = val.f;
-                auto &it = default_floats_lookup[fv];
-                if (!it) {
-                    it = (type_elem_t)type_table.size();
-                    type_table.insert(type_table.end(), (type_elem_t *)&fv,
-                                      (type_elem_t *)(&fv + 1));
-                }
-                return it;
+                return Intern(default_floats_lookup, fv, (type_elem_t *)&fv,
+                              (type_elem_t *)(&fv + 1));
             }
             default:
                 return (type_elem_t)0;
@@ -112,12 +116,7 @@ struct CodeGenTypeTable : virtual CodeGenBase {
             for (auto [s, word] : enumerate(words)) {
                 if (shared[s]) idxs[s] = PushDefaultValue(V_INT, VTValue((int64_t)word));
             }
-            auto &it = default_aggregate_lookup[idxs];
-            if (!it) {
-                it = (type_elem_t)type_table.size();
-                type_table.insert(type_table.end(), idxs.begin(), idxs.end());
-            }
-            return it;
+            return Intern(default_aggregate_lookup, idxs, idxs.begin(), idxs.end());
         }
         auto vt = dv->ConstVal(nullptr, val);
         return PushDefaultValue(vt, val);
@@ -140,12 +139,7 @@ struct CodeGenTypeTable : virtual CodeGenBase {
             entries.push_back((type_elem_t)sfield->bitoff);
             entries.push_back((type_elem_t)sfield->bits);
         }
-        auto &it = packed_fields_lookup[entries];
-        if (!it) {
-            it = (type_elem_t)type_table.size();
-            type_table.insert(type_table.end(), entries.begin(), entries.end());
-        }
-        return it;
+        return Intern(packed_fields_lookup, entries, entries.begin(), entries.end());
     }
 
     // The entry of a slot that holds fields in part of itself (see TIField::packed): an int
