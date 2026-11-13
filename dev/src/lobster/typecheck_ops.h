@@ -215,90 +215,6 @@ struct TypeCheckOps : virtual TypeCheckLocations {
         return &n;
     }
 
-    Node *Check(Plus &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOp(node);
-    }
-
-    Node *Check(Minus &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOp(node);
-    }
-
-    Node *Check(Multiply &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOp(node);
-    }
-
-    Node *Check(Divide &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOp(node);
-    }
-
-    Node *Check(Mod &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOp(node);
-    }
-
-    Node *Check(PlusEq &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOpEq(node);
-    }
-
-    Node *Check(MultiplyEq &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOpEq(node);
-    }
-
-    Node *Check(MinusEq &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOpEq(node);
-    }
-
-    Node *Check(DivideEq &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOpEq(node);
-    }
-
-    Node *Check(ModEq &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOpEq(node);
-    }
-
-    Node *Check(AndEq &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOpEqBit(node);
-    }
-
-    Node *Check(OrEq &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOpEqBit(node);
-    }
-
-    Node *Check(XorEq &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOpEqBit(node);
-    }
-
-    Node *Check(ShiftLeftEq &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOpEqBit(node);
-    }
-
-    Node *Check(ShiftRightEq &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckMathOpEqBit(node);
-    }
-
-    Node *Check(NotEqual &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckComp(node);
-    }
-
-    Node *Check(Equal &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckComp(node);
-    }
-
-    Node *Check(GreaterThanEq &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckComp(node);
-    }
-
-    Node *Check(LessThanEq &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckComp(node);
-    }
-
-    Node *Check(GreaterThan &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckComp(node);
-    }
-
-    Node *Check(LessThan &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckComp(node);
-    }
-
     Node *Check(Not &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
         if (auto nn = OperatorOverload(node)) return nn;
         DecBorrowers(node.child->lt, node);
@@ -306,26 +222,6 @@ struct TypeCheckOps : virtual TypeCheckLocations {
         node.exptype = &st.default_bool_type->thistype;
         node.lt = LT_ANY;
         return &node;
-    }
-
-    Node *Check(BitAnd &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckBitOp(node);
-    }
-
-    Node *Check(BitOr &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckBitOp(node);
-    }
-
-    Node *Check(Xor &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckBitOp(node);
-    }
-
-    Node *Check(ShiftLeft &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckBitOp(node);
-    }
-
-    Node *Check(ShiftRight &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckBitOp(node);
     }
 
     Node *Check(Negate &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
@@ -337,22 +233,6 @@ struct TypeCheckOps : virtual TypeCheckLocations {
         node.exptype = ctype->t == V_INT && ctype->e && !ctype->e->flags ? type_int : ctype;
         node.lt = LT_ANY;
         return &node;
-    }
-
-    Node *Check(PostDecr &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckPlusPlus(node);
-    }
-
-    Node *Check(PostIncr &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckPlusPlus(node);
-    }
-
-    Node *Check(PreDecr &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckPlusPlus(node);
-    }
-
-    Node *Check(PreIncr &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckPlusPlus(node);
     }
 
     Node *Check(UnaryMinus &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {

@@ -350,14 +350,6 @@ struct TypeCheckFlow : virtual TypeCheckLocations {
         return VoidNode(node);
     }
 
-    Node *Check(Break &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckLoopExit(node);
-    }
-
-    Node *Check(Continue &node, size_t /*reqret*/, TypeRef /*parent_bound*/) {
-        return TypeCheckLoopExit(node);
-    }
-
     Node *Check(Switch &node, size_t reqret, TypeRef /*parent_bound*/) {
         // TODO: much like If, should only typecheck one case if the value is constant, and do
         // the corresponding work in the optimizer.

@@ -279,46 +279,6 @@ struct CodeGenOps : virtual CodeGenBase {
         }
     }
 
-    void Generate(const Minus &node, size_t retval) {
-        GenMathOp(&node, retval, MOP_SUB);
-    }
-
-    void Generate(const Multiply &node, size_t retval) {
-        GenMathOp(&node, retval, MOP_MUL);
-    }
-
-    void Generate(const Divide &node, size_t retval) {
-        GenMathOp(&node, retval, MOP_DIV);
-    }
-
-    void Generate(const Mod &node, size_t retval) {
-        GenMathOp(&node, retval, MOP_MOD);
-    }
-
-    void Generate(const NotEqual &node, size_t retval) {
-        GenMathOp(&node, retval, MOP_NE);
-    }
-
-    void Generate(const Equal &node, size_t retval) {
-        GenMathOp(&node, retval, MOP_EQ);
-    }
-
-    void Generate(const GreaterThanEq &node, size_t retval) {
-        GenMathOp(&node, retval, MOP_GE);
-    }
-
-    void Generate(const LessThanEq &node, size_t retval) {
-        GenMathOp(&node, retval, MOP_LE);
-    }
-
-    void Generate(const GreaterThan &node, size_t retval) {
-        GenMathOp(&node, retval, MOP_GT);
-    }
-
-    void Generate(const LessThan &node, size_t retval) {
-        GenMathOp(&node, retval, MOP_LT);
-    }
-
     void GenBitOp(const BinOp *n, size_t retval, BitOp op) {
         Gen(n->left, retval);
         Gen(n->right, retval);
@@ -327,26 +287,6 @@ struct CodeGenOps : virtual CodeGenBase {
             TrackUseDef(2, 1);
             WriteExpr(Slot(2, VK_INT), BitExpr(op, Slot(2, VK_INT), Slot(1, VK_INT)));
         }
-    }
-
-    void Generate(const BitAnd &node, size_t retval) {
-        GenBitOp(&node, retval, BIT_AND);
-    }
-
-    void Generate(const BitOr &node, size_t retval) {
-        GenBitOp(&node, retval, BIT_OR);
-    }
-
-    void Generate(const Xor &node, size_t retval) {
-        GenBitOp(&node, retval, BIT_XOR);
-    }
-
-    void Generate(const ShiftLeft &node, size_t retval) {
-        GenBitOp(&node, retval, BIT_ASL);
-    }
-
-    void Generate(const ShiftRight &node, size_t retval) {
-        GenBitOp(&node, retval, BIT_ASR);
     }
 
     void Generate(const UnaryMinus &node, size_t retval) {

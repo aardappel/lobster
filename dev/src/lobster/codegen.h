@@ -242,6 +242,21 @@ struct CodeGen final : CodeGenBuiltin, CodeGenTypeTable, CodeGenOps, CodeGenRefC
 #define CODEGEN_NODE(T) \
     void T::Generate(CodeGen &cg, size_t retval) const { cg.Generate(*this, retval); }
 
+// The operators that differ only in which operation they are go straight to what generates
+// all of their kind, with that operation.
+#define CODEGEN_MATHOP(T, OP) \
+    void T::Generate(CodeGen &cg, size_t retval) const { cg.GenMathOp(this, retval, OP); }
+#define CODEGEN_BITOP(T, OP) \
+    void T::Generate(CodeGen &cg, size_t retval) const { cg.GenBitOp(this, retval, OP); }
+#define CODEGEN_ASSIGNOP(T, OP) \
+    void T::Generate(CodeGen &cg, size_t retval) const { \
+        cg.GenAssign(left, OP, retval, right, 1, false); \
+    }
+#define CODEGEN_INCDEC(T, OP, POST) \
+    void T::Generate(CodeGen &cg, size_t retval) const { \
+        cg.GenAssign(child, OP, retval, nullptr, 0, POST); \
+    }
+
 CODEGEN_NODE(Block)
 CODEGEN_NODE(Or)
 CODEGEN_NODE(And)
@@ -264,37 +279,37 @@ CODEGEN_NODE(FloatConstant)
 CODEGEN_NODE(StringConstant)
 CODEGEN_NODE(Nil)
 CODEGEN_NODE(Plus)
-CODEGEN_NODE(Minus)
-CODEGEN_NODE(Multiply)
-CODEGEN_NODE(Divide)
-CODEGEN_NODE(Mod)
+CODEGEN_MATHOP(Minus, MOP_SUB)
+CODEGEN_MATHOP(Multiply, MOP_MUL)
+CODEGEN_MATHOP(Divide, MOP_DIV)
+CODEGEN_MATHOP(Mod, MOP_MOD)
 CODEGEN_NODE(PlusEq)
-CODEGEN_NODE(MultiplyEq)
-CODEGEN_NODE(MinusEq)
-CODEGEN_NODE(DivideEq)
-CODEGEN_NODE(ModEq)
-CODEGEN_NODE(AndEq)
-CODEGEN_NODE(OrEq)
-CODEGEN_NODE(XorEq)
-CODEGEN_NODE(ShiftLeftEq)
-CODEGEN_NODE(ShiftRightEq)
-CODEGEN_NODE(NotEqual)
-CODEGEN_NODE(Equal)
-CODEGEN_NODE(GreaterThanEq)
-CODEGEN_NODE(LessThanEq)
-CODEGEN_NODE(GreaterThan)
-CODEGEN_NODE(LessThan)
+CODEGEN_ASSIGNOP(MultiplyEq, LV_IMUL)
+CODEGEN_ASSIGNOP(MinusEq, LV_ISUB)
+CODEGEN_ASSIGNOP(DivideEq, LV_IDIV)
+CODEGEN_ASSIGNOP(ModEq, LV_IMOD)
+CODEGEN_ASSIGNOP(AndEq, LV_BINAND)
+CODEGEN_ASSIGNOP(OrEq, LV_BINOR)
+CODEGEN_ASSIGNOP(XorEq, LV_XOR)
+CODEGEN_ASSIGNOP(ShiftLeftEq, LV_ASL)
+CODEGEN_ASSIGNOP(ShiftRightEq, LV_ASR)
+CODEGEN_MATHOP(NotEqual, MOP_NE)
+CODEGEN_MATHOP(Equal, MOP_EQ)
+CODEGEN_MATHOP(GreaterThanEq, MOP_GE)
+CODEGEN_MATHOP(LessThanEq, MOP_LE)
+CODEGEN_MATHOP(GreaterThan, MOP_GT)
+CODEGEN_MATHOP(LessThan, MOP_LT)
 CODEGEN_NODE(Not)
-CODEGEN_NODE(BitAnd)
-CODEGEN_NODE(BitOr)
-CODEGEN_NODE(Xor)
-CODEGEN_NODE(ShiftLeft)
-CODEGEN_NODE(ShiftRight)
+CODEGEN_BITOP(BitAnd, BIT_AND)
+CODEGEN_BITOP(BitOr, BIT_OR)
+CODEGEN_BITOP(Xor, BIT_XOR)
+CODEGEN_BITOP(ShiftLeft, BIT_ASL)
+CODEGEN_BITOP(ShiftRight, BIT_ASR)
 CODEGEN_NODE(Negate)
-CODEGEN_NODE(PostDecr)
-CODEGEN_NODE(PostIncr)
-CODEGEN_NODE(PreDecr)
-CODEGEN_NODE(PreIncr)
+CODEGEN_INCDEC(PostDecr, LV_IMM, true)
+CODEGEN_INCDEC(PostIncr, LV_IPP, true)
+CODEGEN_INCDEC(PreDecr, LV_IMM, false)
+CODEGEN_INCDEC(PreIncr, LV_IPP, false)
 CODEGEN_NODE(UnaryMinus)
 CODEGEN_NODE(IdentRef)
 CODEGEN_NODE(Assign)
@@ -323,6 +338,10 @@ CODEGEN_NODE(InlineBlock)
 CODEGEN_NODE(InlineReturn)
 
 #undef CODEGEN_NODE
+#undef CODEGEN_MATHOP
+#undef CODEGEN_BITOP
+#undef CODEGEN_ASSIGNOP
+#undef CODEGEN_INCDEC
 
 // The declarations produce no code, and the typechecker made them void.
 void EnumRef::Generate(CodeGen &, size_t retval) const {

@@ -1049,58 +1049,6 @@ struct CodeGenLval : virtual CodeGenBase {
         GenAssign(node.left, LV_IADD, retval, node.right, 1, false);
     }
 
-    void Generate(const MinusEq &node, size_t retval) {
-        GenAssign(node.left, LV_ISUB, retval, node.right, 1, false);
-    }
-
-    void Generate(const MultiplyEq &node, size_t retval) {
-        GenAssign(node.left, LV_IMUL, retval, node.right, 1, false);
-    }
-
-    void Generate(const DivideEq &node, size_t retval) {
-        GenAssign(node.left, LV_IDIV, retval, node.right, 1, false);
-    }
-
-    void Generate(const ModEq &node, size_t retval) {
-        GenAssign(node.left, LV_IMOD, retval, node.right, 1, false);
-    }
-
-    void Generate(const AndEq &node, size_t retval) {
-        GenAssign(node.left, LV_BINAND, retval, node.right, 1, false);
-    }
-
-    void Generate(const OrEq &node, size_t retval) {
-        GenAssign(node.left, LV_BINOR, retval, node.right, 1, false);
-    }
-
-    void Generate(const XorEq &node, size_t retval) {
-        GenAssign(node.left, LV_XOR, retval, node.right, 1, false);
-    }
-
-    void Generate(const ShiftLeftEq &node, size_t retval) {
-        GenAssign(node.left, LV_ASL, retval, node.right, 1, false);
-    }
-
-    void Generate(const ShiftRightEq &node, size_t retval) {
-        GenAssign(node.left, LV_ASR, retval, node.right, 1, false);
-    }
-
-    void Generate(const PostDecr &node, size_t retval) {
-        GenAssign(node.child, LV_IMM, retval, nullptr, 0, true);
-    }
-
-    void Generate(const PostIncr &node, size_t retval) {
-        GenAssign(node.child, LV_IPP, retval, nullptr, 0, true);
-    }
-
-    void Generate(const PreDecr &node, size_t retval) {
-        GenAssign(node.child, LV_IMM, retval, nullptr, 0, false);
-    }
-
-    void Generate(const PreIncr &node, size_t retval) {
-        GenAssign(node.child, LV_IPP, retval, nullptr, 0, false);
-    }
-
     // Jump over the initializer of a member or static that has already run this frame. The
     // member version reads the object it belongs to off the stack, the static one needs nothing.
     int EmitJumpIfSetThisFrame(bool member, int varidx) {
