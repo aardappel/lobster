@@ -337,7 +337,10 @@ struct TypeCheckConstructors : virtual TypeCheckBase {
             node.exptype = st.Wrap(st.NewTypeVar(), V_NIL, &node.line);
         } else {
             node.exptype = st.ResolveTypeVars(node.giventype, node.line);
-            if (!st.IsNillable(node.exptype->sub)) Error(node, "illegal nil type");
+            // A type variable bound to a type that cannot be nilable gave the error type, with
+            // an error of its own, see SymbolTable::Wrap.
+            if (node.exptype->t == V_NIL && !st.IsNillable(node.exptype->sub))
+                Error(node, "illegal nil type");
         }
         node.lt = LT_ANY;
         return &node;

@@ -755,6 +755,16 @@ def typecheck_recovery_tests():
         """, [ "nil cannot take type `int`, which cannot be nilable",
                "nil cannot take type `float`, which cannot be nilable",
                "requires type `float`, got `string`" ])
+    // Neither is there a nil of a type variable bound to such a type.
+    expect_errors("""
+        def f<T>(x:T):
+            let n = nil::T
+            return n
+        f("a")
+        f(1)
+        let z:float = "s"
+        """, [ "cannot construct nillable type from `int`",
+               "requires type `float`, got `string`" ])
     // A value where a builtin wants a type, which its result would have been of.
     expect_errors("""
         let v, err = parse_data(1 - 1, "2")
