@@ -689,6 +689,13 @@ struct Lex : LoadedFile {
                     return c - (c < 'a' ? 'A' : 'a') + 10;
                 };
                 switch (c = *p++) {
+                    case 0:
+                    case '\r':
+                    case '\n':
+                        // Nothing to escape: the constant ends here unclosed, which is for
+                        // the loop to find, the end of the source included.
+                        p--;
+                        continue;
                     case 'n': c = '\n'; break;
                     case 't': c = '\t'; break;
                     case 'r': c = '\r'; break;

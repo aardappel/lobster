@@ -227,6 +227,11 @@ def recovery_tests():
                   [ "\';\' isn\'t used as a statement terminator", "unknown identifier `z`" ])
     expect_errors("let x = \"abc\nprint(z)\n",
                   [ "end of line found in string constant", "unknown identifier `z`" ])
+    // A backslash with nothing after it to escape: the end of the line, or of the source.
+    expect_errors("let x = \"abc\\\nprint(z)\n",
+                  [ "end of line found in string constant", "unknown identifier `z`" ])
+    expect_errors("let x = \"abc\\", [ "end of line found in string constant" ])
+    expect_errors("let x = \'a\\", [ "end of line found in string constant" ])
     expect_errors("let x = 1 # 2\nprint(z)\n", [ "illegal token: \'#\'", "unknown identifier `z`" ])
     expect_errors("let x = !1\nprint(z)\n", [ "use \"not\" instead of !", "unknown identifier `z`" ])
     expect_errors("let x = 1 && 2\nprint(z)\n",
