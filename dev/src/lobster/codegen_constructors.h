@@ -111,9 +111,7 @@ struct CodeGenConstructors : virtual CodeGenBase {
     // value was pushed. Nothing to do for a struct without such fields, whose stack image is
     // its value.
     void GenPackStruct(const UDT &udt, int arg_width) {
-        auto any = false;
-        for (auto &sfield : udt.sfields) if (sfield.bits) any = true;
-        if (!any) {
+        if (!udt.HasPackedFields()) {
             assert(arg_width == udt.numslots);
             return;
         }

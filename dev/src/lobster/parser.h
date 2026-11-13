@@ -982,19 +982,13 @@ struct Parser {
     void FinishTypeDecl(GUDT *gudt, UDT *udt, const Line &line, Block *parent_list) {
         gudt->unspecialized.specializers.clear();
         for (auto &g : gudt->generics) {
-            auto type = g.type.Null()
-                ? &g.tv->thistype
-                : g.type;
-            gudt->unspecialized.specializers.push_back(&*type);
-            g.type = type;
+            g.type = &g.tv->thistype;
+            gudt->unspecialized.specializers.push_back(&*g.type);
         }
         if (udt && !gudt->predeclaration) {
-            for (auto &g : gudt->generics) {
-                auto type =
-                    g.type.Null() ? &g.tv->thistype : g.type;
-                assert(!st.IsGeneric({ type }));
-                udt->bound_generics.push_back(type);
-            }
+            // Only a type without generics has its specialization made here, so there are
+            // none to bind for it.
+            assert(!gudt->IsGeneric());
             st.ResolveFields(*udt, lex);
             parent_list->Add(new UDTRef(line, udt));
         }

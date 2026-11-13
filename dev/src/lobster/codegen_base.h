@@ -248,11 +248,9 @@ struct CodeGenBase {
                     rettypes.push_back(TypeLT { *n, i });
             }
             // if the caller doesn't want all return values, just pop em
-            if (rettypes.size() > retval) {
-                while (rettypes.size() > retval) {
-                    GenPop(rettypes.back());
-                    rettypes.pop_back();
-                }
+            while (rettypes.size() > retval) {
+                GenPop(rettypes.back());
+                rettypes.pop_back();
             }
             assert(rettypes.size() == retval);
             // Copy return types on temp stack.
@@ -1051,12 +1049,9 @@ struct CodeGenBase {
                 return 1;
             }
             auto width = ValWidth(sfield.type);
-            auto ct = SlotCType(sfield.type, 0);
-            auto same = true;
-            for (int i = 1; i < width; i++) same = same && SlotCType(sfield.type, i) == ct;
-            if (same) {
-                ms.push_back({ UniqueName(string(udt.g.fields[k].id->name), names_used), ct,
-                               sfield.slot, width });
+            if (UniformSlots(sfield.type, width)) {
+                ms.push_back({ UniqueName(string(udt.g.fields[k].id->name), names_used),
+                               SlotCType(sfield.type, 0), sfield.slot, width });
             } else {
                 for (int i = 0; i < width; i++) {
                     ms.push_back({ UniqueName(StructSlotName(udt, sfield.slot + i), names_used),

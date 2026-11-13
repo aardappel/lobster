@@ -203,7 +203,7 @@ struct TypeCheckBase {
     string SignatureWithFreeVars(const SubFunction &sf, set<Ident *> *already_seen) {
         string s = Signature(sf) + " { ";
         size_t j = 0;
-        for (auto [i, freevar] : enumerate(sf.freevars)) {
+        for (auto &freevar : sf.freevars) {
             if (freevar.spec_type->t != V_FUNCTION &&
                 !freevar.sid->id->static_constant &&
                 (!already_seen || already_seen->find(freevar.sid->id) == already_seen->end())) {
@@ -803,8 +803,8 @@ struct TypeCheckBase {
         // Here all we care about is to see that ctype has some kind of operator
         // overload specified for it, so that TypeCheckCall can do the actual work of finding
         // the correct overload (and we don't have to duplicate that here).
-        for (auto [i, ov] : enumerate(f->overloads)) {
-            auto atype = ov->sf->overload->givenargs[0];
+        for (auto ov : f->overloads) {
+            auto atype = ov->givenargs[0];
             if ((atype->t == V_UUDT &&
                  (DistanceToSpecializedSuper(atype->spec_udt->gudt, ctype->udt) >= 0 ||
                   (ctype->udt->g.is_abstract && DistanceFromSpecializedSub(ctype->udt, atype->spec_udt->gudt) >= 0))) ||
@@ -848,11 +848,8 @@ struct TypeCheckBase {
         sf->returntype = esf->returntype;
         sf->method_of = esf->method_of;
         sf->generics = esf->generics;
-        sf->overload->givenargs = esf->overload->givenargs;
-        sf->returned_thru_to_max = -1;
         sf->attributes = esf->attributes;
         sf->lexical_parent = esf->lexical_parent;
-        sf->overload = esf->overload;
         return sf;
     }
 

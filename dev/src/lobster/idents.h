@@ -1480,7 +1480,6 @@ struct SymbolTable {
 
     UDT *MakeSpecialization(GUDT &gudt, string_view sname, bool named, bool from_generic) {
         auto st = new UDT(sname, (int)udttable.size(), gudt);
-        st->thistype.udt = st;
         st->unnamed_specialization = !named;
         st->next = gudt.first;
         gudt.first = st;
@@ -1787,7 +1786,7 @@ struct SymbolTable {
             case V_TUPLE: {
                 vector<TypeRef> types;
                 bool same = true;
-                for (auto [i, te] : enumerate(*type->tup)) {
+                for (auto &te : *type->tup) {
                     auto tr = ResolveTypeVars({ te.type }, errl);
                     types.push_back(tr);
                     if (!tr->Equal(*te.type)) same = false;

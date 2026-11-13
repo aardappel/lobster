@@ -214,7 +214,7 @@ struct TypeCheckLval : virtual TypeCheckLocations {
             return ErrorNode(node, "explicit free variable ", Q(node.fvd->name), " not in scope");
         }
         node.fvd->spec.used = true;
-        Node *nn = new IdentRef(node.line, node.fvd->spec.sid);;
+        Node *nn = new IdentRef(node.line, node.fvd->spec.sid);
         if (node.fvd->spec.field) {
             nn = new Dot(node.fvd->spec.field, node.line, nn);
         }

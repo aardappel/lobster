@@ -742,7 +742,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
             // Then see if there's a match if we'd instantiate a generic UDT arg.
             if (matches.empty() && IsUDT(type->t)) {
                 for (auto ov : pickfrom) {
-                    auto &arg = ov->sf->overload->givenargs[argidx];  // Want unresolved type.
+                    auto &arg = ov->givenargs[argidx];
                     if (arg->t == V_UUDT && arg->spec_udt->gudt == &type->udt->g) {
                         matches.push_back(ov);
                     }
@@ -791,7 +791,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
             // Then see if there's a match if we'd instantiate a fully generic arg.
             if (matches.empty()) {
                 for (auto ov : pickfrom) {
-                    auto arg = ov->sf->overload->givenargs[argidx];  // Want unresolved type.
+                    auto arg = ov->givenargs[argidx];
                     if (arg->t == V_TYPEVAR) { matches.push_back(ov); }
                 }
             }
@@ -812,8 +812,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                     TypeRef arg;
                     {
                         SymbolTable::BoundTypeVars btv(st, generics);
-                        arg = st.ResolveTypeVars(ov->sf->overload->givenargs[argidx],
-                                                 call_args.line);
+                        arg = st.ResolveTypeVars(ov->givenargs[argidx], call_args.line);
                     }
                     // TODO: Should we instead do ConvertsTo here?
                     if (type->Equal(*arg)) {
@@ -1092,7 +1091,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                 int udist = 999;
                 SubFunction *bsf = nullptr;
                 for (auto ov : f->overloads) {
-                    auto ti = ov->sf->overload->givenargs[0];
+                    auto ti = ov->givenargs[0];
                     auto dist = IsUDT(ti->t)
                         ? SuperDistance(ti->udt, udt)
                         : ti->t == V_UUDT
@@ -1201,7 +1200,7 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
                 ErrorAlways(node, err);
                 return GiveUp(node);
             } else {
-                if (fld && node.fromdot && node.noparens) {
+                if (likely_field_access) {
                     Error(node, "type ", Q(TypeName(type)), " does not have field ", Q(fld->name),
                              DemotionNote(*node.children[0], fld));
                 } else if (checking_dead_code && node.cand_nonlexical) {
