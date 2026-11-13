@@ -58,7 +58,8 @@ struct CompileOptions {
     string index_file;
 };
 
-// Compiles the source in `stringsource`, or the file `fn` when that is empty, into the
+// Compiles the source in `stringsource`, or the file `fn` when none is given (a view of
+// nothing, `{}`, which an empty string is not: that is a source like any other), into the
 // generated C or C++ (including metadata), plus a parse tree dump and a pakfile when asked for.
 // Returns the errors (see Lex::Report) when there were any, or the answer to opts.query,
 // which ends compilation the same way; empty when it succeeded. Doesn't throw.

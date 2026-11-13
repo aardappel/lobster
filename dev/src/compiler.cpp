@@ -316,7 +316,8 @@ string Compile(NativeRegistry &nfr, string_view fn, string_view stringsource,
         } slabreset;
     #endif
     string mainsource;
-    if (stringsource.empty()) {
+    // Not empty(): a program handed over as a string may be the empty one.
+    if (!stringsource.data()) {
         if (LoadFile(cat("modules/", fn), &mainsource) < 0 && LoadFile(fn, &mainsource) < 0)
             return cat("can't open file: ", fn);
         stringsource = mainsource;

@@ -23,6 +23,11 @@ def errors_tests():
     let ok, okerr = compile_run_code("return 1 + 2", [])
     test_eq(okerr, nil)
     test_eq(ok, "3")
+    // The empty string is a program as well, not the absence of one (which would have the
+    // name it goes by loaded as a file).
+    let emptyret, emptyerr = compile_run_code("", [])
+    test_eq(emptyerr, nil)
+    test_eq(emptyret, "0")
     // The second argument becomes the program's command_line_arguments.
     let argret, argerr = compile_run_code(
         "return concat_string(command_line_arguments(), \"-\")", [ "a", "b" ])
