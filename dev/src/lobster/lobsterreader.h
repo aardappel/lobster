@@ -122,6 +122,11 @@ struct Deserializer {
         }
         switch (ti.t) {
             case RTT_INT:
+                // A typeid without a default can't be 0 like other scalars, since that is the
+                // typeid of int, which the type of the field may well say it is not.
+                if (ti.IsTypeId() && !f.defval) return false;
+                PushV(vm.FieldDefault(f));
+                return true;
             case RTT_FLOAT:
                 PushV(vm.FieldDefault(f));
                 return true;

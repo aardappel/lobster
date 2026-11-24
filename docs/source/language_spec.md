@@ -1111,7 +1111,9 @@ call with one. `typeid` is also what typeids of different types have in common
 (as for a vector of them, or the branches of an `if`), so any two typeids can
 be compared. A typeid is an offset into the type table of the build of the
 program that made it, so it can be written as part of a value by the
-serialization builtins, but reading one back is an error.
+serialization builtins, but reading one back is an error. A typeid field the
+data leaves out gets its default only where that is `typeof` of a type that
+does not depend on type variables; without one, that too is an error.
 
 `assert e` evaluates `e`; if false, it is a runtime error ("assertion
 failed: <expression>") unless assertions are compiled out (`--runtime-no-asserts`,

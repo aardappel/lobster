@@ -29,6 +29,14 @@ class DSerDefaults:
     dc = int2 { 3, 4 }
     dd = "x"
 
+class DSerTypeIds:
+    n = 1
+    t:typeid = typeof DSerAll
+    u = typeof [int]
+
+class DSerTypeIdNoDefault:
+    t:typeid
+
 def serialization_tests():
     suite("serialization")
 
@@ -190,5 +198,25 @@ def serialization_tests():
     let pnotid, pnotiderr = parse_data(typeof tids, "[]")
     test_eq(pnotiderr, nil)
     test_eq((assert pnotid).length, 0)
+    // Nor does data that leaves out typeid fields, which get their defaults.
+    let ptd, ptderr = parse_data(typeof DSerTypeIds, "DSerTypeIds \{ 2 \}")
+    test_eq(ptderr, nil)
+    let ptdv = assert ptd
+    test_eq(ptdv.n, 2)
+    test_true(ptdv.t == typeof DSerAll)
+    test_true(ptdv.u == typeof [int])
+    // Unlike other scalars, one without a default is not 0, since that is the typeid of int.
+    let ptn, ptnerr = parse_data(typeof DSerTypeIdNoDefault, "DSerTypeIdNoDefault \{\}")
+    test_true(ptn == nil)
+    test_true(ptnerr and ptnerr.find_string("no default value") >= 0)
+    // Which flexbuffers does for them, like for any scalar field that has its default.
+    let tdflex = flexbuffers_value_to_binary(DSerTypeIds { n: 3 })
+    let ftd, ftderr = flexbuffers_binary_to_value(typeof DSerTypeIds, tdflex)
+    test_eq(ftderr, nil)
+    test_true((assert ftd).t == typeof DSerAll)
+    let tdflex2 = flexbuffers_value_to_binary(DSerTypeIds { t: typeof DSerBase })
+    let ftd2, ftd2err = flexbuffers_binary_to_value(typeof DSerTypeIds, tdflex2)
+    test_true(ftd2 == nil)
+    test_true(ftd2err and ftd2err.find_string("t: cannot read a typeid") >= 0)
 
 serialization_tests()

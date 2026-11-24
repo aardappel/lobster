@@ -61,6 +61,22 @@ struct CodeGenTypeTable : virtual CodeGenBase {
         }
     }
 
+    // The constant a field default is, which for a typeid is only known once its type has a
+    // place in the type table. Defaults are kept as they were written (see
+    // EnsureUDTChecked), so that is only known for the typeid of a type named in it that
+    // does not depend on the type variables of a generic type.
+    ValueType DefaultConstVal(const Node *n, VTValue &val) {
+        if (auto to = Is<TypeOf>(n)) {
+            auto ta = Is<TypeAnnotation>(to->child);
+            if (!ta) return V_VOID;
+            TypeRef type = ta->giventype->Resolved();
+            if (!type->IsConcrete()) return V_VOID;
+            val = VTValue((int64_t)GetTypeTableOffset(type));
+            return V_INT;
+        }
+        return n->ConstVal(nullptr, val);
+    }
+
     type_elem_t PushDefaultValues(const SField &sfield) {
         auto dv = sfield.defaultval;
         if (!dv) {
@@ -72,7 +88,7 @@ struct CodeGenTypeTable : virtual CodeGenBase {
         if (cons) {
             vector<pair<ValueType, VTValue>> vals;
             for (auto n : cons->children) {
-                auto vt = n->ConstVal(nullptr, val);
+                auto vt = DefaultConstVal(n, val);
                 if (vt == V_INT || vt == V_FLOAT) {
                     vals.push_back({ vt, val });
                 } else {
@@ -118,7 +134,7 @@ struct CodeGenTypeTable : virtual CodeGenBase {
             }
             return Intern(default_aggregate_lookup, idxs, idxs.begin(), idxs.end());
         }
-        auto vt = dv->ConstVal(nullptr, val);
+        auto vt = DefaultConstVal(dv, val);
         return PushDefaultValue(vt, val);
     }
 
