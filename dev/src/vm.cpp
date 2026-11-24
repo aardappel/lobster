@@ -834,7 +834,7 @@ string VM::ProperTypeName(const TypeInfo &ti) {
             r = "[" + ProperTypeName(GetTypeInfo(ti.subt)) + "]";
             break;
         case RTT_INT:
-            r = ti.enumidx >= 0 ? string(EnumName(ti.enumidx)) : "int";
+            r = ti.enumidx >= 0 ? string(EnumName(ti.enumidx)) : ti.IsTypeId() ? "typeid" : "int";
             break;
         default:
             r = string(BaseTypeName(ti.t));

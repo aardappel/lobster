@@ -172,4 +172,23 @@ def serialization_tests():
     test_true(lbad == nil)
     test_true(lbaderr and lbaderr.length)
 
+    // A typeid is written as the int it is at run time, but never read back, since that is
+    // an offset into the type table of this build only, which a typeid argument of a builtin
+    // is trusted to be.
+    let tids = [ typeof DSerAll ]
+    let tidstr = "{tids}"
+    let ptid, ptiderr = parse_data(typeof tids, tidstr)
+    test_true(ptid == nil)
+    test_true(ptiderr and ptiderr.find_string("cannot read a typeid") >= 0)
+    let ftid, ftiderr = flexbuffers_binary_to_value(typeof tids, flexbuffers_value_to_binary(tids))
+    test_true(ftid == nil)
+    test_true(ftiderr and ftiderr.find_string("cannot read a typeid") >= 0)
+    let ltid, ltiderr = lobster_binary_to_value(typeof tids, lobster_value_to_binary(tids))
+    test_true(ltid == nil)
+    test_true(ltiderr and ltiderr.find_string("cannot read a typeid") >= 0)
+    // An empty vector of them has none to read.
+    let pnotid, pnotiderr = parse_data(typeof tids, "[]")
+    test_eq(pnotiderr, nil)
+    test_eq((assert pnotid).length, 0)
+
 serialization_tests()

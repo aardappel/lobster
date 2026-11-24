@@ -112,6 +112,7 @@ struct ValueParser : Deserializer {
         if (ti->is_nil && lex.token != T_NIL) {
             ti = &vm.GetTypeInfo(typeoff = ti->is_nil);
         }
+        if (ti->IsTypeId()) lex.Error(string(typeid_error));
         auto vt = ti->t;
         switch (lex.token) {
             case T_INT: {
@@ -241,6 +242,7 @@ struct FlexBufferParser : Deserializer {
         if (ti->is_nil && ft != flexbuffers::FBT_NULL) {
             ti = &vm.GetTypeInfo(typeoff = ti->is_nil);
         }
+        if (ti->IsTypeId()) Error(cat(parent_field_name, ": ", typeid_error));
         auto vt = ti->t;
         switch (ft) {
             case flexbuffers::FBT_INT:

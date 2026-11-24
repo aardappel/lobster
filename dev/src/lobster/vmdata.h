@@ -132,6 +132,10 @@ struct PackedField {
     int bits;
 };
 
+// The enumidx of an int that is a typeid, i.e. an offset into the type table, which means
+// nothing to any other build of the program, so the readers refuse to read one from data.
+const int TYPEID_ENUMIDX = -2;
+
 struct TypeInfo {
     RTType t;
     type_elem_t is_nil;    // If not 0, offset to non-nil version.
@@ -160,7 +164,7 @@ struct TypeInfo {
             int family_size;
             TIField elemtypes[1];  // len elems.
         };
-        int enumidx;       // RTT_INT, -1 if not an enum.
+        int enumidx;       // RTT_INT, -1 if not an enum, or TYPEID_ENUMIDX.
         int sfidx;         // RTT_FUNCTION;
     };
 
@@ -183,6 +187,8 @@ struct TypeInfo {
                 return TYPE_ELEM_ANY;
         return elemtypes[0].type;
     }
+
+    bool IsTypeId() const { return t == RTT_INT && enumidx == TYPEID_ENUMIDX; }
 
     // A struct in an abstract struct family: all members of one have the same slots, of
     // which only some are its fields (which the metadata says, by their offsets, in

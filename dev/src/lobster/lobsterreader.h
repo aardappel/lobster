@@ -50,6 +50,11 @@ struct Deserializer {
         is_ref.reserve(16);
     }
 
+    // What all formats say when asked for a value of a type that is a typeid, see
+    // TYPEID_ENUMIDX.
+    static constexpr string_view typeid_error =
+        "cannot read a typeid, it is only valid in the build of the program that made it";
+
     // The slots of a struct or class value, all 0 (which is 0, 0.0 and nil for every kind of
     // slot, and what the bits no field has of a slot must be, see FieldInfo), for its fields to
     // be stored into as they are parsed, see StoreFieldFromTop. For a struct in an abstract
@@ -223,6 +228,7 @@ struct LobsterBinaryParser : Deserializer {
         if (ti->is_nil) {
             ti = &vm.GetTypeInfo(typeoff = ti->is_nil);
         }
+        if (ti->IsTypeId()) Error(string(typeid_error));
         if (end == data) Truncated();
         switch (ti->t) {
             case RTT_INT: {
