@@ -93,6 +93,7 @@ namespace lobster {
     TOK(T_STRTYPE, "string") \
     TOK(T_ANYTYPE, "any") \
     TOK(T_VOIDTYPE, "void") \
+    TOK(T_TYPEIDTYPE, "typeid") \
     TOK(T_FROM, "from") \
     TOK(T_PROGRAM, "program") \
     TOK(T_PRIVATE, "private") \

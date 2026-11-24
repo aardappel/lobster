@@ -36,7 +36,7 @@ Lexical definition
     for the first character).
 
 -   Keywords: `nil return class struct import int float string any void
-    def fn is from program private resource enum enum_flags typeof
+    def fn is from program private resource enum enum_flags typeof typeid
     var let pakfile switch case default out_of_range namespace not and or attribute
     if for while super constructor guard abstract union member member_frame
     static static_frame attribute operator`

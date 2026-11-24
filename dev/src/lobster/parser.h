@@ -1379,6 +1379,12 @@ struct Parser {
                 dest = type_string;
                 lex.Next();
                 break;
+            case T_TYPEIDTYPE:
+                // The typeid of any type, which is what the builtins taking one accept, but
+                // which no longer says the type it is of, see `typeof`.
+                dest = type_typeid;
+                lex.Next();
+                break;
             case T_RESOURCE: {
                 lex.Next();
                 Expect(T_LT);

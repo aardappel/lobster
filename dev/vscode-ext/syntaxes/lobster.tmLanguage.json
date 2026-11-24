@@ -33,7 +33,7 @@
         },
         {
           "name": "storage.type.source.lobster",
-          "match": "\\b(int|float|string|bool|void|resource)\\b"
+          "match": "\\b(int|float|string|bool|void|resource|typeid)\\b"
         },
         {
           "name": "constant.language.source.lobster",

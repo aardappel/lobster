@@ -81,7 +81,7 @@ The following words are keywords and cannot be identifiers:
     def default elif else enum enum_flags float fn for from guard if import
     int is let member member_frame namespace nil nonlocal not operator or
     out_of_range pakfile private program resource return static static_frame
-    string struct super switch typeof union var void while
+    string struct super switch typeid typeof union var void while
 
 `inf`, `infinity` and `nan` are float literals (see below) and therefore also
 not usable as identifiers. `true`, `false` and `this` are not keywords: `true`
@@ -573,7 +573,7 @@ Types
 
 ### Type syntax
 
-    type   = `int` | `float` | `string` | tname | tname `<` types `>`
+    type   = `int` | `float` | `string` | `typeid` | tname | tname `<` types `>`
            | `[` type `]` | `resource` `<` ident `>` | typevar | ftname
            | type `?`
     types  = type (`,` type)*
@@ -605,8 +605,10 @@ function `any`).
   specific anonymous function (not nameable) or a declared function type.
 - `resource<name>`: opaque reference type provided by the host; compared by
   identity, nilable.
-- typeid: the type of `typeof` expressions, represented as an `int` at run
-  time.
+- typeids: `typeof T` is of the typeid type of `T` specifically (which
+  messages call `typeid(T)`, and which can not be written), each of which
+  converts to `typeid`, a typeid of any type. Represented as an `int` at run
+  time (see is, typeof, assert, nil).
 - `T?`: `T` or `nil`. `nil` is the null reference; there is one nil value for
   all nilable types.
 - `void`: no value; the type of statements and of calls to functions that
@@ -1100,8 +1102,16 @@ error, as is `v[0] is int` after `let v = []`.
 
 `typeof x` for a variable `x`, or `typeof T` for a type, is an `int` typeid
 identifying the type in the program's type table (`typeof int` is always
-`0`). Typeids convert to `int`; comparing typeids of different static types
-is an error.
+`0`). Its type is `typeid(T)` for the static type `T`, such that a builtin
+returning a value of the type a typeid argument is of (`parse_data`,
+`thread_read`, ...) has that `T` as its static return type. Typeids convert to
+`int`, and to `typeid`, which can hold the typeid of any type, e.g. in a field,
+but which no longer says what type it is of, so such a builtin is an error to
+call with one. `typeid` is also what typeids of different types have in common
+(as for a vector of them, or the branches of an `if`), so any two typeids can
+be compared. A typeid is an offset into the type table of the build of the
+program that made it, so it can be written as part of a value by the
+serialization builtins, but reading one back is an error.
 
 `assert e` evaluates `e`; if false, it is a runtime error ("assertion
 failed: <expression>") unless assertions are compiled out (`--runtime-no-asserts`,

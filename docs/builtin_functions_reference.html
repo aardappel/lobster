@@ -835,10 +835,10 @@
 <tr class="a" valign=top><td class="a"><tt><b>type_field_value</b>(obj<font color="#666666">: any</font>, idx<font color="#666666">: int</font>) -> <font color="#666666">string</font></tt></td><td class="a">string representing the value of a field in an object, or empty for other reference types</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>type_enum_value_name</b>(enum_type_id<font color="#666666">: typeid(any)</font>, idx<font color="#666666">: int</font>) -> <font color="#666666">string</font></tt></td><td class="a">string representing the name of an enum value, belonging to the enum (use typeof)</td>
+<tr class="a" valign=top><td class="a"><tt><b>type_enum_value_name</b>(enum_type_id<font color="#666666">: typeid</font>, idx<font color="#666666">: int</font>) -> <font color="#666666">string</font></tt></td><td class="a">string representing the name of an enum value, belonging to the enum (use typeof)</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>type_enum_value_valid</b>(enum_type_id<font color="#666666">: typeid(any)</font>, idx<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">whether an integer is a value of the given enum (use typeof), i.e. whether type_enum_value_name would give it a name, but without allocating a string. Cheap enough to range check a value that may come from elsewhere (such as a file written by a newer version of the program) before switching on it. For an enum_flags, any combination of declared bits is a value, so this is true for more values than a switch on it has cases</td>
+<tr class="a" valign=top><td class="a"><tt><b>type_enum_value_valid</b>(enum_type_id<font color="#666666">: typeid</font>, idx<font color="#666666">: int</font>) -> <font color="#666666">int</font></tt></td><td class="a">whether an integer is a value of the given enum (use typeof), i.e. whether type_enum_value_name would give it a name, but without allocating a string. Cheap enough to range check a value that may come from elsewhere (such as a file written by a newer version of the program) before switching on it. For an enum_flags, any combination of declared bits is a value, so this is true for more values than a switch on it has cases</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>program_name</b>() -> <font color="#666666">string</font></tt></td><td class="a">returns the name of the main program (e.g. "foo.lobster"), "" if running from lpak.</td>
@@ -904,13 +904,13 @@
 <tr class="a" valign=top><td class="a"><tt><b>thread_write</b>(object<font color="#666666">: any</font>)</tt></td><td class="a">put this object in the thread queue</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>thread_read</b>(type<font color="#666666">: typeid(any)</font>) -> <font color="#666666">any?</font></tt></td><td class="a">get an object from the thread queue. pass the typeof object. blocks if no such objects available. returns object, or nil if this was the result of thread_wake() or stop_worker_threads() was called</td>
+<tr class="a" valign=top><td class="a"><tt><b>thread_read</b>(type<font color="#666666">: typeid</font>) -> <font color="#666666">any?</font></tt></td><td class="a">get an object from the thread queue. pass the typeof object. blocks if no such objects available. returns object, or nil if this was the result of thread_wake() or stop_worker_threads() was called</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>thread_check</b>(type<font color="#666666">: typeid(any)</font>) -> <font color="#666666">any?</font></tt></td><td class="a">tests if an object is available on the thread queue. pass the typeof object. returns object, or nil if none available, or if stop_worker_threads() was called</td>
+<tr class="a" valign=top><td class="a"><tt><b>thread_check</b>(type<font color="#666666">: typeid</font>) -> <font color="#666666">any?</font></tt></td><td class="a">tests if an object is available on the thread queue. pass the typeof object. returns object, or nil if none available, or if stop_worker_threads() was called</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>thread_wake</b>(type<font color="#666666">: typeid(any)</font>)</tt></td><td class="a">wakes up one thread that are currently blocked on a thread_read for this type. this will cause them to return nil since no object is sent. it is similar to thread_write(nil)</td>
+<tr class="a" valign=top><td class="a"><tt><b>thread_wake</b>(type<font color="#666666">: typeid</font>)</tt></td><td class="a">wakes up one thread that are currently blocked on a thread_read for this type. this will cause them to return nil since no object is sent. it is similar to thread_write(nil)</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>crash_test_cpp_nullptr_exception</b>()</tt></td><td class="a">only for testing crash dump functionality, don't use! :)</td>
@@ -1137,13 +1137,13 @@
 </tr>
 </table></td></tr>
 <tr class="a" valign=top><td><h3>parsedata</h3></td></tr>
-<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>parse_data</b>(typeid<font color="#666666">: typeid(any)</font>, stringdata<font color="#666666">: string</font>) -> <font color="#666666">any?</font>, <font color="#666666">string?</font></tt></td><td class="a">parses a string containing a data structure in lobster syntax (what you get if you convert an arbitrary data structure to a string) back into a data structure. supports int/float/string/vector and classes. classes will be forced to be compatible with their  current definitions, i.e. too many elements will be truncated, missing elements will be set to 0/nil if possible. useful for simple file formats. returns the value and an error string as second return value (or nil if no error)</td>
+<tr><td><table class="a" border=1 cellspacing=0 cellpadding=4><tr class="a" valign=top><td class="a"><tt><b>parse_data</b>(typeid<font color="#666666">: typeid</font>, stringdata<font color="#666666">: string</font>) -> <font color="#666666">any?</font>, <font color="#666666">string?</font></tt></td><td class="a">parses a string containing a data structure in lobster syntax (what you get if you convert an arbitrary data structure to a string) back into a data structure. supports int/float/string/vector and classes. classes will be forced to be compatible with their  current definitions, i.e. too many elements will be truncated, missing elements will be set to 0/nil if possible. useful for simple file formats. returns the value and an error string as second return value (or nil if no error)</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>flexbuffers_value_to_binary</b>(val<font color="#666666">: any</font>, max_nesting<font color="#666666">: int</font> = 0, cycle_detection<font color="#666666">: bool</font> = false) -> <font color="#666666">string</font></tt></td><td class="a">turns any reference value into a flexbuffer. max_nesting defaults to 100. cycle_detection is by default off (expensive)</td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>flexbuffers_binary_to_value</b>(typeid<font color="#666666">: typeid(any)</font>, flex<font color="#666666">: string</font>) -> <font color="#666666">any?</font>, <font color="#666666">string?</font></tt></td><td class="a">turns a flexbuffer into a value</td>
+<tr class="a" valign=top><td class="a"><tt><b>flexbuffers_binary_to_value</b>(typeid<font color="#666666">: typeid</font>, flex<font color="#666666">: string</font>) -> <font color="#666666">any?</font>, <font color="#666666">string?</font></tt></td><td class="a">turns a flexbuffer into a value</td>
 
 </tr>
 <tr class="a" valign=top><td class="a"><tt><b>flexbuffers_binary_to_json</b>(flex<font color="#666666">: string</font>, field_quotes<font color="#666666">: bool</font>, indent_string<font color="#666666">: string</font>) -> <font color="#666666">string?</font>, <font color="#666666">string?</font></tt></td><td class="a">turns a flexbuffer into a JSON string. If indent_string is empty, will be a single line string</td>
@@ -1155,7 +1155,7 @@
 <tr class="a" valign=top><td class="a"><tt><b>lobster_value_to_binary</b>(val<font color="#666666">: any</font>) -> <font color="#666666">string</font></tt></td><td class="a">turns any reference value into a binary using a fast &amp; compact Lobster native serialization format. this is intended for threads/networking, not for storage (since it is not readable by other languages). data structures participating must have been marked by attribute serializable. does not provide protection against cycles, use flexbuffers if that is a concern. </td>
 
 </tr>
-<tr class="a" valign=top><td class="a"><tt><b>lobster_binary_to_value</b>(typeid<font color="#666666">: typeid(any)</font>, bin<font color="#666666">: string</font>) -> <font color="#666666">any?</font>, <font color="#666666">string?</font></tt></td><td class="a">turns binary created by lobster_value_to_binary back into a value</td>
+<tr class="a" valign=top><td class="a"><tt><b>lobster_binary_to_value</b>(typeid<font color="#666666">: typeid</font>, bin<font color="#666666">: string</font>) -> <font color="#666666">any?</font>, <font color="#666666">string?</font></tt></td><td class="a">turns binary created by lobster_value_to_binary back into a value</td>
 
 </tr>
 </table></td></tr>

@@ -361,9 +361,11 @@ def errors_tests():
     expect_error("continue\nreturn 1", "must occur inside")
     // Assigning the wrong type to a typed field.
     expect_error("class C:\n    x:int\nlet c = C \{ 1 \}\nc.x = \"s\"\nreturn c.x", "error")
-    // typeid comparison is type checked: comparing typeids of different static
-    // types is a type error.
-    expect_error("return typeof int == typeof float", "requires type")
+    // A `typeid` holds the typeid of any type, but goes no further than that.
+    expect_error("let t:typeid = typeof int\nvar u = typeof float\nu = t\nreturn u",
+                 "requires type `typeid(float)`, got `typeid`")
+    expect_error("let t:typeid = 1\nreturn t", "requires type `typeid`, got `int`")
+    expect_error("let t:typeid? = nil\nreturn t", "value types can\'t be made nilable")
 
     // Declaring a variable or function with the same name as a namespace (or
     // declaring a namespace over an existing declaration) is an error, since

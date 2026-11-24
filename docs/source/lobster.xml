@@ -92,6 +92,7 @@
       <item>int4</item>
       <item>resource</item>
       <item>string</item>
+      <item>typeid</item>
       <item>void</item>
     </list>
     <list name="constants">

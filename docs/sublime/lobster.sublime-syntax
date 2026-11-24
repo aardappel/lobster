@@ -39,7 +39,7 @@ contexts:
           scope: storage.type.lobster
 
         # Built-in Types:
-        - match: (?i)\b(int|float|string|vector|bool|void|resource)(?!\()\b
+        - match: (?i)\b(int|float|string|vector|bool|void|resource|typeid)(?!\()\b
           scope: storage.type.lobster
 
         # Module Types:

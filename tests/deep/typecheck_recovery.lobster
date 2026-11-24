@@ -564,14 +564,15 @@ def typecheck_recovery_tests():
     expect_errors("""
         print("a" - 1)
         print(1 < "a")
-        print(typeof int == typeof float)
+        print(typeof int < typeof float)
         print(-"a")
         print([ 1 ] * 2)
         let z:float = "s"
         return 1
         """, [ "`-` (left argument) requires type `numeric/struct`, got `string`",
                "`<` doesn\'t work on `int` and `string`",
-               "requires type", "requires type `numeric / numeric struct`, got `string`",
+               "`<` doesn\'t work on `typeid(int)` and `typeid(float)`",
+               "requires type `numeric / numeric struct`, got `string`",
                "`*` (left argument) requires type `numeric/struct`, got `[int]`",
                "requires type `float`, got `string`" ])
 
@@ -770,7 +771,15 @@ def typecheck_recovery_tests():
         let v, err = parse_data(1 - 1, "2")
         let z:float = "s"
         return v or err
-        """, [ "`parse_data` (1st argument) requires type `typeid(any)`, got `int`",
+        """, [ "`parse_data` (1st argument) requires type `typeid`, got `int`",
+               "requires type `float`, got `string`" ])
+    // A `typeid` where a builtin has to know the type it is of to type its result.
+    expect_errors("""
+        def p(t:typeid): return parse_data(t, "2")
+        let v, err = p(typeof int)
+        let z:float = "s"
+        return v or err
+        """, [ "`parse_data` returns a value of the type its typeid is of, which a `typeid`",
                "requires type `float`, got `string`" ])
 
 typecheck_recovery_tests()

@@ -591,6 +591,7 @@ struct TypeCheckBase {
             auto sstruc = CommonSuperType(at->udt, bt->udt);
             if (sstruc) return &sstruc->thistype;
         }
+        if (at->t == V_TYPEID && bt->t == V_TYPEID) return type_typeid;
         error:
         if (err) {
             Error(*err, Q(TypeName(at)), " (", aname, ") and ", Q(TypeName(bt)), " (", bname,

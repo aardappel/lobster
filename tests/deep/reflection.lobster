@@ -15,6 +15,10 @@ class DReflSub : DRefl
 
 def dref_as_base(x:DRefl) -> DRefl: return x
 
+class DReflTypeIds:
+    one:typeid
+    many:[typeid]
+
 def reflection_tests():
     suite("reflection")
 
@@ -82,6 +86,21 @@ def reflection_tests():
     // typeof on an ident that will get constant-folded.
     let tconst = 1
     test_eq(typeof tconst, typeof int)
+    // A `typeid` holds the typeid of any type, so that a field, variable or argument of it
+    // can hold different ones, and compares to those of specific types.
+    // It is also what typeids of different types have in common, like a superclass.
+    let tf = DReflTypeIds { typeof int, [ typeof string, typeof [float] ] }
+    test_true(tf.one == typeof int)
+    test_true(typeof string == tf.many[0])
+    test_true(tf.one != tf.many[1])
+    test_true(typeof int != typeof float)
+    tf.one = typeof DRefl
+    test_eq(tf.one, typeof DRefl)
+    tf.one = if tf.many.length == 2: typeof DReflSub else: typeof float
+    test_eq(tf.one, typeof DReflSub)
+    def typeid_arg(t:typeid): return t
+    test_eq(typeid_arg(typeof bool), typeof bool)
+    test_eq(type_enum_value_name(typeid_arg(typeof bool), 1), "true")
 
     // type_string / type_element_string / type_id.
     let r = DRefl {}

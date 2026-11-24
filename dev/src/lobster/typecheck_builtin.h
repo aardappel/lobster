@@ -293,6 +293,12 @@ struct TypeCheckBuiltin : virtual TypeCheckLocations {
                         auto tin = node.children[0];  // Usually a TypeOf, but could be IdentRef or any exp?
                         // Anything but a typeid got an error from the SubType above.
                         type = tin->exptype->t == V_TYPEID ? tin->exptype->sub : type_error;
+                        if (type->t == V_ANY) {
+                            Error(*tin, Q(node.nf->name), " returns a value of the type its typeid"
+                                        " is of, which a ", Q("typeid"), " does not say (use ",
+                                        Q("typeof"), " of that type)");
+                            type = type_error;
+                        }
                     }
 
                     if (ret.optional) {

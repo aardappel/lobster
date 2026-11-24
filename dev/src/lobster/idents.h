@@ -2385,7 +2385,10 @@ string TypeName(UnTypeRef type, bool tuple_brackets, int depth) {
         case V_INT:
             return type->e ? type->e->name : "int";
         case V_TYPEID:
-            return "typeid(" + TypeName(type->sub, true, depth) + ")";
+            // What `typeid` names is the typeid of any type, what `typeof T` gives that of T.
+            return type->sub->t == V_ANY
+                ? "typeid"
+                : "typeid(" + TypeName(type->sub, true, depth) + ")";
         case V_TYPEVAR:
             return string(type->tv->name);
         case V_RESOURCE:
