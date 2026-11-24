@@ -1379,12 +1379,25 @@ struct Parser {
                 dest = type_string;
                 lex.Next();
                 break;
-            case T_TYPEIDTYPE:
-                // The typeid of any type, which is what the builtins taking one accept, but
-                // which no longer says the type it is of, see `typeof`.
-                dest = type_typeid;
+            case T_TYPEIDTYPE: {
+                // By itself, the typeid of any type, which is what the builtins taking one
+                // accept, but which no longer says the type it is of. As `typeid<T>`, that of
+                // T, or of a subclass of it, see `typeof`.
                 lex.Next();
+                if (!IsNext(T_LT)) {
+                    dest = type_typeid;
+                    break;
+                }
+                T of;
+                int n = 0;
+                ParseSpecializerList([&]() {
+                    auto t = ParseType<T>(false, nullptr, allow_unresolved);
+                    if (!n++) of = t;
+                });
+                if (n != 1) Error(Q("typeid"), " takes a single type");
+                dest = st.Wrap(of, V_TYPEID);
                 break;
+            }
             case T_RESOURCE: {
                 lex.Next();
                 Expect(T_LT);

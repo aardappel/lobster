@@ -363,9 +363,23 @@ def errors_tests():
     expect_error("class C:\n    x:int\nlet c = C \{ 1 \}\nc.x = \"s\"\nreturn c.x", "error")
     // A `typeid` holds the typeid of any type, but goes no further than that.
     expect_error("let t:typeid = typeof int\nvar u = typeof float\nu = t\nreturn u",
-                 "requires type `typeid(float)`, got `typeid`")
+                 "requires type `typeid<float>`, got `typeid`")
     expect_error("let t:typeid = 1\nreturn t", "requires type `typeid`, got `int`")
     expect_error("let t:typeid? = nil\nreturn t", "value types can\'t be made nilable")
+    // A `typeid<T>` holds that of T, or of a subclass of T, and nothing else.
+    let tidclasses = "class B:\n    a = 1\nclass S : B\n    b = 2\nclass O:\n    c = 3\n"
+    expect_error(tidclasses + "let t:typeid<B> = typeof O\nreturn t",
+                 "requires type `typeid<B>`, got `typeid<O>`")
+    expect_error(tidclasses + "let b:typeid<B> = typeof B\nlet t:typeid<S> = b\nreturn t",
+                 "requires type `typeid<S>`, got `typeid<B>`")
+    expect_error("let t:typeid<[float]> = typeof [int]\nreturn t",
+                 "requires type `typeid<[float]>`, got `typeid<[int]>`")
+    // Where it could be added to, a vector of them only holds those of the exact type.
+    expect_error(tidclasses + "def f(v:[typeid<B>]): v.push(typeof B)\nlet v = [ typeof S ]\n" +
+                 "f(v)\nreturn v", "requires type `[typeid<B>]`, got `[typeid<S>]`")
+    expect_error("def f(v:[typeid]): v.push(typeof int)\nlet v = [ typeof float ]\nf(v)\n" +
+                 "return v", "requires type `[typeid]`, got `[typeid<float>]`")
+    expect_error("let t:typeid<int, float> = typeof int\nreturn t", "takes a single type")
 
     // Declaring a variable or function with the same name as a namespace (or
     // declaring a namespace over an existing declaration) is an error, since

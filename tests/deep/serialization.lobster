@@ -219,4 +219,28 @@ def serialization_tests():
     test_true(ftd2 == nil)
     test_true(ftd2err and ftd2err.find_string("t: cannot read a typeid") >= 0)
 
+    // A `typeid<T>` may be that of a subclass of T, which then is what gets read, also from
+    // data that doesn't say what class it is, as a value of T.
+    let kinds:[typeid<DSerBase>] = [ typeof DSerBase, typeof DSerSub ]
+    let kflex, kjerr = flexbuffers_json_to_binary("\{ a: 1, b: 2 \}")
+    test_eq(kjerr, nil)
+    let kbase, kbaseerr = flexbuffers_binary_to_value(kinds[0], kflex)
+    test_eq(kbaseerr, nil)
+    test_true(equal(kbase, DSerBase { 1 }))
+    let ksub, ksuberr = flexbuffers_binary_to_value(kinds[1], kflex)
+    test_eq(ksuberr, nil)
+    test_true(ksub is DSerSub)
+    test_true(equal(ksub, DSerSub { 1, 2 }))
+    let ptsub, ptsuberr = parse_data(kinds[1], "DSerSub \{ 3, 4 \}")
+    test_eq(ptsuberr, nil)
+    test_true(equal(ptsub, DSerSub { 3, 4 }))
+    let ltsub, ltsuberr = lobster_binary_to_value(kinds[1], lobster_value_to_binary(DSerSub { 5, 6 }))
+    test_eq(ltsuberr, nil)
+    test_true(equal(ltsub, DSerSub { 5, 6 }))
+    // Data that says it is of a class that is not (a subclass of) the one the typeid is of is
+    // still an error, even when it is of T.
+    let ptbase, ptbaseerr = parse_data(kinds[1], "DSerBase \{ 3 \}")
+    test_true(ptbase == nil)
+    test_true(ptbaseerr and ptbaseerr.find_string("DSerSub required") >= 0)
+
 serialization_tests()

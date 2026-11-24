@@ -571,7 +571,7 @@ def typecheck_recovery_tests():
         return 1
         """, [ "`-` (left argument) requires type `numeric/struct`, got `string`",
                "`<` doesn\'t work on `int` and `string`",
-               "`<` doesn\'t work on `typeid(int)` and `typeid(float)`",
+               "`<` doesn\'t work on `typeid<int>` and `typeid<float>`",
                "requires type `numeric / numeric struct`, got `string`",
                "`*` (left argument) requires type `numeric/struct`, got `[int]`",
                "requires type `float`, got `string`" ])

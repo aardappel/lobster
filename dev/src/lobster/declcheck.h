@@ -145,6 +145,7 @@ struct DeclChecker {
             case V_FLOAT:
             case V_FUNCTION:
             case V_STRUCT_S:
+            case V_TYPEID:
                 return false;
             default:
                 // A generic struct (V_UUDT) can be given reference type arguments.

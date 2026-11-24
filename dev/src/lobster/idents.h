@@ -471,6 +471,7 @@ bool Type::Equal(const Type &o, bool allow_unresolved) const {
     switch (t) {
         case V_VECTOR:
         case V_NIL:
+        case V_TYPEID:
             return sub->Equal(*o.sub, allow_unresolved);
         case V_UUDT:
             return spec_udt->Equal(*o.spec_udt);
@@ -1739,6 +1740,7 @@ struct SymbolTable {
 
     bool IsGeneric(UnTypeRef type) {
         auto u = type->UnWrapAll();
+        if (u->t == V_TYPEID) return IsGeneric(u->sub);
         return u->t == V_TYPEVAR ||
                (u->t == V_UUDT && u->spec_udt->IsGeneric());
     }
@@ -1776,9 +1778,10 @@ struct SymbolTable {
     TypeRef ResolveTypeVars(UnTypeRef type, const Line &errl) {
         switch (type->t) {
             case V_NIL:
-            case V_VECTOR: {
-                auto nt = ResolveTypeVars({ type->Element() }, errl);
-                if (&*nt != &*type->Element()) {
+            case V_VECTOR:
+            case V_TYPEID: {
+                auto nt = ResolveTypeVars({ type->sub }, errl);
+                if (&*nt != &*type->sub) {
                     return Wrap(nt, type->t, &errl);
                 }
                 return &*type;
@@ -2388,7 +2391,7 @@ string TypeName(UnTypeRef type, bool tuple_brackets, int depth) {
             // What `typeid` names is the typeid of any type, what `typeof T` gives that of T.
             return type->sub->t == V_ANY
                 ? "typeid"
-                : "typeid(" + TypeName(type->sub, true, depth) + ")";
+                : "typeid<" + TypeName(type->sub, true, depth) + ">";
         case V_TYPEVAR:
             return string(type->tv->name);
         case V_RESOURCE:

@@ -518,11 +518,14 @@ struct TypeCheckBase {
             case V_TUPLE:
                 return type->t == V_TUPLE && ConvertsToTuple(*type->tup, *bound->tup);
             case V_TYPEID:
-                if (type->t != V_TYPEID) return false;
-                bound = bound->sub;
-                type = type->sub;
-                // This is minimalistic, but suffices for the current uses of V_TYPEID.
-                return bound->t == V_ANY;
+                // Where only the exact type will do (such as for the elements of a vector
+                // that may be added to), that is the typeid of the same type, see Equal above.
+                if (type->t != V_TYPEID || (cf & CF_EXACTTYPE)) return false;
+                // Any typeid converts to `typeid`, and that of a class to that of any of its
+                // superclasses, since what a builtin makes from it is a value of those too.
+                if (bound->sub->t == V_ANY) return true;
+                return type->sub->t == V_CLASS && bound->sub->t == V_CLASS &&
+                       SuperDistance(bound->sub->udt, type->sub->udt) >= 0;
             default:
                 return false;
         }
@@ -591,7 +594,13 @@ struct TypeCheckBase {
             auto sstruc = CommonSuperType(at->udt, bt->udt);
             if (sstruc) return &sstruc->thistype;
         }
-        if (at->t == V_TYPEID && bt->t == V_TYPEID) return type_typeid;
+        if (at->t == V_TYPEID && bt->t == V_TYPEID) {
+            if (at->sub->t == V_CLASS && bt->sub->t == V_CLASS) {
+                auto sstruc = CommonSuperType(at->sub->udt, bt->sub->udt);
+                if (sstruc) return st.Wrap(TypeRef(&sstruc->thistype), V_TYPEID);
+            }
+            return type_typeid;
+        }
         error:
         if (err) {
             Error(*err, Q(TypeName(at)), " (", aname, ") and ", Q(TypeName(bt)), " (", bname,
@@ -1055,11 +1064,13 @@ struct TypeCheckBase {
 static TypeRef SimpleResolve(UnTypeRef t, SymbolTable &st) {
     switch (t->t) {
         case V_NIL:
-        case V_VECTOR: {
-            auto e = SimpleResolve({ t->Element() }, st);
+        case V_VECTOR:
+        case V_TYPEID: {
+            if (t->sub->t == V_ANY) return TypeRef(t.get());  // `typeid`.
+            auto e = SimpleResolve({ t->sub }, st);
             if (e.Null()) return nullptr;
             if (t->t == V_NIL && !st.IsNillable(e)) return nullptr;  // TT reports this error.
-            if (&*e == t->Element()) return TypeRef(t.get());
+            if (&*e == t->sub) return TypeRef(t.get());
             return st.Wrap(e, t->t);
         }
         case V_TYPEVAR: {

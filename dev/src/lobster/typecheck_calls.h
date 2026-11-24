@@ -221,6 +221,12 @@ struct TypeCheckCalls : virtual TypeCheckLocations {
         if (otype->t == V_NIL) {
             otype = otype->Element();
         }
+        if (otype->t == V_TYPEID) {
+            // A `typeid` says nothing about the type its variable would be.
+            if (atype->t == V_TYPEID && atype->sub->t != V_ANY)
+                BindTypeVar({ otype->sub }, atype->sub, generics, parent);
+            return;
+        }
         if (otype->t == V_TYPEVAR) {
             for (auto &gtv : generics) {
                 if (gtv.tv == otype->tv && gtv.type.Null()) {

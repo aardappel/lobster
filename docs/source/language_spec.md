@@ -573,7 +573,8 @@ Types
 
 ### Type syntax
 
-    type   = `int` | `float` | `string` | `typeid` | tname | tname `<` types `>`
+    type   = `int` | `float` | `string` | `typeid` | `typeid` `<` type `>`
+           | tname | tname `<` types `>`
            | `[` type `]` | `resource` `<` ident `>` | typevar | ftname
            | type `?`
     types  = type (`,` type)*
@@ -605,10 +606,9 @@ function `any`).
   specific anonymous function (not nameable) or a declared function type.
 - `resource<name>`: opaque reference type provided by the host; compared by
   identity, nilable.
-- typeids: `typeof T` is of the typeid type of `T` specifically (which
-  messages call `typeid(T)`, and which can not be written), each of which
-  converts to `typeid`, a typeid of any type. Represented as an `int` at run
-  time (see is, typeof, assert, nil).
+- typeids: `typeid<T>` holds the typeid of `T`, or of a subclass of `T` for a
+  class, and `typeid` that of any type. Represented as an `int` at run time
+  (see is, typeof, assert, nil).
 - `T?`: `T` or `nil`. `nil` is the null reference; there is one nil value for
   all nilable types.
 - `void`: no value; the type of statements and of calls to functions that
@@ -677,9 +677,12 @@ representation and are only applied where stated:
    any subtype converts; outside a family only a subclass that adds no fields
    converts (a struct is exactly its fields, so it is never truncated).
 8. T is a declared function type: see Function values.
-9. T is a tuple: S is a tuple of the same length converting element-wise.
-10. T is `void`: any S, where coercion is allowed (a value is discarded).
-11. Either side is an unbound inference variable: it is bound to the other.
+9. T is `typeid`: S is any typeid. T is `typeid<C>` for a class C: S is
+   `typeid<D>` for C or a subclass D of it. As a vector element type or where
+   an exact type is required, only the same typeid type.
+10. T is a tuple: S is a tuple of the same length converting element-wise.
+11. T is `void`: any S, where coercion is allowed (a value is discarded).
+12. Either side is an unbound inference variable: it is bound to the other.
     Binding the element type variable of a `nil` (see Type syntax for which
     types can be nilable) to a type that cannot be nilable is an error, so a
     type such as `int?` never exists.
@@ -694,7 +697,8 @@ coercion where the construct allows it), else for two vectors the vector of
 the union of their elements (without coercion), for nilables the nilable of
 the union of the elements (both must be reference types), for two classes
 their nearest common superclass, for two structs of the same family their
-nearest common superclass. Otherwise there is no union (an error, or a
+nearest common superclass, for two typeids `typeid<C>` for the nearest common
+superclass C of two classes they are of, else `typeid`. Otherwise there is no union (an error, or a
 fallback, as each construct states).
 
 
@@ -1102,14 +1106,16 @@ error, as is `v[0] is int` after `let v = []`.
 
 `typeof x` for a variable `x`, or `typeof T` for a type, is an `int` typeid
 identifying the type in the program's type table (`typeof int` is always
-`0`). Its type is `typeid(T)` for the static type `T`, such that a builtin
+`0`). Its type is `typeid<T>` for the static type `T`, such that a builtin
 returning a value of the type a typeid argument is of (`parse_data`,
-`thread_read`, ...) has that `T` as its static return type. Typeids convert to
-`int`, and to `typeid`, which can hold the typeid of any type, e.g. in a field,
-but which no longer says what type it is of, so such a builtin is an error to
-call with one. `typeid` is also what typeids of different types have in common
-(as for a vector of them, or the branches of an `if`), so any two typeids can
-be compared. A typeid is an offset into the type table of the build of the
+`thread_read`, ...) has that `T` as its static return type. For a class, a
+`typeid<T>` may be that of a subclass of `T`, which is then what the builtin
+makes a value of, so a field `kind:typeid<Base>` can say which subclass of
+`Base` to read, even from data that doesn't say. A `typeid<T>` parameter binds
+a type variable `T`. Typeids convert to `int`, and to `typeid`, which can hold
+the typeid of any type, but which no longer says what type it is of, so such a
+builtin is an error to call with one. Any two typeids can be compared (see
+Conversions for their union). A typeid is an offset into the type table of the build of the
 program that made it, so it can be written as part of a value by the
 serialization builtins, but reading one back is an error. A typeid field the
 data leaves out gets its default only where that is `typeof` of a type that
